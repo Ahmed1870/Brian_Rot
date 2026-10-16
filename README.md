@@ -1,9 +1,7 @@
-# BrainRotViral — Blade Runner Cyberpunk Data Hologram (35s, seamless loop)
-Remotion + React + TypeScript · 1080x1920 · 30fps · 1050 frames · composition id `BrainRotViral` · English-only typography
+# Hyper-Speed Quantum Pulse — 10 ثواني بدون فويس أوفر (Composition ID: BrainRotViral)
 
-    npm install
-    npm run dev       # studio
-    npm run build     # checks audio then renders out/BrainRotViral.mp4
-
-public/audio_0.mp3 = your Joi clip (30s) · public/sfx.wav = procedural SFX (python3 scripts/make_sfx.py)
-Loop: frame 0 and frame 1049 are the same light point (CoreDot), rain/pad cycle exactly once per 1050 frames.
+- 1080×1920 · 30fps · 300 فريم بالظبط · لوب تام (الفريم 300 ≡ الفريم 0 بدون أي فرق)
+- Canvas 3D: 1800 جسيم + 6 مجسمات زجاجية + مكعب فائق 4D (Tesseract) + موجات صدمة
+- الصوت: `npm run generate-audio` بيولّد `public/sfx_hyper_10s.wav` (Node فقط) — عد متسارع + Stutter + Sub-Bass Boom عند 8.0s
+- إطار الهوية (HUD) دائم: لوجو + Online + الهاتف + المعرفات + بادجات الموقعين
+- معاينة: `npm install && npm run generate-audio && npm run dev` — رندر: `npm run build`

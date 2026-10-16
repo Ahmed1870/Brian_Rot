@@ -1,15 +1,8 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {Main} from './Composition';
-import {DURATION, FPS, HEIGHT, WIDTH} from './theme';
+import {BrainRotViral} from './Composition';
 
+// 10 ثواني بالظبط = 300 فريم @ 30fps — بدون فويس أوفر.
 export const RemotionRoot: React.FC = () => (
-  <Composition
-    id="BrainRotViral"
-    component={Main}
-    durationInFrames={DURATION}
-    fps={FPS}
-    width={WIDTH}
-    height={HEIGHT}
-  />
+  <Composition id="BrainRotViral" component={BrainRotViral} durationInFrames={300} fps={30} width={1080} height={1920} />
 );
