@@ -1,6 +1,6 @@
 {
-  "name": "brain-rot-viral-quantum",
-  "version": "3.0.0",
+  "name": "brain-rot-viral-blade-runner",
+  "version": "4.0.0",
   "private": true,
   "scripts": {
     "dev": "remotion studio src/index.ts",

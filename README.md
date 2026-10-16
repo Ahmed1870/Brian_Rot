@@ -1,9 +1,9 @@
-# BrainRotViral — 4D Quantum Morphing (15s seamless loop)
-Remotion + React + TypeScript · 1080x1920 · 30fps · 450 frames · composition id `BrainRotViral`
+# BrainRotViral — Blade Runner Cyberpunk Data Hologram (35s, seamless loop)
+Remotion + React + TypeScript · 1080x1920 · 30fps · 1050 frames · composition id `BrainRotViral` · English-only typography
 
     npm install
     npm run dev       # studio
     npm run build     # checks audio then renders out/BrainRotViral.mp4
 
-Loop: every angle/phase is an integer multiple of 2*PI over 450 frames, so frame 450 == frame 0.
-public/voiceover.wav = voice-over (15s) · public/sfx.wav = loop-safe SFX (python3 scripts/make_sfx.py)
+public/audio_0.mp3 = your Joi clip (30s) · public/sfx.wav = procedural SFX (python3 scripts/make_sfx.py)
+Loop: frame 0 and frame 1049 are the same light point (CoreDot), rain/pad cycle exactly once per 1050 frames.
