@@ -1,15 +1,15 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {CrackedScreenReel} from './CrackedScreenReel';
+import {Main} from './Composition';
+import {DURATION, FPS, HEIGHT, WIDTH} from './theme';
 
-export const Root: React.FC = () => (
+export const RemotionRoot: React.FC = () => (
   <Composition
-    id="CrackedScreenReel"
-    component={CrackedScreenReel}
-    durationInFrames={240}
-    fps={30}
-    width={1080}
-    height={1920}
-    defaultProps={{}}
+    id="BrainRotViral"
+    component={Main}
+    durationInFrames={DURATION}
+    fps={FPS}
+    width={WIDTH}
+    height={HEIGHT}
   />
 );

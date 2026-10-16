@@ -1,10 +1,9 @@
-# Monzoma Digital — Fake Cracked Screen Reel
+# BrainRotViral — 4D Quantum Morphing (15s seamless loop)
+Remotion + React + TypeScript · 1080x1920 · 30fps · 450 frames · composition id `BrainRotViral`
 
-8 seconds, 240 frames, 30 FPS, 1080x1920.
+    npm install
+    npm run dev       # studio
+    npm run build     # checks audio then renders out/BrainRotViral.mp4
 
-Three distinct procedural SFX are generated during `npm run prepare`:
-- glass impact/shards
-- electrical glitch
-- ascending repair chime
-
-No external media assets are required.
+Loop: every angle/phase is an integer multiple of 2*PI over 450 frames, so frame 450 == frame 0.
+public/voiceover.wav = voice-over (15s) · public/sfx.wav = loop-safe SFX (python3 scripts/make_sfx.py)
