@@ -1,5 +1,3 @@
-import {loadFont as loadArabic} from '@remotion/google-fonts/IBMPlexSansArabic';
-import {loadFont as loadMono} from '@remotion/google-fonts/IBMPlexMono';
+import {loadFont as loadCairo} from '@remotion/google-fonts/Cairo';
 
-export const {fontFamily: AR} = loadArabic('normal', {weights: ['500', '700'], subsets: ['arabic', 'latin']});
-export const {fontFamily: MONO} = loadMono('normal', {weights: ['400', '500'], subsets: ['latin']});
+export const CAIRO = loadCairo('normal', {weights: ['800', '900'], subsets: ['arabic', 'latin']}).fontFamily;
