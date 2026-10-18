@@ -1,4 +1,4 @@
-name: Render BrainRotViral
+name: Render museum reel
 on:
   push:
     branches: [main]
@@ -6,6 +6,7 @@ on:
 jobs:
   render:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -13,8 +14,8 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm run generate-audio
-      - run: npx remotion render src/index.ts BrainRotViral out/BrainRotViral.mp4
+      - run: npx remotion render src/index.ts BrainRotViral out/museum-of-futures.mp4 --codec=h264 --crf=14 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: BrainRotViral
-          path: out/BrainRotViral.mp4
+          name: museum-of-futures
+          path: out/museum-of-futures.mp4

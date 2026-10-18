@@ -1,6 +1,11 @@
-# Infinite Typographic Wormhole — 35s (Composition ID: BrainRotViral)
+# The Museum of Futures That Never Happened — متحف المستقبل الذي لم يحدث
+Remotion + React + TypeScript · 1080x1920 · 30fps · 720 frames · composition id `BrainRotViral`
 
-- 1080×1920 · 30fps · 1050 فريم — لقطة واحدة متصلة (4 عوالم متداخلة بزوم لا نهائي)
-- الصوت: `public/vo_monzoma_digital_no_urls_35s.wav` (الفويس) + `npm run generate-audio` بيولّد `public/sfx_master_35s.wav` (SFX برمجي)
-- التحولات متظبطة على صمت الفويس: 7.8s / 16.5s / 26.6s — اللوب: آخر 5 فريمات بتنكمش لنقطة سودا ← الفريم 0 أسود
-- معاينة: `npm install && npm run generate-audio && npm run dev` — رندر: `npm run build`
+    npm install
+    npm run dev       # studio
+    npm run build     # checks audio, renders out/museum-of-futures.mp4
+
+Rendering: a tiny perspective engine (src/lib/engine.ts) projects boxes/quads/dots to SVG - no WebGL, no stock assets, safe in headless CI.
+Acts: Act1Pendulum (0-150) · Act2Fracture (150-330) · Act3Lens (330-510) · Act4BrandSeal (510-720) · EditorialText.
+Loop: frames 676-720 plunge through the seal's doorway into Act I at its frame-0 state (src/MuseumReel.tsx).
+Audio: voiceover.wav + stems from src/utils/audioConfig.ts (regenerate: python3 scripts/make_stems.py).
