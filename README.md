@@ -1,11 +1,6 @@
-# The Museum of Futures That Never Happened — متحف المستقبل الذي لم يحدث
-Remotion + React + TypeScript · 1080x1920 · 30fps · 720 frames · composition id `BrainRotViral`
+# «أنت لا ترى الحقيقة كاملة» — 18s (Composition ID: BrainRotViral)
 
-    npm install
-    npm run dev       # studio
-    npm run build     # checks audio, renders out/museum-of-futures.mp4
-
-Rendering: a tiny perspective engine (src/lib/engine.ts) projects boxes/quads/dots to SVG - no WebGL, no stock assets, safe in headless CI.
-Acts: Act1Pendulum (0-150) · Act2Fracture (150-330) · Act3Lens (330-510) · Act4BrandSeal (510-720) · EditorialText.
-Loop: frames 676-720 plunge through the seal's doorway into Act I at its frame-0 state (src/MuseumReel.tsx).
-Audio: voiceover.wav + stems from src/utils/audioConfig.ts (regenerate: python3 scripts/make_stems.py).
+- 1080×1920 · 30fps · 540 فريم — Diegetic Screen Frame Pull-Back
+- الصوت: `public/vo_brand_voiceover_18s_final.wav` (الفويس) + `npm run generate-audio` بيولّد `public/sfx_master_18s.wav` (SFX برمجي)
+- التوقيتات: 5.0s ارتداد الكاميرا · 6.0s إنذار · 9.2s انكماش الأحمر · 11.0s قفل معدني · 11.9s ختم البراند (في `src/theme.ts`)
+- معاينة: `npm install && npm run generate-audio && npm run dev` — رندر: `npm run build`
