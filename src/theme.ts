@@ -1,36 +1,54 @@
-export const W = 1080;
-export const H = 1920;
-export const CX = 540;
-export const CY = 960;
 export const FPS = 30;
-export const TOTAL = 540; // 18 ثانية
+export const DURATION = 1800;
+export const WIDTH = 1080;
+export const HEIGHT = 1920;
 
 export const C = {
-  bg: '#0F172A',
-  bgDeep: '#0A0F1E',
+  bg: '#0F172A',      // Deep Slate Navy
+  text: '#F8FAFC',    // Polar White
   white: '#F8FAFC',
-  green: '#22C55E',
+  coral: '#EF4444',   // outlier / false success
   red: '#EF4444',
-  emerald: '#10B981',
-  mute: 'rgba(248,250,252,0.55)',
-  line: 'rgba(248,250,252,0.14)',
+  emerald: '#10B981', // median / solution
+  yellow: '#FFE600',  // CTA / highlight
+  gold: '#FFE600',
+  cyan: '#38BDF8',
+  blue: '#2563EB',
+  blue2: '#3B82F6',
+  dim: '#94A3B8',
+  slate: '#1E293B',
 } as const;
 
-export const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
-export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-export const ss = (a: number, b: number, x: number) => {
-  const t = clamp((x - a) / (b - a));
-  return t * t * (3 - 2 * t);
-};
-export const eo = (x: number) => 1 - Math.pow(1 - clamp(x), 3);
-export const eio = (x: number) => {
-  const c = clamp(x);
-  return c < 0.5 ? 4 * c * c * c : 1 - Math.pow(-2 * c + 2, 3) / 2;
-};
-export const hash = (a: number, b: number, c = 0) => {
-  const x = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453;
-  return x - Math.floor(x);
-};
+export const BRAND = {
+  name: 'Monzoma Digital',
+  handle: '@monzoma.digital',
+  solutions: 'solutions.gomaaintelligence.me',
+  analytics: 'analytics.gomaaintelligence.me',
+  phoneIntl: '+20 101 967 2878',
+  phoneLocal: '01019672878',
+} as const;
 
-/** توقيتات (ثواني) متظبطة على الفويس: 0.44 جملة 1 · 4.99 "استنى" · 6.25 "كبّر الشاشة" · صمت 7.25–9.5 · 9.5 "أخطر معلومة" · 11.0 "الناقصة" */
-export const TIME = {click: 1.0, pull: 5.0, alarm: 6.0, collapse: 9.2, ring: 9.6, lock: 11.0, seal: 11.9};
+/** Scene windows (global frames), aligned to the detected voice-over phrases. */
+export const SCENES = {
+  s1: {from: 0, dur: 348},     // hook:        0.2-10.8s
+  s2: {from: 336, dur: 462},   // damage:     11.3-26.0s
+  s3: {from: 786, dur: 324},   // median:     26.4-36.4s
+  s4: {from: 1098, dur: 390},  // ecosystem:  36.8-49.0s
+  s5: {from: 1476, dur: 324},  // brand/CTA:  49.4-59.6s
+} as const;
+
+/** Kinetic captions (global frames) = the exact VO transcript, phrase by phrase. */
+export const CAPTIONS: {text: string; from: number; to: number}[] = [
+  {text: 'لو دخل مليارير كافيه فيه 5 موظفين.. المتوسط الحسابي هيقول إنهم كلهم ملاك ملايين!', from: 6, to: 160},
+  {text: 'بس الحقيقة؟ كلهم مفلسين!', from: 180, to: 236},
+  {text: 'ودي الخدعة اللي بتدمر أرباح الشركات كل يوم!', from: 249, to: 326},
+  {text: 'المتوسط الحسابي أو الـ Mean بيتأثر بكسر ثانية بأي رقم شاذ..', from: 339, to: 464},
+  {text: 'فتفتكر إن مبيعاتك ممتازة، بينما عميل واحد بس هو اللي رفع الرقم،', from: 477, to: 659},
+  {text: 'وباقي منتجاتك مركونة في المخازن بتخسر!', from: 672, to: 782},
+  {text: 'عشان كده المحلل الاحترافي بيعتمد على الوسيط أو الـ Median..', from: 792, to: 920},
+  {text: 'الرقم الحقيقي اللي في النص بالضبط، وبيكشف حجم التجارة الصافي بدون أي تضليل.', from: 936, to: 1094},
+  {text: 'عايز تؤسس عقليتك وتتعلم صح؟ أدخل على موقعنا التعليمي..', from: 1104, to: 1364},
+  {text: 'ولو عندك بيزنس ومحتاج إنقاذ مباشر.. جاهزين لتشخيص أرباحك.', from: 1374, to: 1472},
+  {text: 'تواصل معانا عبر الواتساب..', from: 1482, to: 1550},
+  {text: 'وتابعنا.. واكتب كلمة "مهتم" في التعليقات دلوقتي، عشان يوصلك دليل الكورس فوراً على الخاص!', from: 1572, to: 1795},
+];

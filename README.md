@@ -1,6 +1,11 @@
-# «أنت لا ترى الحقيقة كاملة» — 18s (Composition ID: BrainRotViral)
+# خدعة المتوسط الحسابي — The Average Trap & Median Solution (60s)
+Remotion + React + TypeScript · 1080x1920 · 30fps · 1800 frames · composition id `BrainRotViral`
 
-- 1080×1920 · 30fps · 540 فريم — Diegetic Screen Frame Pull-Back
-- الصوت: `public/vo_brand_voiceover_18s_final.wav` (الفويس) + `npm run generate-audio` بيولّد `public/sfx_master_18s.wav` (SFX برمجي)
-- التوقيتات: 5.0s ارتداد الكاميرا · 6.0s إنذار · 9.2s انكماش الأحمر · 11.0s قفل معدني · 11.9s ختم البراند (في `src/theme.ts`)
-- معاينة: `npm install && npm run generate-audio && npm run dev` — رندر: `npm run build`
+    npm install
+    npm run dev       # studio
+    npm run build     # checks audio, renders out/average-trap.mp4
+
+Scenes (src/components): Scene1_Hook · Scene2_BusinessDamage · Scene3_MedianSolution · Scene4_EcosystemHubs · Scene5_BrandContactCTA
+2.5D isometric engine: src/lib/iso.ts. Scene windows + captions + brand data: src/theme.ts (aligned to the real VO phrases).
+Audio: public/vo_average_trap.mp3 + stems (src/utils/audioConfig.ts). Regenerate stems: python3 scripts/make_stems.py
+Official contact: +20 101 967 2878 / 01019672878 · @monzoma.digital
