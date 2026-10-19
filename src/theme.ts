@@ -1,54 +1,39 @@
 export const FPS = 30;
-export const DURATION = 1800;
+export const DURATION = 600;
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
 
 export const C = {
-  bg: '#0F172A',      // Deep Slate Navy
-  text: '#F8FAFC',    // Polar White
-  white: '#F8FAFC',
-  coral: '#EF4444',   // outlier / false success
-  red: '#EF4444',
-  emerald: '#10B981', // median / solution
-  yellow: '#FFE600',  // CTA / highlight
-  gold: '#FFE600',
-  cyan: '#38BDF8',
-  blue: '#2563EB',
-  blue2: '#3B82F6',
-  dim: '#94A3B8',
-  slate: '#1E293B',
+  bg: '#121316',       // Studio Canvas: Dark Charcoal Slate
+  cream: '#F4F1EA',    // Tactile Paper: Warm Alabaster Cream
+  emerald: '#0D9488',  // Free Vault accent: Concrete Emerald
+  carbon: '#18181B',   // Contrast & text: Carbon Black
+  yellow: '#EAB308',   // CTA: Warm Sun Yellow
+  // helpers for shared ui/logo
+  white: '#F4F1EA', text: '#F4F1EA', gold: '#EAB308', cyan: '#0D9488', blue: '#0D9488', blue2: '#0D9488',
+  red: '#B91C1C', dim: '#A8A29E', paperDark: '#D8D2C4', grid: '#D9D4C7',
 } as const;
 
 export const BRAND = {
   name: 'Monzoma Digital',
   handle: '@monzoma.digital',
-  solutions: 'solutions.gomaaintelligence.me',
-  analytics: 'analytics.gomaaintelligence.me',
-  phoneIntl: '+20 101 967 2878',
-  phoneLocal: '01019672878',
+  waLocal: '01019672878',
+  waIntl: '+201019672878',
 } as const;
 
-/** Scene windows (global frames), aligned to the detected voice-over phrases. */
+/** Scene windows (global frames) aligned to the detected voice-over phrases. */
 export const SCENES = {
-  s1: {from: 0, dur: 348},     // hook:        0.2-10.8s
-  s2: {from: 336, dur: 462},   // damage:     11.3-26.0s
-  s3: {from: 786, dur: 324},   // median:     26.4-36.4s
-  s4: {from: 1098, dur: 390},  // ecosystem:  36.8-49.0s
-  s5: {from: 1476, dur: 324},  // brand/CTA:  49.4-59.6s
+  s1: {from: 0, dur: 144},     // hook            0.15-4.25s
+  s2: {from: 132, dur: 138},   // value burst     4.6-8.2s
+  s3: {from: 258, dur: 150},   // rapid carousel  8.75-12.55s
+  s4: {from: 396, dur: 204},   // brand + CTA     13.15-19.1s
 } as const;
 
-/** Kinetic captions (global frames) = the exact VO transcript, phrase by phrase. */
 export const CAPTIONS: {text: string; from: number; to: number}[] = [
-  {text: 'لو دخل مليارير كافيه فيه 5 موظفين.. المتوسط الحسابي هيقول إنهم كلهم ملاك ملايين!', from: 6, to: 160},
-  {text: 'بس الحقيقة؟ كلهم مفلسين!', from: 180, to: 236},
-  {text: 'ودي الخدعة اللي بتدمر أرباح الشركات كل يوم!', from: 249, to: 326},
-  {text: 'المتوسط الحسابي أو الـ Mean بيتأثر بكسر ثانية بأي رقم شاذ..', from: 339, to: 464},
-  {text: 'فتفتكر إن مبيعاتك ممتازة، بينما عميل واحد بس هو اللي رفع الرقم،', from: 477, to: 659},
-  {text: 'وباقي منتجاتك مركونة في المخازن بتخسر!', from: 672, to: 782},
-  {text: 'عشان كده المحلل الاحترافي بيعتمد على الوسيط أو الـ Median..', from: 792, to: 920},
-  {text: 'الرقم الحقيقي اللي في النص بالضبط، وبيكشف حجم التجارة الصافي بدون أي تضليل.', from: 936, to: 1094},
-  {text: 'عايز تؤسس عقليتك وتتعلم صح؟ أدخل على موقعنا التعليمي..', from: 1104, to: 1364},
-  {text: 'ولو عندك بيزنس ومحتاج إنقاذ مباشر.. جاهزين لتشخيص أرباحك.', from: 1374, to: 1472},
-  {text: 'تواصل معانا عبر الواتساب..', from: 1482, to: 1550},
-  {text: 'وتابعنا.. واكتب كلمة "مهتم" في التعليقات دلوقتي، عشان يوصلك دليل الكورس فوراً على الخاص!', from: 1572, to: 1795},
+  {text: 'لو بتسجل مصاريفك في ورقة أو بتسعر شغلك بالبركة..', from: 5, to: 95},
+  {text: 'وقف كركبة!', from: 103, to: 128},
+  {text: 'بنقدملك قسم كامل لشيتات وقوالب Excel مجانية 100%!', from: 138, to: 246},
+  {text: 'ميزانية البيت، حاسبة التسعير، الفواتير، والمذاكرة.. بضغطة زرار واحدة!', from: 262, to: 376},
+  {text: 'تواصل معانا واتساب وتابعنا على السوشيال ميديا..', from: 394, to: 468},
+  {text: 'واكتب كلمة "مهتم" في التعليقات دلوقتي عشان توصلك الروابط مجاناً فوراً!', from: 474, to: 596},
 ];

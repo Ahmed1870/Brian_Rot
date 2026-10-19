@@ -1,12 +1,16 @@
 export type Stem = {file: string; frame: number; volume: number; note: string};
-export const VOICE = {file: 'vo_average_trap.mp3', volume: 1};
+export const VOICE = {file: 'vo_free_templates_20s.mp3', volume: 1};
 
-/** Sound stems fired on exact frames (public/). */
+/** Tactile SFX fired on exact frames (public/). */
 export const STEMS: Stem[] = [
-  {file: 'sub_bass.mp3', frame: 0, volume: 0.9, note: 'Sharp sub-bass hit - hook explosion'},
-  {file: 'impact.mp3', frame: 120, volume: 1.0, note: 'Heavy billionaire block lands + rising whistle'},
-  {file: 'servo_slide.mp3', frame: 336, volume: 0.9, note: 'Hydraulic screen split + soft error ping'},
-  {file: 'emerald_chime.mp3', frame: 786, volume: 0.9, note: 'Emerald crystal chime - median reveal'},
-  {file: 'metallic_lock.mp3', frame: 1098, volume: 0.9, note: 'Metallic lock - ecosystem hubs'},
-  {file: 'ping.mp3', frame: 1476, volume: 0.8, note: 'Pulsing notification ping - contact + CTA'},
+  {file: 'paper_flip.mp3', frame: 0, volume: 0.9, note: 'Sub-bass thump + soft paper pull (fast hook)'},
+  {file: 'servo_slide.mp3', frame: 132, volume: 0.9, note: 'Hydraulic acrylic shelf slide + emerald ring'},
+  {file: 'quick_card_swipe.mp3', frame: 258, volume: 0.9, note: 'Card 1 in'},
+  {file: 'quick_card_swipe.mp3', frame: 288, volume: 0.9, note: 'Flip -> card 2'},
+  {file: 'quick_card_swipe.mp3', frame: 318, volume: 0.9, note: 'Flip -> card 3'},
+  {file: 'quick_card_swipe.mp3', frame: 348, volume: 0.9, note: 'Flip -> card 4'},
+  {file: 'quick_card_swipe.mp3', frame: 366, volume: 0.7, note: 'One-press download button'},
+  {file: 'metallic_lock.mp3', frame: 396, volume: 0.9, note: 'Seal locks in'},
+  {file: 'ping.mp3', frame: 426, volume: 0.5, note: 'Handle badge'},
+  {file: 'ping.mp3', frame: 474, volume: 0.9, note: 'CTA button pops'},
 ];
