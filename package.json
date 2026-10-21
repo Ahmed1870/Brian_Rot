@@ -1,16 +1,23 @@
 {
-  "name": "monzoma-lesson25-churn-cohort",
+  "name": "rfm-lesson-24",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "remotion studio src/index.jsx",
-    "render": "remotion render src/index.jsx Lesson25 out/lesson-25-churn-cohort.mp4",
-    "render:preview": "remotion render src/index.jsx Lesson25 out/lesson-25-preview.mp4 --scale=0.5"
+    "dev": "remotion studio src/index.ts",
+    "generate-audio": "node scripts/generate-audio.cjs",
+    "render": "remotion render src/index.ts BrainRotViral out/rfm-lesson-24.mp4 --crf=18",
+    "build": "node scripts/generate-audio.cjs && remotion render src/index.ts BrainRotViral out/rfm-lesson-24.mp4 --crf=18"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.300",
-    "remotion": "4.0.300",
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
+    "@remotion/paths": "4.0.250",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "remotion": "4.0.250"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
   }
 }

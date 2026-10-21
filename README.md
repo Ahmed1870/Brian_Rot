@@ -1,31 +1,12 @@
-# Monzoma Digital — Lesson 25: Cohort & Churn Analysis
+# الدرس 24 — تحليل تقسيم العملاء RFM · monzoma_digital
+Remotion + React + TypeScript · 1920x1080 · 30fps · 7170 frames (3:59) · composition id `BrainRotViral`
+Chalkboard style: #1A1D20 board · #EAEAEA chalk · #F4D03F yellow. English on-screen, Arabic voice-over.
 
-Remotion project: 1920×1080, 30 fps, 240 seconds (7,200 frames). Includes six scenes, Arabic/English chalkboard-style motion graphics, provided brand logo and supplied voiceover WAV.
+    npm install
+    npm run dev       # studio
+    npm run build     # checks audio, renders out/rfm-lesson-24.mp4
 
-## Run
-```bash
-npm install
-npm run start
-```
-
-## Render
-```bash
-npm run render
-```
-Output: `out/lesson-25-churn-cohort.mp4`
-
-For a quick half-scale preview:
-```bash
-npm run render:preview
-```
-
-## Scene timing
-- 00:00–00:45 — Leaky bucket / churn rate
-- 00:45–02:10 — Cohort retention heatmap
-- 02:10–02:55 — January vs February comparison
-- 02:55–03:30 — SQL, Python, Power BI, Excel
-- 03:30–03:50 — Retention improvement journey
-- 03:50–04:00 — Brand end screen
-
-## Important
-The project contains example instructional metrics and illustrative SQL/DAX-style snippets; adjust these to match the exact lesson script/data if required. Audio is placed as a single full-length voiceover track. This project does not include FFmpeg in the repository; Remotion's rendering environment must have its supported browser/system dependencies available.
+Scenes (src/components): Scene1_Problem · Scene2_Scoring · Scene3_CaseStudy · Scene4_Tools · Scene5_Heatmap · Scene6_EndCTA
+All VO sync points are in ONE place: src/theme.ts -> `T` (seconds). SFX cues: src/utils/audioConfig.ts.
+Sara's displayed score: `SARA_SCORE` in src/theme.ts (script says 151, but 1/1/1 = 111 with R*100+F*10+M).
+Audio: public/vo_rfm_tutorial.mp3 + chalk stems (python3 scripts/make_stems.py).
