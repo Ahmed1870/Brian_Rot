@@ -1,8 +1,9 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {Main} from './Main';
-import {DURATION, FPS, HEIGHT, WIDTH} from './theme';
+import {BrainRotViral} from './Composition';
+import {FPS, H, TOTAL, W} from './theme';
 
+// الدرس 26 — 210 ثانية @ 30fps = 6300 فريم — أفقي 1920×1080
 export const RemotionRoot: React.FC = () => (
-  <Composition id="BrainRotViral" component={Main} durationInFrames={DURATION} fps={FPS} width={WIDTH} height={HEIGHT} />
+  <Composition id="BrainRotViral" component={BrainRotViral} durationInFrames={TOTAL} fps={FPS} width={W} height={H} />
 );

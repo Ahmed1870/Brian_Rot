@@ -1,12 +1,7 @@
-# الدرس 24 — تحليل تقسيم العملاء RFM · monzoma_digital
-Remotion + React + TypeScript · 1920x1080 · 30fps · 7170 frames (3:59) · composition id `BrainRotViral`
-Chalkboard style: #1A1D20 board · #EAEAEA chalk · #F4D03F yellow. English on-screen, Arabic voice-over.
+# الدرس 26 — CLV & CAC Economics (سبورة طباشيرية 2D) — Composition ID: BrainRotViral
 
-    npm install
-    npm run dev       # studio
-    npm run build     # checks audio, renders out/rfm-lesson-24.mp4
-
-Scenes (src/components): Scene1_Problem · Scene2_Scoring · Scene3_CaseStudy · Scene4_Tools · Scene5_Heatmap · Scene6_EndCTA
-All VO sync points are in ONE place: src/theme.ts -> `T` (seconds). SFX cues: src/utils/audioConfig.ts.
-Sara's displayed score: `SARA_SCORE` in src/theme.ts (script says 151, but 1/1/1 = 111 with R*100+F*10+M).
-Audio: public/vo_rfm_tutorial.mp3 + chalk stems (python3 scripts/make_stems.py).
+- 1920×1080 · 30fps · 6300 فريم (210 ثانية) — SVG/HTML خفيف + فلتر طباشير واحد لكل مشهد
+- كل التوقيتات في `src/timeline.json` (الصورة والصوت بيقروا منه) — متظبطة على وقفات الفويس
+- الصوت: `public/vo_unit_economics_3m29.wav` + `npm run generate-audio` بيولّد `public/sfx_chalk_210s.wav` (كتابة طباشير/مسح/نقرات/نغمة ختام)
+- الخلفية: `public/board.jpg` (سبورة بإطار خشبي + رف طباشير + ممسحة)
+- معاينة: `npm install && npm run generate-audio && npm run dev` — رندر: `npm run build`

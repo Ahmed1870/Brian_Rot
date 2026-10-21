@@ -1,8 +1,6 @@
-import {loadFont as loadCairo} from '@remotion/google-fonts/Cairo';
-import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
-import {loadFont as loadSerif} from '@remotion/google-fonts/NotoSerif';
+import {loadFont as loadArabic} from '@remotion/google-fonts/ArefRuqaa';
+import {loadFont as loadHand} from '@remotion/google-fonts/Caveat';
 
-export const CAIRO = loadCairo('normal', {weights: ['700', '900'], subsets: ['arabic', 'latin']}).fontFamily;
-export const MONO = loadMono('normal', {weights: ['400', '700'], subsets: ['latin']}).fontFamily;
-export const MATH = loadSerif('normal', {weights: ['400', '700'], subsets: ['latin', 'greek']}).fontFamily;
-export const MATH_I = loadSerif('italic', {weights: ['400', '700'], subsets: ['latin', 'greek']}).fontFamily;
+// عربي بخط رقعة يدوي + إنجليزي/معادلات/أكواد بخط Caveat اليدوي (شكل طباشير)
+export const {fontFamily: AR} = loadArabic('normal', {weights: ['400', '700'], subsets: ['arabic', 'latin']});
+export const {fontFamily: EN} = loadHand('normal', {weights: ['500', '700'], subsets: ['latin']});
