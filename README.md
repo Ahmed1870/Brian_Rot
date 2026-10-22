@@ -1,7 +1,10 @@
-# الدرس 26 — CLV & CAC Economics (سبورة طباشيرية 2D) — Composition ID: BrainRotViral
+# الدرس 28 — تحليل سلة المشتريات (Market Basket & Apriori) · 80s
+Remotion + React + TypeScript · 1080x1920 · 30fps · 2400 frames · composition id `BrainRotViral`
+Chalkboard series style (#1A1D20 / #EAEAEA / #F4D03F). Arabic = DOM text (direction: rtl, Cairo). Line art = optimized SVG only.
 
-- 1920×1080 · 30fps · 6300 فريم (210 ثانية) — SVG/HTML خفيف + فلتر طباشير واحد لكل مشهد
-- كل التوقيتات في `src/timeline.json` (الصورة والصوت بيقروا منه) — متظبطة على وقفات الفويس
-- الصوت: `public/vo_unit_economics_3m29.wav` + `npm run generate-audio` بيولّد `public/sfx_chalk_210s.wav` (كتابة طباشير/مسح/نقرات/نغمة ختام)
-- الخلفية: `public/board.jpg` (سبورة بإطار خشبي + رف طباشير + ممسحة)
-- معاينة: `npm install && npm run generate-audio && npm run dev` — رندر: `npm run build`
+    npm install
+    npm run dev       # studio
+    npm run build     # checks audio, renders out/market-basket-28.mp4
+
+Scenes: Scene1_Puzzle · Scene2_Apriori · Scene3_Code · Scene4_Outro. VO sync points: src/theme.ts -> `T` (seconds).
+SFX cues: src/utils/audioConfig.ts. Regenerate stems: python3 scripts/make_stems.py
