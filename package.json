@@ -6,7 +6,8 @@
   "scripts": {
     "start": "remotion studio",
     "build": "remotion render src/index.ts Lesson11 out/lesson-1-1.mp4 --codec=h264",
-    "still": "remotion still src/index.ts Lesson11 out/frame.png --frame=300"
+    "still": "remotion still src/index.ts Lesson11 out/frame.png --frame=300",
+    "generate-audio": "echo Audio already provided in public/voiceover.mp3"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
