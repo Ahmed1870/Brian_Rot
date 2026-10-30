@@ -1,4 +1,4 @@
-name: Render market-basket lesson 28
+name: Render lesson 1.1 value delivery
 on:
   push:
     branches: [main]
@@ -13,9 +13,8 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npm run generate-audio
-      - run: npx remotion render src/index.ts BrainRotViral out/market-basket-28.mp4 --codec=h264 --crf=16 --pixel-format=yuv420p --timeout=180000
+      - run: npx remotion render src/index.ts Lesson11 out/lesson-1-1.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: market-basket-28
-          path: out/market-basket-28.mp4
+          name: lesson-1-1
+          path: out/lesson-1-1.mp4
