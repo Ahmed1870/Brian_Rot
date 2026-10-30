@@ -1,52 +1,43 @@
 import React from 'react';
-import {staticFile, useCurrentFrame} from "remotion";
-import {C, FONT} from '../theme';
-import {Fade, L, prog, sec} from '../kit';
-
-// Scene 6 - Outro (frames 5850-6300 = global 195s-210s). Holds still until the last frame.
-const K = 620 / 550; // logo crop scale (logo occupies ~550x445 px of the 1080 square)
+import {Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {C, S} from '../theme';
+import {KText, Scene} from '../components/common';
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
-  const logo = prog(f, 9, 40);
-  const phone = prog(f, sec(3), 30);
-  const urls = prog(f, sec(4.2), 30);
-  const tag = prog(f, sec(2), 30);
+  const {fps} = useVideoConfig();
+  const p = spring({frame: f, fps, config: {damping: 18, stiffness: 90}});
+  const y = interpolate(p, [0, 1], [160, 0]);
+  const sc = interpolate(p, [0, 1], [0.85, 1]);
+  const o = interpolate(f, [0, 18], [0, 1], {extrapolateRight: 'clamp'});
 
   return (
-    <Fade dur={450} inF={10} outF={0}>
-      <div
-        style={{
-          position: 'absolute',
-          left: 650,
-          top: 40,
-          width: 620,
-          height: 445 * K,
-          overflow: 'hidden',
-          opacity: logo,
-          transform: `scale(${0.94 + 0.06 * logo})`,
-          mixBlendMode: 'lighten',
-        }}
-      >
-        {/* Logo is navy-on-white: invert + hue-rotate turns it into light-on-dark with the brand blues preserved */}
-        <img
-          src={staticFile("logo.jpg")}
-          style={{position: 'absolute', width: 1080 * K, left: -270 * K, top: -310 * K, filter: 'invert(1) hue-rotate(180deg) brightness(1.15)'}}
-        />
+    <Scene dur={S.s6.dur}>
+      <div className="absolute w-full flex flex-col items-center" style={{top: 170, opacity: o, transform: `translateY(${y}px) scale(${sc})`}}>
+        <Img src={staticFile('logo-white.svg')} style={{width: 330, height: 330}} />
+        <div style={{fontSize: 74, fontWeight: 900, color: C.white, direction: 'ltr', marginTop: 10}}>Monzoma Digital</div>
       </div>
 
-      <div style={{position: 'absolute', left: 0, right: 0, top: 600, textAlign: 'center', fontFamily: FONT, fontSize: 40, color: C.slate400, direction: 'rtl', opacity: tag}}>
-        تمكين القيادات عبر البيانات
-      </div>
+      <KText at={50} top={720} size={84} color={C.white} style={{lineHeight: 1.45}}>
+        عايز كل بيعة بتعملها تدخّل أرباح حقيقية في جيبك؟
+      </KText>
+      <KText at={95} top={1040} size={96} color={C.green}>
+        اتواصل معانا دلوقتي!
+      </KText>
 
-      <div style={{position: 'absolute', left: 0, right: 0, top: 685, textAlign: 'center', opacity: phone, transform: `scale(${0.96 + 0.04 * phone})`}}>
-        <L style={{fontFamily: FONT, fontSize: 92, fontWeight: 700, color: C.white, letterSpacing: 2}}>+201019672878</L>
-      </div>
+      <KText at={150} top={1260} size={40} color={C.dim} weight={700}>
+        للتواصل التنفيذي والمؤسسي
+      </KText>
+      <KText at={165} top={1330} size={86} color={C.white} ltr style={{fontVariantNumeric: 'tabular-nums'}}>
+        +201019672878
+      </KText>
 
-      <div style={{position: 'absolute', left: 0, right: 0, top: 835, textAlign: 'center', opacity: urls, fontFamily: FONT, fontSize: 38, color: C.white, lineHeight: 1.7}}>
-        <div><L>https://analytics.gomaaintelligence.me/</L></div>
-        <div><L>https://solutions.gomaaintelligence.me/</L></div>
-      </div>
-    </Fade>
+      <KText at={215} top={1500} size={40} color={C.white} weight={700} ltr>
+        https://analytics.gomaaintelligence.me/
+      </KText>
+      <KText at={240} top={1580} size={40} color={C.white} weight={700} ltr>
+        https://solutions.gomaaintelligence.me/
+      </KText>
+    </Scene>
   );
 };

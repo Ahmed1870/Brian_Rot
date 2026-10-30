@@ -1,95 +1,75 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, FONT} from '../theme';
-import {Fade, Kinetic, L, lerp, prog, sec} from '../kit';
+import {C, S, S4_NODE0, S4_STEP} from '../theme';
+import {KText, Scene, fmt, prog} from '../components/common';
 
-// Scene 4 (frames 3600-4950 = global 120s-165s): unit-economics dashboard (illustrative numbers)
-const MONTHS = 6;
-const BW = 110;
-const STEP = 165;
-const BASE = 470;
-const HT = 400;
-const BASE_COST = 38; // unavoidable cost-to-serve (% of revenue)
-const target = (i: number) => 62 - i * 4.6;
+const balances = [-1000, -800, -600, -400, -200, 0, 200];
+const Y0 = 470;
+const DY = 140;
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const morph = (i: number) => prog(f, sec(9.3) + i * 10, 70);
-  const cost = (i: number) => lerp(62, target(i), morph(i));
-  const m5 = morph(MONTHS - 1);
-
-  const cards = [
-    {label: 'تكلفة تقديم الخدمة', value: lerp(62, 39.5, m5), color: C.white},
-    {label: 'هامش المساهمة', value: 100 - lerp(62, 39.5, m5), color: C.white},
-    {label: 'تكلفة الاختناقات', value: lerp(24, 1.5, m5), color: C.crimson},
-  ];
+  const lineP = prog(f, S4_NODE0, S4_NODE0 + 6 * S4_STEP + 30);
+  const frozenAt = S4_NODE0 + 7 * S4_STEP + 40;
 
   return (
-    <Fade dur={1350}>
-      <div style={{position: 'absolute', left: 160, right: 160, top: 80}}>
-        <Kinetic text="اقتصاديات الوحدة [[(Unit Economics)]]" start={sec(0.6)} size={64} />
-      </div>
-      <div style={{position: 'absolute', left: 160, right: 160, top: 185}}>
-        <Kinetic text="تفكيك الاختناقات التشغيلية = حماية الأرباح" start={sec(137.99 - 120)} size={46} color={C.slate400} weight={600} />
-      </div>
+    <Scene dur={S.s4.dur}>
+      <KText at={5} top={90} size={58}>
+        فترة استرداد تكلفة العميل
+      </KText>
+      <KText at={25} top={175} size={40} color={C.dim} weight={700} ltr>
+        CAC Payback Period
+      </KText>
 
-      <div style={{position: 'absolute', left: 120, top: 310, width: 1100, height: 620, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, opacity: prog(f, sec(1.5), 25)}}>
-        <svg viewBox="0 0 1100 620" width={1100} height={620}>
-          {[0, 25, 50, 75, 100].map((v) => (
-            <line key={v} x1={40} x2={1060} y1={BASE - (v / 100) * HT} y2={BASE - (v / 100) * HT} stroke={C.slate600} strokeOpacity={0.3} strokeDasharray="4 8" />
-          ))}
-          {Array.from({length: MONTHS}).map((_, i) => {
-            const g = prog(f, sec(2.5) + i * 6, 30);
-            const c = cost(i);
-            const hBase = (BASE_COST / 100) * HT * g;
-            const hWaste = (Math.max(0, c - BASE_COST) / 100) * HT * g;
-            const hMargin = ((100 - c) / 100) * HT * g;
-            const x = 80 + i * STEP;
-            return (
-              <g key={i}>
-                <rect x={x} y={BASE - hBase} width={BW} height={hBase} fill={C.slate600} />
-                <rect x={x} y={BASE - hBase - hWaste} width={BW} height={hWaste} fill={C.crimson} />
-                <rect x={x} y={BASE - hBase - hWaste - hMargin} width={BW} height={hMargin} fill={C.white} />
-                {g > 0.9 && (
-                  <text x={x + BW / 2} y={BASE - hBase - hWaste - hMargin + 36} textAnchor="middle" fontFamily={FONT} fontSize={28} fontWeight={700} fill="#0D0D0D">
-                    {Math.round(100 - c)}%
-                  </text>
-                )}
-                <text x={x + BW / 2} y={BASE + 40} textAnchor="middle" fontFamily={FONT} fontSize={26} fill={C.slate400}>
-                  الشهر {i + 1}
-                </text>
-              </g>
-            );
-          })}
-          {[
-            {c: C.slate600, t: 'تكلفة التسليم الأساسية', x: 1060},
-            {c: C.crimson, t: 'تكلفة الاختناقات', x: 760},
-            {c: C.white, t: 'هامش المساهمة', x: 500},
-          ].map((l) => (
-            <g key={l.t}>
-              <rect x={l.x - 22} y={558} width={22} height={22} fill={l.c} />
-              <text x={l.x - 34} y={577} textAnchor="end" fontFamily={FONT} fontSize={26} fill={C.slate400}>
-                {l.t}
+      <KText at={60} top={300} size={44} color={C.white} weight={700}>
+        صرفت 1,000 ج.م إعلانات ← العميل يدخّل 200 ج.م/شهر
+      </KText>
+
+      {/* vertical timeline */}
+      <svg width={1080} height={1920} style={{position: 'absolute', inset: 0}}>
+        <line x1={540} y1={Y0} x2={540} y2={Y0 + DY * 6} stroke={C.slate} strokeWidth={4} opacity={0.5} />
+        <line x1={540} y1={Y0} x2={540} y2={Y0 + DY * 6 * lineP} stroke={lineP > 0.83 ? C.green : C.red} strokeWidth={8} strokeLinecap="round" />
+        {balances.map((b, i) => {
+          const t = S4_NODE0 + i * S4_STEP;
+          const p = prog(f, t, t + 20);
+          if (p <= 0) return null;
+          const y = Y0 + DY * i;
+          const color = b < 0 ? C.red : C.green;
+          const isZero = b === 0;
+          return (
+            <g key={i} opacity={p}>
+              <circle cx={540} cy={y} r={isZero ? 26 : 18} fill={isZero ? C.white : color} />
+              {/* month label on the right (RTL start) */}
+              <text x={600} y={y + 14} fontSize={42} fontWeight={700} fill={C.white} textAnchor="start">
+                {i === 0 ? 'اليوم: صرف الإعلان' : `الشهر ${i}`}
               </text>
+              {/* balance on the left */}
+              <text x={480} y={y + 18} fontSize={56} fontWeight={900} fill={color} textAnchor="end" style={{fontVariantNumeric: 'tabular-nums'}}>
+                {b > 0 ? '+' : ''}{fmt(b)}
+              </text>
+              {isZero && (
+                <text x={600} y={y + 62} fontSize={32} fontWeight={700} fill={C.green} textAnchor="start">
+                  استرجعت الألف جنيه
+                </text>
+              )}
             </g>
-          ))}
-        </svg>
-      </div>
+          );
+        })}
+      </svg>
 
-      {cards.map((c, i) => {
-        const p = prog(f, sec(2.5) + i * 12, 25);
-        return (
-          <div key={c.label} style={{position: 'absolute', right: 120, width: 520, height: 180, top: 310 + i * 220, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: '26px 34px', boxSizing: 'border-box', direction: 'rtl', opacity: p, transform: `translateY(${(1 - p) * 20}px)`}}>
-            <div style={{fontFamily: FONT, fontSize: 30, color: C.slate400}}>{c.label}</div>
-            <div style={{fontFamily: FONT, fontSize: 80, fontWeight: 700, color: c.color, lineHeight: 1.15}}>
-              <L>{Math.round(c.value)}%</L>
-            </div>
-          </div>
-        );
-      })}
-      <div style={{position: 'absolute', right: 120, bottom: 40, fontFamily: FONT, fontSize: 22, color: C.slate600, direction: 'rtl'}}>
-        النسب من الإيراد لكل عميل — بيانات توضيحية
-      </div>
-    </Fade>
+      <KText at={S4_NODE0 + 5 * S4_STEP + 20} top={1480} size={60} color={C.green}>
+        5 شهور لاسترداد التكلفة
+      </KText>
+
+      <KText at={frozenAt} top={1590} size={46} color={C.white} weight={700}>
+        طول ما الفترة طويلة... رأس المال العامل مجمّد
+      </KText>
+      <KText at={frozenAt + 70} top={1680} size={42} color={C.red} weight={700}>
+        100 عميل جديد = 100,000 ج.م محبوسة في الإعلانات
+      </KText>
+      <KText at={frozenAt + 150} top={1770} size={44} color={C.white}>
+        اضغط فترة الاسترداد = سيولة أكثر
+      </KText>
+    </Scene>
   );
 };

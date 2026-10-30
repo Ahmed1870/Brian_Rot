@@ -1,4 +1,4 @@
-name: Render lesson 1.1 value delivery
+name: Render Lesson 1.3 (Ahmed x Monzoma)
 on:
   push:
     branches: [main]
@@ -12,9 +12,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npx remotion render src/index.ts Lesson11 out/lesson-1-1.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: npm install --no-audit --no-fund
+      - run: npx remotion render src/index.ts Ahmed-UnitEconomics-L13 out/ahmed_unit_economics_L13.mp4 --codec h264 --concurrency 2
       - uses: actions/upload-artifact@v4
         with:
-          name: lesson-1-1
-          path: out/lesson-1-1.mp4
+          name: ahmed_unit_economics_L13
+          path: out/ahmed_unit_economics_L13.mp4

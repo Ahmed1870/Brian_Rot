@@ -1,10 +1,4 @@
-# Monzoma Digital - Lesson 1.1 (Value Delivery) - Remotion
-
-- Composition: `Lesson11` - 1920x1080, 30fps, 6300 frames (3:30 exactly)
-- Scenes: 0-900 | 900-2250 | 2250-3600 | 3600-4950 | 4950-5850 | 5850-6300 (Outro)
-- Audio: `public/voiceover.mp3` (210.0s). Cues inside scenes are taken from the real pauses in the voiceover.
-- Logo: `public/logo.jpg`
-
-    npm install
-    npm start        # preview in Remotion Studio
-    npm run build    # renders out/lesson-1-1.mp4
+# Ahmed x Monzoma Digital - Lesson 1.3: Unit Economics
+Remotion 9:16 (1080x1920 @30fps, 8100 frames = 4:30). Voiceover: public/voiceover.mp3.
+SFX + music bed are procedurally generated: `npm run sfx` (python3 + numpy) -> public/sfx/*.wav (already included).
+Dev: `npm i && npm run dev` | Render: `npm run render` | CI: .github/workflows/render.yml

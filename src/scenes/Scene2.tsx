@@ -1,72 +1,106 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT} from '../theme';
-import {Fade, Kinetic, L, prog, sec} from '../kit';
+import {interpolate, useCurrentFrame} from 'remotion';
+import {C, S, S2_LOSS, S2_REVEAL, S2_SURGE} from '../theme';
+import {KText, Scene, fmt, prog} from '../components/common';
 
-// Scene 2 (frames 900-2250 = global 30s-75s): the five engines. Cues are global seconds from the voiceover.
-const S = 30;
-const ENG = [
-  {n: 1, en: 'Value Creation', ar: 'خلق القيمة', g: 40.5},
-  {n: 2, en: 'Marketing', ar: 'التسويق', g: 44.1},
-  {n: 3, en: 'Sales', ar: 'المبيعات', g: 48.0},
-  {n: 4, en: 'Value Delivery', ar: 'تقديم القيمة', g: 53.3},
-  {n: 5, en: 'Finance', ar: 'المالية', g: 60.1},
-];
+const SC = 0.62; // px per EGP
+const ZERO = 780; // baseline y for 0 EGP (inside svg local)
+const COLW = 150;
+const GAP = 16;
+const colX = (i: number) => 1080 - 70 - (i + 1) * COLW - i * GAP; // RTL: price at the right
 
 export const Scene2: React.FC = () => {
   const f = useCurrentFrame();
-  const e4 = sec(53.3 - S);
-  const e5 = sec(60.1 - S);
-  const zoomAmt = Math.max(0, prog(f, e4, 24) - prog(f, e5, 30));
-  const focus = prog(f, sec(63 - S), 30);
-  const bar = prog(f, e4 + 10, 30);
+  const adsVal = interpolate(f, [S2_SURGE, S2_SURGE + 120], [400, 550], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const margin = 1000 - 300 - 100 - 100 - adsVal;
+  const varCosts = 300 + 100 + 100 + adsVal;
+  const neg = margin < 0;
+
+  const items = [
+    {label: 'سعر البيع', a: 0, b: 1000, color: C.white},
+    {label: 'خامات', a: 1000, b: 700, color: C.red, v: 300},
+    {label: 'شحن', a: 700, b: 600, color: C.red, v: 100},
+    {label: 'بوابة دفع', a: 600, b: 500, color: C.red, v: 100},
+    {label: 'إعلانات', a: 500, b: 500 - adsVal, color: C.red, v: adsVal},
+    {label: 'الهامش', a: 0, b: margin, color: neg ? C.red : C.green},
+  ];
+
+  const y = (v: number) => ZERO - v * SC;
 
   return (
-    <Fade dur={1350}>
-      <div style={{position: 'absolute', left: 160, right: 160, top: 100}}>
-        <Kinetic text="المحركات الخمسة للبيزنس" start={sec(1)} size={68} />
-      </div>
-      <div style={{position: 'absolute', left: 160, right: 160, top: 205, direction: 'rtl', fontFamily: FONT, fontSize: 32, color: C.slate400, opacity: prog(f, sec(2), 25)}}>
-        <L>The Personal MBA</L> — <L>Josh Kaufman</L>
+    <Scene dur={S.s2.dur}>
+      <KText at={5} top={90} size={60}>
+        تفكيك اقتصاديات الوحدة
+      </KText>
+      <KText at={20} top={175} size={38} color={C.dim} weight={700} ltr>
+        Unit Economics
+      </KText>
+
+      {/* live readouts */}
+      <div className="absolute w-full flex justify-around" style={{top: 270, direction: 'rtl'}}>
+        {[
+          {t: 'سعر البيع', v: '1,000', c: C.white},
+          {t: 'التكاليف المتغيرة', v: fmt(varCosts), c: C.red},
+          {t: 'هامش المساهمة', v: fmt(margin), c: neg ? C.red : C.green},
+        ].map((r, i) => (
+          <div key={i} style={{textAlign: 'center', opacity: prog(f, 20 + i * 15, 45 + i * 15)}}>
+            <div style={{fontSize: 34, color: C.dim, fontWeight: 700}}>{r.t}</div>
+            <div style={{fontSize: 74, color: r.c, fontWeight: 900, direction: 'ltr', fontVariantNumeric: 'tabular-nums'}}>
+              {r.v} <span style={{fontSize: 30}}>ج.م</span>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div
-        dir="rtl"
-        style={{
-          position: 'absolute',
-          left: 80,
-          right: 80,
-          top: 400,
-          display: 'flex',
-          alignItems: 'flex-start',
-          transform: `scale(${1 + 0.12 * zoomAmt})`,
-          transformOrigin: '600px 50%',
-        }}
-      >
-        {ENG.map((e, i) => {
-          const p = prog(f, sec(e.g - S), 24);
-          const isFour = e.n === 4;
-          const dim = isFour ? 1 : 1 - 0.55 * focus;
-          const conn = i < ENG.length - 1 ? prog(f, sec(ENG[i + 1].g - S) - 6, 22) : 0;
+      {/* waterfall */}
+      <svg width={1080} height={1920} style={{position: 'absolute', inset: 0, top: 380}}>
+        <line x1={50} y1={ZERO} x2={1030} y2={ZERO} stroke={C.slate} strokeWidth={3} />
+        {items.map((it, i) => {
+          const rp = prog(f, S2_REVEAL[i], S2_REVEAL[i] + 40);
+          if (rp <= 0) return null;
+          const top = Math.min(y(it.a), y(it.b));
+          const hh = Math.abs(y(it.a) - y(it.b)) * rp;
+          const yy = it.b >= it.a ? y(it.b) + (Math.abs(y(it.a) - y(it.b)) - hh) : top;
+          const x = colX(i);
+          const showLabelY = Math.max(y(it.a), y(it.b)) + 46;
+          const valTxt = i === 0 ? '1,000' : i === 5 ? fmt(margin) : '-' + fmt(it.v ?? 0);
           return (
-            <React.Fragment key={e.n}>
-              <div style={{width: 320, textAlign: 'center', opacity: p * dim, transform: `translateY(${(1 - p) * 40}px)`, flexShrink: 0}}>
-                <div style={{fontFamily: FONT, fontSize: 170, fontWeight: 700, lineHeight: 1, color: isFour ? C.white : C.slate600}}>{e.n}</div>
-                <div dir="ltr" style={{fontFamily: FONT, fontSize: 42, fontWeight: 700, color: C.white, marginTop: 18}}>{e.en}</div>
-                <div style={{fontFamily: FONT, fontSize: 34, color: C.slate400, marginTop: 8}}>{e.ar}</div>
-                {isFour && <div style={{height: 6, background: C.crimson, marginTop: 26, width: '70%', marginInline: 'auto', transform: `scaleX(${bar})`}} />}
-              </div>
-              {i < ENG.length - 1 && (
-                <div style={{flex: 1, height: 3, background: C.slate700, marginTop: 85, marginInline: 16, transform: `scaleX(${conn})`, transformOrigin: 'right'}} />
+            <g key={i} opacity={rp}>
+              <rect x={x} y={yy} width={COLW} height={Math.max(hh, 4)} fill={it.color} rx={4} />
+              <text x={x + COLW / 2} y={Math.min(y(it.a), y(it.b)) - 18} textAnchor="middle" fontSize={44} fontWeight={900} fill={it.color} style={{fontVariantNumeric: 'tabular-nums'}}>
+                {valTxt}
+              </text>
+              <text x={x + COLW / 2} y={Math.max(showLabelY, ZERO + 60)} textAnchor="middle" fontSize={30} fontWeight={700} fill={C.dim}>
+                {it.label}
+              </text>
+              {i > 0 && i < 5 && (
+                <line x1={x + COLW} y1={y(it.a)} x2={x + COLW + GAP} y2={y(it.a)} stroke={C.slate} strokeWidth={2} strokeDasharray="6 5" />
               )}
-            </React.Fragment>
+            </g>
           );
         })}
-      </div>
+      </svg>
 
-      <div style={{position: 'absolute', left: 160, right: 160, top: 800}}>
-        <Kinetic text="تقديم القيمة هو اختبار الوعد على أرض الواقع" start={sec(66 - S)} size={54} color={C.slate400} weight={600} />
-      </div>
-    </Fade>
+      <KText at={S2_REVEAL[5] + 40} top={1290} size={44} color={C.green} weight={700} style={{opacity: f > S2_SURGE ? 0 : undefined}}>
+        باقي لك من كل بيعة: 100 ج.م فقط
+      </KText>
+
+      <KText at={S2_SURGE - 20} top={1290} size={52} color={C.red} style={{opacity: f < S2_SURGE - 20 ? 0 : 1}}>
+        المنافسة ترفع الإعلان: 400 ← 550
+      </KText>
+      <KText at={S2_SURGE + 130} top={1390} size={64} color={C.red}>
+        خسارة 50 ج.م في كل بيعة!
+      </KText>
+
+      <KText at={S2_LOSS} top={1500} size={44} color={C.dim} weight={700}>
+        تبيع 1,000 قطعة
+      </KText>
+      <KText at={S2_LOSS + 40} top={1580} size={120} color={C.red} ltr>
+        -50,000 ج.م
+      </KText>
+      <KText at={S2_LOSS + 90} top={1740} size={44} color={C.white} weight={700}>
+        كاش بينزف من الخزينة بدون ما تحس
+      </KText>
+    </Scene>
   );
 };
