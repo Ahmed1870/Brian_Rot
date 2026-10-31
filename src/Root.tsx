@@ -1,15 +1,8 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {UnitEconomicsVideo} from './Video';
-import {FPS, H, TOTAL, W} from './theme';
+import {Video} from './Video';
+import {FPS, H, TOTAL_FRAMES, W} from './theme';
 
 export const RemotionRoot: React.FC = () => (
-  <Composition
-    id="Ahmed-UnitEconomics-L13"
-    component={UnitEconomicsVideo}
-    width={W}
-    height={H}
-    fps={FPS}
-    durationInFrames={TOTAL}
-  />
+  <Composition id="Lesson12" component={Video} durationInFrames={TOTAL_FRAMES} fps={FPS} width={W} height={H} />
 );

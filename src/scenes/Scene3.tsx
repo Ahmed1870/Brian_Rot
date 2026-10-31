@@ -1,104 +1,83 @@
 import React from 'react';
-import {interpolate, useCurrentFrame} from 'remotion';
-import {C, S, S3_BALANCE} from '../theme';
-import {KText, Scene, fmt, prog} from '../components/common';
+import {useCurrentFrame} from 'remotion';
+import {C, FONT} from '../theme';
+import {Fade, Kinetic, L, cardStyle, lerp, prog, sec} from '../kit';
 
-const FIXED = 50_000;
-const PIVOT = {x: 540, y: 150};
-const ARM = 380;
+// Scene 3 (frames 2550-4050, global 85-135s): friction bars shrink away, then value outgrows price.
+const S = 85;
+const FRICTION = [
+  {t: 'مخاطرة متوقعة', g: 99.3},
+  {t: 'خطوات معقدة', g: 100.9},
+  {t: 'ضغط بيعي', g: 102.8},
+];
+const Q = [
+  {t: 'هل العميل مناسب فعلاً للخدمة؟', g: 113.6},
+  {t: 'هل القيمة أكبر بكثير من السعر؟', g: 116.8},
+];
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const units = interpolate(f, [200, S3_BALANCE], [0, 500], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const after = interpolate(f, [S3_BALANCE + 60, S3_BALANCE + 200], [0, 40], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const totalUnits = units + after;
-  const margin = totalUnits * 100;
-  const balanced = f >= S3_BALANCE;
-  const tilt = 14 * Math.max(-0.4, 1 - margin / FIXED); // + => right (fixed) heavier
-  const rad = (tilt * Math.PI) / 180;
-  // beam ends (left = contribution, right = fixed)
-  const L = {x: PIVOT.x - ARM * Math.cos(rad), y: PIVOT.y - ARM * Math.sin(rad)};
-  const R = {x: PIVOT.x + ARM * Math.cos(rad), y: PIVOT.y + ARM * Math.sin(rad)};
-  const col = balanced ? C.green : C.white;
-  const beamOp = prog(f, 10, 40);
-
-  // breakeven chart
-  const cx0 = 110, cx1 = 970, cyBase = 1600, cyTop = 1230;
-  const maxU = 700;
-  const ux = (u: number) => cx0 + ((cx1 - cx0) * u) / maxU;
-  const uy = (v: number) => cyBase - ((cyBase - cyTop) * v) / 70_000;
-  const lineU = Math.min(totalUnits, maxU);
+  const cardA = prog(f, sec(3), 28);
+  const cardB = prog(f, sec(6), 28);
+  const fricDone = prog(f, sec(103 - S), 30);
+  const valueP = prog(f, sec(111.5 - S), sec(5));
+  const BARW = 780;
 
   return (
-    <Scene dur={S.s3.dur}>
-      <KText at={5} top={90} size={62}>
-        الربحية الحقيقية
-      </KText>
-      <KText at={25} top={180} size={42} color={C.dim} weight={700}>
-        هامش المساهمة vs التكاليف الثابتة
-      </KText>
-
-      <svg width={1080} height={1920} style={{position: 'absolute', inset: 0, top: 260}} opacity={beamOp}>
-        {/* stand */}
-        <line x1={PIVOT.x} y1={PIVOT.y} x2={PIVOT.x} y2={650} stroke={C.slate} strokeWidth={10} />
-        <line x1={400} y1={650} x2={680} y2={650} stroke={C.slate} strokeWidth={12} strokeLinecap="round" />
-        {/* beam */}
-        <line x1={L.x} y1={L.y} x2={R.x} y2={R.y} stroke={col} strokeWidth={14} strokeLinecap="round" />
-        <circle cx={PIVOT.x} cy={PIVOT.y} r={18} fill={col} />
-        {/* pans */}
-        {[{p: L, c: balanced ? C.green : C.green}, {p: R, c: C.red}].map((o, i) => (
-          <g key={i}>
-            <line x1={o.p.x} y1={o.p.y} x2={o.p.x - 110} y2={o.p.y + 250} stroke={C.slate} strokeWidth={4} />
-            <line x1={o.p.x} y1={o.p.y} x2={o.p.x + 110} y2={o.p.y + 250} stroke={C.slate} strokeWidth={4} />
-            <path d={`M ${o.p.x - 140} ${o.p.y + 250} L ${o.p.x + 140} ${o.p.y + 250} Q ${o.p.x} ${o.p.y + 320} ${o.p.x - 140} ${o.p.y + 250}`} fill={o.c} />
-          </g>
-        ))}
-        {/* pan labels */}
-        <text x={L.x} y={L.y + 380} textAnchor="middle" fontSize={34} fontWeight={700} fill={C.dim}>مجموع هامش المساهمة</text>
-        <text x={L.x} y={L.y + 435} textAnchor="middle" fontSize={50} fontWeight={900} fill={C.green} style={{fontVariantNumeric: 'tabular-nums'}}>{fmt(margin)}</text>
-        <text x={R.x} y={R.y + 380} textAnchor="middle" fontSize={34} fontWeight={700} fill={C.dim}>التكاليف الثابتة</text>
-        <text x={R.x} y={R.y + 435} textAnchor="middle" fontSize={50} fontWeight={900} fill={C.red}>50,000</text>
-        <text x={R.x} y={R.y + 480} textAnchor="middle" fontSize={28} fontWeight={700} fill={C.dim}>إيجار + مرتبات + اشتراكات</text>
-      </svg>
-
-      {/* units counter */}
-      <div className="absolute w-full text-center" style={{top: 1000, direction: 'rtl', opacity: prog(f, 120, 150)}}>
-        <span style={{fontSize: 38, color: C.dim, fontWeight: 700}}>عدد القطع المباعة: </span>
-        <span style={{fontSize: 100, fontWeight: 900, color: col, fontVariantNumeric: 'tabular-nums'}}>{Math.round(totalUnits)}</span>
+    <Fade dur={1500}>
+      <div style={{position: 'absolute', left: 80, right: 80, top: 150}}>
+        <Kinetic text="سيكولوجية المبيعات" start={sec(0.5)} size={84} />
+        <Kinetic text="[[(Sales Psychology)]]" start={sec(2)} size={46} color={C.slate400} weight={600} />
       </div>
 
-      {balanced ? (
-        <KText at={S3_BALANCE} top={1130} size={64} color={C.green}>
-          نقطة التعادل = 500 قطعة بالضبط
-        </KText>
-      ) : (
-        <KText at={150} top={1130} size={44} color={C.dim} weight={700}>
-          50,000 ÷ 100 = كم قطعة تغطي المصاريف؟
-        </KText>
-      )}
+      {/* Card A: friction elimination */}
+      <div style={{...cardStyle(430, 620, 1, cardA), display: 'block', padding: '40px 48px'}}>
+        <div style={{fontFamily: FONT, fontSize: 52, fontWeight: 700, color: C.white}}>
+          إزالة احتكاك الشراء <L style={{color: fricDone > 0.5 ? C.emerald : C.slate400, fontSize: 40}}>(Zero Friction)</L>
+        </div>
+        {FRICTION.map((r, i) => {
+          const shrink = prog(f, sec(r.g - S), 26);
+          return (
+            <div key={r.t} style={{marginTop: 44}}>
+              <div style={{fontFamily: FONT, fontSize: 36, color: C.slate400}}>{r.t}</div>
+              <div style={{position: 'relative', height: 26, marginTop: 12}}>
+                <div style={{position: 'absolute', right: 0, top: 0, height: 26, width: BARW, background: C.line, borderRadius: 13}} />
+                <div style={{position: 'absolute', right: 0, top: 0, height: 26, width: lerp(BARW * (0.9 - i * 0.12), 0, shrink), background: C.crimson, borderRadius: 13}} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-      {/* breakeven chart */}
-      <svg width={1080} height={1920} style={{position: 'absolute', inset: 0}}>
-        <line x1={cx0} y1={cyBase} x2={cx1} y2={cyBase} stroke={C.slate} strokeWidth={3} />
-        <line x1={cx0} y1={cyTop - 20} x2={cx0} y2={cyBase} stroke={C.slate} strokeWidth={3} />
-        <line x1={cx0} y1={uy(FIXED)} x2={cx1} y2={uy(FIXED)} stroke={C.red} strokeWidth={6} strokeDasharray="14 10" opacity={prog(f, 140, 170)} />
-        <line x1={cx0} y1={uy(0)} x2={ux(lineU)} y2={uy(lineU * 100)} stroke={C.green} strokeWidth={10} strokeLinecap="round" opacity={prog(f, 190, 210)} />
-        {balanced && (
-          <>
-            <circle cx={ux(500)} cy={uy(FIXED)} r={22} fill={C.white} />
-            <line x1={ux(500)} y1={uy(FIXED)} x2={ux(500)} y2={cyBase} stroke={C.white} strokeWidth={3} strokeDasharray="6 6" />
-            <text x={ux(500)} y={cyBase + 48} textAnchor="middle" fontSize={36} fontWeight={900} fill={C.white}>500</text>
-          </>
-        )}
-        <text x={cx1} y={uy(FIXED) - 16} textAnchor="end" fontSize={30} fontWeight={700} fill={C.red}>التكاليف الثابتة</text>
-      </svg>
+      {/* Card B: value qualification */}
+      <div style={{...cardStyle(1110, 640, 1, cardB), display: 'block', padding: '40px 48px'}}>
+        <div style={{fontFamily: FONT, fontSize: 52, fontWeight: 700, color: C.white}}>
+          تأهيل العميل <L style={{color: C.slate400, fontSize: 40}}>(Value Qualification)</L>
+        </div>
+        <div style={{marginTop: 40, fontFamily: FONT, fontSize: 34, color: C.slate400}}>السعر</div>
+        <div style={{position: 'relative', height: 26, marginTop: 10}}>
+          <div style={{position: 'absolute', right: 0, height: 26, width: BARW * 0.45, background: C.slate500, borderRadius: 13}} />
+        </div>
+        <div style={{marginTop: 28, fontFamily: FONT, fontSize: 34, color: C.slate400}}>القيمة المتوقعة</div>
+        <div style={{position: 'relative', height: 26, marginTop: 10}}>
+          <div style={{position: 'absolute', right: 0, height: 26, width: lerp(BARW * 0.2, BARW, valueP), background: C.emerald, borderRadius: 13}} />
+        </div>
+        {Q.map((q) => {
+          const p = prog(f, sec(q.g - S), 22);
+          return (
+            <div key={q.t} style={{marginTop: 34, display: 'flex', alignItems: 'center', gap: 20, opacity: p, transform: `translateX(${(1 - p) * 30}px)`}}>
+              <svg width={44} height={44} viewBox="0 0 44 44">
+                <polyline points="6,24 18,36 38,8" fill="none" stroke={C.emerald} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div style={{fontFamily: FONT, fontSize: 38, color: C.white}}>{q.t}</div>
+            </div>
+          );
+        })}
+      </div>
 
-      <KText at={S3_BALANCE + 120} top={1700} size={52} color={C.green}>
-        البيعة رقم 501 = أول ربح صافي حقيقي
-      </KText>
-      <KText at={S3_BALANCE + 300} top={1790} size={38} color={C.red} weight={700}>
-        الإنفاق على التوسع قبل التعادل = انتحار مالي
-      </KText>
-    </Scene>
+      <div style={{position: 'absolute', left: 80, right: 80, top: 1790}}>
+        <Kinetic text="الثقة تزيد... والصفقة تُقفل" start={sec(124.7 - S)} size={50} color={C.slate400} weight={600} />
+      </div>
+    </Fade>
   );
 };

@@ -1,43 +1,34 @@
 import React from 'react';
-import {Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import {C, S} from '../theme';
-import {KText, Scene} from '../components/common';
+import {Img, staticFile, useCurrentFrame} from 'remotion';
+import {C, FONT} from '../theme';
+import {Fade, L, prog, sec} from '../kit';
 
+// Scene 6 - Outro (frames 6750-7200, global 225-240s). Fades in vertically, then holds to the last frame.
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const p = spring({frame: f, fps, config: {damping: 18, stiffness: 90}});
-  const y = interpolate(p, [0, 1], [160, 0]);
-  const sc = interpolate(p, [0, 1], [0.85, 1]);
-  const o = interpolate(f, [0, 18], [0, 1], {extrapolateRight: 'clamp'});
+  const logo = prog(f, 9, 45);
+  const phone = prog(f, sec(3), 30);
+  const urls = prog(f, sec(5), 30);
+  const tag = prog(f, sec(11.1), 30);
 
   return (
-    <Scene dur={S.s6.dur}>
-      <div className="absolute w-full flex flex-col items-center" style={{top: 170, opacity: o, transform: `translateY(${y}px) scale(${sc})`}}>
-        <Img src={staticFile('logo-white.svg')} style={{width: 330, height: 330}} />
-        <div style={{fontSize: 74, fontWeight: 900, color: C.white, direction: 'ltr', marginTop: 10}}>Monzoma Digital</div>
+    <Fade dur={450} inF={10} outF={0}>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 260, display: 'flex', justifyContent: 'center', opacity: logo, transform: `translateY(${(1 - logo) * 60}px) scale(${0.92 + 0.08 * logo})`}}>
+        <Img src={staticFile('logo.svg')} style={{width: 760, height: 'auto'}} />
       </div>
 
-      <KText at={50} top={720} size={84} color={C.white} style={{lineHeight: 1.45}}>
-        عايز كل بيعة بتعملها تدخّل أرباح حقيقية في جيبك؟
-      </KText>
-      <KText at={95} top={1040} size={96} color={C.green}>
-        اتواصل معانا دلوقتي!
-      </KText>
+      <div style={{position: 'absolute', left: 80, right: 80, top: 960, textAlign: 'center', opacity: tag, direction: 'rtl', fontFamily: FONT, fontSize: 46, color: C.slate400}}>
+        تمكين القيادات عبر البيانات
+      </div>
 
-      <KText at={150} top={1260} size={40} color={C.dim} weight={700}>
-        للتواصل التنفيذي والمؤسسي
-      </KText>
-      <KText at={165} top={1330} size={86} color={C.white} ltr style={{fontVariantNumeric: 'tabular-nums'}}>
-        +201019672878
-      </KText>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 1090, textAlign: 'center', opacity: phone, transform: `translateY(${(1 - phone) * 40}px)`}}>
+        <L style={{fontFamily: FONT, fontSize: 84, fontWeight: 700, color: C.white, letterSpacing: 1}}>+201019672878</L>
+      </div>
 
-      <KText at={215} top={1500} size={40} color={C.white} weight={700} ltr>
-        https://analytics.gomaaintelligence.me/
-      </KText>
-      <KText at={240} top={1580} size={40} color={C.white} weight={700} ltr>
-        https://solutions.gomaaintelligence.me/
-      </KText>
-    </Scene>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 1280, textAlign: 'center', opacity: urls, transform: `translateY(${(1 - urls) * 40}px)`, fontFamily: FONT, fontSize: 36, color: C.white, lineHeight: 1.8}}>
+        <div><L>https://analytics.gomaaintelligence.me/</L></div>
+        <div><L>https://solutions.gomaaintelligence.me/</L></div>
+      </div>
+    </Fade>
   );
 };

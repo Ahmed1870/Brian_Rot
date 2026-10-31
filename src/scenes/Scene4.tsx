@@ -1,75 +1,95 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, S, S4_NODE0, S4_STEP} from '../theme';
-import {KText, Scene, fmt, prog} from '../components/common';
+import {C, FONT} from '../theme';
+import {Fade, Kinetic, L, lerp, prog, sec} from '../kit';
 
-const balances = [-1000, -800, -600, -400, -200, 0, 200];
-const Y0 = 470;
-const DY = 140;
+// Scene 4 (frames 4050-5400, global 135-180s): mobile conversion analytics dashboard (illustrative data).
+const S = 135;
+const STEPS = [
+  {t: 'مشاهدات', w: 1.0, v: '100%'},
+  {t: 'اهتمام', w: 0.62, v: '62%'},
+  {t: 'عميل مؤهل', w: 0.14, v: '14%'},
+  {t: 'صفقة', w: 0.05, v: '5%'},
+];
+
+const panel: React.CSSProperties = {
+  position: 'absolute',
+  left: 80,
+  right: 80,
+  background: C.panel,
+  border: `2px solid ${C.line}`,
+  borderRadius: 24,
+  boxSizing: 'border-box',
+  direction: 'rtl',
+};
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const lineP = prog(f, S4_NODE0, S4_NODE0 + 6 * S4_STEP + 30);
-  const frozenAt = S4_NODE0 + 7 * S4_STEP + 40;
+  const kpi = prog(f, sec(144.8 - S), 30);
+  const cmpIn = prog(f, sec(158 - S), 30);
+  const costIn = prog(f, sec(158.5 - S), sec(4));
+  const fun = prog(f, sec(5), 28);
+  const drop = prog(f, sec(166.9 - S), 25);
+  const BW = 700;
 
   return (
-    <Scene dur={S.s4.dur}>
-      <KText at={5} top={90} size={58}>
-        فترة استرداد تكلفة العميل
-      </KText>
-      <KText at={25} top={175} size={40} color={C.dim} weight={700} ltr>
-        CAC Payback Period
-      </KText>
+    <Fade dur={1350}>
+      <div style={{position: 'absolute', left: 80, right: 80, top: 150}}>
+        <Kinetic text="تحليل كفاءة التحويل" start={sec(0.6)} size={78} />
+        <Kinetic text="[[Conversion Analytics]]" start={sec(2)} size={44} color={C.slate400} weight={600} />
+      </div>
 
-      <KText at={60} top={300} size={44} color={C.white} weight={700}>
-        صرفت 1,000 ج.م إعلانات ← العميل يدخّل 200 ج.م/شهر
-      </KText>
+      {/* KPI row */}
+      <div style={{position: 'absolute', left: 80, right: 80, top: 400, display: 'flex', gap: 24, direction: 'rtl', opacity: kpi, transform: `translateY(${(1 - kpi) * 30}px)`}}>
+        {[
+          {l: 'Attention Ratio', v: `${(lerp(0, 3.1, kpi)).toFixed(1)}%`, c: C.white},
+          {l: 'Qualified Close Rate', v: `${Math.round(lerp(0, 24, kpi))}%`, c: C.emerald},
+        ].map((k) => (
+          <div key={k.l} style={{flex: 1, background: C.panel, border: `2px solid ${C.line}`, borderRadius: 24, padding: '28px 30px', boxSizing: 'border-box'}}>
+            <div dir="ltr" style={{fontFamily: FONT, fontSize: 32, color: C.slate400, textAlign: 'right'}}>{k.l}</div>
+            <div style={{fontFamily: FONT, fontSize: 88, fontWeight: 700, color: k.c, lineHeight: 1.15}}>
+              <L>{k.v}</L>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* vertical timeline */}
-      <svg width={1080} height={1920} style={{position: 'absolute', inset: 0}}>
-        <line x1={540} y1={Y0} x2={540} y2={Y0 + DY * 6} stroke={C.slate} strokeWidth={4} opacity={0.5} />
-        <line x1={540} y1={Y0} x2={540} y2={Y0 + DY * 6 * lineP} stroke={lineP > 0.83 ? C.green : C.red} strokeWidth={8} strokeLinecap="round" />
-        {balances.map((b, i) => {
-          const t = S4_NODE0 + i * S4_STEP;
-          const p = prog(f, t, t + 20);
-          if (p <= 0) return null;
-          const y = Y0 + DY * i;
-          const color = b < 0 ? C.red : C.green;
-          const isZero = b === 0;
+      {/* Cost comparison */}
+      <div style={{...panel, top: 660, height: 440, padding: '36px 40px', opacity: cmpIn, transform: `translateY(${(1 - cmpIn) * 30}px)`}}>
+        <div style={{fontFamily: FONT, fontSize: 40, fontWeight: 700, color: C.white}}>
+          <L>Cost per Attention</L> مقابل <L>Cost per Qualified Lead</L>
+        </div>
+        <div style={{marginTop: 40, fontFamily: FONT, fontSize: 34, color: C.slate400}}>تكلفة الانتباه</div>
+        <div style={{position: 'relative', height: 30, marginTop: 10}}>
+          <div style={{position: 'absolute', right: 0, height: 30, width: BW * 0.07 * costIn, background: C.slate400, borderRadius: 15}} />
+        </div>
+        <div style={{marginTop: 34, fontFamily: FONT, fontSize: 34, color: C.slate400}}>تكلفة العميل المؤهل</div>
+        <div style={{position: 'relative', height: 30, marginTop: 10}}>
+          <div style={{position: 'absolute', right: 0, height: 30, width: BW * 0.9 * costIn, background: C.white, borderRadius: 15}} />
+        </div>
+      </div>
+
+      {/* Funnel drop-off */}
+      <div style={{...panel, top: 1140, height: 620, padding: '36px 40px', opacity: fun}}>
+        <div style={{fontFamily: FONT, fontSize: 40, fontWeight: 700, color: C.white}}>أين يتراجع العميل؟</div>
+        {STEPS.map((s, i) => {
+          const g = prog(f, sec(6 + i * 0.5), 30);
+          const hot = i === 2 ? drop : 0;
           return (
-            <g key={i} opacity={p}>
-              <circle cx={540} cy={y} r={isZero ? 26 : 18} fill={isZero ? C.white : color} />
-              {/* month label on the right (RTL start) */}
-              <text x={600} y={y + 14} fontSize={42} fontWeight={700} fill={C.white} textAnchor="start">
-                {i === 0 ? 'اليوم: صرف الإعلان' : `الشهر ${i}`}
-              </text>
-              {/* balance on the left */}
-              <text x={480} y={y + 18} fontSize={56} fontWeight={900} fill={color} textAnchor="end" style={{fontVariantNumeric: 'tabular-nums'}}>
-                {b > 0 ? '+' : ''}{fmt(b)}
-              </text>
-              {isZero && (
-                <text x={600} y={y + 62} fontSize={32} fontWeight={700} fill={C.green} textAnchor="start">
-                  استرجعت الألف جنيه
-                </text>
-              )}
-            </g>
+            <div key={s.t} style={{marginTop: 34}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: FONT, fontSize: 34, color: hot > 0.5 ? C.crimson : C.slate400}}>
+                <span>{s.t}</span>
+                <L>{s.v}</L>
+              </div>
+              <div style={{position: 'relative', height: 28, marginTop: 8}}>
+                <div style={{position: 'absolute', right: 0, height: 28, width: BW * s.w * g, background: hot > 0.5 ? C.crimson : i === 3 ? C.emerald : C.slate500, borderRadius: 14}} />
+              </div>
+            </div>
           );
         })}
-      </svg>
-
-      <KText at={S4_NODE0 + 5 * S4_STEP + 20} top={1480} size={60} color={C.green}>
-        5 شهور لاسترداد التكلفة
-      </KText>
-
-      <KText at={frozenAt} top={1590} size={46} color={C.white} weight={700}>
-        طول ما الفترة طويلة... رأس المال العامل مجمّد
-      </KText>
-      <KText at={frozenAt + 70} top={1680} size={42} color={C.red} weight={700}>
-        100 عميل جديد = 100,000 ج.م محبوسة في الإعلانات
-      </KText>
-      <KText at={frozenAt + 150} top={1770} size={44} color={C.white}>
-        اضغط فترة الاسترداد = سيولة أكثر
-      </KText>
-    </Scene>
+        <div style={{position: 'absolute', left: 40, bottom: 28, fontFamily: FONT, fontSize: 34, fontWeight: 700, color: C.crimson, opacity: drop}}>نقطة التراجع ←</div>
+      </div>
+      <div style={{position: 'absolute', right: 80, top: 1790, fontFamily: FONT, fontSize: 22, color: C.slate600, direction: 'rtl'}}>بيانات توضيحية</div>
+    </Fade>
   );
 };

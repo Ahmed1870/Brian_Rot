@@ -1,4 +1,4 @@
-name: Render lesson 1.2 marketing and sales psychology
+name: Render Lesson12
 on:
   push:
     branches: [main]
@@ -13,8 +13,8 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts Lesson12 out/lesson-1-2.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: npx remotion render src/index.ts Lesson12 out/lesson12.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: lesson-1-2
-          path: out/lesson-1-2.mp4
+          name: lesson12
+          path: out/lesson12.mp4
