@@ -3,91 +3,102 @@ import {useCurrentFrame} from 'remotion';
 import {C, FONT} from '../theme';
 import {Fade, Kinetic, L, lerp, prog, sec} from '../kit';
 
-// Scene 4 (frames 4050-5400, global 135-180s): mobile conversion analytics dashboard (illustrative data).
-const S = 135;
-const STEPS = [
-  {t: 'مشاهدات', w: 1.0, v: '100%'},
-  {t: 'اهتمام', w: 0.62, v: '62%'},
-  {t: 'عميل مؤهل', w: 0.14, v: '14%'},
-  {t: 'صفقة', w: 0.05, v: '5%'},
-];
+// Scene 4 (frames 4200-5550, global 140-185s): operational throughput -> cash flow (illustrative numbers).
+const S = 140;
+const BW = 800;
 
-const panel: React.CSSProperties = {
+const panel = (top: number, height: number, appear: number): React.CSSProperties => ({
   position: 'absolute',
   left: 80,
   right: 80,
+  top,
+  height,
   background: C.panel,
   border: `2px solid ${C.line}`,
   borderRadius: 24,
   boxSizing: 'border-box',
   direction: 'rtl',
-};
+  padding: '34px 40px',
+  opacity: appear,
+  transform: `translateY(${(1 - appear) * 40}px)`,
+});
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const kpi = prog(f, sec(144.8 - S), 30);
-  const cmpIn = prog(f, sec(158 - S), 30);
-  const costIn = prog(f, sec(158.5 - S), sec(4));
-  const fun = prog(f, sec(5), 28);
-  const drop = prog(f, sec(166.9 - S), 25);
-  const BW = 700;
+  const a1 = prog(f, sec(143 - S), 28);
+  const a2 = prog(f, sec(151.7 - S), 28);
+  const a3 = prog(f, sec(179.8 - S), 28);
+
+  // WIP share of working capital: 30% -> 62% (stuck) -> 18% (released)
+  const wip = lerp(30, 62, prog(f, sec(162.2 - S), sec(4))) - lerp(0, 44, prog(f, sec(170.5 - S), sec(5)));
+  const cash = 100 - wip;
+
+  // cycle-to-cash days: 30 -> 15
+  const drop = prog(f, sec(176.5 - S), sec(3));
+  const days = Math.round(lerp(30, 15, drop));
+  const y2 = lerp(40, 170, drop);
+
+  const checks = [
+    {t: 'نفس الموارد المتاحة', g: 180.2},
+    {t: 'بدون تمويل خارجي أو ديون جديدة', g: 182.6},
+  ];
 
   return (
     <Fade dur={1350}>
-      <div style={{position: 'absolute', left: 80, right: 80, top: 150}}>
-        <Kinetic text="تحليل كفاءة التحويل" start={sec(0.6)} size={78} />
-        <Kinetic text="[[Conversion Analytics]]" start={sec(2)} size={44} color={C.slate400} weight={600} />
+      <div style={{position: 'absolute', left: 80, right: 80, top: 130}}>
+        <Kinetic text="ربط التشغيل بالتدفق النقدي" start={sec(140.5 - S)} size={74} />
+        <Kinetic text="[[Throughput Accounting & Cash Flow]]" start={sec(142 - S)} size={38} color={C.slate400} weight={600} />
       </div>
 
-      {/* KPI row */}
-      <div style={{position: 'absolute', left: 80, right: 80, top: 400, display: 'flex', gap: 24, direction: 'rtl', opacity: kpi, transform: `translateY(${(1 - kpi) * 30}px)`}}>
-        {[
-          {l: 'Attention Ratio', v: `${(lerp(0, 3.1, kpi)).toFixed(1)}%`, c: C.white},
-          {l: 'Qualified Close Rate', v: `${Math.round(lerp(0, 24, kpi))}%`, c: C.emerald},
-        ].map((k) => (
-          <div key={k.l} style={{flex: 1, background: C.panel, border: `2px solid ${C.line}`, borderRadius: 24, padding: '28px 30px', boxSizing: 'border-box'}}>
-            <div dir="ltr" style={{fontFamily: FONT, fontSize: 32, color: C.slate400, textAlign: 'right'}}>{k.l}</div>
-            <div style={{fontFamily: FONT, fontSize: 88, fontWeight: 700, color: k.c, lineHeight: 1.15}}>
-              <L>{k.v}</L>
-            </div>
+      {/* Card 1: where is the money stuck */}
+      <div style={panel(430, 440, a1)}>
+        <div style={{fontFamily: FONT, fontSize: 42, fontWeight: 700, color: C.white}}>أين يتجمد رأس المال؟</div>
+        <div style={{display: 'flex', direction: 'rtl', height: 70, marginTop: 40, borderRadius: 14, overflow: 'hidden'}}>
+          <div style={{width: (BW * cash) / 100, background: C.emerald}} />
+          <div style={{width: (BW * wip) / 100, background: C.crimson}} />
+        </div>
+        <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 36, direction: 'rtl'}}>
+          <div>
+            <div style={{fontFamily: FONT, fontSize: 34, color: C.slate400}}>تدفق نقدي صافي</div>
+            <div style={{fontFamily: FONT, fontSize: 84, fontWeight: 700, color: C.emerald, lineHeight: 1.1}}><L>{Math.round(cash)}%</L></div>
           </div>
-        ))}
-      </div>
-
-      {/* Cost comparison */}
-      <div style={{...panel, top: 660, height: 440, padding: '36px 40px', opacity: cmpIn, transform: `translateY(${(1 - cmpIn) * 30}px)`}}>
-        <div style={{fontFamily: FONT, fontSize: 40, fontWeight: 700, color: C.white}}>
-          <L>Cost per Attention</L> مقابل <L>Cost per Qualified Lead</L>
-        </div>
-        <div style={{marginTop: 40, fontFamily: FONT, fontSize: 34, color: C.slate400}}>تكلفة الانتباه</div>
-        <div style={{position: 'relative', height: 30, marginTop: 10}}>
-          <div style={{position: 'absolute', right: 0, height: 30, width: BW * 0.07 * costIn, background: C.slate400, borderRadius: 15}} />
-        </div>
-        <div style={{marginTop: 34, fontFamily: FONT, fontSize: 34, color: C.slate400}}>تكلفة العميل المؤهل</div>
-        <div style={{position: 'relative', height: 30, marginTop: 10}}>
-          <div style={{position: 'absolute', right: 0, height: 30, width: BW * 0.9 * costIn, background: C.white, borderRadius: 15}} />
+          <div style={{textAlign: 'left'}}>
+            <div dir="ltr" style={{fontFamily: FONT, fontSize: 34, color: C.slate400}}>WIP</div>
+            <div style={{fontFamily: FONT, fontSize: 84, fontWeight: 700, color: C.crimson, lineHeight: 1.1}}><L>{Math.round(wip)}%</L></div>
+          </div>
         </div>
       </div>
 
-      {/* Funnel drop-off */}
-      <div style={{...panel, top: 1140, height: 620, padding: '36px 40px', opacity: fun}}>
-        <div style={{fontFamily: FONT, fontSize: 40, fontWeight: 700, color: C.white}}>أين يتراجع العميل؟</div>
-        {STEPS.map((s, i) => {
-          const g = prog(f, sec(6 + i * 0.5), 30);
-          const hot = i === 2 ? drop : 0;
+      {/* Card 2: cycle-to-cash */}
+      <div style={panel(910, 500, a2)}>
+        <div style={{fontFamily: FONT, fontSize: 42, fontWeight: 700, color: C.white}}>زمن تحويل الطلب إلى كاش</div>
+        <svg width={800} height={330} viewBox="0 0 800 330" style={{marginTop: 16}}>
+          <line x1={20} x2={780} y1={290} y2={290} stroke={C.slate600} />
+          <line x1={140} x2={660} y1={40} y2={40} stroke={C.slate600} strokeDasharray="6 10" />
+          <line x1={140} y1={40} x2={660} y2={y2} stroke={drop > 0.5 ? C.emerald : C.crimson} strokeWidth={7} strokeLinecap="round" />
+          <circle cx={140} cy={40} r={14} fill={C.crimson} />
+          <circle cx={660} cy={y2} r={14} fill={drop > 0.5 ? C.emerald : C.crimson} />
+          <text x={140} y={330} textAnchor="middle" fontFamily={FONT} fontSize={32} fill={C.slate400}>الآن</text>
+          <text x={660} y={330} textAnchor="middle" fontFamily={FONT} fontSize={32} fill={C.slate400}>بعد إزالة الاختناق</text>
+          <text x={140} y={92} textAnchor="middle" fontFamily={FONT} fontSize={44} fontWeight={700} fill={C.crimson}>30</text>
+          <text x={660} y={y2 + 62} textAnchor="middle" fontFamily={FONT} fontSize={44} fontWeight={700} fill={drop > 0.5 ? C.emerald : C.crimson}>{days}</text>
+          <text x={400} y={150} textAnchor="middle" fontFamily={FONT} fontSize={34} fill={C.slate400} opacity={drop}>يوم ← للنصف</text>
+        </svg>
+      </div>
+
+      {/* Card 3 */}
+      <div style={{...panel(1450, 300, a3), display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 26}}>
+        {checks.map((c) => {
+          const p = prog(f, sec(c.g - S), 20);
           return (
-            <div key={s.t} style={{marginTop: 34}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: FONT, fontSize: 34, color: hot > 0.5 ? C.crimson : C.slate400}}>
-                <span>{s.t}</span>
-                <L>{s.v}</L>
-              </div>
-              <div style={{position: 'relative', height: 28, marginTop: 8}}>
-                <div style={{position: 'absolute', right: 0, height: 28, width: BW * s.w * g, background: hot > 0.5 ? C.crimson : i === 3 ? C.emerald : C.slate500, borderRadius: 14}} />
-              </div>
+            <div key={c.t} style={{display: 'flex', alignItems: 'center', gap: 22, opacity: p, transform: `translateX(${(1 - p) * 30}px)`}}>
+              <svg width={44} height={44} viewBox="0 0 44 44">
+                <polyline points="6,24 18,36 38,8" fill="none" stroke={C.emerald} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div style={{fontFamily: FONT, fontSize: 42, fontWeight: 600, color: C.white}}>{c.t}</div>
             </div>
           );
         })}
-        <div style={{position: 'absolute', left: 40, bottom: 28, fontFamily: FONT, fontSize: 34, fontWeight: 700, color: C.crimson, opacity: drop}}>نقطة التراجع ←</div>
       </div>
       <div style={{position: 'absolute', right: 80, top: 1790, fontFamily: FONT, fontSize: 22, color: C.slate600, direction: 'rtl'}}>بيانات توضيحية</div>
     </Fade>

@@ -21,15 +21,15 @@ export const C = {
   slate500: '#64748B',
   slate600: '#475569',
   slate700: '#334155',
-  crimson: '#DC1F45', // friction / leakage
-  emerald: '#1FB57A', // conversion efficiency
+  crimson: '#DC1F45', // bottleneck / congestion
+  emerald: '#1FB57A', // throughput
 };
 
 export const SCENES = {
-  s1: {from: 0, dur: 1050},
-  s2: {from: 1050, dur: 1500},
-  s3: {from: 2550, dur: 1500},
-  s4: {from: 4050, dur: 1350},
-  s5: {from: 5400, dur: 1350},
+  s1: {from: 0, dur: 1200},
+  s2: {from: 1200, dur: 1500},
+  s3: {from: 2700, dur: 1500},
+  s4: {from: 4200, dur: 1350},
+  s5: {from: 5550, dur: 1200},
   s6: {from: 6750, dur: 450},
 };

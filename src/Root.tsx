@@ -4,5 +4,5 @@ import {Video} from './Video';
 import {FPS, H, TOTAL_FRAMES, W} from './theme';
 
 export const RemotionRoot: React.FC = () => (
-  <Composition id="Lesson12" component={Video} durationInFrames={TOTAL_FRAMES} fps={FPS} width={W} height={H} />
+  <Composition id="Lesson14" component={Video} durationInFrames={TOTAL_FRAMES} fps={FPS} width={W} height={H} />
 );

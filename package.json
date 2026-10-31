@@ -1,11 +1,11 @@
 {
-  "name": "monzoma-lesson-1-2",
+  "name": "monzoma-lesson-1-4",
   "version": "1.0.0",
   "private": true,
-  "description": "Monzoma Digital - Lesson 1.2: Marketing & Sales Psychology (4:00, 1080x1920 vertical, 30fps)",
+  "description": "Monzoma Digital - Lesson 1.4: Operations Engineering & Bottlenecks (4:00, 1080x1920 vertical, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts Lesson12 out/lesson-1-2.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "build": "remotion render src/index.ts Lesson14 out/lesson-1-4.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",

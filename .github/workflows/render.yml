@@ -1,4 +1,4 @@
-name: Render Lesson12
+name: Render Lesson14
 on:
   push:
     branches: [main]
@@ -13,8 +13,8 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts Lesson12 out/lesson12.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: npx remotion render src/index.ts Lesson14 out/lesson-1-4.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: lesson12
-          path: out/lesson12.mp4
+          name: lesson-1-4
+          path: out/lesson-1-4.mp4
