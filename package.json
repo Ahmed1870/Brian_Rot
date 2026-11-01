@@ -1,23 +1,21 @@
 {
-  "name": "manzooma-lesson-01",
+  "name": "monzoma-lesson-2-1-omtm",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma - SQL From Zero to Professional - Lesson 01 (Remotion)",
+  "description": "Monzoma Digital - Lesson 2.1: OMTM One Metric That Matters (3:30, 1080x1920 vertical, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "npm run generate-audio && remotion render src/index.ts Monzoma-SQL-L01 out/Monzoma-SQL-L01.mp4",
-    "typecheck": "tsc --noEmit"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts Lesson21 out/lesson-2-1.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
     "@remotion/google-fonts": "^4.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.0",
+    "@types/react": "^18.3.3",
     "typescript": "^5.4.0"
   }
 }

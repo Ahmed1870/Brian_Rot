@@ -1,20 +1,9 @@
-# Manzooma - SQL From Zero to Professional - Lesson 01
+# Monzoma Digital - Lesson 2.1 (OMTM - One Metric That Matters) - Remotion, 9:16
 
-Remotion project, composition ID `BrainRotViral`, 1920x1080 @ 30fps, 6900 frames (230 s).
+- Composition id: `Lesson21` - 1080x1920, 30fps, 6300 frames (3:30)
+- Scenes: 0-1050 | 1050-2400 | 2400-3750 | 3750-4950 | 4950-5850 | 5850-6300 (Outro)
+- Layout rule: every scene = Top text block (y 120-480) / Graphic canvas (y 520-1400) / Bottom text block (y 1470-1810). Text never overlaps graphics.
+- Assets: public/voiceover.mp3 (210.3s), public/logo.svg
 
-## Run on Termux
-```bash
-termux-setup-storage
-pkg install -y unzip git nodejs
-cd ~ && rm -rf ~/video-project
-unzip -o ~/storage/downloads/manzooma-lesson01.zip
-cd video-project
-bash deploy.sh
-```
-Preview first: `DRY_RUN=1 bash deploy.sh`.
-
-## Notes
-- Everything is live text/SVG/CSS. No images, no AI-generated assets. The only imported asset is the Monzoma logo vector (`src/logoData.ts`, traced from by68Z01.svg).
-- `public/voiceover.mp3` starts at frame 0 (the file already contains its own lead-in silence).
-- `npm run generate-audio` builds all SFX + music into `public/gen/` from `src/timeline.json`.
-- All timings live in `src/timeline.json`; visuals and audio both read it.
+    npm install && npm start
+    npm run build   # -> out/lesson-2-1.mp4
