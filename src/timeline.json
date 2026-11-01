@@ -1,0 +1,33 @@
+{
+  "fps": 30,
+  "total": 240,
+  "scenes": [0, 40, 80, 125, 165, 210, 240],
+  "s1": { "mapAt": 0.8, "header": [2, 18], "cities": [11.5, 12.2, 12.9], "fireAt": 24.8, "dubaiAt": 29.6, "londonAt": 32.5, "scrambleAt": 36.7, "caption": [22, 38.5] },
+  "s2": { "intro": 42, "left": [47.4, 59.5], "unsafeAt": 57.2, "right": [60.4, 78.2], "anchorAt": 64.6, "bytesAt": 69.0, "safeAt": 73.1 },
+  "s3": { "head": [81.1, 86], "inputAt": 86.5, "storeAt": 98.1, "outputAt": 109.3, "showAt": 116.3, "cap1": [94, 108.5], "cap2": [116.3, 122.4] },
+  "s4": { "open": 125.5, "codes": [130.9, 143.5, 150.0, 157.2], "typeDur": [5.0, 1.9, 2.8, 2.6], "outs": [139.9, 149.8, 156.8, 161.8], "cap1": [130.9, 145], "cap2": [145.7, 162.5] },
+  "s5": { "head": 165.5, "wrongAt": 172.1, "lateAt": 175.9, "shiftAt": 181.0, "rightAt": 195.7, "cap1": [172.1, 195], "cap2": [195.7, 207.5] },
+  "s6": { "header": 210.4, "badge": 211.3, "progress": [212, 219], "sheets": 219.9, "next": 227.6, "fadeOut": 237 },
+  "sfx": [
+    { "kind": "alarm", "at": 36.7, "vol": 0.45 },
+    { "kind": "tick", "at": 47.4, "vol": 0.4 },
+    { "kind": "snap", "at": 64.6, "vol": 0.55 },
+    { "kind": "freqshift", "at": 98.1, "vol": 0.45 },
+    { "kind": "passtone", "at": 116.3, "vol": 0.45 },
+    { "kind": "typing", "at": 130.9, "vol": 0.3 },
+    { "kind": "typingshort", "at": 143.5, "vol": 0.3 },
+    { "kind": "typingshort", "at": 150.0, "vol": 0.3 },
+    { "kind": "typingshort", "at": 157.2, "vol": 0.3 },
+    { "kind": "pop", "at": 139.9, "vol": 0.5 },
+    { "kind": "pop", "at": 149.8, "vol": 0.5 },
+    { "kind": "pop", "at": 156.8, "vol": 0.5 },
+    { "kind": "pop", "at": 161.8, "vol": 0.5 },
+    { "kind": "fail", "at": 181.0, "vol": 0.5 },
+    { "kind": "rise", "at": 195.7, "vol": 0.5 },
+    { "kind": "whoosh", "at": 37.6, "vol": 0.25 },
+    { "kind": "whoosh", "at": 77.6, "vol": 0.25 },
+    { "kind": "whoosh", "at": 122.4, "vol": 0.25 },
+    { "kind": "whoosh", "at": 162.4, "vol": 0.25 },
+    { "kind": "whoosh", "at": 207.4, "vol": 0.25 }
+  ]
+}

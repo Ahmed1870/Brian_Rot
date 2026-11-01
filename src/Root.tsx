@@ -1,8 +1,15 @@
 import React from 'react';
-import {Composition} from 'remotion';
-import {Lesson05} from './Lesson05';
-import {FPS, H, TOTAL, W} from './theme';
+import { Composition } from 'remotion';
+import { Lesson05 } from './Lesson05';
+import tl from './timeline.json';
 
-export const RemotionRoot: React.FC = () => (
-  <Composition id="Ahmed-SQL-L05" component={Lesson05} width={W} height={H} fps={FPS} durationInFrames={TOTAL} />
+export const Root: React.FC = () => (
+  <Composition
+    id="Monzoma-SQL-L05"
+    component={Lesson05}
+    durationInFrames={tl.total * tl.fps}
+    fps={tl.fps}
+    width={1920}
+    height={1080}
+  />
 );
