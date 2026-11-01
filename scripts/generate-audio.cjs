@@ -8,7 +8,7 @@ const pub = path.join(root, 'public');
 const tl = JSON.parse(fs.readFileSync(path.join(root, 'src', 'timeline.json'), 'utf8'));
 
 // ---- 1) asset checks (exit 1 on failure) ----
-const need = [['public/voiceover_lesson_02.mp3', 100000], ['src/logoData.ts', 1000]];
+const need = [['public/voiceover_lesson_03.mp3', 100000], ['src/logoData.ts', 1000]];
 let bad = false;
 for (const [rel, min] of need) {
   const f = path.join(root, rel);
@@ -65,28 +65,39 @@ const hann = (x) => Math.sin(Math.PI * x) ** 2;
 
 // ---- 3) SFX ----
 const sfx = {
-  burst() { const b = buf(0.7); addSweep(b, 0, 0.5, 400, 2200, 0.5, expDecay(3)); addNoise(b, 0, 0.4, 1.2, expDecay(5), (x) => 0.05 + 0.5 * x); return b; },
-  scan() { const b = buf(1.8); addSweep(b, 0, 1.7, 300, 1500, 0.4, hann); addSweep(b, 0, 1.7, 600, 3000, 0.12, hann); addNoise(b, 0, 1.7, 0.6, hann, 0.08); return b; },
-  click() { const b = buf(0.15); addSweep(b, 0, 0.1, 2400, 1800, 0.5, expDecay(9)); addNoise(b, 0, 0.02, 1, expDecay(6), 0.6); return b; },
+  morph() { const b = buf(1.4); addSweep(b, 0, 1.3, 300, 1300, 0.4, hann); addSweep(b, 0, 1.3, 150, 650, 0.25, hann); addNoise(b, 0, 1.3, 0.35, hann, 0.1); return b; },
+  slide() { const b = buf(0.9); addSweep(b, 0, 0.8, 1800, 500, 0.3, hann); addNoise(b, 0, 0.8, 0.6, hann, (x) => 0.35 - 0.3 * x); return b; },
+  switchclick() { const b = buf(0.18); addSweep(b, 0, 0.12, 1500, 900, 0.5, expDecay(10)); addNoise(b, 0, 0.02, 1, expDecay(6), 0.6); return b; },
+  buzz() {
+    const b = buf(0.7);
+    for (let h = 1; h <= 6; h++) addSweep(b, 0, 0.6, 110 * h, 110 * h, 0.22 / h, (x) => Math.exp(-3 * x) * (0.6 + 0.4 * Math.sin(x * 120)));
+    return b;
+  },
+  stamp() { const b = buf(0.6); addSweep(b, 0, 0.35, 140, 50, 0.9, expDecay(7)); addNoise(b, 0, 0.08, 1, expDecay(6), 0.4); addSweep(b, 0, 0.2, 520, 480, 0.2, expDecay(10)); return b; },
+  prism() {
+    const b = buf(1.6);
+    [2093, 2637, 3136, 3951, 4699].forEach((f, i) => addSweep(b, i * 0.05, 1.3, f, f * 0.99, 0.16, expDecay(3.5)));
+    addNoise(b, 0, 0.1, 0.8, expDecay(8), 0.7);
+    return b;
+  },
+  snap() { const b = buf(0.14); addNoise(b, 0, 0.015, 1.2, expDecay(5), 0.8); addSweep(b, 0, 0.08, 1200, 700, 0.4, expDecay(10)); return b; },
   typing() {
-    const b = buf(3.8); let t = 0;
-    while (t < 3.6) {
+    const b = buf(5.8); let t = 0;
+    while (t < 5.5) {
       const f = 700 + Math.abs(rnd()) * 600;
       addNoise(b, t, 0.025, 1.4, expDecay(6), 0.5);
       addSweep(b, t, 0.04, f, f * 0.6, 0.35, expDecay(6));
-      t += 0.045 + Math.abs(rnd()) * 0.06;
+      t += 0.07 + Math.abs(rnd()) * 0.09;
     }
     return b;
   },
-  chirp() { const b = buf(0.5); addSweep(b, 0, 0.16, 880, 900, 0.45, (x) => Math.sin(Math.PI * Math.min(1, x * 1.2))); addSweep(b, 0.14, 0.3, 1320, 1330, 0.45, expDecay(3)); return b; },
-  pop() { const b = buf(0.35); addSweep(b, 0, 0.2, 700, 220, 0.8, expDecay(8)); addNoise(b, 0, 0.015, 1, expDecay(5), 0.7); return b; },
-  stab() {
-    const b = buf(0.9);
-    for (const f of [220, 261.63, 329.63]) {
-      for (let h = 1; h <= 5; h += 2) addSweep(b, 0, 0.8, f * h, f * h, 0.14 / h, expDecay(4));
+  shuffle() {
+    const b = buf(2.0); let t = 0;
+    while (t < 1.8) {
+      addNoise(b, t, 0.02, 1.3, expDecay(6), 0.55);
+      addSweep(b, t, 0.03, 900 + Math.abs(rnd()) * 500, 500, 0.25, expDecay(8));
+      t += 0.04 + Math.abs(rnd()) * 0.05;
     }
-    addSweep(b, 0, 0.5, 90, 45, 0.7, expDecay(5));
-    addNoise(b, 0, 0.12, 0.8, expDecay(6), 0.3);
     return b;
   },
   whoosh() { const b = buf(1.1); addNoise(b, 0, 1.0, 1.6, hann, (x) => 0.04 + 0.4 * Math.sin(Math.PI * x)); return b; },

@@ -1,4 +1,4 @@
-name: Render Lesson 1.5 (Ahmed x Monzoma)
+name: Render video
 on:
   push:
     branches: [main]
@@ -13,8 +13,9 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
-      - run: npx remotion render src/index.ts BrainRotViral out/ahmed_systems_L15.mp4 --codec h264 --concurrency 2
+      - run: npm run generate-audio
+      - run: npx remotion render src/index.ts Monzoma-SQL-L03 out/Monzoma-SQL-L03.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: ahmed_systems_L15
-          path: out/ahmed_systems_L15.mp4
+          name: Monzoma-SQL-L03
+          path: out/Monzoma-SQL-L03.mp4

@@ -102,3 +102,31 @@ export const Blueprint: React.FC<{ y: number; opacity?: number }> = ({ y, opacit
     <EN x={1060} y={y} size={40} anchor="start" fill={C.db} weight={600}>[PostgreSQL Engine]</EN>
   </g>
 );
+
+/** "left ──► right" caption: texts anchored around a vector arrow. */
+export const Arrowed: React.FC<{ y: number; left: string; right: string; leftColor?: string; rightColor?: string; size?: number; leftArabic?: boolean }> = ({ y, left, right, leftColor = C.client, rightColor = C.db, size = 40, leftArabic = false }) => (
+  <g>
+    {leftArabic ? (
+      <AR x={900} y={y} size={size} fill={leftColor} anchor="start">{left}</AR>
+    ) : (
+      <EN x={900} y={y} size={size} anchor="end" fill={leftColor} weight={600}>{left}</EN>
+    )}
+    <path d={`M 930 ${y - 14} H 1010`} stroke={C.opt} strokeWidth={5} strokeLinecap="round" />
+    <path d={`M 996 ${y - 30} L 1030 ${y - 14} L 996 ${y + 2} Z`} fill={C.opt} />
+    <EN x={1060} y={y} size={size} anchor="start" fill={rightColor} weight={600}>{right}</EN>
+  </g>
+);
+
+/** Simple flat person (customer) icon with shopping bag, centered at (x,y). */
+export const PersonIcon: React.FC<{ x: number; y: number; s?: number; color?: string; bag?: boolean }> = ({ x, y, s = 1, color = C.client, bag = true }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`}>
+    <circle cx={0} cy={-60} r={34} fill={color} />
+    <path d="M -62 70 C -62 10 -40 -14 0 -14 C 40 -14 62 10 62 70 Z" fill={color} fillOpacity={0.85} />
+    {bag && (
+      <g>
+        <rect x={34} y={20} width={54} height={60} rx={8} fill={C.bg} stroke={C.opt} strokeWidth={6} />
+        <path d="M 48 20 C 48 -2 74 -2 74 20" fill="none" stroke={C.opt} strokeWidth={6} strokeLinecap="round" />
+      </g>
+    )}
+  </g>
+);

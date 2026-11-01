@@ -1,12 +1,12 @@
 {
-  "name": "manzooma-lesson-02",
+  "name": "monzoma-sql-l03",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma — SQL From Zero to Professional — Lesson 02 (RDBMS Architecture)",
+  "description": "Manzooma — SQL From Zero to Professional — Lesson 03 (Atomic Values)",
   "scripts": {
     "start": "remotion studio src/index.ts",
     "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "npm run generate-audio && remotion render src/index.ts BrainRotViral out/BrainRotViral.mp4",
+    "render": "npm run generate-audio && remotion render src/index.ts Monzoma-SQL-L03 out/Monzoma-SQL-L03.mp4",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

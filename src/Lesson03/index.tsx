@@ -14,7 +14,7 @@ const SCENES = [Scene01, Scene02, Scene03, Scene04, Scene05, Scene06];
 const OUT = 0.4; // outgoing overlap (s)
 const IN = 0.5; // incoming fade/slide (s)
 
-export const Lesson02: React.FC = () => {
+export const Lesson03: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
@@ -43,19 +43,19 @@ export const Lesson02: React.FC = () => {
       <AbsoluteFill style={{ backgroundColor: '#000', opacity: black }} />
 
       {/* voiceover — aligned to frame 0 */}
-      <Audio src={staticFile('voiceover_lesson_02.mp3')} volume={1} />
+      <Audio src={staticFile('voiceover_lesson_03.mp3')} volume={1} />
 
       {/* ambient tech pulse: 12% in the opening seconds, 8% under narration, out before the CTA */}
-      <Sequence from={0} durationInFrames={5850} layout="none">
+      <Sequence from={0} durationInFrames={6150} layout="none">
         <Audio
           src={staticFile('music/ambient.wav')}
           loop
-          volume={(f) => (f < 150 ? 0.12 : 0.08) * (1 - Math.min(1, Math.max(0, (f - 5700) / 150)))}
+          volume={(f) => (f < 150 ? 0.12 : 0.08) * (1 - Math.min(1, Math.max(0, (f - 6000) / 150)))}
         />
       </Sequence>
 
       {/* corporate outro, fade-out starts at frame 6600 */}
-      <Sequence from={5850} durationInFrames={900} layout="none">
+      <Sequence from={6150} durationInFrames={900} layout="none">
         <Audio
           src={staticFile('music/outro.wav')}
           volume={(f) => 0.1 * Math.min(1, f / 45) * (1 - Math.min(1, Math.max(0, (f - 750) / 150)))}
