@@ -6,7 +6,7 @@
   "scripts": {
     "start": "remotion studio src/index.ts",
     "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "npm run generate-audio && remotion render src/index.ts BrainRotViral out/BrainRotViral.mp4",
+    "render": "npm run generate-audio && remotion render src/index.ts Monzoma-SQL-L01 out/Monzoma-SQL-L01.mp4",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
