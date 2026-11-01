@@ -1,9 +1,20 @@
-# Manzooma — Lesson 03: Atomic Values
-Remotion 2D vector video, 1920x1080 @30fps, 7050 frames (235 s). Composition ID: `Monzoma-SQL-L03`.
+# Manzooma - SQL From Zero to Professional - Lesson 01
 
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/Monzoma-SQL-L03.mp4
+Remotion project, composition ID `BrainRotViral`, 1920x1080 @ 30fps, 6900 frames (230 s).
 
-Voiceover: `public/voiceover_lesson_03.mp3`. Cue times live in `src/timeline.json`.
+## Run on Termux
+```bash
+termux-setup-storage
+pkg install -y unzip git nodejs
+cd ~ && rm -rf ~/video-project
+unzip -o ~/storage/downloads/manzooma-lesson01.zip
+cd video-project
+bash deploy.sh
+```
+Preview first: `DRY_RUN=1 bash deploy.sh`.
+
+## Notes
+- Everything is live text/SVG/CSS. No images, no AI-generated assets. The only imported asset is the Monzoma logo vector (`src/logoData.ts`, traced from by68Z01.svg).
+- `public/voiceover.mp3` starts at frame 0 (the file already contains its own lead-in silence).
+- `npm run generate-audio` builds all SFX + music into `public/gen/` from `src/timeline.json`.
+- All timings live in `src/timeline.json`; visuals and audio both read it.

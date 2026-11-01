@@ -1,12 +1,12 @@
 {
-  "name": "monzoma-sql-l03",
+  "name": "manzooma-lesson-01",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma — SQL From Zero to Professional — Lesson 03 (Atomic Values)",
+  "description": "Manzooma - SQL From Zero to Professional - Lesson 01 (Remotion)",
   "scripts": {
     "start": "remotion studio src/index.ts",
     "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "npm run generate-audio && remotion render src/index.ts Monzoma-SQL-L03 out/Monzoma-SQL-L03.mp4",
+    "render": "npm run generate-audio && remotion render src/index.ts BrainRotViral out/BrainRotViral.mp4",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
