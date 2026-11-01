@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
-      - run: npx remotion render src/index.ts Ahmed-Systems-L15 out/ahmed_systems_L15.mp4 --codec h264 --concurrency 2
+      - run: npx remotion render src/index.ts BrainRotViral out/ahmed_systems_L15.mp4 --codec h264 --concurrency 2
       - uses: actions/upload-artifact@v4
         with:
           name: ahmed_systems_L15
