@@ -1,5 +1,4 @@
-import {registerRoot} from 'remotion';
-import './index.css';
-import {RemotionRoot} from './Root';
+import { registerRoot } from 'remotion';
+import { Root } from './Root';
 
-registerRoot(RemotionRoot);
+registerRoot(Root);

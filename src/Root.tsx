@@ -1,15 +1,15 @@
 import React from 'react';
-import {Composition} from 'remotion';
-import {UnitEconomicsVideo} from './Video';
-import {FPS, H, TOTAL, W} from './theme';
+import { Composition } from 'remotion';
+import { Lesson02 } from './Lesson02';
+import tl from './timeline.json';
 
-export const RemotionRoot: React.FC = () => (
+export const Root: React.FC = () => (
   <Composition
-    id="Ahmed-Systems-L15"
-    component={UnitEconomicsVideo}
-    width={W}
-    height={H}
-    fps={FPS}
-    durationInFrames={TOTAL}
+    id="BrainRotViral"
+    component={Lesson02}
+    durationInFrames={tl.total * tl.fps}
+    fps={tl.fps}
+    width={1920}
+    height={1080}
   />
 );

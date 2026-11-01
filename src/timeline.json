@@ -1,0 +1,31 @@
+{
+  "fps": 30,
+  "total": 225,
+  "scenes": [0, 38, 78, 118, 160, 195, 225],
+  "s1": { "typeAt": 3.2, "header": [2, 15], "packetAt": 15.2, "serverAt": 18.9, "resultAt": 28.4, "blueprint": [18, 35] },
+  "s2": { "logical": [40, 56], "physical": [58, 72.5], "scanAt": 50, "scanDur": 7, "translateAt": 72.3 },
+  "s3": { "intro": [79, 88], "reveal": 83.9, "nodes": [88.2, 91.7, 98.4, 105.0], "allLit": 111.5, "end": 117 },
+  "s4": { "typeAt": 118.5, "dropAt": 122.4, "parserAt": 124.4, "optAt": 128.0, "optRows": 129.5, "chosenAt": 135.2, "costTag": [136, 146], "ramAt": 140.4, "resultAt": 146.2, "badge": [150, 158] },
+  "s5": { "head": 160.5, "cards": [170.2, 176.6, 182.8], "closing": 189.3 },
+  "s6": { "brand": 195.4, "cardA": 202.7, "cardB": 206.9, "whatsapp": 211.9, "sweep": 212.5, "fadeOut": 222 },
+  "sfx": [
+    { "kind": "burst", "at": 15.2, "vol": 0.5 },
+    { "kind": "scan", "at": 50, "vol": 0.4 },
+    { "kind": "scan", "at": 72.3, "vol": 0.4 },
+    { "kind": "click", "at": 88.2, "vol": 0.5 },
+    { "kind": "click", "at": 91.7, "vol": 0.5 },
+    { "kind": "click", "at": 98.4, "vol": 0.5 },
+    { "kind": "click", "at": 105.0, "vol": 0.5 },
+    { "kind": "typing", "at": 118.5, "vol": 0.35 },
+    { "kind": "chirp", "at": 135.2, "vol": 0.4 },
+    { "kind": "pop", "at": 146.4, "vol": 0.5 },
+    { "kind": "stab", "at": 170.2, "vol": 0.45 },
+    { "kind": "stab", "at": 176.6, "vol": 0.45 },
+    { "kind": "stab", "at": 182.8, "vol": 0.45 },
+    { "kind": "whoosh", "at": 37.6, "vol": 0.25 },
+    { "kind": "whoosh", "at": 77.6, "vol": 0.25 },
+    { "kind": "whoosh", "at": 117.6, "vol": 0.25 },
+    { "kind": "whoosh", "at": 159.6, "vol": 0.25 },
+    { "kind": "whoosh", "at": 194.6, "vol": 0.25 }
+  ]
+}
