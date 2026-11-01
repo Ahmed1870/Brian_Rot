@@ -1,4 +1,4 @@
-name: Render Lesson21 OMTM lesson 2.1
+name: Render SQL Lesson 05 (Ahmed x Manzooma)
 on:
   push:
     branches: [main]
@@ -6,15 +6,15 @@ on:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npx remotion render src/index.ts Lesson21 out/lesson-2-1.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: npm install --no-audit --no-fund
+      - run: npm run render
       - uses: actions/upload-artifact@v4
         with:
-          name: lesson-2-1
-          path: out/lesson-2-1.mp4
+          name: ahmed_sql_lesson05
+          path: out/ahmed_sql_lesson05.mp4

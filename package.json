@@ -1,21 +1,25 @@
 {
-  "name": "monzoma-lesson-2-1-omtm",
+  "name": "ahmed-manzooma-sql-l05",
   "version": "1.0.0",
   "private": true,
-  "description": "Monzoma Digital - Lesson 2.1: OMTM One Metric That Matters (3:30, 1080x1920 vertical, 30fps)",
+  "description": "Ahmed x Manzooma - SQL Lesson 05: TIMESTAMPTZ & UTC (16:9, 4:00) - Remotion",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts Lesson21 out/lesson-2-1.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "sfx": "python3 scripts/generate_sfx.py",
+    "prep": "node scripts/prep.mjs",
+    "start": "node scripts/prep.mjs && remotion studio src/index.ts",
+    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L05 out/ahmed_sql_lesson05.mp4 --codec h264 --concurrency 2"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "remotion": "^4.0.0"
+    "@remotion/cli": "4.0.300",
+    "@remotion/google-fonts": "4.0.300",
+    "@remotion/tailwind-v4": "4.0.300",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.300",
+    "tailwindcss": "4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "19.0.0",
+    "typescript": "5.8.2"
   }
 }

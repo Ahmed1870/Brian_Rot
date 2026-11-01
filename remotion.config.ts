@@ -1,5 +1,6 @@
 import {Config} from '@remotion/cli/config';
+import {enableTailwind} from '@remotion/tailwind-v4';
 
 Config.setVideoImageFormat('jpeg');
 Config.setOverwriteOutput(true);
-Config.setCodec('h264');
+Config.overrideWebpackConfig((c) => enableTailwind(c));
