@@ -1,82 +1,55 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT} from '../theme';
-import {Fade, Kinetic, L, cardStyle, prog, sec} from '../kit';
+import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {C, S, S5_CARDS} from '../theme';
+import {KText, Scene, Stack, prog} from '../components/common';
 
-// Scene 5 (frames 5550-6750, global 185-225s): the 3-step fix as stacked cards.
-const S = 185;
-const TOPS = [440, 810, 1180];
+const steps = [
+  {n: '1', t: 'صحّح جدول الحوافز', d: 'اربط المكافأة بالنتائج النهائية مش بالأنشطة الجانبية', icon: 'scale', c: C.red},
+  {n: '2', t: 'ابنِ Feedback Loops لحظية', d: 'لوحات قيادة تخلي الموظف شايف أثر شغله فوراً', icon: 'loop', c: C.green},
+  {n: '3', t: 'بسّط المسار الصحيح', d: 'اضغط خطوات الصح وحط حواجز قدّام الغلط', icon: 'path', c: C.white},
+];
 
-const Icon: React.FC<{n: number}> = ({n}) => (
-  <svg width={140} height={140} viewBox="0 0 140 140" style={{flexShrink: 0}}>
-    {n === 1 && (
-      <g fill="none" stroke={C.crimson} strokeWidth={6} strokeLinecap="round">
-        <circle cx={70} cy={70} r={46} />
-        <circle cx={70} cy={70} r={8} fill={C.crimson} stroke="none" />
-        <line x1={70} y1={8} x2={70} y2={34} />
-        <line x1={70} y1={106} x2={70} y2={132} />
-        <line x1={8} y1={70} x2={34} y2={70} />
-        <line x1={106} y1={70} x2={132} y2={70} />
-      </g>
-    )}
-    {n === 2 && (
-      <g strokeLinecap="round">
-        {[28, 64, 100].map((y) => (
-          <line key={y} x1={14} x2={110} y1={y} y2={y} stroke={C.emerald} strokeWidth={14} />
-        ))}
-        <line x1={126} x2={126} y1={14} y2={116} stroke={C.crimson} strokeWidth={8} />
-      </g>
-    )}
-    {n === 3 && (
-      <g fill="none" stroke={C.emerald} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="40,14 70,44 100,14" />
-        <polyline points="40,126 70,96 100,126" />
-        <line x1={20} x2={120} y1={70} y2={70} />
-      </g>
-    )}
+const Icon: React.FC<{k: string; color: string}> = ({k, color}) => (
+  <svg width={110} height={110} viewBox="0 0 110 110" fill="none" stroke={color} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round">
+    {k === 'scale' && (<><line x1={55} y1={12} x2={55} y2={98} /><line x1={20} y1={30} x2={90} y2={30} /><path d="M 20 30 L 6 62 H 34 Z" /><path d="M 90 30 L 76 62 H 104 Z" /><line x1={30} y1={98} x2={80} y2={98} /></>)}
+    {k === 'loop' && (<><path d="M 82 30 A 38 38 0 1 0 90 62" /><polyline points="86,10 84,32 62,30" /></>)}
+    {k === 'path' && (<><polyline points="20,95 20,55 90,55 90,15" /><polyline points="72,32 90,14 108,32" /></>)}
   </svg>
 );
 
-const STEPS = [
-  {n: 1, t: 'حدد الـ [[Bottleneck]] بوضوح', d: 'بدقة ومن غير مجاملة لأي قسم', g: 189.7},
-  {n: 2, t: 'طوّع باقي الأقسام لسرعته', d: 'استغل طاقة الاختناق لأقصى درجة', g: 201.4},
-  {n: 3, t: 'بسّط الإجراءات واضغط الزمن', d: 'قصّر زمن الدورة التشغيلية', g: 212.7},
-];
-
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
   return (
-    <Fade dur={1200}>
-      <div style={{position: 'absolute', left: 80, right: 80, top: 150}}>
-        <Kinetic text="علاج الاختناق في 3 خطوات" start={sec(185.7 - S)} size={80} />
-        <Kinetic text="هندسة العمليات بأسلوب تنفيذي" start={sec(187 - S)} size={42} color={C.slate400} weight={600} />
-      </div>
+    <Scene dur={S.s5.dur}>
+      <Stack top={100} gap={8}>
+        <KText at={5} size={60}>منظومة ذاتية التشغيل</KText>
+        <KText at={20} size={44} color={C.dim} weight={700}>في 3 خطوات</KText>
+      </Stack>
 
-      {STEPS.map((s, i) => {
-        const appear = prog(f, sec(s.g - S), 28);
+      {steps.map((s, i) => {
+        const at = S5_CARDS[i];
+        const p = spring({frame: f - at, fps, config: {damping: 15, stiffness: 110}});
+        const o = prog(f, at, at + 14);
         return (
-          <div key={s.n} style={cardStyle(TOPS[i], 330, 1, appear)}>
-            <div style={{flex: 1, paddingLeft: 20}}>
-              <div style={{fontFamily: FONT, fontSize: 36, fontWeight: 600, color: C.slate500}}><L>0{s.n}</L></div>
-              <div style={{fontFamily: FONT, fontSize: 52, fontWeight: 700, color: C.white, lineHeight: 1.3}}>
-                {s.t.split(/(\[\[.+?\]\])|\s+/).filter(Boolean).map((w, k) =>
-                  w.startsWith('[[') ? (
-                    <L key={k} style={{margin: '0 8px', color: C.crimson}}>{w.slice(2, -2)}</L>
-                  ) : (
-                    <span key={k} style={{margin: '0 8px'}}>{w}</span>
-                  ),
-                )}
+          <div key={i} className="absolute w-full" style={{top: 340 + i * 410, opacity: o, transform: `translateY(${(1 - p) * 120}px)`, direction: 'rtl', padding: '0 70px'}}>
+            <div style={{height: 3, background: C.slate, width: `${interpolate(p, [0, 1], [0, 100])}%`, marginBottom: 34}} />
+            <div style={{display: 'flex', alignItems: 'center', gap: 36}}>
+              <div style={{fontSize: 180, fontWeight: 900, color: s.c, lineHeight: 1, width: 130, textAlign: 'center'}}>{s.n}</div>
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 54, fontWeight: 900, color: C.white, lineHeight: 1.3}}>{s.t}</div>
+                <div style={{fontSize: 34, fontWeight: 700, color: C.dim, marginTop: 12, lineHeight: 1.5}}>{s.d}</div>
               </div>
-              <div style={{fontFamily: FONT, fontSize: 34, color: C.slate400, marginTop: 10, lineHeight: 1.4}}>{s.d}</div>
+              <Icon k={s.icon} color={s.c} />
             </div>
-            <Icon n={s.n} />
           </div>
         );
       })}
 
-      <div style={{position: 'absolute', left: 80, right: 80, top: 1590}}>
-        <Kinetic text="في منظومة ديجيتال بنبني الخريطة التشغيلية ونعالج النزيف {{فوراً}}" start={sec(217.9 - S)} size={50} />
-      </div>
-    </Fade>
+      <Stack top={1640} gap={10}>
+        <KText at={900} size={46} color={C.dim} weight={700}>من إدارة الأفراد</KText>
+        <KText at={940} size={58} color={C.green}>إلى إدارة النظام اللي بيدير الأفراد</KText>
+      </Stack>
+    </Scene>
   );
 };

@@ -1,128 +1,84 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, H, W} from '../theme';
-import {Fade, Kinetic, L, lerp, prog, sec} from '../kit';
+import {interpolate, useCurrentFrame} from 'remotion';
+import {C, S, S3_FIX} from '../theme';
+import {KText, Scene, Stack, prog} from '../components/common';
 
-// Scene 3 (frames 2700-4200, global 90-140s): first the pile-up from pushing ads, then the cycle-time collapse.
-const S = 90;
-const PHASE_B = 16.7; // local seconds (global 106.7)
-
-// Phase A: crimson pile at the gate
-const PILE_COLS = 5;
-const PILE_ROWS = 8;
-
-// Phase B: cycle-time bar
-const BAR_X = 380;
-const BAR_W = 90;
-const BAR_TOP = 520;
-const WORK = 56;
-const GAP_BASE = 150;
-const GAPS = [
-  {t: 'انتظار موافقة المدير', g: 125.1},
-  {t: 'انتظار بين قسم وقسم', g: 127.7},
-  {t: 'نماذج وتطبيقات معقدة', g: 130.3},
-  {t: 'خطوة بلا قيمة للعميل', g: 134.2},
+const CX = 540, CY = 860, R = 270;
+const P = (deg: number, r = R) => ({x: CX + r * Math.cos((deg * Math.PI) / 180), y: CY + r * Math.sin((deg * Math.PI) / 180)});
+const nodes = [
+  {deg: -90, at: 60, label: 'أداء الموظف', n: '1'},
+  {deg: 30, at: 140, label: 'قياس لحظي', n: '2'},
+  {deg: 150, at: 220, label: 'تصحيح تلقائي', n: '3'},
 ];
+const mix = (a: number[], b: number[], t: number) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const aOut = 1 - prog(f, sec(PHASE_B - 0.8), 18);
-  const bIn = prog(f, sec(PHASE_B), 24);
+  const fix = prog(f, S3_FIX, S3_FIX + 90); // 0 -> 1 turns green
+  const col = mix([220, 20, 60], [16, 185, 129], fix);
 
-  // ---- Phase A
-  const blocks: React.ReactNode[] = [];
-  const total = PILE_COLS * PILE_ROWS;
-  for (let k = 0; k < total; k++) {
-    const row = Math.floor(k / PILE_COLS);
-    const col = k % PILE_COLS;
-    const p = prog(f, sec(3) + k * 8, 20);
-    if (p <= 0) continue;
-    const x = 540 - (PILE_COLS * 62) / 2 + col * 62;
-    const y = 1180 - (row + 1) * 46 - (1 - p) * 120;
-    blocks.push(<rect key={k} x={x} y={y} width={54} height={38} rx={6} fill={C.crimson} opacity={p * (0.55 + 0.45 * (1 - row / PILE_ROWS))} />);
-  }
-  const cons = [
-    {t: 'ربكة تشغيلية', g: 102.7},
-    {t: 'تلف في الجودة', g: 103.8},
-    {t: 'تراكم الديون', g: 104.9},
-  ];
-
-  // ---- Phase B
-  let yy = BAR_TOP;
-  const segs: React.ReactNode[] = [];
-  const labels: React.ReactNode[] = [];
-  let avgC = 0;
-  for (let i = 0; i < 9; i++) {
-    if (i % 2 === 0) {
-      segs.push(<rect key={`w${i}`} x={BAR_X} y={yy} width={BAR_W} height={WORK} rx={8} fill={C.emerald} />);
-      yy += WORK;
-    } else {
-      const gi = (i - 1) / 2;
-      const c = prog(f, sec(135.6 - S) + gi * 8, 40);
-      avgC += c / 4;
-      const h = lerp(GAP_BASE, 12, c);
-      segs.push(<rect key={`g${i}`} x={BAR_X} y={yy} width={BAR_W} height={h} fill={C.slate700} opacity={1 - c} />);
-      segs.push(<rect key={`e${i}`} x={BAR_X} y={yy} width={BAR_W} height={h} fill={C.emerald} opacity={c} />);
-      const lp = prog(f, sec(GAPS[gi].g - S), 22);
-      labels.push(
-        <g key={`l${i}`} opacity={lp * (1 - c)}>
-          <line x1={BAR_X + BAR_W + 16} x2={BAR_X + BAR_W + 70} y1={yy + h / 2} y2={yy + h / 2} stroke={C.slate500} strokeDasharray="4 8" />
-          <text x={1000} y={yy + h / 2 + 12} textAnchor="end" fontFamily={FONT} fontSize={38} fill={C.slate400}>{GAPS[gi].t}</text>
-        </g>,
-      );
-      yy += h;
-    }
-  }
-  const days = Math.round(lerp(12, 4, avgC));
-  const done = prog(f, sec(139 - S), 20);
+  // deviation: dot drifts away from the loop (red phase), then is pulled back instantly (green phase)
+  const dev = interpolate(f, [260, 480, S3_FIX + 80], [0, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const ang = -90 + (f * 2.2) % 360;
+  const dotR = R + dev * (60 + 40 * Math.sin(f * 0.15));
+  const dot = P(ang, dotR);
+  const loopOp = prog(f, 40, 70);
 
   return (
-    <Fade dur={1500}>
-      {/* Phase A */}
-      <div style={{opacity: aOut}}>
-        <div style={{position: 'absolute', left: 80, right: 80, top: 150}}>
-          <Kinetic text="زيادة الإعلانات قبل حل الاختناق" start={sec(92 - S)} size={64} />
-          <Kinetic text="= {{ضغط}} لا نمو" start={sec(98.9 - S)} size={64} color={C.white} />
-        </div>
-        <svg width={W} height={H} style={{position: 'absolute', left: 0, top: 0}}>
-          <line x1={540 - 170} x2={540 + 170} y1={1182} y2={1182} stroke={C.slate500} strokeWidth={4} />
-          <rect x={540 - 22} y={1182} width={44} height={70} fill={C.slate600} opacity={0.6} />
-          {blocks}
-          <text x={540} y={1300} textAnchor="middle" fontFamily={FONT} fontSize={36} fill={C.slate500}>الاختناق</text>
-          <path d="M120 760 L120 560 M90 600 L120 560 L150 600" fill="none" stroke={C.emerald} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" opacity={prog(f, sec(94 - S), 20)} />
-          <text x={120} y={820} textAnchor="middle" fontFamily={FONT} fontSize={34} fill={C.slate400} opacity={prog(f, sec(94 - S), 20)}>الإعلانات</text>
-        </svg>
-        {cons.map((c) => {
-          const p = prog(f, sec(c.g - S), 20);
+    <Scene dur={S.s3.dur}>
+      <Stack top={90} gap={8}>
+        <KText at={5} size={68}>التغذية الراجعة اللحظية</KText>
+        <KText at={25} size={36} color={C.dim} weight={700} ltr>Instant Feedback Loops</KText>
+      </Stack>
+
+      <svg width={1080} height={1920} style={{position: 'absolute', inset: 0}} opacity={loopOp}>
+        {/* arcs between nodes */}
+        {nodes.map((nd, i) => {
+          const a = P(nd.deg + 12);
+          const b = P(nd.deg + 108);
+          const tip = nd.deg + 108;
+          const t = P(tip);
           return (
-            <div key={c.t} style={{position: 'absolute', left: 80, right: 80, top: 1380 + cons.indexOf(c) * 100, direction: 'rtl', fontFamily: FONT, fontSize: 52, fontWeight: 700, color: C.crimson, opacity: p, transform: `translateX(${(1 - p) * -30}px)`}}>
-              ✕ {c.t}
-            </div>
+            <g key={i}>
+              <path d={`M ${a.x} ${a.y} A ${R} ${R} 0 0 1 ${b.x} ${b.y}`} fill="none" stroke={col} strokeWidth={9} strokeLinecap="round" strokeDasharray={fix < 1 ? '4 18' : undefined} />
+              <polygon points="-20,-16 20,0 -20,16" fill={col} transform={`translate(${t.x} ${t.y}) rotate(${tip + 90})`} />
+            </g>
           );
         })}
-      </div>
 
-      {/* Phase B */}
-      <div style={{opacity: bIn}}>
-        <div style={{position: 'absolute', left: 80, right: 80, top: 150}}>
-          <Kinetic text="إزالة الهدر وتقليل الـ [[Cycle Time]]" start={sec(PHASE_B + 0.3)} size={70} />
-        </div>
-        <svg width={W} height={H} style={{position: 'absolute', left: 0, top: 0}}>
-          {segs}
-          {labels}
-        </svg>
-        <div style={{position: 'absolute', left: 80, top: 520, width: 240, direction: 'rtl'}}>
-          <div style={{fontFamily: FONT, fontSize: 34, color: C.slate400}}>زمن الدورة</div>
-          <div style={{fontFamily: FONT, fontSize: 130, fontWeight: 700, lineHeight: 1.05, color: days <= 5 ? C.emerald : C.white}}>
-            <L>{days}</L>
-          </div>
-          <div style={{fontFamily: FONT, fontSize: 38, color: C.slate400}}>يوم</div>
-        </div>
-        <div style={{position: 'absolute', left: 80, right: 80, top: 1580}}>
-          <Kinetic text="إلغاء الانتظار ← {{تسريع}} تدفق العمل" start={sec(135.6 - S)} size={56} color={C.white} />
-        </div>
-        <div style={{position: 'absolute', left: 80, top: 1862, fontFamily: FONT, fontSize: 22, color: C.slate600, direction: 'rtl', opacity: done}}>بيانات توضيحية</div>
-      </div>
-    </Fade>
+        {/* deviation ghost: where the dot should be */}
+        {dev > 0.05 && <circle cx={P(ang).x} cy={P(ang).y} r={10} fill="none" stroke={C.slate} strokeWidth={3} />}
+        {dev > 0.05 && <line x1={P(ang).x} y1={P(ang).y} x2={dot.x} y2={dot.y} stroke={C.red} strokeWidth={3} strokeDasharray="6 6" />}
+        <circle cx={dot.x} cy={dot.y} r={20} fill={dev > 0.05 ? C.red : col} />
+
+        {/* nodes */}
+        {nodes.map((nd, i) => {
+          const p = P(nd.deg);
+          const o = prog(f, nd.at, nd.at + 20);
+          return (
+            <g key={i} opacity={o}>
+              <circle cx={p.x} cy={p.y} r={46} fill={C.bg} stroke={col} strokeWidth={8} />
+              <text x={p.x} y={p.y + 17} textAnchor="middle" fontSize={50} fontWeight={900} fill={C.white}>{nd.n}</text>
+            </g>
+          );
+        })}
+
+        {/* labels OUTSIDE the loop */}
+        <text x={540} y={P(-90).y - 78} textAnchor="middle" fontSize={50} fontWeight={900} fill={C.white} opacity={prog(f, 60, 80)}>أداء الموظف</text>
+        <text x={P(30).x} y={P(30).y + 100} textAnchor="middle" fontSize={46} fontWeight={900} fill={C.white} opacity={prog(f, 140, 160)}>قياس لحظي</text>
+        <text x={P(150).x} y={P(150).y + 100} textAnchor="middle" fontSize={46} fontWeight={900} fill={C.white} opacity={prog(f, 220, 240)}>تصحيح تلقائي</text>
+
+        {/* center status (inside the loop, away from nodes) */}
+        <text x={CX} y={CY + 10} textAnchor="middle" fontSize={60} fontWeight={900} fill={col}>{fix < 1 ? 'انحراف' : 'منتظم'}</text>
+        <text x={CX} y={CY + 62} textAnchor="middle" fontSize={32} fontWeight={700} fill={C.dim}>{fix < 1 ? 'يُكتشف آخر الشهر' : 'يُصحَّح في ساعته'}</text>
+      </svg>
+
+      <Stack top={1340} gap={16}>
+        <KText at={80} size={46} color={C.dim} weight={700}>بدل ما تستنى آخر الشهر عشان تحاسبهم</KText>
+        <KText at={380} size={56} color={C.white}>النظام بيكشف الانحراف في ساعته</KText>
+        <KText at={S3_FIX} size={64} color={C.green}>ويصلّحه تلقائياً</KText>
+        <KText at={800} size={44} color={C.white} weight={700}>الموظف شايف أثر شغله لحظياً = تحكم ذاتي</KText>
+      </Stack>
+    </Scene>
   );
 };

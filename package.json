@@ -1,21 +1,25 @@
 {
-  "name": "monzoma-lesson-1-4",
+  "name": "ahmed-monzoma-systems-l15",
   "version": "1.0.0",
   "private": true,
-  "description": "Monzoma Digital - Lesson 1.4: Operations Engineering & Bottlenecks (4:00, 1080x1920 vertical, 30fps)",
+  "description": "Ahmed x Monzoma Digital - Lesson 1.5 Systems (9:16, 4m30s) - Remotion",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts Lesson14 out/lesson-1-4.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "sfx": "python3 scripts/generate_sfx.py",
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Ahmed-Systems-L15 out/ahmed_systems_L15.mp4 --codec h264",
+    "still": "remotion still src/index.ts Ahmed-Systems-L15 out/thumb.png --frame=900"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "remotion": "^4.0.0"
+    "@remotion/cli": "4.0.300",
+    "@remotion/google-fonts": "4.0.300",
+    "@remotion/tailwind-v4": "4.0.300",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.300",
+    "tailwindcss": "4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "19.0.0",
+    "typescript": "5.8.2"
   }
 }
