@@ -1,12 +1,12 @@
 import React from 'react';
 import { Composition } from 'remotion';
-import { Lesson05 } from './Lesson05';
+import { Lesson06 } from './Lesson06';
 import tl from './timeline.json';
 
 export const Root: React.FC = () => (
   <Composition
-    id="Monzoma-SQL-L05"
-    component={Lesson05}
+    id="Monzoma-SQL-L06"
+    component={Lesson06}
     durationInFrames={tl.total * tl.fps}
     fps={tl.fps}
     width={1920}

@@ -6,7 +6,8 @@ import tl from '../../timeline.json';
 
 const T = tl.s6;
 const GOLD = '#FBBF24';
-const SKILLS = ['TIMESTAMPTZ', 'UTC', 'AT TIME ZONE', 'EXTRACT', 'AGE', 'DATE_TRUNC'];
+const SKILLS = ['PRIMARY KEY', 'IDENTITY', 'FOREIGN KEY', '1:N RELATIONS', 'INTEGRITY', 'INDEXED JOINS'];
+const CONSTRAINTS = ['CHECK', 'UNIQUE', 'NOT NULL', 'DEFAULT'];
 
 export const Scene06: React.FC<{ t: number }> = ({ t }) => {
   const prog = lin(t, T.progress[0], T.progress[1] - T.progress[0]);
@@ -29,13 +30,13 @@ export const Scene06: React.FC<{ t: number }> = ({ t }) => {
         <Card x={90} y={260} w={930} h={440} stroke={C.db} glow={0.6 + 0.4 * bump(t, T.progress[1], 1.2)} fill="#1B2740" />
         <circle cx={170} cy={340} r={42} fill={C.db} opacity={0.2} stroke={C.db} strokeWidth={4} />
         <path d="M 150 340 L 166 358 L 196 322" fill="none" stroke={C.db} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - done} />
-        <EN x={240} y={336} size={32} anchor="start" fill={C.db} weight={600}>Lesson 05 Completed</EN>
-        <EN x={240} y={376} size={26} anchor="start" fill={C.text}>TIMESTAMPTZ & UTC Mastered</EN>
+        <EN x={240} y={336} size={32} anchor="start" fill={C.db} weight={600}>Lesson 06 Completed</EN>
+        <EN x={240} y={376} size={26} anchor="start" fill={C.text}>Foreign Keys & Integrity Mastered</EN>
         {/* progress bar */}
         <rect x={130} y={430} width={850} height={26} rx={13} fill={C.cardDeep} />
         <rect x={130} y={430} width={850 * prog} height={26} rx={13} fill={C.db} />
         <EN x={130} y={420} size={22} anchor="start" fill={C.muted}>{`${pct}%`}</EN>
-        <AR x={980} y={415} size={26} anchor="start" fill={C.muted}>إنجاز الدرس 05</AR>
+        <AR x={980} y={415} size={26} anchor="start" fill={C.muted}>إنجاز الدرس 06</AR>
         {/* skills gained */}
         <AR x={980} y={520} size={26} anchor="start" fill={C.muted}>المهارات المكتسبة</AR>
         {SKILLS.map((s, i) => {
@@ -55,21 +56,19 @@ export const Scene06: React.FC<{ t: number }> = ({ t }) => {
       <Reveal t={t} at={T.next} dy={30}>
         <Card x={1060} y={260} w={770} h={440} stroke={GOLD} glow={0.7} fill="#1B2740" />
         <AR x={1445} y={330} size={30} fill={GOLD}>الدرس القادم</AR>
-        <AR x={1445} y={386} size={40} weight={900}>السلامة المرجعية والمفاتيح</AR>
-        <EN x={1445} y={430} size={30} fill={C.client} weight={600}>Foreign Keys</EN>
-        {/* thumbnail: two tables linked by a key */}
-        <g>
-          <rect x={1130} y={480} width={250} height={170} rx={14} fill={C.cardDeep} stroke={C.line} strokeWidth={3} />
-          <rect x={1510} y={480} width={250} height={170} rx={14} fill={C.cardDeep} stroke={C.line} strokeWidth={3} />
-          {[0, 1, 2].map((i) => (
-            <g key={i}>
-              <rect x={1146} y={498 + i * 44} width={218} height={32} rx={8} fill={i === 0 ? GOLD : '#243247'} opacity={i === 0 ? 0.5 : 1} />
-              <rect x={1526} y={498 + i * 44} width={218} height={32} rx={8} fill={i === 0 ? GOLD : '#243247'} opacity={i === 0 ? 0.5 : 1} />
+        <AR x={1445} y={386} size={40} weight={900}>القيود المتقدمة</AR>
+        <EN x={1445} y={430} size={28} fill={C.client} weight={600}>CHECK, UNIQUE, NOT NULL & DEFAULT</EN>
+        {/* thumbnail: four constraint chips */}
+        {CONSTRAINTS.map((c, i) => {
+          const k = p(t, T.chips + i * 0.5, 0.5);
+          const col = i % 2, row = Math.floor(i / 2);
+          return (
+            <g key={c} opacity={k} transform={`translate(0 ${(1 - k) * 12})`}>
+              <rect x={1110 + col * 330} y={490 + row * 90} width={300} height={68} rx={34} fill={GOLD} opacity={0.14} stroke={GOLD} strokeWidth={3} />
+              <EN x={1260 + col * 330} y={534 + row * 90} size={26} fill={GOLD} weight={600}>{c}</EN>
             </g>
-          ))}
-          <path d="M 1380 514 H 1510" stroke={GOLD} strokeWidth={5} strokeDasharray="10 8" strokeDashoffset={-t * 40} />
-          <EN x={1445} y={504} size={20} fill={GOLD} weight={600}>FK</EN>
-        </g>
+          );
+        })}
       </Reveal>
 
       {/* resources */}

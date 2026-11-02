@@ -1,12 +1,12 @@
 {
-  "name": "monzoma-sql-l05",
+  "name": "monzoma-sql-l06",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma — SQL From Zero to Professional — Lesson 05 (TIMESTAMPTZ & UTC)",
+  "description": "Manzooma — SQL From Zero to Professional — Lesson 06 (Foreign Keys & Referential Integrity)",
   "scripts": {
     "start": "remotion studio src/index.ts",
     "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "npm run generate-audio && remotion render src/index.ts Monzoma-SQL-L05 out/Monzoma-SQL-L05.mp4",
+    "render": "npm run generate-audio && remotion render src/index.ts Monzoma-SQL-L06 out/Monzoma-SQL-L06.mp4",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

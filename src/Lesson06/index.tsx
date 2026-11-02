@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Background } from '../components/common';
 import { lin } from '../anim';
+import { C, FONT_MONO } from '../theme';
 import tl from '../timeline.json';
 import { Scene01 } from './scenes/Scene01';
 import { Scene02 } from './scenes/Scene02';
@@ -14,7 +15,22 @@ const SCENES = [Scene01, Scene02, Scene03, Scene04, Scene05, Scene06];
 const OUT = 0.4; // outgoing overlap (s)
 const IN = 0.5; // incoming fade/slide (s)
 
-export const Lesson05: React.FC = () => {
+
+const Chrome: React.FC<{ t: number }> = ({ t }) => {
+  const active = tl.scenes.findIndex((s, i) => t >= s && t < tl.scenes[i + 1]);
+  const vis = lin(t, 1.2, 0.8) * (1 - lin(t, tl.scenes[5] - 0.4, 0.4));
+  return (
+    <g opacity={vis * 0.9}>
+      <rect x={50} y={28} width={196} height={42} rx={21} fill={C.card} stroke={C.line} strokeWidth={2} />
+      <text x={148} y={56} textAnchor="middle" fontFamily={FONT_MONO} fontSize={20} fontWeight={600} fill={C.client}>LESSON 06</text>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <circle key={i} cx={1740 + i * 30} cy={49} r={i === active ? 9 : 6} fill={i < active ? C.db : i === active ? C.client : 'none'} stroke={i <= active ? 'none' : C.line} strokeWidth={3} />
+      ))}
+    </g>
+  );
+};
+
+export const Lesson06: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
@@ -38,12 +54,13 @@ export const Lesson05: React.FC = () => {
             </g>
           );
         })}
+        <Chrome t={t} />
       </svg>
 
       <AbsoluteFill style={{ backgroundColor: '#000', opacity: black }} />
 
       {/* voiceover — aligned to frame 0 */}
-      <Audio src={staticFile('voiceover_lesson_05.mp3')} volume={1} />
+      <Audio src={staticFile('voiceover_lesson_06.mp3')} volume={1} />
 
       {/* ambient tech pulse: 12% in the opening seconds, 8% under narration, out before the CTA */}
       <Sequence from={0} durationInFrames={6300} layout="none">

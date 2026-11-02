@@ -14,8 +14,8 @@ jobs:
           node-version: 20
       - run: npm install --no-audit --no-fund
       - run: npm run generate-audio
-      - run: npx remotion render src/index.ts Monzoma-SQL-L05 out/Monzoma-SQL-L05.mp4
+      - run: npx remotion render src/index.ts Monzoma-SQL-L06 out/Monzoma-SQL-L06.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: Monzoma-SQL-L05
-          path: out/Monzoma-SQL-L05.mp4
+          name: Monzoma-SQL-L06
+          path: out/Monzoma-SQL-L06.mp4

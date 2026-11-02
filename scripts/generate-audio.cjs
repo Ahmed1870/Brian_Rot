@@ -8,7 +8,7 @@ const pub = path.join(root, 'public');
 const tl = JSON.parse(fs.readFileSync(path.join(root, 'src', 'timeline.json'), 'utf8'));
 
 // ---- 1) asset checks (exit 1 on failure) ----
-const need = [['public/voiceover_lesson_05.mp3', 100000], ['src/logoData.ts', 1000]];
+const need = [['public/voiceover_lesson_06.mp3', 100000], ['src/logoData.ts', 1000]];
 let bad = false;
 for (const [rel, min] of need) {
   const f = path.join(root, rel);
@@ -75,20 +75,16 @@ const typingBuf = (len, step) => {
   return b;
 };
 const sfx = {
-  alarm() { const b = buf(0.9); [0, 0.3].forEach((o) => { addSweep(b, o, 0.22, 880, 880, 0.35, (x) => Math.sin(Math.PI * x)); addSweep(b, o, 0.22, 660, 660, 0.25, (x) => Math.sin(Math.PI * x)); }); addSweep(b, 0.6, 0.25, 440, 330, 0.35, expDecay(3)); return b; },
-  tick() {
-    const b = buf(2.6);
-    [0, 0.31, 0.52, 0.97, 1.2, 1.78, 2.05].forEach((o) => { addNoise(b, o, 0.02, 1.2, expDecay(6), 0.5); addSweep(b, o, 0.05, 1800, 1100, 0.3, expDecay(9)); });
-    return b;
-  },
-  snap() { const b = buf(0.3); addNoise(b, 0, 0.015, 1.2, expDecay(5), 0.8); addSweep(b, 0, 0.1, 1400, 800, 0.45, expDecay(9)); addSweep(b, 0.04, 0.2, 1568, 1568, 0.25, expDecay(8)); return b; },
-  freqshift() { const b = buf(1.3); addSweep(b, 0, 1.2, 250, 1500, 0.4, hann); addSweep(b, 0, 1.2, 500, 3000, 0.1, hann); return b; },
-  passtone() { const b = buf(0.9); addSweep(b, 0, 0.25, 784, 784, 0.4, expDecay(4)); addSweep(b, 0.15, 0.7, 1175, 1175, 0.4, expDecay(4)); return b; },
-  typing() { return typingBuf(5.0, 0.07); },
-  typingshort() { return typingBuf(2.2, 0.06); },
-  pop() { const b = buf(0.35); addSweep(b, 0, 0.2, 700, 220, 0.8, expDecay(8)); addNoise(b, 0, 0.015, 1, expDecay(5), 0.7); return b; },
-  fail() { const b = buf(1.0); addSweep(b, 0, 0.9, 600, 120, 0.5, expDecay(2.5)); addSweep(b, 0, 0.9, 300, 60, 0.3, expDecay(2.5)); addNoise(b, 0, 0.1, 0.7, expDecay(7), 0.3); return b; },
-  rise() { const b = buf(1.2); [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => addSweep(b, i * 0.14, 0.7, f, f, 0.3, expDecay(3.5))); return b; },
+  disconnect() { const b = buf(1.2); addSweep(b, 0, 0.9, 900, 90, 0.4, expDecay(2.5)); addNoise(b, 0.0, 0.5, 0.5, expDecay(4), (x) => 0.3 - 0.25 * x); [0.05, 0.2, 0.42].forEach((o) => addSweep(b, o, 0.05, 2400, 2400, 0.3, expDecay(8))); return b; },
+  rattle() { const b = buf(1.6); for (let i = 0; i < 14; i++) { const o = i * 0.09 + Math.abs(rnd()) * 0.03; addNoise(b, o, 0.03, 1.0, expDecay(6), 0.6); addSweep(b, o, 0.06, 2600 + rnd() * 600, 1800, 0.22, expDecay(8)); } return b; },
+  lock() { const b = buf(0.8); addNoise(b, 0, 0.02, 1.3, expDecay(5), 0.8); addSweep(b, 0, 0.12, 1800, 900, 0.5, expDecay(9)); addSweep(b, 0.12, 0.35, 420, 210, 0.7, expDecay(7)); addSweep(b, 0.12, 0.4, 2093, 2093, 0.18, expDecay(6)); return b; },
+  laser() { const b = buf(2.0); addSweep(b, 0, 1.8, 400, 2400, 0.3, hann); addSweep(b, 0, 1.8, 800, 4800, 0.1, hann); addNoise(b, 0, 1.8, 0.25, hann, 0.15); return b; },
+  resonance() { const b = buf(1.8); [392, 523.25, 659.25, 783.99].forEach((f, i) => { addSweep(b, i * 0.03, 1.6, f, f, 0.22, expDecay(2.2)); addSweep(b, i * 0.03, 1.6, f * 2.003, f * 2.003, 0.06, expDecay(3)); }); return b; },
+  typingshort() { return typingBuf(4.6, 0.065); },
+  impact() { const b = buf(1.0); addSweep(b, 0, 0.5, 180, 40, 1.0, expDecay(6)); addNoise(b, 0, 0.12, 1.2, expDecay(6), 0.4); addSweep(b, 0, 0.5, 1200, 300, 0.3, expDecay(9)); [880, 1320, 1760].forEach((f) => addSweep(b, 0.02, 0.6, f, f * 0.97, 0.08, expDecay(5))); return b; },
+  denied() { const b = buf(0.9); [0, 0.22].forEach((o) => { addSweep(b, o, 0.18, 220, 220, 0.5, (x) => Math.sin(Math.PI * x)); addSweep(b, o, 0.18, 233, 233, 0.4, (x) => Math.sin(Math.PI * x)); addSweep(b, o, 0.18, 440, 440, 0.15, (x) => Math.sin(Math.PI * x)); }); addSweep(b, 0.5, 0.35, 160, 110, 0.5, expDecay(4)); return b; },
+  speed() { const b = buf(1.0); addNoise(b, 0, 0.7, 1.2, hann, (x) => 0.05 + 0.5 * x); addSweep(b, 0, 0.7, 300, 3200, 0.2, hann); addSweep(b, 0.5, 0.35, 1568, 1568, 0.3, expDecay(5)); return b; },
+  stamp() { const b = buf(0.9); addSweep(b, 0, 0.35, 120, 45, 1.0, expDecay(7)); addNoise(b, 0, 0.06, 1.2, expDecay(7), 0.5); addSweep(b, 0.2, 0.6, 1046.5, 1046.5, 0.25, expDecay(3.5)); addSweep(b, 0.25, 0.6, 1568, 1568, 0.2, expDecay(3.5)); return b; },
   whoosh() { const b = buf(1.1); addNoise(b, 0, 1.0, 1.6, hann, (x) => 0.04 + 0.4 * Math.sin(Math.PI * x)); return b; },
 };
 for (const [name, fn] of Object.entries(sfx)) writeWav(path.join(pub, 'sfx', name + '.wav'), fn());

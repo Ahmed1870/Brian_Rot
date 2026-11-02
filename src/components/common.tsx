@@ -130,3 +130,68 @@ export const PersonIcon: React.FC<{ x: number; y: number; s?: number; color?: st
     )}
   </g>
 );
+
+/** Key glyph (primary / foreign key), centered at (x,y). */
+export const KeyIcon: React.FC<{ x: number; y: number; s?: number; color?: string; rot?: number }> = ({ x, y, s = 1, color = C.db, rot = 0 }) => (
+  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`} fill="none" stroke={color} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx={-34} cy={0} r={20} />
+    <path d="M -14 0 H 54 M 34 0 V 20 M 52 0 V 16" />
+  </g>
+);
+
+/** Padlock; `closed` 0..1 animates the shackle. */
+export const LockIcon: React.FC<{ x: number; y: number; s?: number; color?: string; closed?: number }> = ({ x, y, s = 1, color = C.db, closed = 1 }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`}>
+    <path d={`M -20 -4 V ${-26 - (1 - closed) * 20} C -20 -50 20 -50 20 ${-26 - (1 - closed) * 20} V ${-4 - (1 - closed) * 14}`} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />
+    <rect x={-32} y={-6} width={64} height={46} rx={10} fill={color} fillOpacity={0.25} stroke={color} strokeWidth={6} />
+    <circle cx={0} cy={16} r={6} fill={color} />
+  </g>
+);
+
+/** Flat security shield. */
+export const ShieldIcon: React.FC<{ x: number; y: number; s?: number; color?: string; fillOp?: number }> = ({ x, y, s = 1, color = C.accent, fillOp = 0.18 }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`}>
+    <path d="M 0 -110 L 86 -76 V 4 C 86 62 36 98 0 114 C -36 98 -86 62 -86 4 V -76 Z" fill={color} fillOpacity={fillOp} stroke={color} strokeWidth={7} strokeLinejoin="round" />
+  </g>
+);
+
+export type Col = { k: string; w: number; ar?: boolean; badge?: { t: string; c: string }; color?: string };
+export type RowStyle = { fill?: string; stroke?: string; opacity?: number; dx?: number; txt?: string };
+
+/** Compact data table: header + rows (no outer card). */
+export const MiniTable: React.FC<{ x: number; y: number; cols: Col[]; rows: string[][]; rowH?: number; hdrH?: number; rowStyle?: (i: number) => RowStyle; fs?: number }> = ({ x, y, cols, rows, rowH = 64, hdrH = 56, rowStyle, fs = 26 }) => {
+  const cx = (i: number) => x + cols.slice(0, i).reduce((a, c) => a + c.w, 0);
+  const W = cols.reduce((a, c) => a + c.w, 0);
+  return (
+    <g>
+      {cols.map((c, i) => (
+        <g key={c.k}>
+          <rect x={cx(i) + 3} y={y} width={c.w - 6} height={hdrH - 6} rx={10} fill={c.color ?? C.client} opacity={0.2} />
+          <EN x={cx(i) + c.w / 2 - (c.badge ? 22 : 0)} y={y + hdrH / 2 + 6} size={fs - 4} fill={c.color ?? C.client} weight={600}>{c.k}</EN>
+          {c.badge && (
+            <g>
+              <rect x={cx(i) + c.w - 64} y={y + hdrH / 2 - 17} width={52} height={28} rx={14} fill={c.badge.c} />
+              <EN x={cx(i) + c.w - 38} y={y + hdrH / 2 + 4} size={16} fill={C.bg} weight={600}>{c.badge.t}</EN>
+            </g>
+          )}
+        </g>
+      ))}
+      {rows.map((r, ri) => {
+        const st = rowStyle ? rowStyle(ri) : {};
+        const ry = y + hdrH + ri * rowH;
+        return (
+          <g key={ri} opacity={st.opacity ?? 1} transform={`translate(${st.dx ?? 0} 0)`}>
+            <rect x={x} y={ry} width={W} height={rowH - 8} rx={12} fill={st.fill ?? (ri % 2 ? C.cardDeep : '#243247')} stroke={st.stroke ?? 'none'} strokeWidth={3} />
+            {r.map((v, ci) =>
+              cols[ci].ar ? (
+                <AR key={ci} x={cx(ci) + cols[ci].w / 2} y={ry + rowH / 2 + 6} size={fs + 2} weight={400} fill={st.txt ?? C.text}>{v}</AR>
+              ) : (
+                <EN key={ci} x={cx(ci) + cols[ci].w / 2} y={ry + rowH / 2 + 4} size={fs - 2} fill={st.txt ?? C.text}>{v}</EN>
+              )
+            )}
+          </g>
+        );
+      })}
+    </g>
+  );
+};
