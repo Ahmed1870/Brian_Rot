@@ -1,4 +1,4 @@
-name: Render SQL Lesson 11 (Ahmed x Manzooma)
+name: Render SQL Lesson 10 DML and RETURNING
 on:
   push:
     branches: [main]
@@ -6,15 +6,15 @@ on:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run render
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L10-DML-Returning out/sql-l10-dml-returning.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: ahmed_sql_lesson11
-          path: out/ahmed_sql_lesson11.mp4
+          name: sql-l10-dml-returning
+          path: out/sql-l10-dml-returning.mp4
