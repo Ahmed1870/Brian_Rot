@@ -6,9 +6,9 @@ import {cairo, mono} from '../fonts';
 import {Caption, Card, Defs, Scene, Tag, Title, ease, lerp, prog} from '../common';
 
 const STAGES = [
-  {k: 'FROM', n: 1, ar: 'قراءة الجدول من القرص', color: C.blue},
-  {k: 'WHERE', n: 2, ar: 'تصفية الصفوف', color: C.amber},
-  {k: 'SELECT', n: 3, ar: 'اقتطاع الأعمدة في الذاكرة', color: C.green},
+  {k: 'FROM', n: 1, ar: 'قراءة الجدول من القرص', short: 'قراءة الجدول', color: C.blue},
+  {k: 'WHERE', n: 2, ar: 'تصفية الصفوف', short: 'تصفية الصفوف', color: C.amber},
+  {k: 'SELECT', n: 3, ar: 'اقتطاع الأعمدة في الذاكرة', short: 'اقتطاع الأعمدة', color: C.green},
 ];
 // written order -> execution number
 const CODE = [
@@ -55,7 +55,7 @@ export const Scene01: React.FC = () => {
             <div key={s.k} style={{position: 'absolute', left: 24, right: 24, top: 24 + i * 78, height: 66, borderRadius: 14, display: 'flex', alignItems: 'center', gap: 18, padding: '0 18px', direction: 'rtl', background: active ? 'rgba(148,163,184,0.12)' : 'transparent', opacity: active || idx < 0 ? 1 : 0.6}}>
               <span style={{width: 40, height: 40, borderRadius: 20, background: s.color, color: C.bg, fontFamily: mono, fontWeight: 700, fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{s.n}</span>
               <span style={{fontFamily: mono, fontSize: 28, fontWeight: 700, color: s.color, direction: 'ltr', width: 120}}>{s.k}</span>
-              <span style={{fontFamily: cairo, fontSize: 28, fontWeight: 700, color: C.text}}>{s.ar}</span>
+              <span style={{fontFamily: cairo, fontSize: 28, fontWeight: 700, color: C.text, whiteSpace: 'nowrap'}}>{s.short}</span>
             </div>
           );
         })}
@@ -127,7 +127,7 @@ export const Scene01: React.FC = () => {
       </svg>
 
       {/* result preview in memory (after SELECT lights up at 540) */}
-      <div className="absolute" style={{left: P.x + 50, top: P.y + 520, width: P.w - 100, height: 150, opacity: prog(f, 540, 580), transform: `translateY(${(1 - ease(prog(f, 540, 580))) * 30}px)`}}>
+      <div style={{position: 'absolute', left: P.x + 50, top: P.y + 520, width: P.w - 100, height: 150, opacity: prog(f, 540, 580), transform: `translateY(${(1 - ease(prog(f, 540, 580))) * 30}px)`}}>
         <div style={{display: 'flex', gap: 24, alignItems: 'stretch', height: '100%', direction: 'ltr'}}>
           <div style={{flex: 1, background: C.bg2, border: `2px solid ${C.green}`, borderRadius: 16, padding: '12px 22px', fontFamily: mono, color: C.text}}>
             <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 24, color: C.green, fontWeight: 700}}><span>first_name</span><span>city</span></div>

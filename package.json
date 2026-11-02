@@ -13,11 +13,9 @@
     "@remotion/cli": "4.0.300",
     "@remotion/google-fonts": "4.0.300",
     "@remotion/layout-utils": "4.0.300",
-    "@remotion/tailwind-v4": "4.0.300",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "remotion": "4.0.300",
-    "tailwindcss": "4.0.0"
+    "remotion": "4.0.300"
   },
   "devDependencies": {
     "@types/react": "19.0.0",

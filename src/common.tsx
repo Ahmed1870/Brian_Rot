@@ -57,7 +57,7 @@ export const Title: React.FC<{ar: string; en: string; chip: string; accent?: str
   const p = Math.min(1, spring({frame: f - 4, fps, config: {damping: 16, stiffness: 120}}));
   const z = ZONES.title;
   return (
-    <div className="absolute flex items-center justify-between" style={{left: z.x, top: z.y, width: z.w, height: z.h, opacity: p, transform: `translateY(${(1 - p) * 36}px)`, direction: 'ltr'}}>
+    <div style={{position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'space-between', left: z.x, top: z.y, width: z.w, height: z.h, opacity: p, transform: `translateY(${(1 - p) * 36}px)`, direction: 'ltr'}}>
       <div style={{width: 760}}>
         <div style={{display: 'inline-block', fontFamily: mono, fontSize: 24, fontWeight: 700, color: C.bg, background: accent, borderRadius: 999, padding: '4px 18px'}}>{chip}</div>
         <div style={{marginTop: 12, fontFamily: mono, fontWeight: 700, color: C.dim, whiteSpace: 'nowrap', fontSize: fs(en, 760, 32, mono)}}>{en}</div>
@@ -77,7 +77,7 @@ export const Caption: React.FC<{from: number; to: number; color?: string; ltr?: 
   const font = ltr ? mono : cairo;
   const size = fs(children, z.w - 140, 46, font, 700);
   return (
-    <div className="absolute flex items-center" style={{left: z.x, top: z.y + 14, width: z.w, height: 96, opacity: o, transform: `translateY(${y}px)`, background: 'linear-gradient(90deg, rgba(30,41,59,0.95), rgba(15,23,42,0.6))', borderRadius: 20, borderLeft: `8px solid ${color}`, padding: '0 40px', direction: ltr ? 'ltr' : 'rtl'}}>
+    <div style={{position: 'absolute', display: 'flex', alignItems: 'center', left: z.x, top: z.y + 14, width: z.w, height: 96, opacity: o, transform: `translateY(${y}px)`, background: 'linear-gradient(90deg, rgba(30,41,59,0.95), rgba(15,23,42,0.6))', borderRadius: 20, borderLeft: `8px solid ${color}`, padding: '0 40px', direction: ltr ? 'ltr' : 'rtl'}}>
       <div style={{fontFamily: font, fontWeight: 700, fontSize: size, color, whiteSpace: 'nowrap'}}>{children}</div>
     </div>
   );
@@ -89,7 +89,7 @@ export const Card: React.FC<{box: Box; accent?: string; at?: number; children?: 
   const {fps} = useVideoConfig();
   const p = Math.min(1, Math.max(0, spring({frame: f - at, fps, config: {damping: 17, stiffness: 120}})));
   return (
-    <div className="absolute" style={{left: box.x, top: box.y, width: box.w, height: box.h, background: 'linear-gradient(160deg, #223047 0%, #16203A 100%)', border: `2px solid ${accent}`, borderRadius: 26, boxShadow: '0 22px 50px rgba(0,0,0,0.5)', opacity: p, transform: `translateY(${(1 - p) * 40}px)`, overflow: 'hidden', ...style}}>
+    <div style={{position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, background: 'linear-gradient(160deg, #223047 0%, #16203A 100%)', border: `2px solid ${accent}`, borderRadius: 26, boxShadow: '0 22px 50px rgba(0,0,0,0.5)', opacity: p, transform: `translateY(${(1 - p) * 40}px)`, overflow: 'hidden', ...style}}>
       {children}
     </div>
   );
