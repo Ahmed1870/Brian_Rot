@@ -1,176 +1,176 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Caption, Chip, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec} from '../kit';
+import TL from '../timeline.json';
+import {C, K, FONT_AR, FONT_MONO} from '../theme';
+import {Bg, Glass} from '../components/Glass';
+import {Pill, appear, pop} from '../components/Text';
+import {back, eo, hash, mix, prog, pulse, seg, typed} from '../lib/anim';
 
-// SC03 (frames 2550-3900, global 85-130s): the Data Directory and its two key config files.
-const S = 85;
-const t = (g: number) => sec(g - S);
-const CW = 18; // monospace char width @30px
-const LH = 54; // code line height
-const CODE_X = 40;
+const S = TL.cues.sc03;
+const PW = 900;
+const PY = 170;
+const PH = 720;
+const Q1 = 'SELECT 0.1::float8 + 0.2::float8;';
+const Q2 = 'SELECT 0.1::numeric(10,2) + 0.2::numeric(10,2);';
+const B1 = '0.0001100110011001100110011001100110011';
+const B2 = '0.0011001100110011001100110011001100110';
+const FLOAT_RES = '0.30000000000000004';
 
-const FILES = [
-  {n: 'base/', d: true},
-  {n: 'global/', d: true},
-  {n: 'pg_wal/', d: true},
-  {n: 'PG_VERSION', d: false},
-  {n: 'postgresql.conf', d: false, key: 1},
-  {n: 'pg_hba.conf', d: false, key: 2},
-  {n: 'pg_ident.conf', d: false},
-];
+const Terminal: React.FC<{query: string; color: string; w?: number}> = ({query, color, w = PW - 88}) => (
+  <div style={{width: w, height: 104, borderRadius: 18, background: '#0B1222', border: `2px solid ${color}55`, padding: '0 24px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', fontFamily: FONT_MONO, fontSize: 21, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden'}}>
+    <span style={{color: C.mute, marginRight: 14}}>postgres=#</span>
+    <span>{query}</span>
+    <span style={{display: 'inline-block', width: 3, height: 30, background: color, marginLeft: 2}} />
+  </div>
+);
 
-const CONF = [
-  {c: '# - Memory -', mute: true},
-  {c: 'shared_buffers = 128MB', hot: 1},
-  {c: '# - Connections -', mute: true},
-  {c: 'max_connections = 100', hot: 2},
-  {c: "listen_addresses = 'localhost'", hot: 3},
-  {c: 'port = 5432', hot: 3},
-];
+const Tag: React.FC<{t: number; range: number[]; color: string; head: string; body: string}> = ({t, range, color, head, body}) => {
+  const p = pop(t, range[0], range[0] + 0.8) * (1 - seg(t, range[1] - 0.4, range[1]));
+  if (p <= 0.01) return null;
+  return (
+    <div style={{opacity: Math.min(1, p * 1.5), transform: `translateY(${(1 - p) * -40}px)`}}>
+      <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 26px', borderRadius: 16, background: `${color}22`, border: `2px solid ${color}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 27, color: C.text, whiteSpace: 'nowrap', boxShadow: `0 0 30px ${color}44`}}>
+        <span style={{color}}>{head}</span>
+        <span>{body}</span>
+      </div>
+    </div>
+  );
+};
 
-const col = (s: string, w: number) => s.padEnd(w, ' ');
-const HBA = [
-  {c: '# ' + col('TYPE', 6) + col('DATABASE', 10) + col('USER', 6) + col('ADDRESS', 15) + 'METHOD', mute: true},
-  {c: col('local', 8) + col('all', 10) + col('all', 6) + col('', 15) + 'scram-sha-256'},
-  {c: col('host', 8) + col('all', 10) + col('all', 6) + col('127.0.0.1/32', 15) + 'scram-sha-256'},
-  {c: col('host', 8) + col('all', 10) + col('all', 6) + col('::1/128', 15) + 'scram-sha-256'},
-];
-// column highlight ranges (in characters) for the hba lines
-const HBA_COLS = [
-  {n: 'type', a: 0, b: 8, g: 116.8, label: 'TYPE'},
-  {n: 'who', a: 8, b: 24, g: 118.4, label: 'DATABASE · USER'},
-  {n: 'ip', a: 24, b: 39, g: 120.7, label: 'IP'},
-  {n: 'method', a: 39, b: 52, g: 122.0, label: 'scram-sha-256'},
-];
+export const Scene3: React.FC<{t: number}> = ({t}) => {
+  const inP = pop(t, 80.2, 81.4);
+  const focusL = 1 - 0.5 * seg(t, S.tagGreen[0] - 0.4, S.tagGreen[0] + 0.5);
+  const focusR = 0.5 + 0.5 * seg(t, S.tagGreen[0] - 0.4, S.tagGreen[0] + 0.5);
 
-export const Scene3: React.FC = () => {
-  const f = useCurrentFrame();
-  const open = prog(f, 0, 30);
-  const sel = f >= t(106.7) ? 2 : f >= t(97.8) ? 1 : 0;
-  const swap = prog(f, t(106.7), 14);
-  // laser for postgresql.conf sweeps lines top -> bottom between 98s and 106s
-  const laser = prog(f, t(98.2), sec(7.6));
-  const laserY = lerp(0, CONF.length * LH, laser);
-  const gate = prog(f, t(110.6), 24);
-  const token = prog(f, t(120.7), sec(2.6));
-  const badge = pop(f, t(124.7));
-  const shield = prog(f, t(122.0), 22);
+  // ---------- FLOAT side ----------
+  const q1 = typed(Q1, t, S.q1, 0.07);
+  const bitsP = prog(t, S.bits[0], S.bits[1] - 0.8);
+  const bitsOut = seg(t, S.glitch + 0.3, S.glitch + 1.2);
+  const resP = prog(t, S.glitch, S.glitch + 0.5);
+  const glitching = t >= S.glitch && t < S.glitch + 0.6;
+  const shake = t >= S.glitch && t < S.glitch + 2 ? Math.sin((t - S.glitch) * 70) * 9 * (1 - prog(t, S.glitch, S.glitch + 2)) : 0;
+  const zoom = 1 + 0.12 * eo(prog(t, S.glitch + 1.2, S.glitch + 2.4)) * (1 - seg(t, S.glitch + 7, S.glitch + 8));
+  const warn = 0.5 + 0.5 * pulse(t, 0.8);
+  const eqP = pop(t, 100, 101);
+  const typedRes = FLOAT_RES.slice(0, Math.floor(prog(t, S.glitch, S.glitch + 1.6) * FLOAT_RES.length));
 
-  const lineHot = (hot: number | undefined, i: number) => {
-    if (!hot) return 0;
-    const start = hot === 1 ? 98.8 : hot === 2 ? 103.0 : 105.0;
-    return prog(f, t(start), 16);
-  };
+  // ---------- NUMERIC side ----------
+  const q2 = typed(Q2, t, S.q2, 0.06);
+  const numP = pop(t, S.cash, S.cash + 0.7);
+  const slideIn = eo(prog(t, S.cash, S.cash + 0.6));
+  const verdictP = pop(t, S.verdict, S.verdict + 0.7);
+  const digits = ['', '', '', '', '', '', '', '0', '.', '3', '0'];
+
+  const bit = (s: string, color: string) =>
+    s.split('').map((ch, i) => (
+      <span key={i} style={{color: i > 1 && Math.floor((i - 2) / 4) % 2 === 0 ? color : C.dim, opacity: 1}}>{ch}</span>
+    ));
 
   return (
-    <Stage dur={1350} inFx="left" outFx="morph">
-      <TopBadge text="Data Directory · ملفان بيحكموا المحرك" from={t(86.6)} to={t(97)} color={C.blue} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} tint={t < S.tagGreen[0] ? K.err : K.num} />
 
-      {/* explorer */}
-      <Win x={110} y={150} w={560} h={740} title="Data Directory" accent={C.border} opacity={open}>
-        <div dir="ltr" style={{padding: '16px 24px', fontFamily: MONO, fontSize: 17, color: C.muted, borderBottom: `1px solid ${C.border}`}}>C:\Program Files\PostgreSQL\16\data</div>
-        {FILES.map((fl, i) => {
-          const p = prog(f, t(87.2) + i * 8, 18);
-          const on = fl.key === sel;
-          return (
-            <div key={fl.n} dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 16, height: 74, margin: '0 14px', padding: '0 14px', borderRadius: 12, opacity: p, transform: `translateX(${(1 - p) * -40}px)`, background: on ? `${C.blue}22` : 'transparent', border: on ? `2px solid ${C.blue}` : '2px solid transparent', fontFamily: MONO, fontSize: 26, color: on ? C.text : C.muted}}>
-              <svg width={30} height={26} viewBox="0 0 30 26">
-                {fl.d ? <path d="M2 4 H12 L15 8 H28 V24 H2 Z" fill={C.amber} opacity={0.85} /> : <path d="M5 1 H20 L27 8 V25 H5 Z" fill="none" stroke={on ? C.blue : C.muted} strokeWidth={2.5} />}
-              </svg>
-              {fl.n}
-            </div>
-          );
-        })}
-      </Win>
+      <div style={{position: 'absolute', left: 60, top: 96, width: PW, height: 60}}>
+        <Tag t={t} range={S.tagRed} color={K.err} head="FLOAT Trap:" body="0.1 + 0.2 = 0.30000000000000004" />
+      </div>
+      <div style={{position: 'absolute', left: 960, top: 96, width: PW, height: 60}}>
+        <Tag t={t} range={S.tagGreen} color={K.num} head="NUMERIC(10,2):" body="Exact Precision for Money = 0.30" />
+      </div>
 
-      {/* viewer */}
-      <Win x={710} y={150} w={1100} h={740} title={sel === 2 ? 'pg_hba.conf' : sel === 1 ? 'postgresql.conf' : 'Select a file...'} accent={sel ? C.blue : C.border} opacity={open}>
-        {sel === 0 && (
-          <div dir="ltr" style={{position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 28, color: C.muted}}>Select a file...</div>
-        )}
+      {/* ---------------- FLOAT ---------------- */}
+      <div style={{position: 'absolute', left: 60 - (1 - inP) * 800, top: PY, width: PW, height: PH, opacity: focusL}}>
+        <Glass w={PW} h={PH} t={t} tint={K.err} glow={24} style={{border: `2px solid ${K.err}77`}}>
+          <div style={{padding: '26px 44px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20}}>
+              <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 52, color: K.err}}>FLOAT</span>
+              <span style={{fontFamily: FONT_MONO, fontSize: 22, color: C.dim}}>DOUBLE PRECISION · IEEE 754</span>
+            </div>
+            <Terminal query={q1} color={K.err} />
 
-        {sel === 1 && (
-          <div style={{position: 'absolute', inset: 0}}>
-            <div style={{position: 'absolute', left: CODE_X, top: 28}}>
-              {CONF.map((l, i) => {
-                const h = lineHot(l.hot, i);
-                return (
-                  <div key={i} dir="ltr" style={{height: LH, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 30, color: l.mute ? '#64748B' : C.text, background: `rgba(56,189,248,${0.16 * h})`, borderRadius: 8, paddingRight: 16, marginLeft: -12, paddingLeft: 12, width: 640}}>
-                    <span style={{color: '#475569', width: 44}}>{i + 1}</span>
-                    {l.c}
-                  </div>
-                );
-              })}
-              <div style={{position: 'absolute', left: -12, width: 660, top: laserY - 2, height: 4, background: C.green, opacity: laser > 0 && laser < 1 ? 1 : 0, boxShadow: `0 0 18px ${C.green}`}} />
-            </div>
-            {/* annotations */}
-            <div style={{position: 'absolute', left: 40, right: 40, top: 28 + CONF.length * LH + 30, display: 'flex', gap: 20}}>
-              {[
-                {a: 'shared_buffers', ar: 'ذاكرة الكاش', g: 99.5, c: C.blue},
-                {a: 'max_connections', ar: 'أقصى اتصالات', g: 103.0, c: C.amber},
-                {a: 'port · network', ar: 'منافذ الشبكة', g: 105.2, c: C.green},
-              ].map((x) => {
-                const p = pop(f, t(x.g));
-                return (
-                  <div key={x.a} style={{flex: 1, borderRadius: 16, background: C.deep, border: `2px solid ${x.c}`, padding: '16px 18px', transform: `scale(${0.8 + 0.2 * p})`, opacity: clamp(p)}}>
-                    <div dir="ltr" style={{fontFamily: MONO, fontSize: 21, fontWeight: 700, color: x.c}}>{x.a}</div>
-                    <Mix style={{fontSize: 28, color: C.text}}>{x.ar}</Mix>
-                  </div>
-                );
-              })}
-            </div>
+            {/* binary approximation */}
+            {t >= S.bits[0] - 0.2 ? (
+              <div style={{marginTop: 20, height: 150, opacity: appear(t, S.bits[0] - 0.2, S.bits[0] + 0.4) * (1 - bitsOut), fontFamily: FONT_MONO, fontSize: 21}}>
+                <div style={{color: C.mute, marginBottom: 6, fontFamily: FONT_AR, fontSize: 23, direction: 'rtl'}}>الصيغة الثنائية: كسور لا تنتهي أبدًا</div>
+                <div style={{whiteSpace: 'nowrap', overflow: 'hidden'}}><span style={{color: C.dim}}>0.1 = </span>{bit(B1.slice(0, Math.floor(bitsP * B1.length)), K.bool)}<span style={{color: K.err}}>{bitsP > 0.95 ? '…' : ''}</span></div>
+                <div style={{whiteSpace: 'nowrap', overflow: 'hidden', marginTop: 8}}><span style={{color: C.dim}}>0.2 = </span>{bit(B2.slice(0, Math.floor(bitsP * B2.length)), K.txt)}<span style={{color: K.err}}>{bitsP > 0.95 ? '…' : ''}</span></div>
+              </div>
+            ) : null}
+
+            {/* result */}
+            {resP > 0 ? (
+              <div style={{marginTop: -150, height: 170, position: 'relative'}}>
+                <div style={{fontFamily: FONT_MONO, fontSize: 20, color: C.mute, marginBottom: 6}}>?column?</div>
+                <div style={{transform: `translateX(${shake}px) scale(${zoom})`, transformOrigin: '0% 50%', display: 'inline-block', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 56, color: C.text, textShadow: glitching ? `4px 0 ${K.err}, -4px 0 ${K.txt}` : `0 0 26px ${K.err}55`, whiteSpace: 'nowrap'}}>
+                  <span>{typedRes.slice(0, 3)}</span>
+                  <span style={{color: K.err}}>{typedRes.slice(3)}</span>
+                </div>
+                {/* leaking drops */}
+                {Array.from({length: 6}).map((_, i) => {
+                  const p = ((t * 0.7 + i / 6) % 1);
+                  return t > S.glitch + 1.6 ? <div key={i} style={{position: 'absolute', left: 540 + (i % 3) * 36 + hash(i) * 16, top: 70 + p * 70, width: 10, height: 14, borderRadius: 5, background: K.err, opacity: 1 - p}} /> : null;
+                })}
+              </div>
+            ) : null}
+
+            {resP > 0 ? (
+              <div style={{display: 'flex', alignItems: 'center', gap: 16, marginTop: 6, opacity: appear(t, S.glitch + 0.8, S.glitch + 1.5), direction: 'rtl'}}>
+                <svg width="46" height="46" viewBox="0 0 104 104"><path d="M52 8 L98 90 L6 90 Z" fill={K.err} stroke="#fff" strokeWidth="5" strokeLinejoin="round" /><rect x="48" y="38" width="8" height="30" rx="4" fill="#fff" /><circle cx="52" cy="78" r="5" fill="#fff" /></svg>
+                <span style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 30, color: '#FCA5A5', opacity: 0.7 + 0.3 * warn}}>تسرّب القروش: فقدان الدقة في الحسابات المالية</span>
+              </div>
+            ) : null}
+
+            {eqP > 0.01 ? (
+              <div style={{marginTop: 26, opacity: Math.min(1, eqP * 1.5), transform: `translateY(${(1 - eqP) * 24}px)`}}>
+                <div style={{width: PW - 88, height: 84, borderRadius: 16, background: '#0B1222', border: `2px solid ${K.err}55`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px', boxSizing: 'border-box', fontFamily: FONT_MONO, fontSize: 22, color: C.text}}>
+                  <span style={{color: C.dim}}>0.1 + 0.2 = 0.3 ?</span>
+                  <span style={{fontWeight: 800, fontSize: 38, color: K.err}}>f&nbsp;&nbsp;(false)</span>
+                </div>
+              </div>
+            ) : null}
           </div>
-        )}
+        </Glass>
+      </div>
 
-        {sel === 2 && (
-          <div style={{position: 'absolute', inset: 0, opacity: swap}}>
-            <div style={{position: 'absolute', left: CODE_X, top: 28}}>
-              {HBA.map((l, i) => (
-                <div key={i} dir="ltr" style={{height: LH, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 30, color: l.mute ? '#64748B' : C.text, whiteSpace: 'pre'}}>{l.c}</div>
-              ))}
-              {HBA_COLS.map((c) => {
-                const p = prog(f, t(c.g), 16);
-                const col2 = c.n === 'method' ? C.green : c.n === 'ip' ? C.amber : C.blue;
-                return (
-                  <div key={c.n} style={{position: 'absolute', left: 44 + c.a * CW - 6, top: -4, width: (c.b - c.a) * CW + 8, height: HBA.length * LH + 8, border: `2px solid ${col2}`, background: `${col2}${p > 0.5 ? '1F' : '00'}`, borderRadius: 10, opacity: p}}>
-                    <div dir="ltr" style={{position: 'absolute', left: 0, bottom: -34, fontFamily: MONO, fontSize: 19, fontWeight: 700, color: col2, whiteSpace: 'nowrap'}}>{c.label}</div>
-                  </div>
-                );
-              })}
+      {/* ---------------- NUMERIC ---------------- */}
+      <div style={{position: 'absolute', left: 960 + (1 - inP) * 800, top: PY, width: PW, height: PH, opacity: focusR}}>
+        <Glass w={PW} h={PH} t={t + 2} tint={K.num} glow={24} style={{border: `2px solid ${K.num}77`}}>
+          <div style={{padding: '26px 44px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20}}>
+              <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 52, color: K.num}}>NUMERIC(10,2)</span>
+              <span style={{fontFamily: FONT_MONO, fontSize: 22, color: C.dim}}>Arbitrary Precision</span>
+            </div>
+            <Terminal query={t >= S.q2 ? q2 : ''} color={K.num} />
+
+            {/* exact decimal slots: precision 10, scale 2 */}
+            <div style={{marginTop: 24, opacity: appear(t, S.q2 + 3, S.q2 + 3.8)}}>
+              <div style={{fontFamily: FONT_AR, fontSize: 23, color: C.dim, marginBottom: 10, direction: 'rtl'}}>صيغة عشرية ثابتة: 10 خانات، منها 2 بعد الفاصلة</div>
+              <div style={{display: 'flex', gap: 8, direction: 'ltr', alignItems: 'center'}}>
+                {digits.map((d, i) => (
+                  <div key={i} style={{width: d === '.' ? 24 : 56, height: d === '.' ? 56 : 72, borderRadius: 12, background: d && d !== '.' && t >= S.cash ? `${K.num}33` : 'rgba(255,255,255,0.06)', border: `2px solid ${d && d !== '.' && t >= S.cash ? K.num : 'rgba(255,255,255,0.12)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 38, color: K.num, opacity: d === '.' ? 1 : 1}}>{t >= S.cash ? d : d === '.' ? '.' : ''}</div>
+                ))}
+              </div>
             </div>
 
-            {/* gate flow: client token -> rule gate -> server */}
-            <svg width={1100} height={380} style={{position: 'absolute', left: 0, top: 330, opacity: gate}}>
-              <g transform="translate(0 20)">
-                <circle cx={110} cy={150} r={44} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={4} />
-                <text x={110} y={158} textAnchor="middle" fontFamily={MONO} fontSize={18} fontWeight={700} fill={C.blue}>client</text>
-                <path d="M470 60 V230 H640 V60 A85 85 0 0 0 470 60 Z" fill="none" stroke={shield > 0.5 ? C.green : C.amber} strokeWidth={6} />
-                <rect x={500} y={118} width={110} height={112} fill={C.deep} />
-                <text x={555} y={146} textAnchor="middle" fontFamily={MONO} fontSize={15} fill={C.amber}>host</text>
-                <text x={555} y={172} textAnchor="middle" fontFamily={MONO} fontSize={15} fill={C.amber}>127.0.0.1/32</text>
-                <text x={555} y={198} textAnchor="middle" fontFamily={MONO} fontSize={15} fill={C.green}>scram-sha-256</text>
-                <rect x={890} y={104} width={120} height={92} rx={14} fill={`${C.green}22`} stroke={C.green} strokeWidth={4} />
-                <text x={950} y={158} textAnchor="middle" fontFamily={MONO} fontSize={20} fontWeight={700} fill={C.green}>server</text>
-                <line x1={156} y1={150} x2={470} y2={150} stroke={C.border} strokeWidth={3} strokeDasharray="10 8" />
-                <line x1={640} y1={150} x2={890} y2={150} stroke={C.border} strokeWidth={3} strokeDasharray="10 8" />
-                <g opacity={token > 0 ? 1 : 0}>
-                  <rect x={lerp(130, 880, token) - 38} y={132} width={76} height={36} rx={18} fill={shield > 0.5 && token > 0.45 ? C.green : C.amber} />
-                  <text x={lerp(130, 880, token)} y={157} textAnchor="middle" fontFamily={MONO} fontSize={17} fontWeight={700} fill="#0F172A">IP ok</text>
-                </g>
-              </g>
-            </svg>
+            {t >= S.cash ? (
+              <div style={{marginTop: 26, height: 150, position: 'relative'}}>
+                <div style={{fontFamily: FONT_MONO, fontSize: 20, color: C.mute, marginBottom: 6}}>?column?</div>
+                <div style={{display: 'inline-flex', alignItems: 'center', gap: 22, transform: `translateX(${(1 - slideIn) * -260}px)`, opacity: Math.min(1, slideIn * 2), fontFamily: FONT_MONO, fontWeight: 800, fontSize: 84, color: K.num, textShadow: `0 0 34px ${K.num}88`}}>
+                  0.30
+                  <svg width="70" height="70" viewBox="0 0 70 70" fill="none" stroke={K.num} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" style={{transform: `scale(${0.6 + 0.4 * numP})`}}><circle cx="35" cy="35" r="30" /><path d="M20 36 L31 47 L51 23" /></svg>
+                </div>
+              </div>
+            ) : null}
+
+            {verdictP > 0.01 ? (
+              <div style={{marginTop: 4, opacity: Math.min(1, verdictP * 1.5), transform: `translateY(${(1 - verdictP) * 24}px)`}}>
+                <div style={{width: PW - 88, height: 84, borderRadius: 16, background: '#0B1222', border: `2px solid ${K.num}55`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px', boxSizing: 'border-box', fontFamily: FONT_MONO, fontSize: 22, color: C.text}}>
+                  <span style={{color: C.dim}}>0.1 + 0.2 = 0.3 ?</span>
+                  <span style={{fontWeight: 800, fontSize: 38, color: K.num}}>t&nbsp;&nbsp;(true)</span>
+                </div>
+              </div>
+            ) : null}
           </div>
-        )}
-
-        {/* engineer badge */}
-        <div style={{position: 'absolute', right: 34, top: 28, transform: `scale(${badge})`, transformOrigin: 'top right', opacity: clamp(badge)}}>
-          <Chip color={C.green} style={{fontSize: 26, padding: '10px 22px'}}><Mix>مهندس قواعد بيانات ✓</Mix></Chip>
-        </div>
-      </Win>
-
-      <Caption text="postgresql.conf ──► Shared Buffers & Max Connections Tuning" from={t(88)} to={t(106)} />
-      <Caption text="pg_hba.conf ──► Host-Based Authentication (scram-sha-256 Encryption)" from={t(110)} to={t(126)} />
-    </Stage>
+        </Glass>
+      </div>
+    </div>
   );
 };

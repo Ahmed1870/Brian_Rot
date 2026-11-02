@@ -1,140 +1,171 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Caption, Check, Chip, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec, typed} from '../kit';
+import TL from '../timeline.json';
+import {C, K, FONT_AR, FONT_MONO} from '../theme';
+import {Bg, Glass} from '../components/Glass';
+import {pop, appear} from '../components/Text';
+import {back, eio, eo, hash, mix, prog, pulse, seg, typed} from '../lib/anim';
 
-// SC05 (frames 5100-6300, global 170-210s): Connection Refused -> restart service -> workspace ready.
-const S = 170;
-const t = (g: number) => sec(g - S);
-const SERVICES = ['Windows Update', 'postgresql-x64-16', 'Print Spooler', 'Windows Time'];
+const S = TL.cues.sc05;
+const PW = 900;
+const PY = 170;
+const PH = 740;
+const RAW = ['5', '100', '25', '1500', '2', '30'];
+const LEX = ['100', '1500', '2', '25', '30', '5'];
+const NUM = ['2', '5', '25', '30', '100', '1500'];
+const ROW0 = 200;
+const RH = 54;
+const QUERY = 'SELECT price FROM products ORDER BY price;';
 
-export const Scene5: React.FC = () => {
-  const f = useCurrentFrame();
-  const win = prog(f, 0, 24);
-  const err = prog(f, t(175.6), 14);
-  const shake = f >= t(175.6) && f < t(178.6) ? Math.sin(f * 2.2) * 8 * (1 - prog(f, t(175.6), sec(3))) : 0;
-  const svcStop = prog(f, t(179.8), 20);
-  const portClosed = pop(f, t(182.9));
-  const toggle = prog(f, t(186.0), 18);
-  const running = toggle > 0.5;
-  const cmd = typed('net start postgresql-x64-16', f, t(184.0), 0.9);
-  const cmdOk = prog(f, t(186.4), 14);
-  const fixed = prog(f, t(187.7), 20);
-  const chk = [pop(f, t(188.2)), pop(f, t(189.8)), pop(f, t(191.5))];
-  const ready = prog(f, t(193.3), 28);
-  const dashDim = 1 - 0.85 * ready;
-  const tile1 = pop(f, t(196.0));
-  const tile2 = pop(f, t(197.2));
-  const tile3 = pop(f, t(198.4));
-  const file = pop(f, t(199.6));
-  const units = prog(f, t(203.4), 24);
+const Tag: React.FC<{t: number; range: number[]; color: string; head: string; body: string}> = ({t, range, color, head, body}) => {
+  const p = pop(t, range[0], range[0] + 0.8) * (1 - seg(t, range[1] - 0.4, range[1]));
+  if (p <= 0.01) return null;
+  return (
+    <div style={{opacity: Math.min(1, p * 1.5), transform: `translateY(${(1 - p) * -40}px)`}}>
+      <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 26px', borderRadius: 16, background: `${color}22`, border: `2px solid ${color}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 26, color: C.text, whiteSpace: 'nowrap', boxShadow: `0 0 30px ${color}44`}}>
+        <span style={{color}}>{head}</span>
+        <span>{body}</span>
+      </div>
+    </div>
+  );
+};
+
+const Rows: React.FC<{t: number; order: string[]; start: number; dur: number; color: string; quoted: boolean; messy: boolean}> = ({t, order, start, dur, color, quoted, messy}) => {
+  const p = prog(t, start, start + dur);
+  return (
+    <div style={{position: 'absolute', left: 0, top: 0, width: PW - 88, height: 340}}>
+      {RAW.map((v, i) => {
+        const target = order.indexOf(v);
+        const e = messy ? back(p) : eio(p);
+        const pos = mix(i, target, e);
+        const wob = messy ? Math.sin(p * Math.PI) * (hash(i * 3.3) - 0.5) * 120 : 0;
+        const rot = messy ? Math.sin(p * Math.PI * 2) * (hash(i * 5.1) - 0.5) * 16 : 0;
+        const rowIn = appear(t, S.tag1[0] + 3 + i * 0.12, S.tag1[0] + 3.5 + i * 0.12);
+        return (
+          <div key={v} style={{position: 'absolute', left: wob, top: pos * RH, width: PW - 88, height: RH - 8, transform: `rotate(${rot}deg)`, opacity: rowIn}}>
+            <div style={{height: RH - 8, borderRadius: 12, background: `${color}1A`, border: `2px solid ${color}66`, display: 'flex', alignItems: 'center', padding: '0 22px', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: C.text, justifyContent: 'space-between'}}>
+              <span>{quoted ? `'${v}'` : v}</span>
+              <span style={{fontSize: 20, color: C.mute, fontWeight: 500}}>{quoted ? 'text' : 'numeric'}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+export const Scene5: React.FC<{t: number}> = ({t}) => {
+  const inP = pop(t, 165.2, 166.4);
+  const focusL = 1 - 0.5 * seg(t, S.tag2[0] - 0.5, S.tag2[0] + 0.4);
+  const focusR = 0.55 + 0.45 * seg(t, S.tag2[0] - 0.5, S.tag2[0] + 0.4);
+
+  const q1 = typed(QUERY, t, S.q1, 0.06);
+  const q2 = typed(QUERY, t, S.q2, 0.04);
+
+  // TEXT side
+  const sortL = prog(t, S.shuffle, S.shuffle + 1.8);
+  const lexBadge = pop(t, S.shuffle + 2.2, S.shuffle + 3);
+  const ramL = t < S.shuffle ? 0.35 : mix(0.35, 0.94, eo(prog(t, S.shuffle, S.shuffle + 4))) + 0.03 * Math.sin(t * 14) * (t > S.shuffle ? 1 : 0);
+  const betweenL = pop(t, S.shuffle + 6, S.shuffle + 6.8);
+
+  // NUMERIC side
+  const sortStart = S.pass - 2.6;
+  const needle = eo(prog(t, S.pass - 0.4, S.pass + 1.6));
+  const mem = eo(prog(t, S.pass + 2, S.pass + 4.5));
+  const betweenR = pop(t, S.pass + 7, S.pass + 7.8);
+  const streak = prog(t, S.pass - 0.1, S.pass + 0.9);
+  const savingBadge = pop(t, S.pass + 4.2, S.pass + 5);
 
   return (
-    <Stage dur={1200} inFx="up" outFx="down">
-      <TopBadge text="Troubleshooting · تشخيص بيئة العمل" from={t(171.5)} to={t(188)} color={C.red} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} tint={t < S.tag2[0] ? K.err : K.num} />
 
-      <div style={{opacity: dashDim}}>
-        {/* pgAdmin error */}
-        <Win x={110} y={150} w={760} h={400} title="pgAdmin 4 — Connect to Server" accent={fixed > 0.5 ? C.green : C.red} opacity={win} scale={1}>
-          <div style={{position: 'absolute', left: 36, right: 36, top: 34, transform: `translateX(${shake}px)`}}>
-            <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 20, background: fixed > 0.5 ? `${C.green}1A` : `${C.red}1A`, border: `2px solid ${fixed > 0.5 ? C.green : C.red}`, borderRadius: 18, padding: '24px 28px', opacity: clamp(err) }}>
-              <svg width={64} height={64} viewBox="0 0 64 64">
-                {fixed > 0.5 ? (
-                  <polyline points="14,34 28,48 52,18" fill="none" stroke={C.green} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
-                ) : (
-                  <g stroke={C.red} strokeWidth={8} strokeLinecap="round">
-                    <line x1={16} y1={16} x2={48} y2={48} />
-                    <line x1={48} y1={16} x2={16} y2={48} />
-                  </g>
-                )}
-              </svg>
-              <div>
-                <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: fixed > 0.5 ? C.green : C.red}}>{fixed > 0.5 ? 'Connected' : 'Connection Refused'}</div>
-                <div style={{fontFamily: MONO, fontSize: 21, color: C.muted, marginTop: 6}}>{fixed > 0.5 ? 'localhost:5432 · PostgreSQL 16' : 'could not connect to server: localhost:5432'}</div>
+      <div style={{position: 'absolute', left: 60, top: 96, width: PW, height: 60}}>
+        <Tag t={t} range={S.tag1} color={K.err} head="TEXT Price Sorting Trap:" body={'"100" < "2"'} />
+      </div>
+      <div style={{position: 'absolute', left: 960, top: 96, width: PW, height: 60}}>
+        <Tag t={t} range={S.tag2} color={K.num} head="NUMERIC Sorting: 2 < 100" body="──► 60% Memory Savings" />
+      </div>
+
+      {/* ---------- TEXT (wrong) ---------- */}
+      <div style={{position: 'absolute', left: 60 - (1 - inP) * 800, top: PY, width: PW, height: PH, opacity: focusL}}>
+        <Glass w={PW} h={PH} t={t} tint={K.err} glow={22} style={{border: `2px solid ${K.err}77`}}>
+          <div style={{padding: '24px 44px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+              <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 46, color: K.err}}>price TEXT</span>
+              <span style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl'}}>ترتيب أبجدي</span>
+            </div>
+            <div style={{marginTop: 14, height: 70, borderRadius: 14, background: '#0B1222', border: `2px solid ${K.err}55`, padding: '0 20px', display: 'flex', alignItems: 'center', fontFamily: FONT_MONO, fontSize: 23, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden'}}>
+              <span style={{color: C.mute, marginRight: 12}}>postgres=#</span>{q1}
+            </div>
+            <div style={{position: 'relative', marginTop: 18, height: 340}}>
+              <Rows t={t} order={LEX} start={S.shuffle} dur={1.8} color={K.err} quoted messy />
+              {lexBadge > 0.01 ? (
+                <div style={{position: 'absolute', right: -6, top: 2 * RH - 4, transform: `scale(${0.7 + 0.3 * lexBadge})`, opacity: Math.min(1, lexBadge * 1.5)}}>
+                  <div style={{padding: '8px 20px', borderRadius: 12, background: K.err, color: '#fff', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, boxShadow: `0 0 30px ${K.err}`}}>"100" &lt; "2" ✕</div>
+                </div>
+              ) : null}
+            </div>
+            {/* BETWEEN fails + RAM */}
+            <div style={{marginTop: 4, opacity: Math.min(1, betweenL * 1.5), transform: `translateY(${(1 - betweenL) * 20}px)`, height: 70, borderRadius: 14, background: '#0B1222', border: `2px solid ${K.err}55`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', fontFamily: FONT_MONO, fontSize: 21, color: C.text}}>
+              <span style={{whiteSpace: 'nowrap'}}>WHERE price BETWEEN '50' AND '500'</span>
+              <span style={{fontWeight: 800, fontSize: 28, color: K.err}}>(0 rows)</span>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: 16, marginTop: 14}}>
+              <span style={{width: 70, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: K.err}}>RAM</span>
+              <div style={{flex: 1, height: 30, borderRadius: 15, background: 'rgba(255,255,255,0.07)'}}>
+                <div style={{width: `${ramL * 100}%`, height: 30, borderRadius: 15, background: `linear-gradient(90deg, ${K.bool}, ${K.err})`}} />
               </div>
             </div>
-            <div style={{display: 'flex', gap: 18, marginTop: 28, flexWrap: 'wrap'}}>
-              <div style={{opacity: svcStop}}><Chip color={C.amber}><Mix>الخدمة متوقفة</Mix></Chip></div>
-              <div style={{transform: `scale(${portClosed})`, opacity: clamp(portClosed)}}><Chip color={C.red}><Mix>البورت مغلق</Mix></Chip></div>
-            </div>
           </div>
-        </Win>
+        </Glass>
+      </div>
 
-        {/* Windows Services */}
-        <Win x={950} y={150} w={860} h={560} title="Windows Services (services.msc)" accent={C.border} opacity={win}>
-          <div style={{padding: '20px 26px'}}>
-            {SERVICES.map((s, i) => {
-              const hot = i === 1;
-              return (
-                <div key={s} dir="ltr" style={{display: 'flex', alignItems: 'center', height: 96, borderRadius: 16, padding: '0 22px', marginBottom: 14, background: hot ? C.deep : 'transparent', border: hot ? `2px solid ${running ? C.green : C.red}` : `2px solid transparent`, fontFamily: MONO, fontSize: 28, color: hot ? C.text : C.muted}}>
-                  <div style={{width: 18, height: 18, borderRadius: 9, background: hot ? (running ? C.green : C.red) : C.border, marginRight: 20, boxShadow: hot && running ? `0 0 14px ${C.green}` : 'none'}} />
-                  <span style={{flex: 1}}>{s}</span>
-                  {hot && (
-                    <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
-                      <span style={{fontSize: 22, color: running ? C.green : C.red}}>{running ? 'Running' : 'Stopped'}</span>
-                      <div style={{width: 96, height: 46, borderRadius: 23, background: running ? C.green : C.border, position: 'relative', boxShadow: running ? `0 0 18px ${C.green}88` : 'none'}}>
-                        <div style={{position: 'absolute', top: 5, left: lerp(6, 56, toggle), width: 36, height: 36, borderRadius: 18, background: C.text}} />
-                      </div>
-                    </div>
-                  )}
+      {/* ---------- NUMERIC (right) ---------- */}
+      <div style={{position: 'absolute', left: 960 + (1 - inP) * 800, top: PY, width: PW, height: PH, opacity: focusR}}>
+        <Glass w={PW} h={PH} t={t + 2} tint={K.num} glow={22} style={{border: `2px solid ${K.num}77`}}>
+          <div style={{padding: '24px 44px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+              <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 46, color: K.num}}>price NUMERIC</span>
+              <span style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl'}}>ترتيب رقمي</span>
+            </div>
+            <div style={{marginTop: 14, height: 70, borderRadius: 14, background: '#0B1222', border: `2px solid ${K.num}55`, padding: '0 20px', display: 'flex', alignItems: 'center', fontFamily: FONT_MONO, fontSize: 23, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden'}}>
+              <span style={{color: C.mute, marginRight: 12}}>postgres=#</span>{t >= S.q2 ? q2 : ''}
+            </div>
+            <div style={{position: 'relative', marginTop: 18, height: 340}}>
+              <Rows t={t} order={NUM} start={sortStart} dur={1.5} color={K.num} quoted={false} messy={false} />
+              {streak > 0 && streak < 1 ? <div style={{position: 'absolute', left: -60 + streak * (PW + 120), top: -20, width: 120, height: 380, transform: 'skewX(-20deg)', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)'}} /> : null}
+            </div>
+            <div style={{marginTop: 4, opacity: Math.min(1, betweenR * 1.5), transform: `translateY(${(1 - betweenR) * 20}px)`, height: 70, borderRadius: 14, background: '#0B1222', border: `2px solid ${K.num}55`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', fontFamily: FONT_MONO, fontSize: 21, color: C.text}}>
+              <span style={{whiteSpace: 'nowrap'}}>WHERE price BETWEEN 50 AND 500</span>
+              <span style={{fontWeight: 800, fontSize: 28, color: K.num}}>100 ✓</span>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: 20, marginTop: 8}}>
+              {/* speedometer */}
+              <svg width="190" height="110" viewBox="0 0 190 110">
+                <path d="M15 100 A80 80 0 0 1 175 100" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="16" strokeLinecap="round" />
+                <path d="M15 100 A80 80 0 0 1 175 100" fill="none" stroke={K.num} strokeWidth="16" strokeLinecap="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - needle} />
+                <line x1="95" y1="100" x2={95 + Math.cos(Math.PI * (1 - needle)) * 62} y2={100 - Math.sin(Math.PI * (1 - needle)) * 62} stroke="#fff" strokeWidth="5" strokeLinecap="round" />
+                <circle cx="95" cy="100" r="9" fill="#fff" />
+              </svg>
+              <div style={{flex: 1}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8}}>
+                  <span style={{width: 112, fontFamily: FONT_MONO, fontSize: 20, color: C.dim}}>TEXT</span>
+                  <div style={{flex: 1, height: 22, borderRadius: 11, background: 'rgba(239,68,68,0.35)'}} />
                 </div>
-              );
-            })}
-          </div>
-        </Win>
-
-        {/* Terminal alternative */}
-        <Win x={110} y={600} w={760} h={160} title="Terminal (Admin)" accent={C.border} opacity={win}>
-          <div dir="ltr" style={{padding: '18px 26px', fontFamily: MONO, fontSize: 26, color: C.text}}>
-            <div><span style={{color: C.green}}>&gt;</span> {cmd}{cmd.length < 28 && cmd.length > 0 ? <span style={{color: C.green}}>▌</span> : null}</div>
-            <div style={{color: C.green, fontSize: 22, marginTop: 10, opacity: cmdOk}}>The postgresql-x64-16 service was started successfully.</div>
-          </div>
-        </Win>
-
-        {/* readiness checklist */}
-        <div dir="ltr" style={{position: 'absolute', left: 110, right: 110, top: 790, display: 'flex', gap: 22, justifyContent: 'center'}}>
-          {['Workspace prepared', 'Latest version installed', 'Connection tested'].map((c, i) => (
-            <div key={c} style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.green}`, borderRadius: 16, padding: '12px 24px', fontFamily: MONO, fontSize: 25, color: C.text, opacity: clamp(chk[i]), transform: `translateY(${(1 - clamp(chk[i])) * 24}px)`}}>
-              <Check p={chk[i]} size={38} />
-              {c}
+                <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                  <span style={{width: 112, fontFamily: FONT_MONO, fontSize: 20, color: K.num}}>NUMERIC</span>
+                  <div style={{flex: 1, height: 22, borderRadius: 11, background: 'rgba(255,255,255,0.07)'}}>
+                    <div style={{width: `${mix(100, 40, mem)}%`, height: 22, borderRadius: 11, background: K.num}} />
+                  </div>
+                </div>
+              </div>
+              {savingBadge > 0.01 ? (
+                <div style={{padding: '10px 20px', borderRadius: 16, background: K.num, color: C.bg, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 34, transform: `scale(${0.6 + 0.4 * savingBadge})`, boxShadow: `0 0 34px ${K.num}`}}>−60%</div>
+              ) : null}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Workspace Ready overlay */}
-      <div style={{position: 'absolute', left: 260, top: 170, width: 1400, height: 700, borderRadius: 28, background: C.card, border: `2px solid ${C.green}`, boxShadow: `0 40px 110px rgba(2,6,23,.75), 0 0 80px ${C.green}22`, opacity: ready, transform: `scale(${0.86 + 0.14 * ready})`}}>
-        <div dir="ltr" style={{position: 'absolute', left: 60, top: 44, fontFamily: MONO, fontSize: 60, fontWeight: 700, color: C.text}}>Workspace <span style={{color: C.green}}>Ready</span></div>
-        <div dir="ltr" style={{position: 'absolute', left: 60, top: 128, fontFamily: MONO, fontSize: 28, color: C.muted}}>Prepared for Manzooma Store DDL Deployment</div>
-        <div dir="ltr" style={{position: 'absolute', left: 60, right: 60, top: 220, display: 'flex', gap: 24}}>
-          {[
-            {n: 'PostgreSQL 16', c: C.green, p: tile1},
-            {n: 'pgAdmin 4', c: C.blue, p: tile2},
-            {n: 'localhost:5432', c: C.amber, p: tile3},
-          ].map((x) => (
-            <div key={x.n} style={{flex: 1, height: 150, borderRadius: 20, background: C.deep, border: `2px solid ${x.c}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, transform: `scale(${0.8 + 0.2 * x.p})`, opacity: clamp(x.p)}}>
-              <Check p={x.p} size={44} color={x.c} />
-              <div style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.text}}>{x.n}</div>
-            </div>
-          ))}
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 60, top: 420, display: 'flex', alignItems: 'center', gap: 22, opacity: clamp(file), transform: `translateX(${(1 - clamp(file)) * -40}px)`}}>
-          <svg width={52} height={64} viewBox="0 0 52 64">
-            <path d="M6 2 H34 L48 16 V62 H6 Z" fill="none" stroke={C.blue} strokeWidth={4} />
-            <text x={26} y={46} textAnchor="middle" fontFamily={MONO} fontSize={16} fontWeight={700} fill={C.blue}>SQL</text>
-          </svg>
-          <div>
-            <div style={{fontFamily: MONO, fontSize: 32, color: C.text}}>manzooma_store<span style={{color: C.blue}}>.sql</span></div>
-            <div style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginTop: 4}}>CREATE · INSERT · SELECT</div>
           </div>
-        </div>
-        <div style={{position: 'absolute', left: 60, right: 60, top: 560, opacity: units, transform: `translateY(${(1 - units) * 20}px)`}}>
-          <Mix style={{fontSize: 38, fontWeight: 600, color: C.text}}>البيئة المثالية لتطبيق مفاهيم الوحدات الأولى عملياً</Mix>
-        </div>
+        </Glass>
       </div>
-
-      <Caption text="Fix: Connection Refused ──► Restart PostgreSQL Windows Service" from={t(172)} to={t(188)} />
-      <Caption text="Workspace Ready ──► Prepared for Manzooma Store DDL Deployment" from={t(192)} to={t(206)} />
-    </Stage>
+    </div>
   );
 };

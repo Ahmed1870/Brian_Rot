@@ -1,125 +1,146 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Caption, Check, Chip, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec, typed} from '../kit';
+import TL from '../timeline.json';
+import {C, K, FONT_AR, FONT_MONO} from '../theme';
+import {Bg, Glass} from '../components/Glass';
+import {appear, pop} from '../components/Text';
+import {back, ei, eo, fmt, mix, prog, pulse, seg} from '../lib/anim';
 
-// SC04 (frames 3900-5100, global 130-170s): first server connection and the two audit queries.
-const S = 130;
-const t = (g: number) => sec(g - S);
-const TREE = [
-  {n: 'Servers', d: 0},
-  {n: 'PostgreSQL 16', d: 1, live: true},
-  {n: 'Databases (1)', d: 2},
-  {n: 'postgres', d: 3},
-  {n: 'Schemas', d: 4},
-  {n: 'public', d: 5},
-  {n: 'Tables', d: 5},
+const S = TL.cues.sc04;
+const AMBER = K.bool;
+const VIO = '#A78BFA';
+
+type IntBox = {name: string; bytes: number; max: string; use: string; x: number; w: number; h: number; at: number};
+const BOXES: IntBox[] = [
+  {name: 'SMALLINT', bytes: 2, max: '32,767', use: 'age · flags', x: 90, w: 280, h: 250, at: S.boxes[0]},
+  {name: 'INTEGER', bytes: 4, max: '2,147,483,647', use: 'orders · qty', x: 410, w: 340, h: 350, at: S.boxes[0] + 2},
+  {name: 'BIGINT', bytes: 8, max: '9,223,372,036,854,775,807', use: 'IDs · event logs', x: 790, w: 410, h: 470, at: S.boxes[0] + 4},
 ];
+const BASE = 790;
 
-const Field: React.FC<{label: string; value: string; secret?: boolean; hot?: boolean}> = ({label, value, secret, hot}) => (
-  <div dir="ltr" style={{marginBottom: 22}}>
-    <div style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 6}}>{label}</div>
-    <div style={{fontFamily: MONO, fontSize: 32, color: C.text, background: C.bg, border: `2px solid ${hot ? C.blue : C.border}`, borderRadius: 12, padding: '10px 18px', minHeight: 30, letterSpacing: secret ? 4 : 0}}>{secret ? '•'.repeat(value.length) : value}{hot ? <span style={{color: C.blue}}>▌</span> : ''}</div>
-  </div>
-);
+const Tag: React.FC<{t: number; range: number[]; color: string; head: string; body: string}> = ({t, range, color, head, body}) => {
+  const p = pop(t, range[0], range[0] + 0.8) * (1 - seg(t, range[1] - 0.4, range[1]));
+  if (p <= 0.01) return null;
+  return (
+    <div style={{opacity: Math.min(1, p * 1.5), transform: `translateY(${(1 - p) * -40}px)`}}>
+      <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 26px', borderRadius: 16, background: `${color}22`, border: `2px solid ${color}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 27, color: C.text, whiteSpace: 'nowrap', boxShadow: `0 0 30px ${color}44`}}>
+        <span style={{color}}>{head}</span>
+        <span>{body}</span>
+      </div>
+    </div>
+  );
+};
 
-export const Scene4: React.FC = () => {
-  const f = useCurrentFrame();
-  const win = prog(f, 0, 26);
-  const dlg = prog(f, t(131.6), 24) * (1 - prog(f, t(143.9), 14));
-  const treeIn = t(144.4);
-  const qt = prog(f, t(148.5), 22);
-  const q1 = typed('SELECT version();', f, t(151.6), 0.62);
-  const q2 = typed('SHOW data_directory;', f, t(154.9), 0.8);
-  const run1 = f >= t(157.1) && f < t(160.4);
-  const run2 = f >= t(160.4);
-  const r1 = pop(f, t(157.6));
-  const r2 = pop(f, t(160.8));
-  const ok = pop(f, t(165.1));
-  const press1 = prog(f, t(157.1), 6) * (1 - prog(f, t(157.5), 8));
-  const press2 = prog(f, t(160.4), 6) * (1 - prog(f, t(160.8), 8));
+export const Scene4: React.FC<{t: number}> = ({t}) => {
+  const lit = (bi: number, k: number) => t >= S.ascend + bi * 0.9 + k * 0.1; // bytes light up in ascending order
+  const ov = S.overflow;
+  const climb = eo(prog(t, ov[0], ov[0] + 2.4));
+  const hit = t >= ov[0] + 2.5;
+  const err = prog(t, ov[0] + 2.5, ov[0] + 3.2);
+  const move = eo(prog(t, ov[0] + 3.4, ov[0] + 4.4));
+  const counter = hit ? 2147483647 : Math.floor(1000 + climb * (2147483647 - 1000));
+  const flash = hit ? 1 - prog(t, ov[0] + 2.5, ov[0] + 3.3) : 0;
+  const boolP = pop(t, 131, 132.2);
+  const boolFocus = 0.35 + 0.65 * seg(t, S.tag2[0] - 1.5, S.tag2[0] - 0.5);
+  const dim = 1 - 0.35 * seg(t, S.tag2[0] - 1, S.tag2[0]);
 
-  const host = typed('localhost', f, t(137.9), 0.2);
-  const port = typed('5432', f, t(139.8), 0.2);
-  const pass = typed('••••••••', f, t(141.7), 0.15);
+  // boolean state: TRUE -> FALSE (click) -> NULL
+  const toTrue = 1;
+  const toFalse = eo(prog(t, S.toggle - 0.15, S.toggle + 0.35));
+  const toNull = eo(prog(t, S.toggle + 3.0, S.toggle + 3.6));
+  const knobPos = t < S.toggle - 0.15 ? 1 : t < S.toggle + 3.0 ? mix(1, 0, toFalse) : mix(0, 0.5, toNull);
+  const state = t < S.toggle - 0.1 ? 'TRUE' : t < S.toggle + 3.1 ? 'FALSE' : 'NULL';
+  const col = state === 'TRUE' ? K.num : state === 'FALSE' ? K.err : AMBER;
+  const click = Math.sin(prog(t, S.toggle, S.toggle + 0.4) * Math.PI);
 
   return (
-    <Stage dur={1200} inFx="morph" outFx="up">
-      <TopBadge text="الربط الأول | Server Connection" from={t(131.8)} to={t(150)} color={C.blue} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} tint={AMBER} />
 
-      <Win x={120} y={140} w={1680} h={780} title="pgAdmin 4 — Query Tool" accent={C.blue} opacity={win}>
-        {/* Object Explorer */}
-        <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: 420, background: C.deep, borderRight: `1px solid ${C.border}`, padding: '22px 20px'}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 18}}>OBJECT EXPLORER</div>
-          {TREE.map((r, i) => {
-            const p = prog(f, treeIn + i * 9, 16);
-            return (
-              <div key={r.n} dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 12, height: 58, paddingLeft: r.d * 24, opacity: p, transform: `translateX(${(1 - p) * -30}px)`, fontFamily: MONO, fontSize: 25, color: r.live ? C.text : C.muted}}>
-                <span style={{color: C.blue}}>{i < 5 ? '▾' : '▸'}</span>
-                <div style={{width: 14, height: 14, borderRadius: 4, background: r.live ? C.green : C.border}} />
-                {r.n}
-              </div>
-            );
-          })}
-        </div>
+      <div style={{position: 'absolute', left: 80, top: 96, width: 1200, height: 60}}>
+        <Tag t={t} range={S.tag1} color={AMBER} head="INT (4 Bytes) vs BIGINT (8 Bytes)" body="──► Capacity Balance" />
+      </div>
+      <div style={{position: 'absolute', left: 1240, top: 96, width: 640, height: 60}}>
+        <Tag t={t} range={S.tag2} color={VIO} head="BOOLEAN" body="──► TRUE / FALSE / NULL" />
+      </div>
 
-        {/* Query Tool */}
-        <div style={{position: 'absolute', left: 420, right: 0, top: 0, bottom: 0, opacity: qt}}>
-          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 16, height: 66, padding: '0 22px', borderBottom: `1px solid ${C.border}`}}>
-            <div style={{fontFamily: MONO, fontSize: 22, color: C.blue, borderBottom: `3px solid ${C.blue}`, padding: '0 6px', lineHeight: '62px'}}>Query Tool</div>
-            <div style={{marginLeft: 'auto', fontFamily: MONO, fontSize: 22, fontWeight: 700, color: '#0F172A', background: C.green, borderRadius: 10, padding: '8px 22px', transform: `scale(${1 + 0.12 * (press1 + press2)})`}}>▶ Run</div>
-          </div>
-          <div style={{position: 'absolute', left: 0, right: 0, top: 66, height: 250, background: C.deep, padding: '20px 26px'}}>
-            {[q1, '', q2].map((l, i) => {
-              const hl = (i === 0 && run1) || (i === 2 && run2);
-              return (
-                <div key={i} dir="ltr" style={{display: 'flex', height: 62, alignItems: 'center', fontFamily: MONO, fontSize: 32, background: hl ? `${C.blue}22` : 'transparent', borderRadius: 8}}>
-                  <span style={{color: '#475569', width: 50, paddingLeft: 8}}>{i + 1}</span>
-                  <span style={{color: C.text}}>
-                    {l.split(/(SELECT|SHOW)/).map((p, k) => (
-                      <span key={k} style={{color: p === 'SELECT' || p === 'SHOW' ? C.blue : C.text, fontWeight: p === 'SELECT' || p === 'SHOW' ? 700 : 400}}>{p}</span>
-                    ))}
-                    {(i === 0 && l.length < 17 && l.length > 0) || (i === 2 && l.length < 20 && l.length > 0) ? <span style={{color: C.green}}>▌</span> : null}
-                  </span>
+      {/* measuring boxes growing with capacity */}
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: dim}}>
+        {BOXES.map((b, bi) => {
+          const p = back(prog(t, S.boxes[0] + bi * 1.4, S.boxes[0] + bi * 1.4 + 0.9));
+          const isInt = bi === 1;
+          const isBig = bi === 2;
+          const redNow = isInt && hit && t < ov[0] + 4.2;
+          return (
+            <div key={b.name} style={{position: 'absolute', left: b.x, top: BASE - b.h, width: b.w, height: b.h, transform: `scale(${Math.max(0.001, p)})`, transformOrigin: '50% 100%', opacity: Math.min(1, p * 2)}}>
+              <div style={{width: b.w, height: b.h, borderRadius: 28, background: `linear-gradient(180deg, ${AMBER}${bi === 0 ? '22' : bi === 1 ? '33' : '44'}, rgba(30,41,59,0.95))`, border: `3px solid ${redNow ? K.err : AMBER}`, boxShadow: `0 0 ${redNow ? 50 : 24}px ${redNow ? K.err : AMBER}55`, padding: '22px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', overflow: 'hidden'}}>
+                <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 34, color: AMBER}}>{b.name}</div>
+                <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 56, color: C.text, lineHeight: 1}}>{b.bytes} <span style={{fontSize: 26, color: C.dim}}>BYTES</span></div>
+                <div style={{display: 'flex', gap: 6, flexWrap: 'wrap'}}>
+                  {Array.from({length: b.bytes}).map((_, k) => (
+                    <div key={k} style={{width: 34, height: 34, borderRadius: 8, background: lit(bi, k) ? AMBER : 'rgba(255,255,255,0.08)', boxShadow: lit(bi, k) ? `0 0 14px ${AMBER}` : undefined}} />
+                  ))}
                 </div>
-              );
-            })}
+                <div style={{marginTop: 'auto', fontFamily: FONT_MONO, fontSize: isBig ? 21 : 26, fontWeight: 700, color: isBig ? K.num : C.text}}>max {b.max}</div>
+              </div>
+            </div>
+          );
+        })}
+        {/* usage chips */}
+        {BOXES.map((b, bi) => (
+          <div key={b.name} style={{position: 'absolute', left: b.x, top: BASE + 22, width: b.w, display: 'flex', justifyContent: 'center', opacity: appear(t, S.boxes[0] + bi * 1.4 + 0.6, S.boxes[0] + bi * 1.4 + 1.2)}}>
+            <div style={{padding: '8px 22px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.14)', fontFamily: FONT_MONO, fontSize: 22, color: C.dim}}>{b.use}</div>
           </div>
-          {/* Data Output */}
-          <div style={{position: 'absolute', left: 0, right: 0, top: 316, bottom: 0, borderTop: `1px solid ${C.border}`, padding: '16px 26px'}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 19, color: C.muted, marginBottom: 12}}>Data Output</div>
-            {run1 && (
-              <div dir="ltr" style={{transform: `scale(${0.94 + 0.06 * r1})`, opacity: clamp(r1), transformOrigin: 'left top'}}>
-                <div style={{display: 'flex', background: C.deep, fontFamily: MONO, fontSize: 22, color: C.muted, padding: '10px 18px', borderRadius: '10px 10px 0 0'}}>version</div>
-                <div style={{fontFamily: MONO, fontSize: 28, color: C.green, padding: '16px 18px', border: `2px solid ${C.green}`, borderRadius: '0 0 10px 10px'}}>PostgreSQL 16.x, compiled by Visual C++, 64-bit</div>
+        ))}
+
+        {/* integer overflow demo */}
+        {t >= ov[0] - 0.4 ? (
+          <div style={{position: 'absolute', left: 410, top: BASE + 78, opacity: appear(t, ov[0] - 0.4, ov[0] + 0.2)}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 24}}>
+              <div style={{minWidth: 340, padding: '12px 22px', borderRadius: 16, background: '#0B1222', border: `2px solid ${hit ? K.err : AMBER}`, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 34, color: hit ? K.err : C.text, boxShadow: flash > 0 ? `0 0 ${50 * flash}px ${K.err}` : undefined, textAlign: 'center', transform: `translateX(${hit && t < ov[0] + 3.3 ? Math.sin(t * 80) * 6 : 0}px)`}}>
+                id = {fmt(counter)}
               </div>
-            )}
-            {run2 && (
-              <div dir="ltr" style={{transform: `scale(${0.94 + 0.06 * r2})`, opacity: clamp(r2), transformOrigin: 'left top'}}>
-                <div style={{display: 'flex', background: C.deep, fontFamily: MONO, fontSize: 22, color: C.muted, padding: '10px 18px', borderRadius: '10px 10px 0 0'}}>data_directory</div>
-                <div style={{fontFamily: MONO, fontSize: 28, color: C.amber, padding: '16px 18px', border: `2px solid ${C.amber}`, borderRadius: '0 0 10px 10px'}}>C:/Program Files/PostgreSQL/16/data</div>
-              </div>
-            )}
-            <div style={{position: 'absolute', right: 26, bottom: 22, display: 'flex', alignItems: 'center', gap: 14, opacity: clamp(ok), transform: `translateY(${(1 - clamp(ok)) * 20}px)`}}>
-              <Check p={ok} size={46} />
-              <span dir="ltr" style={{fontFamily: MONO, fontSize: 24, color: C.green, fontWeight: 700}}>Query returned successfully</span>
+              {err > 0 && move < 1 ? <div style={{fontFamily: FONT_MONO, fontWeight: 700, fontSize: 24, color: '#FCA5A5', opacity: err * (1 - move)}}>ERROR: integer out of range</div> : null}
+              {move > 0 ? (
+                <div style={{display: 'flex', alignItems: 'center', gap: 14, opacity: move}}>
+                  <svg width="90" height="30" viewBox="0 0 90 30"><line x1="0" y1="15" x2={76 * move} y2="15" stroke={K.num} strokeWidth="5" strokeLinecap="round" /><path d="M66 6 L82 15 L66 24" fill="none" stroke={K.num} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: K.num}}>BIGINT ✓</span>
+                </div>
+              ) : null}
             </div>
           </div>
-        </div>
+        ) : null}
+      </div>
 
-        {/* Register Server dialog */}
-        <div style={{position: 'absolute', left: 520, top: 40, width: 720, borderRadius: 22, background: C.card, border: `2px solid ${C.blue}`, boxShadow: '0 30px 80px rgba(2,6,23,.7)', padding: '26px 34px', opacity: dlg, transform: `scale(${0.92 + 0.08 * dlg}) translateY(${(1 - dlg) * 30}px)`}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 22}}>Register — Server</div>
-          <Field label="Host name/address" value={host} hot={f >= t(137.9) && f < t(139.8)} />
-          <Field label="Port" value={port} hot={f >= t(139.8) && f < t(141.7)} />
-          <Field label="Username" value="postgres" />
-          <Field label="Password" value={pass} secret hot={f >= t(141.7) && f < t(143.7)} />
-          <div dir="ltr" style={{display: 'inline-block', fontFamily: MONO, fontSize: 24, fontWeight: 700, color: '#0F172A', background: C.blue, borderRadius: 10, padding: '10px 28px'}}>Save</div>
-        </div>
-      </Win>
-
-      <Caption text="SELECT version(); ──► Engine Build & System Audit" from={t(132)} to={t(148)} />
-      <Caption text="SHOW data_directory; ──► Physical Data Location Verification" from={t(152)} to={t(166)} />
-    </Stage>
+      {/* BOOLEAN panel */}
+      <div style={{position: 'absolute', left: 1250 + (1 - boolP) * 700, top: 190, width: 620, height: 700, opacity: Math.min(1, boolP * 1.4) * boolFocus}}>
+        <Glass w={620} h={700} t={t} tint={VIO} glow={24} style={{border: `2px solid ${VIO}88`}}>
+          <div style={{padding: '30px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24}}>
+            <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 48, color: VIO}}>BOOLEAN</div>
+            <div style={{width: '100%', display: 'flex', alignItems: 'center', gap: 20, padding: '16px 22px', borderRadius: 22, background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.12)', direction: 'rtl', boxSizing: 'border-box'}}>
+              <div style={{width: 70, height: 70, borderRadius: 35, background: `linear-gradient(135deg, ${K.txt}, ${VIO})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_AR, fontWeight: 900, fontSize: 38, color: C.bg}}>أ</div>
+              <div style={{display: 'flex', flexDirection: 'column'}}>
+                <span style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 32, color: C.text}}>أحمد محمود</span>
+                <span style={{fontFamily: FONT_MONO, fontSize: 20, color: C.dim, direction: 'ltr'}}>is_active</span>
+              </div>
+              <div style={{marginRight: 'auto', padding: '8px 22px', borderRadius: 999, background: `${col}22`, border: `2px solid ${col}`, fontFamily: FONT_AR, fontWeight: 800, fontSize: 26, color: col}}>{state === 'TRUE' ? 'نشط' : state === 'FALSE' ? 'غير نشط' : 'غير معروف'}</div>
+            </div>
+            {/* toggle switch */}
+            <div style={{position: 'relative', width: 420, height: 170, borderRadius: 85, background: `${col}33`, border: `4px solid ${col}`, boxShadow: `0 0 ${34 + 20 * click}px ${col}77`, marginTop: 10}}>
+              <div style={{position: 'absolute', left: 18 + knobPos * (420 - 36 - 134), top: 14 + 0, width: 134, height: 134, borderRadius: 67, background: col, boxShadow: '0 10px 26px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 40, color: C.bg, transform: `scale(${1 - 0.1 * click})`}}>{state === 'NULL' ? '?' : state === 'TRUE' ? '✓' : '✕'}</div>
+            </div>
+            <div style={{display: 'flex', gap: 14, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30}}>
+              {['TRUE', 'FALSE', 'NULL'].map((s) => (
+                <div key={s} style={{padding: '8px 22px', borderRadius: 12, background: s === state ? (s === 'TRUE' ? K.num : s === 'FALSE' ? K.err : AMBER) : 'rgba(255,255,255,0.06)', color: s === state ? C.bg : C.dim}}>{s}</div>
+              ))}
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: 16, marginTop: 8}}>
+              <div style={{width: 34, height: 34, borderRadius: 8, background: VIO, boxShadow: `0 0 14px ${VIO}`}} />
+              <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 36, color: C.text}}>1 BYTE</span>
+              <span style={{fontFamily: FONT_AR, fontWeight: 600, fontSize: 26, color: C.dim, direction: 'rtl'}}>مساحة لا تتجاوز بايت واحد</span>
+            </div>
+          </div>
+        </Glass>
+      </div>
+    </div>
   );
 };
