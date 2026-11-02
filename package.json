@@ -1,23 +1,26 @@
 {
-  "name": "manzooma-lesson-04",
+  "name": "ahmed-manzooma-sql-l11",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma - SQL From Zero to Professional - Lesson 04 - PostgreSQL Data Types (Remotion, 2D)",
+  "description": "Ahmed x Manzooma - SQL Lesson 11: SELECT & WHERE (16:9, 4:00) - Remotion",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "remotion render src/index.ts Monzoma-SQL-L04 out/Lesson04_PostgreSQL-Data-Types.mp4",
-    "typecheck": "tsc --noEmit"
+    "sfx": "python3 scripts/generate_sfx.py",
+    "prep": "node scripts/prep.mjs", "check": "node scripts/check_layout.mjs",
+    "start": "node scripts/prep.mjs && remotion studio src/index.ts",
+    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L11 out/ahmed_sql_lesson11.mp4 --codec h264 --concurrency 2"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "remotion": "^4.0.0"
+    "@remotion/cli": "4.0.300",
+    "@remotion/google-fonts": "4.0.300",
+    "@remotion/layout-utils": "4.0.300",
+    "@remotion/tailwind-v4": "4.0.300",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.300",
+    "tailwindcss": "4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.0",
-    "typescript": "^5.4.0"
+    "@types/react": "19.0.0",
+    "typescript": "5.8.2"
   }
 }
