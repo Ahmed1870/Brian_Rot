@@ -1,4 +1,4 @@
-name: Render video
+name: Render SQL Lesson 08 PostgreSQL Setup
 on:
   push:
     branches: [main]
@@ -12,10 +12,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run generate-audio
-      - run: npx remotion render src/index.ts Monzoma-SQL-L06 out/Monzoma-SQL-L06.mp4
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L08-PostgreSQL-Setup out/sql-l08-postgresql-setup.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: Monzoma-SQL-L06
-          path: out/Monzoma-SQL-L06.mp4
+          name: sql-l08-postgresql-setup
+          path: out/sql-l08-postgresql-setup.mp4

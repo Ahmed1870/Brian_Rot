@@ -1,9 +1,8 @@
-# Manzooma — Lesson 06: Foreign Keys & Referential Integrity
-Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s). Composition ID: `Monzoma-SQL-L06`.
+# Manzooma | SQL From Zero to Professional - Lesson 08 - PostgreSQL & pgAdmin Setup
 
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/Monzoma-SQL-L06.mp4
+- Composition id: `SQL-L08-PostgreSQL-Setup` - 1920x1080, 30fps, 7200 frames (4:00)
+- Scenes: 0-1200 | 1200-2550 | 2550-3900 | 3900-5100 | 5100-6300 | 6300-7200
+- Voiceover: public/voiceover.mp3 (240.04s). Visual cues are anchored to the real pauses in the audio.
 
-Voiceover: `public/voiceover_lesson_06.mp3` (already contains ~1.2 s of lead-in, starts at frame 0). Cue times live in `src/timeline.json`.
+    npm install && npm start
+    npm run build   # -> out/sql-l08-postgresql-setup.mp4
