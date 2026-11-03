@@ -1,136 +1,275 @@
-import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine} from '../components/Code';
-import {appear, pop} from '../components/Text';
-import {back, ei, eo, hash, mix, prog, pulse, seg, typed} from '../lib/anim';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Arabic, Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eio, eo, lerp, prog, typed, useT, win } from "../lib";
 
-const S = TL.cues.sc02;
-const CMD = "CREATE DATABASE manzooma_store_db ENCODING 'UTF8';";
-const LINES: CodeLine[] = [{text: CMD, at: S.typeT, dt: 0.075}];
+const rowTop = (i: number) => 18 + i * 40;
 
-const Folder: React.FC<{w: number; h: number; color: string; title: string; sub?: string; glow?: number; ghost?: boolean}> = ({w, h, color, title, sub, glow = 20, ghost}) => (
-  <div style={{position: 'relative', width: w, height: h}}>
-    <svg width={w} height={h} viewBox="0 0 400 300" preserveAspectRatio="none" style={{overflow: 'visible', filter: `drop-shadow(0 0 ${glow}px ${color}88)`}}>
-      <path d="M20 40 Q20 20 40 20 H150 L185 55 H360 Q380 55 380 75 V260 Q380 280 360 280 H40 Q20 280 20 260 Z" fill={ghost ? 'rgba(255,255,255,0.03)' : `${color}22`} stroke={color} strokeWidth="7" strokeDasharray={ghost ? '16 14' : undefined} strokeLinejoin="round" />
-    </svg>
-    <div style={{position: 'absolute', left: 0, top: h * 0.3, width: w, textAlign: 'center'}}>
-      <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: w > 400 ? 36 : 40, color: C.text}}>{title}</div>
-      {sub ? <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 26, color, marginTop: 8}}>{sub}</div> : null}
-    </div>
-  </div>
-);
+// 8 order rows: [id, amount, region, outcome]  outcome: 0 pass · 1 rejected by gate 1 · 2 rejected by gate 2
+const ROWS: [number, number, string, number][] = [
+  [501, 1200, "R1", 0],
+  [502, 90, "R1", 1],
+  [503, 860, "R2", 0],
+  [504, 700, "R3", 2],
+  [505, 430, "R1", 0],
+  [506, 55, "R2", 1],
+  [507, 980, "R2", 0],
+  [508, 640, "R4", 2],
+];
+const S0 = 54.0, STEP = 1.1;
+const X0 = 1075, G1 = 1330, G2 = 1480, XR = 1700, CHW = 175;
 
-export const Scene2: React.FC<{t: number}> = ({t}) => {
-  const enter = appear(t, 40.3, 41.3);
-  const clone = prog(t, S.clone, S.clone + 2.6);
-  const split = eo(prog(t, S.clone, S.clone + 1.4));
-  const settle = eo(prog(t, S.clone + 1.4, S.clone + 2.6));
-  const rename = typed('manzooma_store_db', t, S.clone + 2.6, 0.07);
-  const oidP = back(prog(t, S.oid, S.oid + 0.8));
-  const drop = ei(prog(t, S.oid + 1.2, S.disk));
-  const snapped = t >= S.disk;
-  const snapGlow = Math.sin(prog(t, S.disk, S.disk + 0.8) * Math.PI);
-  const utfP = pop(t, S.utf, S.utf + 0.8);
-  const warm = 0.5 + 0.5 * pulse(t, 1.4);
-  const finalGlow = seg(t, 76, 78) * warm;
-
-  const tag = (range: number[], head: string, body: string, color: string) => {
-    const p = pop(t, range[0], range[0] + 0.8) * (1 - seg(t, range[1] - 0.4, range[1]));
-    if (p <= 0.01) return null;
-    return (
-      <div style={{display: 'inline-flex', alignItems: 'center', gap: 16, padding: '12px 30px', borderRadius: 16, background: `${color}22`, border: `2px solid ${color}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 28, color: C.text, whiteSpace: 'nowrap', opacity: Math.min(1, p * 1.5), transform: `translateY(${(1 - p) * -40}px)`, boxShadow: `0 0 30px ${color}44`}}>
-        <span style={{color}}>{head}</span>
-        {body ? <span>{body}</span> : null}
-      </div>
-    );
-  };
-
-  // clone particles
-  const bits: React.ReactNode[] = [];
-  if (clone > 0 && clone < 1) {
-    for (let i = 0; i < 26; i++) {
-      const u = prog(t, S.clone + 0.2 + (i % 13) * 0.08, S.clone + 1.8 + (i % 13) * 0.08);
-      if (u <= 0 || u >= 1) continue;
-      const x = mix(560, 1080, u);
-      const y = 560 + Math.sin(u * Math.PI) * -90 * (hash(i) + 0.3) + (hash(i * 3) - 0.5) * 60;
-      bits.push(<rect key={i} x={x} y={y} width={10} height={10} rx={2} fill={D.code} opacity={1 - u * 0.4} />);
-    }
+const chipState = (dt: number, outcome: number) => {
+  // returns [x, opacity, color]
+  const x1 = G1 - CHW - 4;
+  const x2 = G2 - CHW - 4;
+  if (dt < 0) return [X0, 0, C.blue] as const;
+  if (dt < 1.1) return [lerp(X0, x1, eio(dt, 0, 1.1)), Math.min(1, dt * 4), C.blue] as const;
+  if (outcome === 1) {
+    const p = prog(dt, 1.1, 1.9);
+    return [lerp(x1, X0 - 50, eio(p, 0, 1)), 1 - p, C.red] as const;
   }
-  const copyX = mix(180, 1080, split);
-  const copyScale = mix(0.55, 1, settle);
+  if (dt < 2.0) return [lerp(x1, x2, eio(dt, 1.1, 2.0)), 1, C.amber] as const;
+  if (outcome === 2) {
+    const p = prog(dt, 2.0, 2.8);
+    return [lerp(x2, x1 - 40, eio(p, 0, 1)), 1 - p, C.red] as const;
+  }
+  const p = prog(dt, 2.0, 3.0);
+  return [lerp(x2, XR + 8, eio(p, 0, 1)), 1 - Math.max(0, (p - 0.85) / 0.15), C.green] as const;
+};
+
+export const Scene2: React.FC = () => {
+  const t = useT();
+
+  const L = [
+    typed("FROM orders o", t, 43.0, 44.4),
+    typed("INNER JOIN discounts d", t, 44.4, 46.4),
+    typed("  ON o.total_amount >= d.threshold_amount", t, 47.6, 50.4),
+    typed("  AND o.region_id = d.region_id;", t, 50.5, 53.0),
+  ];
+  const caret = t < 44.4 ? 0 : t < 47.6 ? 1 : t < 50.5 ? 2 : t < 53.1 ? 3 : -1;
+
+  const stage = Math.min(prog(t, 52.6, 53.4), 1 - prog(t, 67.2, 67.9));
+  const ram = ROWS.filter((r, i) => r[3] === 0 && t >= S0 + i * STEP + 3.0).length;
+
+  // second half: on-the-fly lanes
+  const lanes = prog(t, 67.9, 68.7);
+  const laneChip = (lane: 0 | 1, idx: number) => {
+    const rej = idx % 2 === 1;
+    const ts = 73.2 + idx * 0.25;
+    const p = eio(t, ts, ts + 1.1);
+    const x0 = 1170 + idx * 52;
+    const stopAt = 1565;
+    const toRam = 1672 + (idx % 4) * 38;
+    const stopped = lane === 0 && rej;
+    const x = stopped ? lerp(x0, stopAt - 30, p) : lerp(x0, toRam, p);
+    const lateRej = lane === 1 && rej && t > 79.0;
+    const o = stopped ? 1 - Math.max(0, (p - 0.8) / 0.2) : 1;
+    const col = stopped ? (p > 0.7 ? C.red : C.blue) : lateRej ? C.red : p >= 1 ? C.green : C.blue;
+    return { x, o, col, arrived: !stopped && p >= 1 };
+  };
+  const ramA = [...Array(8).keys()].filter((i) => laneChip(0, i).arrived).length;
+  const ramB = [...Array(8).keys()].filter((i) => laneChip(1, i).arrived).length;
+  const fillA = (ramA / 8) * eo(t, 76.6, 80.7) + (1 - eo(t, 76.6, 80.7)) * (ramA / 8);
+  const fillB = ramB / 8;
 
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}>{tag(S.tag1, 'CREATE DATABASE', ' manzooma_store_db;', D.code)}</div>
-      <div style={{position: 'absolute', left: 0, top: 92, width: 1920, display: 'flex', justifyContent: 'center', height: 60}}>{tag(S.tag2, 'Clones template1', ' ──► Allocates Physical Storage Directory (OID)', D.cat)}</div>
-
-      <div style={{opacity: enter, transform: `translateY(${(1 - enter) * 40}px)`}}>
-        <Code lines={LINES} t={t} x={60} y={190} w={1800} h={140} title="psql — postgres" fontSize={34} lineH={58} />
+    <AbsoluteFill>
+      <div style={{ opacity: eo(t, 42.2, 42.9), transform: `translateX(${(1 - eo(t, 42.2, 43.0)) * -100}px)` }}>
+        <Window x={70} y={150} w={930} h={340} title="admin_report.sql" glow={t > 43 && t < 53.3 ? 1 : 0}>
+          {L.map((s, i) =>
+            s.length > 0 ? (
+              <div key={i} style={{ position: "absolute", left: 24, top: rowTop(i) }}>
+                <CodeLine text={s} fs={24} caret={caret === i} />
+              </div>
+            ) : null,
+          )}
+        </Window>
       </div>
 
-      {/* template1 -> clone -> new database container */}
-      <div style={{position: 'absolute', left: 180, top: 400, opacity: enter}}>
-        <Folder w={380} h={280} color={D.cat} title="template1" sub="القاعدة المرجعية" glow={14 + 14 * Math.sin(clone * Math.PI)} />
-      </div>
-      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-        <line x1="580" y1="540" x2={580 + 480 * split} y2="540" stroke={D.code} strokeWidth="5" strokeDasharray="4 14" strokeLinecap="round" strokeDashoffset={-t * 80} opacity={clone > 0 && clone < 1 ? 0.8 : 0} />
-        {bits}
-      </svg>
-      {clone > 0 ? (
-        <div style={{position: 'absolute', left: copyX, top: 400, opacity: Math.min(1, clone * 6), transform: `scale(${copyScale})`, transformOrigin: '0 50%'}}>
-          <Folder w={440} h={280} color={D.code} title={settle > 0.99 ? rename || 'manzooma_store_db' : 'template1'} sub={settle > 0.99 ? 'قاعدة منظومة ستور' : undefined} glow={22 + 22 * snapGlow + 26 * finalGlow} />
-        </div>
-      ) : null}
-
-      {/* UTF8 badge */}
-      {utfP > 0.01 ? (
-        <div style={{position: 'absolute', left: 1560, top: 420, width: 300, opacity: Math.min(1, utfP * 1.5), transform: `scale(${0.7 + 0.3 * utfP})`, transformOrigin: '0 0'}}>
-          <div style={{padding: '16px 22px', borderRadius: 20, background: `${D.cat}1F`, border: `2px solid ${D.cat}`, boxShadow: `0 0 30px ${D.cat}55`}}>
-            <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: D.cat}}>ENCODING 'UTF8'</div>
-            <div style={{display: 'flex', gap: 14, marginTop: 10, fontFamily: FONT_AR, fontWeight: 800, fontSize: 40, color: C.text}}>
-              <span>ع</span><span>ä</span><span>日</span><span>€</span>
-            </div>
-            <div style={{fontFamily: FONT_AR, fontWeight: 600, fontSize: 21, color: C.dim, direction: 'rtl', marginTop: 6}}>العربية والرموز الدولية ✓</div>
+      {/* condition 1 AND condition 2 */}
+      {[
+        { x: 70, a: 52.4, c: C.blue, k: "condition 1", code: "o.total_amount >= d.threshold_amount", ar: "شرط المبلغ" },
+        { x: 590, a: 53.6, c: C.violet, k: "condition 2", code: "o.region_id = d.region_id", ar: "شرط المنطقة الجغرافية" },
+      ].map((cd, i) => {
+        const e = eb(t, cd.a, cd.a + 0.6);
+        return e > 0 ? (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: cd.x,
+              top: 530,
+              width: 410,
+              height: 170,
+              opacity: Math.min(1, e * 1.5),
+              transform: `translateY(${(1 - Math.min(1, e)) * 40}px)`,
+              borderRadius: 20,
+              background: `${cd.c}14`,
+              border: `3px solid ${cd.c}`,
+              padding: "14px 18px",
+            }}
+          >
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 22, color: cd.c }}>{cd.k}</div>
+            <div style={{ fontFamily: MONO, fontWeight: 500, fontSize: 18, color: C.text, marginTop: 8, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{cd.code}</div>
+            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 26, color: C.text, direction: "rtl", marginTop: 8 }}>{cd.ar}</div>
           </div>
+        ) : null;
+      })}
+      {t > 53.0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 490,
+            top: 590,
+            width: 90,
+            height: 54,
+            borderRadius: 27,
+            background: C.green,
+            color: "#07101F",
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 28,
+            lineHeight: "54px",
+            textAlign: "center",
+            transform: `scale(${eb(t, 53.0, 53.5)})`,
+          }}
+        >
+          AND
         </div>
-      ) : null}
+      )}
 
-      {/* OID card dropping into PGDATA/base/16384 */}
-      {oidP > 0.01 && !snapped ? (
-        <div style={{position: 'absolute', left: mix(1170, 1000, drop), top: mix(300 + 520 * 0, 790, drop) + mix(180, 0, 1 - drop) * 0, opacity: Math.min(1, oidP * 1.5), transform: `scale(${0.6 + 0.4 * oidP})`}}>
-          <div style={{padding: '10px 26px', borderRadius: 16, background: D.code, color: C.bg, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 36, boxShadow: `0 0 34px ${D.code}`}}>OID: 16384</div>
-        </div>
-      ) : null}
-
-      {/* physical path + directory listing */}
-      <div style={{position: 'absolute', left: 180, top: 760, width: 1500, opacity: appear(t, 62, 63)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 32}}>
-          <svg width="46" height="46" viewBox="0 0 46 46" fill="none" stroke={C.dim} strokeWidth="3.5" strokeLinecap="round"><rect x="4" y="8" width="38" height="30" rx="6" /><circle cx="33" cy="26" r="3" fill={C.dim} /><path d="M10 26h14" /></svg>
-          {['PGDATA', 'base'].map((p) => (
-            <React.Fragment key={p}>
-              <span style={{padding: '6px 20px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', color: C.text}}>{p}</span>
-              <span style={{color: C.mute}}>/</span>
-            </React.Fragment>
+      {/* ── stage: dual filter gate ── */}
+      {stage > 0 && (
+        <div style={{ position: "absolute", inset: 0, opacity: stage }}>
+          <div style={{ position: "absolute", left: 1060, top: 150, width: 790, height: 520, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }} />
+          <div style={{ position: "absolute", left: 1085, top: 160, fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.dim }}>DUAL FILTER GATE · orders ▸</div>
+          {[
+            { x: G1, l: "amount ≥ threshold" },
+            { x: G2, l: "region match" },
+          ].map((g, i) => (
+            <div key={i}>
+              <div style={{ position: "absolute", left: g.x - 6, top: 200, width: 12, height: 400, borderRadius: 6, background: C.amber }} />
+              <div style={{ position: "absolute", left: g.x - 90, top: 612, width: 180, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 15, color: C.amber }}>{g.l}</div>
+            </div>
           ))}
-          <span style={{padding: '6px 20px', borderRadius: 12, background: snapped ? `${D.code}33` : 'transparent', border: `2.5px ${snapped ? 'solid' : 'dashed'} ${D.code}`, color: snapped ? D.code : C.mute, minWidth: 130, textAlign: 'center', boxShadow: snapped ? `0 0 ${24 + 26 * snapGlow}px ${D.code}` : undefined, transform: `scale(${1 + 0.12 * snapGlow})`}}>{snapped ? '16384' : '????'}</span>
-        </div>
-        <div style={{display: 'flex', gap: 18, marginTop: 26}}>
-          {[{n: '1', l: 'template1'}, {n: '4', l: 'template0'}, {n: '5', l: 'postgres'}, {n: '16384', l: 'manzooma_store_db'}].map((f, i) => {
-            const mine = i === 3;
-            const op = mine ? (snapped ? 1 : 0.0) : 0.55;
+          <div style={{ position: "absolute", left: XR - 6, top: 200, width: 150, height: 400, borderRadius: 16, border: `3px solid ${C.green}`, background: `${C.green}10` }}>
+            <div style={{ position: "absolute", left: 0, top: 6, width: 150, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 18, color: C.green }}>RAM</div>
+            <div style={{ position: "absolute", left: 0, bottom: 10, width: 150, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 40, color: C.green }}>{ram}</div>
+          </div>
+          {ROWS.map((r, i) => {
+            const [x, o, col] = chipState(t - (S0 + i * STEP), r[3]);
+            if (o <= 0) return null;
+            const y = 215 + (i % 6) * 62;
             return (
-              <div key={f.n} style={{display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderRadius: 14, background: mine ? `${D.code}22` : 'rgba(255,255,255,0.05)', border: `2px solid ${mine ? D.code : 'rgba(255,255,255,0.12)'}`, opacity: op, transform: mine ? `scale(${0.7 + 0.3 * back(prog(t, S.disk, S.disk + 0.6))})` : undefined, boxShadow: mine ? `0 0 26px ${D.code}66` : undefined}}>
-                <svg width="34" height="28" viewBox="0 0 34 28"><path d="M2 5q0-3 3-3h8l4 4h12q3 0 3 3v14q0 3-3 3H5q-3 0-3-3z" fill={mine ? D.code : C.mute} opacity="0.85" /></svg>
-                <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, color: mine ? D.code : C.dim}}>{f.n}</span>
-                <span style={{fontFamily: FONT_MONO, fontSize: 18, color: C.mute}}>{f.l}</span>
+              <div
+                key={r[0]}
+                style={{
+                  position: "absolute",
+                  left: x,
+                  top: y,
+                  width: CHW,
+                  height: 42,
+                  opacity: o,
+                  borderRadius: 10,
+                  background: `${col}2A`,
+                  border: `2.5px solid ${col}`,
+                  boxShadow: col === C.red ? `0 0 12px ${C.red}` : "none",
+                  fontFamily: MONO,
+                  fontWeight: 700,
+                  fontSize: 17,
+                  lineHeight: "37px",
+                  textAlign: "center",
+                  color: C.text,
+                }}
+              >
+                #{r[0]} · {r[1]} · {r[2]}
               </div>
             );
           })}
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* ── second half: ON vs WHERE ── */}
+      {lanes > 0 && (
+        <div style={{ position: "absolute", inset: 0, opacity: lanes * (1 - prog(t, 85.0, 85.5)) }}>
+          <div style={{ position: "absolute", left: 1060, top: 150, width: 790, height: 520, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }} />
+          {[
+            { lane: 0 as const, y: 190, c: C.green, title: "ON (inside the join)", a: 70.1, fill: fillA },
+            { lane: 1 as const, y: 410, c: C.amber, title: "WHERE (after the join)", a: 71.3, fill: fillB },
+          ].map((ln) => (
+            <div key={ln.lane} style={{ opacity: prog(t, ln.a, ln.a + 0.5) }}>
+              <div style={{ position: "absolute", left: 1090, top: ln.y, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: ln.c }}>{ln.title}</div>
+              <div style={{ position: "absolute", left: 1560, top: ln.y + 50, width: 10, height: 110, borderRadius: 5, background: ln.c }} />
+              <div style={{ position: "absolute", left: 1660, top: ln.y + 50, width: 170, height: 110, borderRadius: 14, border: `3px solid ${ln.c}`, background: `${ln.c}10` }}>
+                <div style={{ position: "absolute", left: 0, bottom: 0, width: 170, height: 104 * Math.min(1, ln.fill), borderRadius: 11, background: `${ln.c}66` }} />
+                <div style={{ position: "absolute", left: 0, top: 4, width: 170, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 18, color: C.text }}>RAM</div>
+              </div>
+              {[...Array(8).keys()].map((idx) => {
+                const ch = laneChip(ln.lane, idx);
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      position: "absolute",
+                      left: ch.x,
+                      top: ln.y + 78,
+                      width: 44,
+                      height: 34,
+                      opacity: ch.o,
+                      borderRadius: 8,
+                      background: `${ch.col}33`,
+                      border: `2.5px solid ${ch.col}`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          ))}
+          {t > 79.0 && (
+            <div style={{ position: "absolute", left: 1090, top: 600, width: 740, fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.dim, opacity: prog(t, 79.0, 79.6) }}>
+              WHERE: rows enter RAM first, rejected later &nbsp;|&nbsp; ON: rejected rows never enter RAM
+            </div>
+          )}
+        </div>
+      )}
+      {win(t, 70.4, 85.2, 0.5) > 0 && (
+        <Arabic x={70} y={730} w={930} fs={34} color={C.text} o={win(t, 70.4, 85.2, 0.5)}>
+          التصفية جوه <span style={{ color: C.green, fontFamily: MONO }}>ON</span> بدل <span style={{ color: C.amber, fontFamily: MONO }}>WHERE</span> = صفوف أقل في الذاكرة
+        </Arabic>
+      )}
+      {t > 83.0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 70,
+            top: 790,
+            width: 560,
+            height: 70,
+            borderRadius: 18,
+            background: `${C.green}1E`,
+            border: `3px solid ${C.green}`,
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 28,
+            lineHeight: "64px",
+            color: C.green,
+            textAlign: "center",
+            opacity: Math.min(prog(t, 83.0, 83.5), 1 - prog(t, 85.9, 86.4)),
+            transform: `scale(${0.85 + 0.15 * eb(t, 83.0, 83.6)})`,
+          }}
+        >
+          SERVER EFFICIENCY ▲
+        </div>
+      )}
+
+      <Banner x={70} y={900} w={1780} a={43.2} b={61.5} color={C.blue} fs={27}>
+        ON condition1 AND condition2 ──► Composite Join Logic
+      </Banner>
+      <Banner x={70} y={900} w={1780} a={69.0} b={85.8} color={C.green} fs={27}>
+        On-the-Fly Filtering ──► Filters Rows During Join Step to Conserve RAM
+      </Banner>
+    </AbsoluteFill>
   );
 };

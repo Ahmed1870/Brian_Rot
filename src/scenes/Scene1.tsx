@@ -1,155 +1,306 @@
-import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine} from '../components/Code';
-import {Bi, appear, pop} from '../components/Text';
-import {back, eo, hash, mix, prog, pulse, seg} from '../lib/anim';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Arabic, Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eio, eo, lerp, prog, typed, useT, win } from "../lib";
 
-const S = TL.cues.sc01;
-const ROWS_C = [['1259', 'pg_class', 'r', '11'], ['2619', 'pg_statistic', 'r', '11']];
-const ROWS_A = [['1259', 'oid', '26', '1'], ['1259', 'relname', '19', '2']];
-const NEW_C = ['16385', 'customers', 'r', '2200'];
-const NEW_A = ['16385', 'customer_id', '23', '1'];
-const CODE: CodeLine[] = [
-  {text: '-- DDL: Data Definition Language', at: 3.4},
-  {text: 'BEGIN;', at: 5.2},
-  {text: 'CREATE TABLE customers (', at: 6.6},
-  {text: '  customer_id INT', at: 8.4},
-  {text: ');', at: 9.8},
-  {text: '', at: 99},
-  {text: 'ROLLBACK;', at: 35.0},
+const PRODUCTS = [
+  { n: "Cable", p: 45, t: 0 },
+  { n: "Mouse", p: 120, t: 0 },
+  { n: "Keyboard", p: 340, t: 1 },
+  { n: "Monitor", p: 780, t: 1 },
+  { n: "Laptop", p: 1450, t: 2 },
+  { n: "Phone", p: 2300, t: 2 },
 ];
-const CAT_X = 980;
-const CAT_W = 880;
-const COLS_C = ['oid', 'relname', 'relkind', 'relnamespace'];
-const COLS_A = ['attrelid', 'attname', 'atttypid', 'attnum'];
+const TIERS = [
+  { n: "Bronze", lo: 0, hi: 199, pct: 5 },
+  { n: "Silver", lo: 200, hi: 999, pct: 10 },
+  { n: "Gold", lo: 1000, hi: 2999, pct: 15 },
+];
+const PX = 70, TX = 1380, CY = 190, CW = 470, CH = 540;
+const rowTop = (i: number) => CY + 118 + i * 56;
+const BXS = [600, 860, 1120], BW = 240, BY = 540, BH = 110;
+const LAND0 = 35.9, LAND_STEP = 0.62, FLY = 0.8;
 
-const CatalogCard: React.FC<{t: number; y: number; name: string; ar: string; cols: string[]; rows: string[][]; fresh: string[]; reveal: number; undo: number; at: number; flashT: number}> = ({t, y, name, ar, cols, rows, fresh, reveal, undo, at, flashT}) => {
-  const inP = back(prog(t, at, at + 0.8));
-  const rowH = 52;
-  const freshH = rowH * reveal * (1 - undo);
-  return (
-    <div style={{position: 'absolute', left: CAT_X, top: y, width: CAT_W, opacity: Math.min(1, inP * 1.5), transform: `translateX(${(1 - inP) * 120}px)`}}>
-      <div style={{borderRadius: 24, background: 'linear-gradient(160deg, #1E293B, #172033)', border: `2.5px solid ${D.cat}`, boxShadow: `0 24px 60px rgba(0,0,0,0.5), 0 0 ${28 + 30 * flashT}px ${D.cat}${flashT > 0.1 ? 'AA' : '44'}`, overflow: 'hidden'}}>
-        <div style={{height: 62, background: `linear-gradient(90deg, ${D.cat}44, ${D.cat}08)`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px'}}>
-          <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 32, color: D.cat}}>{name}</span>
-          <span style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 24, color: C.dim}}>{ar}</span>
-        </div>
-        <div style={{display: 'flex', height: 42, background: 'rgba(0,0,0,0.25)', fontFamily: FONT_MONO, fontWeight: 700, fontSize: 19, color: C.mute, alignItems: 'center'}}>
-          {cols.map((c, i) => (
-            <div key={c} style={{width: [150, 280, 160, 290][i], padding: '0 20px'}}>{c}</div>
-          ))}
-        </div>
-        {rows.map((r, ri) => (
-          <div key={ri} style={{display: 'flex', height: rowH, alignItems: 'center', fontFamily: FONT_MONO, fontSize: 23, color: C.dim, borderTop: '1px solid rgba(71,85,105,0.4)'}}>
-            {r.map((c, i) => (
-              <div key={i} style={{width: [150, 280, 160, 290][i], padding: '0 20px'}}>{c}</div>
-            ))}
-          </div>
-        ))}
-        <div style={{height: freshH, overflow: 'hidden', background: undo > 0 ? `rgba(239,68,68,${0.25 * (1 - undo)})` : 'rgba(56,189,248,0.14)', borderTop: freshH > 2 ? `1px solid ${D.code}` : undefined}}>
-          <div style={{display: 'flex', height: rowH, alignItems: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 23, color: undo > 0 ? '#FCA5A5' : D.code, boxShadow: reveal > 0.3 && undo === 0 ? `inset 0 0 28px ${D.code}55` : undefined}}>
-            {fresh.map((c, i) => (
-              <div key={i} style={{width: [150, 280, 160, 290][i], padding: '0 20px'}}>{c}</div>
-            ))}
-          </div>
-        </div>
-        <div style={{height: 14}} />
-      </div>
-    </div>
-  );
+const landT = (i: number) => LAND0 + i * LAND_STEP + FLY;
+const dotX = (i: number) => {
+  const pr = PRODUCTS[i];
+  const tr = TIERS[pr.t];
+  return BXS[pr.t] + 20 + ((pr.p - tr.lo) / (tr.hi - tr.lo)) * (BW - 40);
 };
 
-export const Scene1: React.FC<{t: number}> = ({t}) => {
-  const run = pop(t, S.particles[0] - 0.8, S.particles[0] - 0.1);
-  const reveal = eo(prog(t, S.particles[0] + 0.8, S.particles[0] + 2.4));
-  const undo = eo(prog(t, S.rollback, S.rollback + 1.4));
-  const flashT = Math.sin(prog(t, S.particles[0] + 0.8, S.particles[0] + 2.4) * Math.PI);
-  const shieldP = pop(t, S.shield, S.shield + 0.9);
-  const warn = 0.5 + 0.5 * pulse(t, 1.2);
-  const badgeP = pop(t, S.badge[0], S.badge[0] + 0.8) * (1 - seg(t, S.badge[1] - 0.4, S.badge[1]));
-  const tagP = pop(t, S.tag[0], S.tag[0] + 0.8);
-  const ddlPulse = Math.sin(prog(t, S.ddl - 0.3, S.ddl + 1.2) * Math.PI);
-
-  // neon particles: code editor -> catalog rows
-  const targets = [
-    {x: CAT_X + 150, y: 190 + 64 + 42 + 2 * 52 + 26},
-    {x: CAT_X + 150, y: 520 + 64 + 42 + 2 * 52 + 26},
-  ];
-  const parts: React.ReactNode[] = [];
-  targets.forEach((tg, ti) => {
-    for (let i = 0; i < 26; i++) {
-      const t0 = S.particles[0] + i * 0.1 + ti * 0.05;
-      const u = prog(t, t0, t0 + 0.9);
-      if (u <= 0 || u >= 1) continue;
-      const sx = 880 + hash(i + ti * 7) * 20;
-      const sy = 330 + hash(i * 3 + ti) * 90;
-      const cx = (sx + tg.x) / 2;
-      const cy = Math.min(sy, tg.y) - 90 - hash(i) * 80;
-      for (let k = 0; k < 4; k++) {
-        const uu = Math.max(0, u - k * 0.045);
-        const px = (1 - uu) * (1 - uu) * sx + 2 * (1 - uu) * uu * cx + uu * uu * tg.x;
-        const py = (1 - uu) * (1 - uu) * sy + 2 * (1 - uu) * uu * cy + uu * uu * tg.y;
-        parts.push(<circle key={`${ti}-${i}-${k}`} cx={px} cy={py} r={7 - k * 1.4} fill={D.code} opacity={(1 - k * 0.24) * (1 - u * 0.3)} style={{filter: k === 0 ? `drop-shadow(0 0 8px ${D.code})` : undefined}} />);
-      }
-    }
-  });
+export const Scene1: React.FC = () => {
+  const t = useT();
+  const firstLand = (k: number) => Math.min(...PRODUCTS.map((p, i) => (p.t === k ? landT(i) : 999)));
 
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
+    <AbsoluteFill>
+      {/* top badge 2s–18s */}
+      <div
+        style={{
+          position: "absolute",
+          left: 600,
+          top: 116,
+          width: 750,
+          height: 58,
+          opacity: win(t, 2.0, 18.0, 0.6),
+          transform: `translateY(${(1 - prog(t, 2.0, 2.7)) * -24}px)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 14,
+          borderRadius: 999,
+          border: `2px solid ${C.blue}88`,
+          background: "#0B1B33",
+        }}
+      >
+        <span style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl" }}>شروط الربط غير المتساوية</span>
+        <span style={{ color: C.blue, fontSize: 26 }}>|</span>
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.blue }}>Non-Equi Joins &amp; Range Matching</span>
+      </div>
 
-      <div style={{position: 'absolute', left: 0, top: 92, width: 1920, display: 'flex', justifyContent: 'center', opacity: Math.min(1, badgeP * 1.5), transform: `translateY(${(1 - badgeP) * -60}px)`}}>
-        {badgeP > 0.01 ? (
-          <div style={{padding: '16px 52px', borderRadius: 999, background: 'rgba(30,41,59,0.95)', border: `2px solid ${D.code}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 ${30 + 18 * ddlPulse}px ${D.code}55`}}>
-            <Bi ar="لغة تعريف البيانات" en="DDL (Data Definition Language)" size={52} t={t} start={S.badge[0] + 0.15} />
-          </div>
-        ) : null}
-      </div>
-      <div style={{position: 'absolute', left: 0, top: 96, width: 1920, display: 'flex', justifyContent: 'center', opacity: Math.min(1, tagP * 1.5), transform: `translateY(${(1 - tagP) * -60}px)`}}>
-        {tagP > 0.01 ? (
-          <div style={{display: 'flex', alignItems: 'center', gap: 18, padding: '14px 38px', borderRadius: 18, background: `${D.cat}1F`, border: `2px solid ${D.cat}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 29, color: C.text, boxShadow: `0 0 34px ${D.cat}44`, whiteSpace: 'nowrap'}}>
-            <span style={{color: D.code}}>DDL Execution</span>
-            <svg width="64" height="20" viewBox="0 0 64 20"><line x1="0" y1="10" x2={50 * eo(prog(t, S.tag[0] + 0.3, S.tag[0] + 1))} y2="10" stroke={D.cat} strokeWidth="4" strokeLinecap="round" /><path d="M44 3 L58 10 L44 17" fill="none" stroke={D.cat} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity={prog(t, S.tag[0] + 0.8, S.tag[0] + 1.1)} /></svg>
-            <span>Modifies System Catalogs <span style={{color: D.cat}}>(pg_class &amp; pg_attribute)</span></span>
-          </div>
-        ) : null}
-      </div>
-
-      {/* DDL editor */}
-      <div style={{opacity: appear(t, 0.5, 1.4), transform: `translateX(${(1 - appear(t, 0.5, 1.4)) * -80}px)`}}>
-        <Code lines={CODE} t={t} x={60} y={200} w={860} h={420} title="ddl_script.sql" />
-      </div>
-      {/* run button */}
-      <div style={{position: 'absolute', left: 60, top: 640, opacity: Math.min(1, run * 1.5), transform: `scale(${0.8 + 0.2 * run})`, transformOrigin: '0 50%'}}>
-        <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 32px', borderRadius: 14, background: D.code, color: C.bg, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, boxShadow: `0 0 ${30 + 20 * Math.sin(prog(t, S.particles[0] - 0.2, S.particles[0] + 0.6) * Math.PI)}px ${D.code}`}}>
-          <svg width="26" height="26" viewBox="0 0 26 26"><path d="M6 3 L22 13 L6 23 Z" fill={C.bg} /></svg>
-          Execute DDL
+      {/* products card */}
+      <div
+        style={{
+          position: "absolute",
+          left: PX - (1 - eo(t, 1.2, 2.2)) * 520,
+          top: CY,
+          width: CW,
+          height: CH,
+          borderRadius: 24,
+          background: C.card2,
+          border: `2px solid ${C.blue}66`,
+        }}
+      >
+        <div style={{ height: 58, display: "flex", alignItems: "center", gap: 12, padding: "0 24px", borderBottom: `1.5px solid ${C.line}` }}>
+          <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.blue }}>products</span>
+          <span style={{ fontFamily: MONO, fontSize: 17, color: C.dim, marginLeft: "auto" }}>unit_price</span>
         </div>
       </div>
+      {PRODUCTS.map((p, i) => {
+        const a = eb(t, 2.0 + i * 0.25, 2.7 + i * 0.25);
+        const landed = prog(t, landT(i), landT(i) + 0.4);
+        return (
+          <div
+            key={p.n}
+            style={{
+              position: "absolute",
+              left: PX + 20,
+              top: rowTop(i),
+              width: CW - 40,
+              height: 46,
+              opacity: Math.min(1, a * 1.5),
+              transform: `translateX(${(1 - Math.min(1, a)) * -80}px)`,
+              borderRadius: 12,
+              background: "#1B2740",
+              border: `1.5px solid ${landed > 0 ? C.green : C.line}`,
+              display: "grid",
+              gridTemplateColumns: "1.2fr 1fr 0.9fr",
+              alignItems: "center",
+              padding: "0 16px",
+              fontFamily: MONO,
+              fontWeight: 700,
+              fontSize: 22,
+              color: C.text,
+            }}
+          >
+            <span>{p.n}</span>
+            <span style={{ color: C.blue, textAlign: "right" }}>{p.p.toLocaleString("en-US")}</span>
+            <span style={{ color: C.green, textAlign: "right", opacity: landed }}>→ {TIERS[p.t].pct}%</span>
+          </div>
+        );
+      })}
 
-      {/* catalog tables */}
-      <CatalogCard t={t} y={200} name="pg_class" ar="كتالوج الجداول" cols={COLS_C} rows={ROWS_C} fresh={NEW_C} reveal={reveal} undo={undo} at={1.2} flashT={flashT} />
-      <CatalogCard t={t} y={520} name="pg_attribute" ar="كتالوج الأعمدة" cols={COLS_A} rows={ROWS_A} fresh={NEW_A} reveal={reveal} undo={undo} at={1.7} flashT={flashT} />
-
-      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>{parts}</svg>
-
-      {/* transactional DDL shield */}
-      {shieldP > 0.01 ? (
-        <div style={{position: 'absolute', left: 60, top: 740, width: 860, opacity: Math.min(1, shieldP * 1.5), transform: `translateY(${(1 - shieldP) * 40}px) scale(${0.92 + 0.08 * shieldP})`, transformOrigin: '0 50%'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 26, padding: '18px 34px', borderRadius: 26, background: `${D.cat}1A`, border: `2.5px solid ${D.cat}`, boxShadow: `0 0 ${28 + 22 * warn}px ${D.cat}66`}}>
-            <svg width="86" height="98" viewBox="0 0 86 98" fill="none">
-              <path d="M43 4 L80 18 V48 C80 70 64 86 43 94 C22 86 6 70 6 48 V18 Z" fill={`${D.cat}33`} stroke={D.cat} strokeWidth="6" strokeLinejoin="round" />
-              <path d="M27 48 L39 60 L61 34" stroke="#fff" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
-              <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 34, color: C.text}}>Transactional DDL</span>
-              <span style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: D.cat, direction: 'rtl'}}>تراجع كامل بـ ROLLBACK قبل الاعتماد</span>
+      {/* tiers card */}
+      <div
+        style={{
+          position: "absolute",
+          left: TX + (1 - eo(t, 1.4, 2.4)) * 520,
+          top: CY,
+          width: CW,
+          height: CH,
+          borderRadius: 24,
+          background: C.card2,
+          border: `2px solid ${C.amber}66`,
+        }}
+      >
+        <div style={{ height: 58, display: "flex", alignItems: "center", gap: 12, padding: "0 24px", borderBottom: `1.5px solid ${C.line}` }}>
+          <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.amber }}>discount_tiers</span>
+        </div>
+        {TIERS.map((tr, k) => {
+          const hit = prog(t, firstLand(k), firstLand(k) + 0.4);
+          return (
+            <div
+              key={tr.n}
+              style={{
+                position: "absolute",
+                left: 20,
+                top: 82 + k * 150,
+                width: CW - 44,
+                height: 126,
+                borderRadius: 16,
+                background: hit > 0 ? `${C.green}1A` : `${C.amber}12`,
+                border: `2.5px solid ${hit > 0 ? C.green : C.amber}`,
+                padding: "12px 20px",
+                opacity: eo(t, 3.0 + k * 0.3, 3.8 + k * 0.3),
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.amber }}>{tr.n}</div>
+              <div style={{ fontFamily: MONO, fontSize: 21, color: C.dim, marginTop: 4 }}>
+                min {tr.lo.toLocaleString("en-US")} · max {tr.hi.toLocaleString("en-US")}
+              </div>
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 32, color: hit > 0 ? C.green : C.dim, marginTop: 2 }}>{tr.pct}% off</div>
             </div>
+          );
+        })}
+      </div>
+
+      {/* editor */}
+      <div style={{ opacity: eo(t, 5.4, 6.0) }}>
+        <Window x={600} y={190} w={750} h={250} title="products ⋈ discount_tiers" glow={t > 31.5 && t < 36.5 ? 1 : 0}>
+          <div style={{ position: "absolute", left: 24, top: 18, opacity: t > 24.9 ? 0.35 : 1 }}>
+            <CodeLine text={typed("ON o.customer_id = c.customer_id", t, 6.0, 9.0)} fs={22} caret={t > 6.0 && t < 9.1} override={t > 13.9 && t < 24.9 ? "#FCA5A5" : undefined} />
           </div>
+          <div style={{ position: "absolute", left: 24, top: 68 }}>
+            <CodeLine text={typed("ON p.unit_price BETWEEN d.min_price AND d.max_price", t, 31.6, 36.2)} fs={22} caret={t > 31.6 && t < 36.3} />
+          </div>
+          {[
+            { a: 30.5, s: ">" },
+            { a: 31.1, s: "<" },
+            { a: 31.8, s: "BETWEEN" },
+          ].map((o, i) => {
+            const e = eb(t, o.a, o.a + 0.4);
+            return e > 0 ? (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: 24 + i * 96,
+                  top: 126,
+                  minWidth: o.s.length > 2 ? 190 : 72,
+                  height: 50,
+                  opacity: Math.min(1, e * 1.5),
+                  transform: `scale(${0.7 + 0.3 * Math.min(1, e)})`,
+                  borderRadius: 12,
+                  background: `${C.blue}22`,
+                  border: `2.5px solid ${C.blue}`,
+                  fontFamily: MONO,
+                  fontWeight: 700,
+                  fontSize: 26,
+                  lineHeight: "46px",
+                  textAlign: "center",
+                  color: C.blue,
+                  marginLeft: i === 2 ? 0 : 0,
+                }}
+              >
+                {o.s}
+              </div>
+            ) : null;
+          })}
+        </Window>
+      </div>
+      {/* "= only?" question */}
+      {win(t, 13.9, 21.4, 0.4) > 0 && (
+        <div style={{ position: "absolute", left: 1000, top: 460, width: 350, opacity: win(t, 13.9, 21.4, 0.4), textAlign: "center" }}>
+          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 34, color: C.red, direction: "rtl" }}>المساواة وحدها ✕ مش كفاية</div>
         </div>
-      ) : null}
-    </div>
+      )}
+
+      {/* axis: tier blocks */}
+      {TIERS.map((tr, k) => {
+        const a = eb(t, 16.0 + k * 0.5, 16.8 + k * 0.5);
+        if (a <= 0) return null;
+        const hit = prog(t, firstLand(k), firstLand(k) + 0.4);
+        return (
+          <div
+            key={tr.n}
+            style={{
+              position: "absolute",
+              left: BXS[k],
+              top: BY,
+              width: BW,
+              height: BH,
+              opacity: Math.min(1, a * 1.5),
+              transform: `scaleY(${0.4 + 0.6 * Math.min(1, a)})`,
+              transformOrigin: "bottom",
+              borderRadius: 14,
+              background: hit > 0 ? `${C.green}22` : `${C.amber}1C`,
+              border: `3px solid ${hit > 0 ? C.green : C.amber}`,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.amber, marginTop: 10 }}>{tr.n}</div>
+            <div style={{ fontFamily: MONO, fontSize: 19, color: C.dim }}>
+              {tr.lo.toLocaleString("en-US")} – {tr.hi.toLocaleString("en-US")}
+            </div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: hit > 0 ? C.green : C.dim }}>{hit > 0 ? `${tr.pct}%` : "?"}</div>
+          </div>
+        );
+      })}
+      {win(t, 17.0, 40.5, 0.5) > 0 &&
+        ["0", "200", "1,000", "3,000"].map((s, i) => (
+          <div key={s} style={{ position: "absolute", left: 600 + i * 253 - 40, top: BY + BH + 8, width: 80, textAlign: "center", fontFamily: MONO, fontSize: 18, color: C.dim, opacity: win(t, 17.0, 40.5, 0.5) }}>
+            {s}
+          </div>
+        ))}
+
+      {/* time-range chip */}
+      {win(t, 19.0, 22.2, 0.4) > 0 && (
+        <div style={{ position: "absolute", left: 600, top: 700, width: 750, height: 96, opacity: win(t, 19.0, 22.2, 0.4), borderRadius: 18, background: `${C.violet}16`, border: `2.5px solid ${C.violet}`, textAlign: "center" }}>
+          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl", marginTop: 6 }}>وكمان مطابقة زمنية بين التواريخ</div>
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.violet }}>BETWEEN start_date AND end_date</div>
+        </div>
+      )}
+
+      {/* non-equi stamp */}
+      {t > 24.9 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 640,
+            top: 706,
+            width: 670,
+            height: 82,
+            borderRadius: 18,
+            background: `${C.blue}1E`,
+            border: `3px solid ${C.blue}`,
+            textAlign: "center",
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 40,
+            lineHeight: "76px",
+            color: C.blue,
+            transform: `scale(${1.25 - 0.25 * eb(t, 24.9, 25.5)})`,
+            opacity: Math.min(prog(t, 24.9, 25.2), 1 - prog(t, 39.9, 40.4)),
+          }}
+        >
+          NON-EQUI JOIN&nbsp;&nbsp;≠
+        </div>
+      )}
+
+      {/* flying price dots */}
+      {PRODUCTS.map((p, i) => {
+        const ts = LAND0 + i * LAND_STEP;
+        const f = eio(t, ts, ts + FLY);
+        if (t < ts - 0.01) return null;
+        const x = lerp(PX + CW - 20, dotX(i), f);
+        const y0 = rowTop(i) + 23;
+        const y = lerp(y0, BY - 28, f) - Math.sin(Math.PI * f) * 90;
+        const landed = f >= 1;
+        return (
+          <div key={p.n} style={{ position: "absolute", left: x - 11, top: y - 11 }}>
+            <div style={{ width: 22, height: 22, borderRadius: 11, background: landed ? C.green : C.blue, border: "2px solid #fff", boxShadow: `0 0 ${landed ? 10 : 18}px ${landed ? C.green : C.blue}` }} />
+            <div style={{ position: "absolute", left: -34, top: -30, width: 90, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 16, color: landed ? C.green : C.blue }}>{p.p}</div>
+          </div>
+        );
+      })}
+
+      <Banner x={370} y={900} w={1180} a={22.0} b={40.2} color={C.blue} fs={24}>
+        ON p.price BETWEEN d.min_price AND d.max_price ──► Dynamic Range Alignment
+      </Banner>
+      <Arabic x={600} y={806} w={750} fs={26} color={C.dim} o={win(t, 35.5, 40.2, 0.4)} align="center">
+        كل سعر بيستقر في الشريحة اللي نطاقها بيحتويه
+      </Arabic>
+    </AbsoluteFill>
   );
 };

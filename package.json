@@ -1,23 +1,23 @@
 {
-  "name": "manzooma-lesson-09",
+  "name": "manzooma-sql-lesson-20-non-equi-multi-table",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma - SQL From Zero to Professional - Lesson 09 - DDL: CREATE DATABASE & CREATE TABLE (Remotion, 2D)",
+  "description": "Manzooma SQL From Zero to Professional - Lesson 20: Non-Equi Joins & Multi-Table Joins",
   "scripts": {
-    "start": "remotion studio src/index.ts",
     "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "remotion render src/index.ts Monzoma-SQL-L09 out/Lesson09_DDL-Database-Build.mp4",
-    "typecheck": "tsc --noEmit"
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "render": "npm run generate-audio && remotion render src/index.ts SQL-L20-NonEqui-MultiTable out/sql-l20-non-equi-multi-table.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "remotion": "^4.0.0"
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "^18.3.0",
-    "typescript": "^5.4.0"
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
   }
 }

@@ -1,18 +1,15 @@
-import React from 'react';
-import {Composition} from 'remotion';
-import {Lesson} from './Composition';
-import TL from './timeline.json';
+import React from "react";
+import { Composition } from "remotion";
+import { Lesson } from "./Lesson";
+import { FPS, TOTAL_FRAMES } from "./lib";
 
-// One unique composition ID per lesson (Monzoma-SQL-Lxx). The workflow calls `npm run render`, so it never needs editing.
-export const RemotionRoot: React.FC = () => {
-  return (
-    <Composition
-      id="Monzoma-SQL-L09"
-      component={Lesson}
-      durationInFrames={Math.round(TL.duration * TL.fps)}
-      fps={TL.fps}
-      width={TL.width}
-      height={TL.height}
-    />
-  );
-};
+export const Root: React.FC = () => (
+  <Composition
+    id="SQL-L20-NonEqui-MultiTable"
+    component={Lesson}
+    durationInFrames={TOTAL_FRAMES}
+    fps={FPS}
+    width={1920}
+    height={1080}
+  />
+);

@@ -1,151 +1,225 @@
-import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine, highlight} from '../components/Code';
-import {appear, pop} from '../components/Text';
-import {back, eo, prog, pulse, seg} from '../lib/anim';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eo, fmt, prog, typed, useT, win } from "../lib";
 
-const S = TL.cues.sc05;
-const LEFT: CodeLine[] = [
-  {text: 'CREATE DATABASE', at: S.log, dt: 0.03},
-  {text: 'CREATE TABLE', at: S.log + 0.9, dt: 0.03},
-  {text: 'CREATE TABLE', at: S.log + 1.8, dt: 0.03},
-  {text: 'SELECT table_name', at: S.q},
-  {text: 'FROM information_schema.tables', at: S.q + 1.1},
-  {text: "WHERE table_schema = 'public';", at: S.q + 2.6},
+const LINES: [string, number, number][] = [
+  ["SELECT c.name AS customer, p.name AS product, p.unit_price,", 180.2, 181.0],
+  ["       d.discount_pct,", 181.0, 181.3],
+  ["       p.unit_price * (1 - d.discount_pct / 100.0) AS net_total", 181.3, 182.0],
+  ["FROM customers c", 182.0, 182.4],
+  ["JOIN orders o       ON o.customer_id = c.customer_id", 182.4, 183.4],
+  ["JOIN order_items oi ON oi.order_id = o.order_id", 183.5, 184.5],
+  ["JOIN products p     ON p.product_id = oi.product_id", 184.7, 185.8],
+  ["JOIN discounts d    ON p.unit_price BETWEEN d.min_price AND d.max_price", 186.0, 188.0],
+  ["                    AND o.region_id = d.region_id;", 188.0, 189.2],
 ];
-const DDL = [
-  '-- Table: public.orders',
-  'CREATE TABLE IF NOT EXISTS public.orders',
-  '(',
-  '    order_id integer NOT NULL GENERATED ALWAYS AS IDENTITY,',
-  '    customer_id integer NOT NULL,',
-  '    order_date timestamp with time zone DEFAULT CURRENT_TIMESTAMP,',
-  '    total_amount numeric(10,2),',
-  '    CONSTRAINT orders_pkey PRIMARY KEY (order_id),',
-  '    CONSTRAINT fk_customer FOREIGN KEY (customer_id)',
-  '        REFERENCES public.customers (customer_id)',
-  '        ON UPDATE NO ACTION',
-  '        ON DELETE RESTRICT,',
-  '    CONSTRAINT orders_total_amount_check CHECK (total_amount >= 0::numeric)',
-  ')',
+const NODES = [
+  { n: "customers", a: 181.9 },
+  { n: "orders", a: 182.5 },
+  { n: "order_items", a: 183.6 },
+  { n: "products", a: 184.8 },
+  { n: "discounts", a: 186.2 },
 ];
-const DDL_LINES: CodeLine[] = DDL.map((text, i) => ({text, at: S.ddlTab + 0.5 + i * 0.4, dt: 0.01}));
-const TREE = ['Servers', 'PostgreSQL 16', 'Databases', 'manzooma_store_db', 'Schemas', 'public', 'Tables'];
+const NX = (i: number) => 70 + i * 380;
+const COLS = [
+  { k: "customer", a: 192.2, w: 140 },
+  { k: "product", a: 192.8, w: 130 },
+  { k: "price", a: 194.0, w: 110 },
+  { k: "disc.", a: 195.0, w: 90 },
+  { k: "net_total", a: 197.0, w: 160 },
+];
+// [customer, product, price, pct, net]
+const REPORT: [string, string, number, number, number][] = [
+  ["Ali Hassan", "Laptop", 1450, 15, 1232.5],
+  ["Sara Adel", "Monitor", 780, 10, 702],
+  ["Omar Nabil", "Keyboard", 340, 10, 306],
+  ["Mona Samir", "Mouse", 120, 5, 114],
+];
 
-export const Scene5: React.FC<{t: number}> = ({t}) => {
-  const enter = appear(t, 173.7, 174.7);
-  const resP = prog(t, S.scan, S.scan + 1.2);
-  const scanY = prog(t, S.scan - 0.2, S.scan + 1.6);
-  const winP = back(prog(t, 175.3, 176.3));
-  const selOrders = t >= S.ddlTab - 1.4;
-  const clickTab = Math.sin(prog(t, S.ddlTab - 0.3, S.ddlTab + 0.3) * Math.PI);
-  const sqlActive = t >= S.ddlTab;
-  const stamp = prog(t, S.stamp, S.stamp + 0.55);
-  const stampP = stamp <= 0 ? 0 : stamp < 1 ? 1.8 - 0.8 * eo(stamp) : 1;
-  const warm = 0.5 + 0.5 * pulse(t, 1.2);
-
-  const tag = (range: number[], head: string, body: string, color: string) => {
-    const p = pop(t, range[0], range[0] + 0.8) * (1 - seg(t, range[1] - 0.4, range[1]));
-    if (p <= 0.01) return null;
-    return (
-      <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 28px', borderRadius: 16, background: `${color}22`, border: `2px solid ${color}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 26, color: C.text, whiteSpace: 'nowrap', opacity: Math.min(1, p * 1.5), transform: `translateY(${(1 - p) * -40}px)`, boxShadow: `0 0 30px ${color}44`}}>
-        <span style={{color}}>{head}</span>
-        <span>{body}</span>
-      </div>
-    );
-  };
+export const Scene5: React.FC = () => {
+  const t = useT();
+  const typing = t > 180.2 && t < 189.3;
+  const caret = LINES.findIndex(([, a, b]) => t >= a && t < b);
+  const intro = win(t, 172.9, 180.4, 0.5);
+  const stamp = eb(t, 205.6, 206.2);
 
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}>{tag(S.tag1, 'SELECT * FROM information_schema.tables;', '──► Schema Verification', D.code)}</div>
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}>{tag(S.tag2, 'pgAdmin DDL Tab', '──► Auto-Generated Reverse Engineering DDL', D.cat)}</div>
-
-      {/* LEFT: query + result grid */}
-      <div style={{opacity: enter, transform: `translateX(${(1 - enter) * -80}px)`}}>
-        <Code lines={LEFT} t={t} x={60} y={190} w={860} h={350} title="psql — manzooma_store_db" fontSize={25} lineH={48} />
-      </div>
-      {resP > 0 ? (
-        <div style={{position: 'absolute', left: 60, top: 570, width: 860, opacity: Math.min(1, resP * 2), transform: `translateY(${(1 - eo(resP)) * 60}px)`}}>
-          <div style={{borderRadius: 22, background: '#0B1222', border: `2px solid ${D.cat}`, boxShadow: `0 0 34px ${D.cat}44`, overflow: 'hidden', position: 'relative'}}>
-            <div style={{display: 'flex', height: 54, alignItems: 'center', padding: '0 28px', background: `${D.cat}26`, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: D.cat}}>table_name</div>
-            {['customers', 'orders'].map((n, i) => {
-              const rp = back(prog(t, S.scan + 0.3 + i * 0.35, S.scan + 0.9 + i * 0.35));
-              return (
-                <div key={n} style={{display: 'flex', alignItems: 'center', gap: 18, height: 76, padding: '0 28px', borderTop: '1px solid rgba(71,85,105,0.5)', opacity: Math.min(1, rp * 2), transform: `translateX(${(1 - rp) * 60}px)`, background: `rgba(16,185,129,${0.08 + 0.08 * warm})`}}>
-                  <svg width="34" height="30" viewBox="0 0 34 30" fill="none" stroke={D.cat} strokeWidth="3" strokeLinecap="round"><rect x="2" y="3" width="30" height="24" rx="4" /><path d="M2 11h30M13 11v16" /></svg>
-                  <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 32, color: C.text}}>{n}</span>
-                  <span style={{marginLeft: 'auto', padding: '4px 16px', borderRadius: 999, background: `${D.cat}26`, border: `1.5px solid ${D.cat}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 18, color: D.cat}}>public</span>
-                </div>
-              );
-            })}
-            <div style={{height: 52, display: 'flex', alignItems: 'center', padding: '0 28px', fontFamily: FONT_MONO, fontSize: 22, color: C.dim, borderTop: '1px solid rgba(71,85,105,0.5)'}}>(2 rows)</div>
-            {scanY > 0 && scanY < 1 ? <div style={{position: 'absolute', left: 0, right: 0, top: scanY * 280, height: 8, background: `linear-gradient(180deg, transparent, ${D.code}, transparent)`, opacity: 0.9}} /> : null}
+    <AbsoluteFill>
+      {/* intro card */}
+      {intro > 0 && (
+        <div style={{ position: "absolute", left: 160, top: 260, width: 1600, textAlign: "center", opacity: intro }}>
+          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 68, color: C.text, direction: "rtl", transform: `translateY(${(1 - eo(t, 172.9, 174.0)) * 40}px)` }}>
+            الاستعلام <span style={{ color: C.green }}>الجبار</span> لمنظومة ستور
           </div>
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.blue, marginTop: 14 }}>manzooma_store_db · 5-table enterprise pipeline</div>
         </div>
-      ) : null}
+      )}
 
-      {/* RIGHT: pgAdmin window */}
-      <div style={{position: 'absolute', left: 960, top: 190, width: 900, height: 720, opacity: Math.min(1, winP * 1.5), transform: `translateX(${(1 - winP) * 140}px)`}}>
-        <div style={{width: 900, height: 720, borderRadius: 22, background: '#0B1222', border: `2px solid ${sqlActive ? D.cat : C.line}`, boxShadow: `0 30px 80px rgba(0,0,0,0.5), 0 0 ${sqlActive ? 44 : 10}px ${D.cat}55`, overflow: 'hidden', position: 'relative'}}>
-          <div style={{height: 52, background: '#111B31', borderBottom: `1.5px solid ${C.line}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12, fontFamily: FONT_MONO, fontSize: 21, color: C.dim}}>
-            <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#336791" /><path d="M8 17c0-6 2-9 6-9s4 3 4 6-2 4-4 4" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" /></svg>
-            pgAdmin 4
-          </div>
-          {/* tree */}
-          <div style={{position: 'absolute', left: 0, top: 52, width: 250, bottom: 0, background: '#0E172B', borderRight: `1.5px solid ${C.line}`, padding: '16px 0'}}>
-            {TREE.map((n, i) => (
-              <div key={n} style={{padding: '5px 12px 5px ' + (14 + i * 12) + 'px', fontFamily: FONT_MONO, fontSize: 17, color: n === 'manzooma_store_db' ? D.code : C.dim, opacity: appear(t, 176 + i * 0.15, 176.6 + i * 0.15)}}>▸ {n}</div>
-            ))}
-            {['customers', 'orders'].map((n, i) => {
-              const sel = n === 'orders' && selOrders;
-              return (
-                <div key={n} style={{margin: '2px 8px 2px ' + (14 + 7 * 12 + 4) + 'px', padding: '6px 12px', borderRadius: 8, fontFamily: FONT_MONO, fontWeight: sel ? 800 : 500, fontSize: 18, color: sel ? C.bg : C.dim, background: sel ? D.cat : 'transparent', opacity: appear(t, 177.8 + i * 0.2, 178.4 + i * 0.2), boxShadow: sel ? `0 0 18px ${D.cat}` : undefined}}>▦ {n}</div>
-              );
-            })}
-          </div>
-          {/* tabs */}
-          <div style={{position: 'absolute', left: 250, right: 0, top: 52, height: 56, display: 'flex', background: '#111B31', borderBottom: `1.5px solid ${C.line}`}}>
-            {['Dashboard', 'Properties', 'SQL'].map((n) => {
-              const act = n === 'SQL' && sqlActive;
-              return (
-                <div key={n} style={{padding: '0 26px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: FONT_MONO, fontWeight: act ? 800 : 500, fontSize: 21, color: act ? D.cat : C.mute, borderBottom: act ? `4px solid ${D.cat}` : '4px solid transparent', background: n === 'SQL' && clickTab > 0 ? `${D.cat}${Math.round(clickTab * 60 + 20).toString(16)}` : undefined}}>
-                  {n}
-                  {n === 'SQL' ? <span style={{fontSize: 15, padding: '2px 8px', borderRadius: 6, background: `${D.cat}33`, color: D.cat}}>DDL</span> : null}
+      {/* editor */}
+      {t > 179.6 && (
+        <div style={{ opacity: eo(t, 179.6, 180.3), transform: `translateX(${(1 - eo(t, 179.6, 180.5)) * -100}px)` }}>
+          <Window x={70} y={150} w={1000} h={470} title="executive_invoice_report.sql" glow={typing ? 1 : 0}>
+            {LINES.map(([txt, a, b], i) => {
+              const s = typed(txt, t, a, b);
+              return s.length > 0 ? (
+                <div key={i} style={{ position: "absolute", left: 22, top: 16 + i * 34 }}>
+                  <CodeLine text={s} fs={21} caret={caret === i} />
                 </div>
-              );
+              ) : null;
             })}
-          </div>
-          {/* DDL pane */}
-          {sqlActive ? (
-            <div style={{position: 'absolute', left: 250, right: 0, top: 108, bottom: 0, padding: '14px 0 0 0'}}>
-              {DDL_LINES.map((l, i) => {
-                const n = Math.max(0, Math.min(l.text.length, Math.floor((t - l.at) / (l.dt || 0.01))));
-                return (
-                  <div key={i} style={{height: 36, display: 'flex', alignItems: 'center', fontFamily: FONT_MONO, fontSize: 16.5, whiteSpace: 'pre'}}>
-                    <span style={{width: 46, textAlign: 'right', paddingRight: 14, color: '#334155', fontSize: 15, flexShrink: 0}}>{i + 1}</span>
-                    <span>{highlight(l.text.slice(0, n))}</span>
-                  </div>
-                );
-              })}
+          </Window>
+        </div>
+      )}
+
+      {/* report */}
+      {t > 189.3 && (
+        <div style={{ opacity: eo(t, 189.3, 190.1), transform: `translateX(${(1 - eo(t, 189.3, 190.3)) * 120}px)` }}>
+          <Window x={1110} y={150} w={740} h={470} title="invoice_report" color={C.green} glow={t > 197 ? 1 : 0}>
+            <div style={{ position: "absolute", left: 20, top: 14, display: "flex", gap: 10 }}>
+              {COLS.map((c) => (
+                <div key={c.k} style={{ width: c.w, fontFamily: MONO, fontWeight: 700, fontSize: 17, color: C.blue, opacity: prog(t, c.a, c.a + 0.4), borderBottom: `2px solid ${C.blue}66`, paddingBottom: 6 }}>
+                  {c.k}
+                </div>
+              ))}
             </div>
-          ) : (
-            <div style={{position: 'absolute', left: 250, right: 0, top: 108, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: C.mute}}>{selOrders ? 'orders' : 'اختر جدولًا من الشجرة'}</div>
-          )}
-          {/* verified stamp */}
-          {stampP > 0 ? (
-            <div style={{position: 'absolute', right: 36, bottom: 34, opacity: Math.min(1, stamp * 4), transform: `rotate(-8deg) scale(${stampP})`, transformOrigin: '50% 50%'}}>
-              <div style={{padding: '14px 30px', borderRadius: 18, border: `5px double ${D.cat}`, background: 'rgba(11,18,34,0.92)', boxShadow: `0 0 ${34 + 20 * warm}px ${D.cat}`, textAlign: 'center'}}>
-                <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 52, color: D.cat, lineHeight: 1}}>100% ✓</div>
-                <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: C.text, letterSpacing: 3, marginTop: 6}}>SCHEMA VERIFIED</div>
-                <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 22, color: D.cat, marginTop: 2, direction: 'rtl'}}>البنية الهندسية سليمة</div>
+            {REPORT.map((r, i) => {
+              const a = 195.4 + i * 0.45;
+              const e = eb(t, a, a + 0.5);
+              const cnt = eo(t, 197.0 + i * 0.2, 198.4 + i * 0.2);
+              return e > 0 ? (
+                <div
+                  key={r[0]}
+                  style={{
+                    position: "absolute",
+                    left: 14,
+                    top: 62 + i * 66,
+                    width: 712,
+                    height: 56,
+                    opacity: Math.min(1, e * 1.5),
+                    transform: `translateX(${(1 - Math.min(1, e)) * 80}px)`,
+                    borderRadius: 12,
+                    background: `${C.green}${t > 198.4 ? "18" : "0E"}`,
+                    border: `2px solid ${t > 198.4 ? C.green : C.line}`,
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                    paddingLeft: 6,
+                    fontFamily: MONO,
+                    fontWeight: 700,
+                    fontSize: 19,
+                    color: C.text,
+                  }}
+                >
+                  <span style={{ width: 140 }}>{r[0]}</span>
+                  <span style={{ width: 130 }}>{r[1]}</span>
+                  <span style={{ width: 110, color: C.blue }}>{fmt(r[2])}</span>
+                  <span style={{ width: 90, color: C.amber }}>{r[3]}%</span>
+                  <span style={{ width: 160, color: "#6EE7B7" }}>{(r[4] * cnt).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              ) : null;
+            })}
+            {t > 203.5 && (
+              <div style={{ position: "absolute", left: 20, top: 340, padding: "8px 24px", borderRadius: 999, border: `2.5px solid ${C.green}`, background: `${C.green}18`, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.green, opacity: prog(t, 203.5, 204.0), transform: `scale(${0.8 + 0.2 * eb(t, 203.5, 204.1)})`, transformOrigin: "left center" }}>
+                ⚡ &lt; 1 ms
               </div>
-            </div>
-          ) : null}
+            )}
+            {t > 207.0 && (
+              <div style={{ position: "absolute", left: 220, top: 340, padding: "8px 24px", borderRadius: 999, border: `2.5px solid ${C.green}`, background: `${C.green}18`, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.green, opacity: prog(t, 207.0, 207.5), transform: `scale(${0.8 + 0.2 * eb(t, 207.0, 207.6)})`, transformOrigin: "left center" }}>
+                ZERO-GAP ✓
+              </div>
+            )}
+          </Window>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* stamp */}
+      {stamp > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 1480,
+            top: 430,
+            width: 330,
+            height: 100,
+            borderRadius: 14,
+            border: `6px solid ${C.green}`,
+            color: C.green,
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 28,
+            textAlign: "center",
+            lineHeight: "46px",
+            paddingTop: 2,
+            background: "#0B1222E0",
+            transform: `rotate(-8deg) scale(${1.6 - 0.6 * stamp})`,
+            opacity: Math.min(1, stamp * 1.5) * (1 - prog(t, 210.0, 210.5)),
+          }}
+        >
+          EXECUTIVE
+          <br />
+          APPROVED ✓
+        </div>
+      )}
+
+      {/* table nodes + 5 laser streams (small svg) */}
+      <svg width={1780} height={90} viewBox="70 630 1780 90" style={{ position: "absolute", left: 70, top: 630 }}>
+        {NODES.map((nd, i) => {
+          const e = prog(t, nd.a, nd.a + 0.5);
+          if (e <= 0) return null;
+          const cx = NX(i) + 130;
+          const tx = 1190 + i * 130;
+          return (
+            <path
+              key={nd.n}
+              d={`M ${cx} 700 C ${cx} 664, ${tx} 690, ${tx} 636`}
+              fill="none"
+              stroke={C.green}
+              strokeWidth={4}
+              strokeDasharray="12 10"
+              strokeDashoffset={-(t - nd.a) * 120}
+              opacity={e * (t > 189.3 ? 1 : 0.35)}
+            />
+          );
+        })}
+      </svg>
+      {NODES.map((nd, i) => {
+        const e = eb(t, nd.a, nd.a + 0.6);
+        if (e <= 0) return null;
+        return (
+          <div
+            key={nd.n}
+            style={{
+              position: "absolute",
+              left: NX(i),
+              top: 700,
+              width: 260,
+              height: 62,
+              opacity: Math.min(1, e * 1.5),
+              transform: `translateY(${(1 - Math.min(1, e)) * 40}px)`,
+              borderRadius: 14,
+              background: `${C.blue}1A`,
+              border: `2.5px solid ${C.blue}`,
+              fontFamily: MONO,
+              fontWeight: 700,
+              fontSize: 22,
+              lineHeight: "56px",
+              textAlign: "center",
+              color: C.text,
+            }}
+          >
+            {i + 1} · {nd.n}
+          </div>
+        );
+      })}
+
+      <Banner x={70} y={900} w={1780} a={173.0} b={189.6} color={C.blue} fs={24}>
+        5-Table Enterprise Pipeline ──► Customers ➔ Orders ➔ Items ➔ Products ➔ Discounts
+      </Banner>
+      <Banner x={70} y={900} w={1780} a={199.8} b={210.4} color={C.green} fs={24}>
+        Sub-Millisecond Executive Reporting ──► Complete Zero-Gap Financial Breakdown
+      </Banner>
+    </AbsoluteFill>
   );
 };
