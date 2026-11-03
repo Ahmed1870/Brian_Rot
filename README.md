@@ -1,10 +1,21 @@
-# Manzooma | SQL From Zero to Professional - Lesson 15 - Conditional Aggregation (CASE WHEN + FILTER + Pivoting)
+# Manzooma - SQL From Zero to Professional - Lesson 09: DDL (CREATE DATABASE & CREATE TABLE)
 
-- Composition id: `SQL-L15-Conditional-Aggregation` - 1920x1080, 30fps, 7200 frames (4:00)
-- Scene boundaries sit in the REAL voiceover gaps: 0 | 1215 | 2595 | 3975 | 5200 | 6402 | 7200
-- Voiceover: public/voiceover_lesson_15.mp3 (240.04s)
-- Swap system: every lesson replaces this whole project. The composition id, package.json build script and
-  .github/workflows/render.yml must all carry the same lesson name (they ship together in the zip).
+Remotion project, composition ID `Monzoma-SQL-L09`, 1920x1080 @ 30fps, 7200 frames (240 s), strictly 2D (no perspective / 3D / WebGL).
+Render output: `out/Lesson09_DDL-Database-Build.mp4`
 
-    npm install && npm start
-    npm run build   # -> out/sql-l15-conditional-aggregation.mp4
+## Run on Termux
+```bash
+termux-setup-storage
+pkg install -y unzip git nodejs
+cd ~ && rm -rf ~/video-project
+unzip -o ~/storage/downloads/Lesson09_DDL-Database-Build.zip
+cd video-project
+bash deploy.sh
+```
+Preview first: `DRY_RUN=1 bash deploy.sh`.
+
+## Notes
+- All text is live (HTML/SVG/CSS). The only imported asset is the Monzoma logo vector (`src/logoData.ts`).
+- `public/voiceover.mp3` starts at frame 0. Scene boundaries and cues in `src/timeline.json` follow the actual voice file (speech blocks measured from the audio), not only the plan frames.
+- `npm run generate-audio` builds all SFX + music into `public/gen/` from `src/timeline.json`.
+- Composition ID and output name live in `package.json` -> `render`; the workflow just runs `npm run render`.

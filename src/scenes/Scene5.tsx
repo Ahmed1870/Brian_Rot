@@ -1,163 +1,151 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Chip, Mix, Sql, Stage, TopBadge, Warn, clamp, pop, prog, sec} from '../kit';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine, highlight} from '../components/Code';
+import {appear, pop} from '../components/Text';
+import {back, eo, prog, pulse, seg} from '../lib/anim';
 
-// SC05 (global 173.3-213.4s): engineering benchmark - 3 subqueries + LEFT JOINs (3 disk scans, RAM, 45ms) vs FILTER single scan (0.003s).
-// Anchors (s): 175.1 engineering view | 183.3 LEFT JOIN | 186.8 JOINs eat RAM | 191.0 pages read several times | 193.1 FILTER walks row by row
-// 197.1 one single read | 200.9 under a fraction of a millisecond | 203.0 mastery = the difference | 207.3 very slowly | 209.4 blink of an eye
-const S = START.s5;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc05;
+const LEFT: CodeLine[] = [
+  {text: 'CREATE DATABASE', at: S.log, dt: 0.03},
+  {text: 'CREATE TABLE', at: S.log + 0.9, dt: 0.03},
+  {text: 'CREATE TABLE', at: S.log + 1.8, dt: 0.03},
+  {text: 'SELECT table_name', at: S.q},
+  {text: 'FROM information_schema.tables', at: S.q + 1.1},
+  {text: "WHERE table_schema = 'public';", at: S.q + 2.6},
+];
+const DDL = [
+  '-- Table: public.orders',
+  'CREATE TABLE IF NOT EXISTS public.orders',
+  '(',
+  '    order_id integer NOT NULL GENERATED ALWAYS AS IDENTITY,',
+  '    customer_id integer NOT NULL,',
+  '    order_date timestamp with time zone DEFAULT CURRENT_TIMESTAMP,',
+  '    total_amount numeric(10,2),',
+  '    CONSTRAINT orders_pkey PRIMARY KEY (order_id),',
+  '    CONSTRAINT fk_customer FOREIGN KEY (customer_id)',
+  '        REFERENCES public.customers (customer_id)',
+  '        ON UPDATE NO ACTION',
+  '        ON DELETE RESTRICT,',
+  '    CONSTRAINT orders_total_amount_check CHECK (total_amount >= 0::numeric)',
+  ')',
+];
+const DDL_LINES: CodeLine[] = DDL.map((text, i) => ({text, at: S.ddlTab + 0.5 + i * 0.4, dt: 0.01}));
+const TREE = ['Servers', 'PostgreSQL 16', 'Databases', 'manzooma_store_db', 'Schemas', 'public', 'Tables'];
 
-const PW = 840;
-const LX = 90;
-const RX = 990;
-const PY = 190;
-const PH = 715;
-const COLS = 8;
-const ROWS = 3;
-const CW = 80;
-const CH = 54;
-const GAP = 12;
-const GRID_W = COLS * CW + (COLS - 1) * GAP;
+export const Scene5: React.FC<{t: number}> = ({t}) => {
+  const enter = appear(t, 173.7, 174.7);
+  const resP = prog(t, S.scan, S.scan + 1.2);
+  const scanY = prog(t, S.scan - 0.2, S.scan + 1.6);
+  const winP = back(prog(t, 175.3, 176.3));
+  const selOrders = t >= S.ddlTab - 1.4;
+  const clickTab = Math.sin(prog(t, S.ddlTab - 0.3, S.ddlTab + 0.3) * Math.PI);
+  const sqlActive = t >= S.ddlTab;
+  const stamp = prog(t, S.stamp, S.stamp + 0.55);
+  const stampP = stamp <= 0 ? 0 : stamp < 1 ? 1.8 - 0.8 * eo(stamp) : 1;
+  const warm = 0.5 + 0.5 * pulse(t, 1.2);
 
-type Sweep = {at: number; dur: number};
-
-const PageGrid: React.FC<{x: number; y: number; color: string; sweeps: Sweep[]}> = ({x, y, color, sweeps}) => {
-  const f = useCurrentFrame();
-  const gx = x + (PW - GRID_W) / 2;
-  const cells: React.ReactNode[] = [];
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      let lit = 0;
-      sweeps.forEach((s) => {
-        const p = clamp((f - t(s.at)) / sec(s.dur));
-        if (p <= 0) return;
-        const reached = c + 0.5 <= p * COLS;
-        if (!reached) return;
-        const fade = p >= 1 ? clamp(1 - (f - t(s.at) - sec(s.dur)) / sec(1.0)) : 1;
-        lit = Math.max(lit, fade);
-      });
-      cells.push(
-        <div key={`${r}-${c}`} style={{position: 'absolute', left: c * (CW + GAP), top: r * (CH + GAP), width: CW, height: CH, borderRadius: 10, background: lit > 0.02 ? `${color}${Math.round(lit * 60 + 14).toString(16).padStart(2, '0')}` : C.deep, border: `2px solid ${lit > 0.02 ? color : C.border}`, boxShadow: lit > 0.5 ? `0 0 14px ${color}66` : 'none'}} />,
-      );
-    }
-  }
-  const active = sweeps
-    .map((s) => ({p: clamp((f - t(s.at)) / sec(s.dur)), i: 0}))
-    .filter((s) => s.p > 0 && s.p < 1)[0];
-  return (
-    <div style={{position: 'absolute', left: gx, top: y, width: GRID_W, height: ROWS * CH + (ROWS - 1) * GAP}}>
-      {cells}
-      {active ? <div style={{position: 'absolute', left: active.p * GRID_W - 3, top: -10, width: 6, height: ROWS * CH + (ROWS - 1) * GAP + 20, borderRadius: 3, background: color, boxShadow: `0 0 20px 6px ${color}88`}} /> : null}
-    </div>
-  );
-};
-
-const Bar: React.FC<{x: number; y: number; w: number; label: string; pct: number; color: string}> = ({x, y, w, label, pct, color}) => (
-  <div dir="ltr" style={{position: 'absolute', left: x, top: y, width: w}}>
-    <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 21, color: C.muted, marginBottom: 8}}>
-      <span>{label}</span>
-      <span style={{color}}>{Math.round(pct * 100)}%</span>
-    </div>
-    <div style={{height: 24, borderRadius: 12, background: C.deep, border: `2px solid ${C.border}`, overflow: 'hidden'}}>
-      <div style={{width: `${clamp(pct) * 100}%`, height: '100%', background: color, borderRadius: 12}} />
-    </div>
-  </div>
-);
-
-export const Scene5: React.FC = () => {
-  const f = useCurrentFrame();
-  const left = prog(f, t(175.2), 24);
-  const code1 = prog(f, t(183.3), 20);
-  const ram1 = 0.9 * prog(f, t(186.8), sec(3.6));
-  const ms = Math.round(45 * clamp((f - t(190.9)) / sec(5.8)));
-  const msShow = f >= t(190.9);
-  const right = 0.3 + 0.7 * prog(f, t(193.1), 22);
-  const code2 = prog(f, t(193.2), 20);
-  const ram2 = 0.08 * prog(f, t(197.05), sec(1));
-  const time2 = pop(f, t(200.89));
-  const seal = prog(f, t(202.95), 18);
-  const slow = prog(f, t(207.27), 24);
-  const bolt = pop(f, t(209.42));
-  const shake = f >= t(207.27) && f < t(209.3) ? Math.sin(f * 2.2) * 5 : 0;
-  const reads1 = [t(191.0), t(192.7), t(194.4)].filter((x) => f >= x).length;
-  const reads2 = f >= t(197.05) ? 1 : 0;
+  const tag = (range: number[], head: string, body: string, color: string) => {
+    const p = pop(t, range[0], range[0] + 0.8) * (1 - seg(t, range[1] - 0.4, range[1]));
+    if (p <= 0.01) return null;
+    return (
+      <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 28px', borderRadius: 16, background: `${color}22`, border: `2px solid ${color}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 26, color: C.text, whiteSpace: 'nowrap', opacity: Math.min(1, p * 1.5), transform: `translateY(${(1 - p) * -40}px)`, boxShadow: `0 0 30px ${color}44`}}>
+        <span style={{color}}>{head}</span>
+        <span>{body}</span>
+      </div>
+    );
+  };
 
   return (
-    <Stage dur={1202} inFx="up" outFx="fade">
-      <TopBadge text="الأداء الفائق · Single Scan vs Multiple JOINs" from={t(175.4)} to={t(191)} color={C.green} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}>{tag(S.tag1, 'SELECT * FROM information_schema.tables;', '──► Schema Verification', D.code)}</div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}>{tag(S.tag2, 'pgAdmin DDL Tab', '──► Auto-Generated Reverse Engineering DDL', D.cat)}</div>
 
-      {/* ================= LEFT: subqueries + LEFT JOIN */}
-      <div style={{position: 'absolute', left: LX, top: PY, width: PW, height: PH, borderRadius: 26, background: 'rgba(30,41,59,0.6)', border: `2px solid ${C.red}`, boxShadow: `0 0 40px ${C.red}22`, opacity: left * (1 - 0.35 * slow), transform: `translateX(${shake}px)`}}>
-        <div style={{position: 'absolute', left: 26, top: 18}}>
-          <Chip color={C.red} style={{fontSize: 22}}>3 Subqueries + LEFT JOIN</Chip>
+      {/* LEFT: query + result grid */}
+      <div style={{opacity: enter, transform: `translateX(${(1 - enter) * -80}px)`}}>
+        <Code lines={LEFT} t={t} x={60} y={190} w={860} h={350} title="psql — manzooma_store_db" fontSize={25} lineH={48} />
+      </div>
+      {resP > 0 ? (
+        <div style={{position: 'absolute', left: 60, top: 570, width: 860, opacity: Math.min(1, resP * 2), transform: `translateY(${(1 - eo(resP)) * 60}px)`}}>
+          <div style={{borderRadius: 22, background: '#0B1222', border: `2px solid ${D.cat}`, boxShadow: `0 0 34px ${D.cat}44`, overflow: 'hidden', position: 'relative'}}>
+            <div style={{display: 'flex', height: 54, alignItems: 'center', padding: '0 28px', background: `${D.cat}26`, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: D.cat}}>table_name</div>
+            {['customers', 'orders'].map((n, i) => {
+              const rp = back(prog(t, S.scan + 0.3 + i * 0.35, S.scan + 0.9 + i * 0.35));
+              return (
+                <div key={n} style={{display: 'flex', alignItems: 'center', gap: 18, height: 76, padding: '0 28px', borderTop: '1px solid rgba(71,85,105,0.5)', opacity: Math.min(1, rp * 2), transform: `translateX(${(1 - rp) * 60}px)`, background: `rgba(16,185,129,${0.08 + 0.08 * warm})`}}>
+                  <svg width="34" height="30" viewBox="0 0 34 30" fill="none" stroke={D.cat} strokeWidth="3" strokeLinecap="round"><rect x="2" y="3" width="30" height="24" rx="4" /><path d="M2 11h30M13 11v16" /></svg>
+                  <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 32, color: C.text}}>{n}</span>
+                  <span style={{marginLeft: 'auto', padding: '4px 16px', borderRadius: 999, background: `${D.cat}26`, border: `1.5px solid ${D.cat}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 18, color: D.cat}}>public</span>
+                </div>
+              );
+            })}
+            <div style={{height: 52, display: 'flex', alignItems: 'center', padding: '0 28px', fontFamily: FONT_MONO, fontSize: 22, color: C.dim, borderTop: '1px solid rgba(71,85,105,0.5)'}}>(2 rows)</div>
+            {scanY > 0 && scanY < 1 ? <div style={{position: 'absolute', left: 0, right: 0, top: scanY * 280, height: 8, background: `linear-gradient(180deg, transparent, ${D.code}, transparent)`, opacity: 0.9}} /> : null}
+          </div>
         </div>
-        <div dir="ltr" style={{position: 'absolute', left: 26, right: 26, top: 80, height: 130, borderRadius: 14, background: C.deep, border: `2px solid ${C.border}`, padding: '14px 18px', fontFamily: MONO, fontSize: 19, lineHeight: 1.55, opacity: code1, transform: `translateY(${(1 - code1) * 16}px)`}}>
-          <div><Sql text="FROM (SELECT SUM(total_amount) … 'Completed') a" /></div>
-          <div><Sql text="LEFT JOIN (SELECT SUM(total_amount) … 'Returned') b" /></div>
-          <div><Sql text="LEFT JOIN (SELECT COUNT(*) … 'Cancelled') c" /></div>
-        </div>
-        <Bar x={26} y={495} w={PW - 52} label="RAM · temp tables" pct={ram1} color={C.red} />
-      </div>
-      <PageGrid x={LX} y={PY + 245} color={C.red} sweeps={[{at: 191.0, dur: 1.5}, {at: 192.7, dur: 1.5}, {at: 194.4, dur: 1.5}]} />
-      <div dir="ltr" style={{position: 'absolute', left: LX + 26, top: PY + 436, fontFamily: MONO, fontSize: 24, color: C.red, opacity: left}}>
-        DISK READS <span style={{fontSize: 34, fontWeight: 700}}>{reads1}×</span>
-      </div>
-      <div dir="ltr" style={{position: 'absolute', left: LX + 26, top: PY + 572, opacity: left * (msShow ? 1 : 0.3)}}>
-        <div style={{fontFamily: MONO, fontSize: 22, color: C.muted}}>execution time</div>
-        <div style={{fontFamily: MONO, fontSize: 92, fontWeight: 700, lineHeight: 1.1, color: C.red}}>
-          {msShow ? ms : '—'}
-          <span style={{fontSize: 44, color: C.muted}}> ms</span>
-        </div>
-      </div>
-      <div style={{position: 'absolute', left: LX + PW - 190, top: PY + 590, opacity: slow}}>
-        <Warn size={96} />
-      </div>
-      <div style={{position: 'absolute', left: LX + PW - 400, top: PY + 690 - 40, width: 360, textAlign: 'right', opacity: slow}}>
-        <Mix style={{fontSize: 30, fontWeight: 700, color: C.red}}>بطيء جداً</Mix>
-      </div>
+      ) : null}
 
-      {/* ================= RIGHT: FILTER single scan */}
-      <div style={{position: 'absolute', left: RX, top: PY, width: PW, height: PH, borderRadius: 26, background: 'rgba(30,41,59,0.6)', border: `2px solid ${C.green}`, boxShadow: `0 0 40px ${C.green}22`, opacity: right}}>
-        <div style={{position: 'absolute', left: 26, top: 18}}>
-          <Chip color={C.green} style={{fontSize: 22}}>FILTER · Single Scan</Chip>
+      {/* RIGHT: pgAdmin window */}
+      <div style={{position: 'absolute', left: 960, top: 190, width: 900, height: 720, opacity: Math.min(1, winP * 1.5), transform: `translateX(${(1 - winP) * 140}px)`}}>
+        <div style={{width: 900, height: 720, borderRadius: 22, background: '#0B1222', border: `2px solid ${sqlActive ? D.cat : C.line}`, boxShadow: `0 30px 80px rgba(0,0,0,0.5), 0 0 ${sqlActive ? 44 : 10}px ${D.cat}55`, overflow: 'hidden', position: 'relative'}}>
+          <div style={{height: 52, background: '#111B31', borderBottom: `1.5px solid ${C.line}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12, fontFamily: FONT_MONO, fontSize: 21, color: C.dim}}>
+            <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#336791" /><path d="M8 17c0-6 2-9 6-9s4 3 4 6-2 4-4 4" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" /></svg>
+            pgAdmin 4
+          </div>
+          {/* tree */}
+          <div style={{position: 'absolute', left: 0, top: 52, width: 250, bottom: 0, background: '#0E172B', borderRight: `1.5px solid ${C.line}`, padding: '16px 0'}}>
+            {TREE.map((n, i) => (
+              <div key={n} style={{padding: '5px 12px 5px ' + (14 + i * 12) + 'px', fontFamily: FONT_MONO, fontSize: 17, color: n === 'manzooma_store_db' ? D.code : C.dim, opacity: appear(t, 176 + i * 0.15, 176.6 + i * 0.15)}}>▸ {n}</div>
+            ))}
+            {['customers', 'orders'].map((n, i) => {
+              const sel = n === 'orders' && selOrders;
+              return (
+                <div key={n} style={{margin: '2px 8px 2px ' + (14 + 7 * 12 + 4) + 'px', padding: '6px 12px', borderRadius: 8, fontFamily: FONT_MONO, fontWeight: sel ? 800 : 500, fontSize: 18, color: sel ? C.bg : C.dim, background: sel ? D.cat : 'transparent', opacity: appear(t, 177.8 + i * 0.2, 178.4 + i * 0.2), boxShadow: sel ? `0 0 18px ${D.cat}` : undefined}}>▦ {n}</div>
+              );
+            })}
+          </div>
+          {/* tabs */}
+          <div style={{position: 'absolute', left: 250, right: 0, top: 52, height: 56, display: 'flex', background: '#111B31', borderBottom: `1.5px solid ${C.line}`}}>
+            {['Dashboard', 'Properties', 'SQL'].map((n) => {
+              const act = n === 'SQL' && sqlActive;
+              return (
+                <div key={n} style={{padding: '0 26px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: FONT_MONO, fontWeight: act ? 800 : 500, fontSize: 21, color: act ? D.cat : C.mute, borderBottom: act ? `4px solid ${D.cat}` : '4px solid transparent', background: n === 'SQL' && clickTab > 0 ? `${D.cat}${Math.round(clickTab * 60 + 20).toString(16)}` : undefined}}>
+                  {n}
+                  {n === 'SQL' ? <span style={{fontSize: 15, padding: '2px 8px', borderRadius: 6, background: `${D.cat}33`, color: D.cat}}>DDL</span> : null}
+                </div>
+              );
+            })}
+          </div>
+          {/* DDL pane */}
+          {sqlActive ? (
+            <div style={{position: 'absolute', left: 250, right: 0, top: 108, bottom: 0, padding: '14px 0 0 0'}}>
+              {DDL_LINES.map((l, i) => {
+                const n = Math.max(0, Math.min(l.text.length, Math.floor((t - l.at) / (l.dt || 0.01))));
+                return (
+                  <div key={i} style={{height: 36, display: 'flex', alignItems: 'center', fontFamily: FONT_MONO, fontSize: 16.5, whiteSpace: 'pre'}}>
+                    <span style={{width: 46, textAlign: 'right', paddingRight: 14, color: '#334155', fontSize: 15, flexShrink: 0}}>{i + 1}</span>
+                    <span>{highlight(l.text.slice(0, n))}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{position: 'absolute', left: 250, right: 0, top: 108, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: C.mute}}>{selOrders ? 'orders' : 'اختر جدولًا من الشجرة'}</div>
+          )}
+          {/* verified stamp */}
+          {stampP > 0 ? (
+            <div style={{position: 'absolute', right: 36, bottom: 34, opacity: Math.min(1, stamp * 4), transform: `rotate(-8deg) scale(${stampP})`, transformOrigin: '50% 50%'}}>
+              <div style={{padding: '14px 30px', borderRadius: 18, border: `5px double ${D.cat}`, background: 'rgba(11,18,34,0.92)', boxShadow: `0 0 ${34 + 20 * warm}px ${D.cat}`, textAlign: 'center'}}>
+                <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 52, color: D.cat, lineHeight: 1}}>100% ✓</div>
+                <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: C.text, letterSpacing: 3, marginTop: 6}}>SCHEMA VERIFIED</div>
+                <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 22, color: D.cat, marginTop: 2, direction: 'rtl'}}>البنية الهندسية سليمة</div>
+              </div>
+            </div>
+          ) : null}
         </div>
-        <div dir="ltr" style={{position: 'absolute', left: 26, right: 26, top: 80, height: 130, borderRadius: 14, background: C.deep, border: `2px solid ${C.border}`, padding: '14px 18px', fontFamily: MONO, fontSize: 19, lineHeight: 1.55, opacity: code2, transform: `translateY(${(1 - code2) * 16}px)`}}>
-          <div><Sql text="SUM(total_amount) FILTER (WHERE … 'Completed')," /></div>
-          <div><Sql text="SUM(total_amount) FILTER (WHERE … 'Returned')," /></div>
-          <div><Sql text="COUNT(*) FILTER (WHERE … 'Cancelled')" /></div>
-        </div>
-        <Bar x={26} y={495} w={PW - 52} label="RAM · no temp tables" pct={ram2} color={C.green} />
       </div>
-      <PageGrid x={RX} y={PY + 245} color={C.green} sweeps={[{at: 197.05, dur: 0.9}]} />
-      <div dir="ltr" style={{position: 'absolute', left: RX + 26, top: PY + 436, fontFamily: MONO, fontSize: 24, color: C.green, opacity: right}}>
-        DISK READS <span style={{fontSize: 34, fontWeight: 700}}>{reads2}×</span>
-      </div>
-      <div dir="ltr" style={{position: 'absolute', left: RX + 26, top: PY + 572, opacity: clamp(time2), transform: `scale(${0.85 + 0.15 * clamp(time2)})`, transformOrigin: 'left center'}}>
-        <div style={{fontFamily: MONO, fontSize: 22, color: C.muted}}>execution time</div>
-        <div style={{fontFamily: MONO, fontSize: 92, fontWeight: 700, lineHeight: 1.1, color: C.green, textShadow: `0 0 28px ${C.green}66`}}>
-          0.003<span style={{fontSize: 44, color: C.muted}}> s</span>
-        </div>
-      </div>
-
-      {/* quality seal */}
-      <div style={{position: 'absolute', left: RX + PW - 330, top: PY + 585, opacity: seal, transform: `rotate(-8deg) scale(${1.7 - 0.7 * seal})`, transformOrigin: 'center'}}>
-        <div style={{border: `5px double ${C.green}`, borderRadius: 18, padding: '14px 26px', textAlign: 'center', background: `${C.green}14`}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 34, fontWeight: 700, color: C.green}}>OPTIMIZED ✓</div>
-          <Mix style={{display: 'block', fontSize: 22, color: C.text}}>اعتماد بنيوي</Mix>
-        </div>
-      </div>
-
-      {/* lightning bolt */}
-      <div style={{position: 'absolute', left: RX + PW - 110, top: PY + 16, opacity: clamp(bolt), transform: `scale(${0.6 + 0.4 * clamp(bolt)})`}}>
-        <svg width={70} height={90} viewBox="0 0 70 90" style={{filter: `drop-shadow(0 0 14px ${C.amber})`}}>
-          <polygon points="42,2 8,50 32,50 24,88 62,36 38,36" fill={C.amber} />
-        </svg>
-      </div>
-
-      <Caption text="Multiple JOINs & Subqueries ──► 3x Disk Reads (45ms) (Slow)" from={t(177)} to={t(192.5)} tone="danger" />
-      <Caption text="Conditional FILTER Aggregation ──► 1x Single Scan (0.003s Lightning Fast)" from={t(193.4)} to={t(209)} tone="ok" />
-    </Stage>
+    </div>
   );
 };

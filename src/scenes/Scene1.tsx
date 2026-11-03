@@ -1,223 +1,155 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {COUNT_CANCELLED, ORDERS, TOTAL_COMPLETED, TOTAL_RETURNED, statusColor} from '../data';
-import {Caption, Chip, Disk, Draw, Kpi, Mix, Sql, Stage, TopBadge, Warn, bez, clamp, pop, prog, sec} from '../kit';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {Bi, appear, pop} from '../components/Text';
+import {back, eo, hash, mix, prog, pulse, seg} from '../lib/anim';
 
-// SC01 (global 0-40.5s): the multi-metric report problem -> traditional 3 queries + JOINs vs ONE conditional single-pass scan.
-// Voiceover anchors (s): 1.3 report | 4.4 completed | 6.5 returned | 8.0 cancelled | 11.3 traditional | 15.5 JOINs | 19.2 three reads
-// 20.4 smart solution | 24.3 "Conditional Aggregation" | 26 "single pass" | 29.3 "Single-Pass Scan" | 30.5 one trip | 35.1 saves 70%
-const S = START.s1;
-const t = (g: number) => sec(g - S);
-
-const LX = 90;
-const LW = 1740;
-const TOP_Y = 180;
-const TOP_H = 340;
-const BOT_Y = 545;
-const BOT_H = 380;
-
-const QUERIES = [
-  {txt: "SELECT SUM(total_amount) WHERE status = 'Completed'", at: 11.4},
-  {txt: "SELECT SUM(total_amount) WHERE status = 'Returned'", at: 12.8},
-  {txt: "SELECT COUNT(*) WHERE status = 'Cancelled'", at: 14.2},
+const S = TL.cues.sc01;
+const ROWS_C = [['1259', 'pg_class', 'r', '11'], ['2619', 'pg_statistic', 'r', '11']];
+const ROWS_A = [['1259', 'oid', '26', '1'], ['1259', 'relname', '19', '2']];
+const NEW_C = ['16385', 'customers', 'r', '2200'];
+const NEW_A = ['16385', 'customer_id', '23', '1'];
+const CODE: CodeLine[] = [
+  {text: '-- DDL: Data Definition Language', at: 3.4},
+  {text: 'BEGIN;', at: 5.2},
+  {text: 'CREATE TABLE customers (', at: 6.6},
+  {text: '  customer_id INT', at: 8.4},
+  {text: ');', at: 9.8},
+  {text: '', at: 99},
+  {text: 'ROLLBACK;', at: 35.0},
 ];
-const Q_CY = [282, 364, 446];
-const TOP_CARD_Y = [235, 330, 425];
-const BOT_CARD_Y = [588, 688, 788];
-const KPI_AT = [4.4, 6.5, 8.0];
-const KPIS = [
-  {label: 'completed_sales', ar: 'المبيعات المكتملة', color: C.green},
-  {label: 'returned_amount', ar: 'المبالغ المرتجعة', color: C.amber},
-  {label: 'cancelled_orders', ar: 'الطلبات الملغاة', color: C.red},
-];
+const CAT_X = 980;
+const CAT_W = 880;
+const COLS_C = ['oid', 'relname', 'relkind', 'relnamespace'];
+const COLS_A = ['attrelid', 'attname', 'atttypid', 'attnum'];
 
-const TBL_X = 130;
-const TBL_Y = 612; // header top
-const ROW_Y0 = TBL_Y + 34;
-const ROW_H = 26;
-const SCAN_AT = 26.6;
-const SCAN_DUR = 3.6;
-const FLY = 0.9; // seconds a data bubble needs to reach its card
+const CatalogCard: React.FC<{t: number; y: number; name: string; ar: string; cols: string[]; rows: string[][]; fresh: string[]; reveal: number; undo: number; at: number; flashT: number}> = ({t, y, name, ar, cols, rows, fresh, reveal, undo, at, flashT}) => {
+  const inP = back(prog(t, at, at + 0.8));
+  const rowH = 52;
+  const freshH = rowH * reveal * (1 - undo);
+  return (
+    <div style={{position: 'absolute', left: CAT_X, top: y, width: CAT_W, opacity: Math.min(1, inP * 1.5), transform: `translateX(${(1 - inP) * 120}px)`}}>
+      <div style={{borderRadius: 24, background: 'linear-gradient(160deg, #1E293B, #172033)', border: `2.5px solid ${D.cat}`, boxShadow: `0 24px 60px rgba(0,0,0,0.5), 0 0 ${28 + 30 * flashT}px ${D.cat}${flashT > 0.1 ? 'AA' : '44'}`, overflow: 'hidden'}}>
+        <div style={{height: 62, background: `linear-gradient(90deg, ${D.cat}44, ${D.cat}08)`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px'}}>
+          <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 32, color: D.cat}}>{name}</span>
+          <span style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 24, color: C.dim}}>{ar}</span>
+        </div>
+        <div style={{display: 'flex', height: 42, background: 'rgba(0,0,0,0.25)', fontFamily: FONT_MONO, fontWeight: 700, fontSize: 19, color: C.mute, alignItems: 'center'}}>
+          {cols.map((c, i) => (
+            <div key={c} style={{width: [150, 280, 160, 290][i], padding: '0 20px'}}>{c}</div>
+          ))}
+        </div>
+        {rows.map((r, ri) => (
+          <div key={ri} style={{display: 'flex', height: rowH, alignItems: 'center', fontFamily: FONT_MONO, fontSize: 23, color: C.dim, borderTop: '1px solid rgba(71,85,105,0.4)'}}>
+            {r.map((c, i) => (
+              <div key={i} style={{width: [150, 280, 160, 290][i], padding: '0 20px'}}>{c}</div>
+            ))}
+          </div>
+        ))}
+        <div style={{height: freshH, overflow: 'hidden', background: undo > 0 ? `rgba(239,68,68,${0.25 * (1 - undo)})` : 'rgba(56,189,248,0.14)', borderTop: freshH > 2 ? `1px solid ${D.code}` : undefined}}>
+          <div style={{display: 'flex', height: rowH, alignItems: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 23, color: undo > 0 ? '#FCA5A5' : D.code, boxShadow: reveal > 0.3 && undo === 0 ? `inset 0 0 28px ${D.code}55` : undefined}}>
+            {fresh.map((c, i) => (
+              <div key={i} style={{width: [150, 280, 160, 290][i], padding: '0 20px'}}>{c}</div>
+            ))}
+          </div>
+        </div>
+        <div style={{height: 14}} />
+      </div>
+    </div>
+  );
+};
 
-export const Scene1: React.FC = () => {
-  const f = useCurrentFrame();
-  const lanes = prog(f, 0, 24);
-  const smart = prog(f, t(20.4), 22);
-  const topOp = 1 - 0.62 * smart;
-  const reads = [t(16.4), t(17.8), t(19.15)].filter((x) => f >= x).length;
-  const joinP = pop(f, t(15.5));
-  const topValues = f >= t(19.7);
-  const readFlash = prog(f, t(19.15), 10) * (1 - prog(f, t(21), 20));
+export const Scene1: React.FC<{t: number}> = ({t}) => {
+  const run = pop(t, S.particles[0] - 0.8, S.particles[0] - 0.1);
+  const reveal = eo(prog(t, S.particles[0] + 0.8, S.particles[0] + 2.4));
+  const undo = eo(prog(t, S.rollback, S.rollback + 1.4));
+  const flashT = Math.sin(prog(t, S.particles[0] + 0.8, S.particles[0] + 2.4) * Math.PI);
+  const shieldP = pop(t, S.shield, S.shield + 0.9);
+  const warn = 0.5 + 0.5 * pulse(t, 1.2);
+  const badgeP = pop(t, S.badge[0], S.badge[0] + 0.8) * (1 - seg(t, S.badge[1] - 0.4, S.badge[1]));
+  const tagP = pop(t, S.tag[0], S.tag[0] + 0.8);
+  const ddlPulse = Math.sin(prog(t, S.ddl - 0.3, S.ddl + 1.2) * Math.PI);
 
-  // single-pass scan
-  const scanP = clamp((f - t(SCAN_AT)) / sec(SCAN_DUR));
-  const laserY = ROW_Y0 + scanP * ROW_H * ORDERS.length;
-  const scanning = scanP > 0 && scanP < 1;
-  const launch = (i: number) => t(SCAN_AT) + ((i + 0.5) / ORDERS.length) * sec(SCAN_DUR);
-  const idx = (s: string) => (s === 'Completed' ? 0 : s === 'Returned' ? 1 : 2);
-  const arrived = ORDERS.filter((o) => f >= launch(o.id - 1) + sec(FLY));
-  const vals = [
-    arrived.filter((o) => o.status === 'Completed').reduce((a, o) => a + o.amount, 0),
-    arrived.filter((o) => o.status === 'Returned').reduce((a, o) => a + o.amount, 0),
-    arrived.filter((o) => o.status === 'Cancelled').length,
+  // neon particles: code editor -> catalog rows
+  const targets = [
+    {x: CAT_X + 150, y: 190 + 64 + 42 + 2 * 52 + 26},
+    {x: CAT_X + 150, y: 520 + 64 + 42 + 2 * 52 + 26},
   ];
-  const lastArr = [0, 1, 2].map((k) => {
-    const a = ORDERS.filter((o) => idx(o.status) === k && f >= launch(o.id - 1) + sec(FLY)).map((o) => launch(o.id - 1) + sec(FLY));
-    return a.length ? Math.max(...a) : -999;
+  const parts: React.ReactNode[] = [];
+  targets.forEach((tg, ti) => {
+    for (let i = 0; i < 26; i++) {
+      const t0 = S.particles[0] + i * 0.1 + ti * 0.05;
+      const u = prog(t, t0, t0 + 0.9);
+      if (u <= 0 || u >= 1) continue;
+      const sx = 880 + hash(i + ti * 7) * 20;
+      const sy = 330 + hash(i * 3 + ti) * 90;
+      const cx = (sx + tg.x) / 2;
+      const cy = Math.min(sy, tg.y) - 90 - hash(i) * 80;
+      for (let k = 0; k < 4; k++) {
+        const uu = Math.max(0, u - k * 0.045);
+        const px = (1 - uu) * (1 - uu) * sx + 2 * (1 - uu) * uu * cx + uu * uu * tg.x;
+        const py = (1 - uu) * (1 - uu) * sy + 2 * (1 - uu) * uu * cy + uu * uu * tg.y;
+        parts.push(<circle key={`${ti}-${i}-${k}`} cx={px} cy={py} r={7 - k * 1.4} fill={D.code} opacity={(1 - k * 0.24) * (1 - u * 0.3)} style={{filter: k === 0 ? `drop-shadow(0 0 8px ${D.code})` : undefined}} />);
+      }
+    }
   });
-  const glows = lastArr.map((l) => (l < 0 ? 0 : clamp(1 - (f - l) / 16)));
-  const tag1 = pop(f, t(24.3));
-  const tag2 = pop(f, t(29.34));
-  const save = prog(f, t(35.1), 26);
-  const ring = prog(f, t(35.6), sec(1.4));
-  const pathsOp = 0.14 * (1 - 0.7 * save);
 
   return (
-    <Stage dur={1215} inFx="none" outFx="zoom">
-      <TopBadge text="التجميع الشرطي المتقدم | Single-Pass Conditional Aggregation" from={t(2)} to={t(18)} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
 
-      {/* ---------------- lane frames */}
-      <div style={{opacity: lanes}}>
-        <div style={{position: 'absolute', left: LX, top: TOP_Y, width: LW, height: TOP_H, borderRadius: 26, background: 'rgba(30,41,59,0.55)', border: `2px solid ${C.red}`, opacity: topOp}} />
-        <div style={{position: 'absolute', left: LX, top: BOT_Y, width: LW, height: BOT_H, borderRadius: 26, background: 'rgba(30,41,59,0.55)', border: `2px solid ${smart > 0.5 ? C.blue : C.border}`, boxShadow: smart > 0.5 ? `0 0 40px ${C.blue}22` : 'none'}} />
-      </div>
-
-      {/* ---------------- TOP lane: traditional */}
-      <div style={{opacity: topOp * lanes}}>
-        <div style={{position: 'absolute', left: LX + 30, top: TOP_Y + 16}}>
-          <Chip color={C.red} style={{fontSize: 21}}>
-            <Mix>الطريقة التقليدية</Mix> · 3 queries + JOINs
-          </Chip>
-        </div>
-        <Disk x={140} y={262} color={C.red} label="orders" glow={readFlash} />
-        <div dir="ltr" style={{position: 'absolute', left: 120, top: 452, width: 190, textAlign: 'center', fontFamily: MONO, fontSize: 20, color: C.red}}>
-          DISK READS <span style={{fontSize: 34, fontWeight: 700, color: reads === 3 ? C.red : C.text}}>{reads}×</span>
-        </div>
-
-        <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-          {QUERIES.map((q, i) => (
-            <g key={i}>
-              <Draw d={`M 275 340 C 340 340, 350 ${Q_CY[i]}, 410 ${Q_CY[i]}`} p={prog(f, t(q.at), 18)} color={C.red} width={3} opacity={0.7} />
-              {f >= t([16.4, 17.8, 19.15][i]) && f < t([16.4, 17.8, 19.15][i]) + sec(0.9) ? (
-                <circle cx={275 + 135 * prog(f, t([16.4, 17.8, 19.15][i]), sec(0.9))} cy={340 + (Q_CY[i] - 340) * prog(f, t([16.4, 17.8, 19.15][i]), sec(0.9))} r={9} fill={C.red} />
-              ) : null}
-              <Draw d={`M 1070 ${Q_CY[i]} L 1290 ${TOP_CARD_Y[i] + 42}`} p={prog(f, t(15.5 + i * 0.25), 18)} color={C.amber} width={3} opacity={0.75} />
-            </g>
-          ))}
-        </svg>
-
-        {QUERIES.map((q, i) => {
-          const p = pop(f, t(q.at));
-          return (
-            <div key={i} dir="ltr" style={{position: 'absolute', left: 410, top: Q_CY[i] - 32, width: 660, height: 64, borderRadius: 14, background: C.deep, border: `2px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14, padding: '0 18px', fontFamily: MONO, fontSize: 19, opacity: clamp(p), transform: `scale(${0.9 + 0.1 * clamp(p)})`}}>
-              <span style={{color: C.red, fontWeight: 700}}>Q{i + 1}</span>
-              <Sql text={q.txt} />
-            </div>
-          );
-        })}
-        {[0, 1, 2].map((i) => (
-          <div key={i} style={{position: 'absolute', left: 1135, top: (Q_CY[i] + TOP_CARD_Y[i] + 42) / 2 - 18, opacity: clamp(joinP)}}>
-            <Chip color={C.amber} style={{fontSize: 16, padding: '2px 12px'}}>JOIN</Chip>
+      <div style={{position: 'absolute', left: 0, top: 92, width: 1920, display: 'flex', justifyContent: 'center', opacity: Math.min(1, badgeP * 1.5), transform: `translateY(${(1 - badgeP) * -60}px)`}}>
+        {badgeP > 0.01 ? (
+          <div style={{padding: '16px 52px', borderRadius: 999, background: 'rgba(30,41,59,0.95)', border: `2px solid ${D.code}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 ${30 + 18 * ddlPulse}px ${D.code}55`}}>
+            <Bi ar="لغة تعريف البيانات" en="DDL (Data Definition Language)" size={52} t={t} start={S.badge[0] + 0.15} />
           </div>
-        ))}
-        {KPIS.map((k, i) => (
-          <Kpi key={k.label} x={1290} y={TOP_CARD_Y[i]} label={k.label} ar={k.ar} color={k.color} p={pop(f, t(KPI_AT[i]))} value={topValues ? String([TOTAL_COMPLETED, TOTAL_RETURNED, COUNT_CANCELLED][i]) : '—'} />
-        ))}
-        <div style={{position: 'absolute', left: LX + 1380, top: TOP_Y + 16, opacity: prog(f, t(19.15), 14)}}>
-          <Chip color={C.red} style={{fontSize: 20}}>
-            <Warn size={22} /> slow · RAM heavy
-          </Chip>
-        </div>
-      </div>
-
-      {/* ---------------- BOTTOM lane: single pass */}
-      <div style={{opacity: lanes}}>
-        <div style={{position: 'absolute', left: LX + 30, top: BOT_Y + 14, opacity: 0.35 + 0.65 * smart}}>
-          <Chip color={C.blue} style={{fontSize: 21}}>
-            <Mix>المسار الذكي</Mix> · Single-Pass
-          </Chip>
-        </div>
-
-        {/* orders table */}
-        <div dir="ltr" style={{position: 'absolute', left: TBL_X, top: TBL_Y, width: 520, fontFamily: MONO, fontSize: 17, opacity: 0.45 + 0.55 * smart}}>
-          <div style={{display: 'flex', height: 34, alignItems: 'center', color: C.muted, borderBottom: `2px solid ${C.border}`, paddingLeft: 12}}>
-            <div style={{width: 70}}>id</div>
-            <div style={{width: 200}}>status</div>
-            <div style={{width: 140}}>total_amount</div>
-          </div>
-          {ORDERS.map((o, i) => {
-            const rowY = ROW_Y0 + i * ROW_H;
-            const seen = laserY > rowY + ROW_H * 0.5 && scanP > 0;
-            const hot = scanning && Math.abs(laserY - (rowY + ROW_H / 2)) < ROW_H * 0.6;
-            return (
-              <div key={o.id} style={{display: 'flex', height: ROW_H, alignItems: 'center', paddingLeft: 12, background: hot ? `${statusColor(o.status)}44` : seen ? `${statusColor(o.status)}18` : 'transparent', color: seen ? C.text : C.muted, borderRadius: 6}}>
-                <div style={{width: 70}}>{o.id}</div>
-                <div style={{width: 200, color: seen ? statusColor(o.status) : C.muted, fontWeight: seen ? 700 : 400}}>{o.status}</div>
-                <div style={{width: 140}}>{o.amount}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* laser */}
-        {scanning || (scanP >= 1 && f < t(31.5)) ? (
-          <div style={{position: 'absolute', left: TBL_X - 16, top: laserY - 2, width: 552, height: 4, background: C.blue, borderRadius: 2, boxShadow: `0 0 22px 6px ${C.blue}88`, opacity: scanP >= 1 ? 1 - prog(f, t(30.2), 12) : 1}} />
         ) : null}
-
-        {/* fan-out curves + bubbles */}
-        <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-          {ORDERS.map((o, i) => {
-            const y0 = ROW_Y0 + i * ROW_H + ROW_H / 2;
-            const k = idx(o.status);
-            const y3 = BOT_CARD_Y[k] + 42;
-            const lf = launch(i);
-            const p = clamp((f - lf) / sec(FLY));
-            const show = f >= lf && p < 1;
-            const e = prog(f, lf, sec(FLY));
-            return (
-              <g key={o.id}>
-                <path d={`M 660 ${y0} C 920 ${y0}, 1020 ${y3}, 1290 ${y3}`} fill="none" stroke={statusColor(o.status)} strokeWidth={2} opacity={f >= lf ? pathsOp : 0} />
-                {show ? (
-                  <g>
-                    <circle cx={bez(e, 660, 920, 1020, 1290)} cy={bez(e, y0, y0, y3, y3)} r={17} fill={statusColor(o.status)} opacity={0.25} />
-                    <circle cx={bez(e, 660, 920, 1020, 1290)} cy={bez(e, y0, y0, y3, y3)} r={8} fill={statusColor(o.status)} />
-                  </g>
-                ) : null}
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* concept tags */}
-        <div style={{position: 'absolute', left: 740, top: 560, opacity: clamp(tag1), transform: `scale(${0.9 + 0.1 * clamp(tag1)})`, transformOrigin: 'left center'}}>
-          <Chip color={C.blue} style={{fontSize: 22}}>Conditional Aggregation</Chip>
-        </div>
-        <div style={{position: 'absolute', left: 740, top: 604, opacity: clamp(tag2), transform: `scale(${0.9 + 0.1 * clamp(tag2)})`, transformOrigin: 'left center'}}>
-          <Chip color={C.green} style={{fontSize: 22}}>Single-Pass Scan · 1× READ</Chip>
-        </div>
-
-        {/* KPI cards */}
-        {KPIS.map((k, i) => (
-          <Kpi key={k.label} x={1290} y={BOT_CARD_Y[i]} label={k.label} ar={k.ar} color={k.color} p={smart} glow={glows[i]} value={scanP > 0 ? String(vals[i]) : '—'} />
-        ))}
-
-        {/* savings card */}
-        <div style={{position: 'absolute', left: 740, top: 670, width: 490, height: 235, borderRadius: 24, background: C.deep, border: `2px solid ${C.green}`, boxShadow: `0 0 40px ${C.green}33`, opacity: save, transform: `translateY(${(1 - save) * 30}px)`}}>
-          <svg width={190} height={190} viewBox="0 0 190 190" style={{position: 'absolute', left: 24, top: 22}}>
-            <circle cx={95} cy={95} r={76} fill="none" stroke={C.border} strokeWidth={16} />
-            <circle cx={95} cy={95} r={76} fill="none" stroke={C.green} strokeWidth={16} strokeLinecap="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - 0.7 * ring} transform="rotate(-90 95 95)" />
-            <text x={95} y={108} textAnchor="middle" fontFamily={MONO} fontSize={42} fontWeight={700} fill={C.text}>{`-${Math.round(70 * ring)}%`}</text>
-          </svg>
-          <div dir="ltr" style={{position: 'absolute', left: 240, top: 34, right: 20}}>
-            <div style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color: C.green}}>CPU · RAM · I/O</div>
-            <Mix style={{display: 'block', fontSize: 30, fontWeight: 700, color: C.text, marginTop: 10, lineHeight: 1.3}}>توفير +70% من جهد السيرفر والذاكرة</Mix>
-            <div style={{fontFamily: MONO, fontSize: 19, color: C.muted, marginTop: 12}}>1 scan instead of 3</div>
+      </div>
+      <div style={{position: 'absolute', left: 0, top: 96, width: 1920, display: 'flex', justifyContent: 'center', opacity: Math.min(1, tagP * 1.5), transform: `translateY(${(1 - tagP) * -60}px)`}}>
+        {tagP > 0.01 ? (
+          <div style={{display: 'flex', alignItems: 'center', gap: 18, padding: '14px 38px', borderRadius: 18, background: `${D.cat}1F`, border: `2px solid ${D.cat}`, fontFamily: FONT_MONO, fontWeight: 700, fontSize: 29, color: C.text, boxShadow: `0 0 34px ${D.cat}44`, whiteSpace: 'nowrap'}}>
+            <span style={{color: D.code}}>DDL Execution</span>
+            <svg width="64" height="20" viewBox="0 0 64 20"><line x1="0" y1="10" x2={50 * eo(prog(t, S.tag[0] + 0.3, S.tag[0] + 1))} y2="10" stroke={D.cat} strokeWidth="4" strokeLinecap="round" /><path d="M44 3 L58 10 L44 17" fill="none" stroke={D.cat} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity={prog(t, S.tag[0] + 0.8, S.tag[0] + 1.1)} /></svg>
+            <span>Modifies System Catalogs <span style={{color: D.cat}}>(pg_class &amp; pg_attribute)</span></span>
           </div>
+        ) : null}
+      </div>
+
+      {/* DDL editor */}
+      <div style={{opacity: appear(t, 0.5, 1.4), transform: `translateX(${(1 - appear(t, 0.5, 1.4)) * -80}px)`}}>
+        <Code lines={CODE} t={t} x={60} y={200} w={860} h={420} title="ddl_script.sql" />
+      </div>
+      {/* run button */}
+      <div style={{position: 'absolute', left: 60, top: 640, opacity: Math.min(1, run * 1.5), transform: `scale(${0.8 + 0.2 * run})`, transformOrigin: '0 50%'}}>
+        <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 32px', borderRadius: 14, background: D.code, color: C.bg, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, boxShadow: `0 0 ${30 + 20 * Math.sin(prog(t, S.particles[0] - 0.2, S.particles[0] + 0.6) * Math.PI)}px ${D.code}`}}>
+          <svg width="26" height="26" viewBox="0 0 26 26"><path d="M6 3 L22 13 L6 23 Z" fill={C.bg} /></svg>
+          Execute DDL
         </div>
       </div>
 
-      <Caption text="Single Table Scan ──► Computes Multiple Conditional Metrics Simultaneously" from={t(22)} to={t(38)} />
-    </Stage>
+      {/* catalog tables */}
+      <CatalogCard t={t} y={200} name="pg_class" ar="كتالوج الجداول" cols={COLS_C} rows={ROWS_C} fresh={NEW_C} reveal={reveal} undo={undo} at={1.2} flashT={flashT} />
+      <CatalogCard t={t} y={520} name="pg_attribute" ar="كتالوج الأعمدة" cols={COLS_A} rows={ROWS_A} fresh={NEW_A} reveal={reveal} undo={undo} at={1.7} flashT={flashT} />
+
+      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>{parts}</svg>
+
+      {/* transactional DDL shield */}
+      {shieldP > 0.01 ? (
+        <div style={{position: 'absolute', left: 60, top: 740, width: 860, opacity: Math.min(1, shieldP * 1.5), transform: `translateY(${(1 - shieldP) * 40}px) scale(${0.92 + 0.08 * shieldP})`, transformOrigin: '0 50%'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 26, padding: '18px 34px', borderRadius: 26, background: `${D.cat}1A`, border: `2.5px solid ${D.cat}`, boxShadow: `0 0 ${28 + 22 * warn}px ${D.cat}66`}}>
+            <svg width="86" height="98" viewBox="0 0 86 98" fill="none">
+              <path d="M43 4 L80 18 V48 C80 70 64 86 43 94 C22 86 6 70 6 48 V18 Z" fill={`${D.cat}33`} stroke={D.cat} strokeWidth="6" strokeLinejoin="round" />
+              <path d="M27 48 L39 60 L61 34" stroke="#fff" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
+              <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 34, color: C.text}}>Transactional DDL</span>
+              <span style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: D.cat, direction: 'rtl'}}>تراجع كامل بـ ROLLBACK قبل الاعتماد</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 };
