@@ -1,8 +1,8 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {Video} from './Video';
-import {FPS, H, TOTAL_FRAMES, W} from './theme';
+import {Lesson16} from './Lesson16';
+import {FPS, H, TOTAL, W} from './theme';
 
 export const RemotionRoot: React.FC = () => (
-  <Composition id="SQL-L10-DML-Returning" component={Video} durationInFrames={TOTAL_FRAMES} fps={FPS} width={W} height={H} />
+  <Composition id="Ahmed-SQL-L16" component={Lesson16} width={W} height={H} fps={FPS} durationInFrames={TOTAL} />
 );

@@ -1,4 +1,4 @@
-name: Render SQL Lesson 13 (Ahmed x Manzooma)
+name: Render SQL Lesson 16 (Ahmed x Manzooma)
 on:
   push:
     branches: [main]
@@ -16,5 +16,5 @@ jobs:
       - run: npm run render
       - uses: actions/upload-artifact@v4
         with:
-          name: ahmed_sql_lesson13
-          path: out/*.mp4
+          name: ahmed_sql_lesson16
+          path: out/ahmed_sql_lesson16.mp4
