@@ -17,4 +17,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ahmed_sql_lesson13
-          path: out/ahmed_sql_lesson13.mp4
+          path: out/*.mp4
