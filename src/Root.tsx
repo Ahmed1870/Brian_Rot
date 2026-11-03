@@ -1,8 +1,15 @@
-import React from 'react';
-import {Composition} from 'remotion';
-import {Video} from './Video';
-import {FPS, H, TOTAL_FRAMES, W} from './theme';
+import React from "react";
+import { Composition } from "remotion";
+import { Lesson } from "./Lesson";
+import { FPS, TOTAL_FRAMES } from "./lib";
 
-export const RemotionRoot: React.FC = () => (
-  <Composition id="SQL-L10-DML-Returning" component={Video} durationInFrames={TOTAL_FRAMES} fps={FPS} width={W} height={H} />
+export const Root: React.FC = () => (
+  <Composition
+    id="SQL-L14-GroupBy-Having"
+    component={Lesson}
+    durationInFrames={TOTAL_FRAMES}
+    fps={FPS}
+    width={1920}
+    height={1080}
+  />
 );

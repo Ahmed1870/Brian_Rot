@@ -1,161 +1,462 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Caption, Chip, Mix, Sql, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec, typed} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Arabic, Banner, CodeLine } from "../components/common";
+import { C, eb, eio, eo, fmt, lerp, prog, typed, useT, win } from "../lib";
 
-// SC01 (frames 0-1230, global 0-41s): DML writes to Shared Buffers + WAL before the disk.
-const t = (g: number) => sec(g);
-const COLX = [100, 570, 1040, 1510];
-const COLW = 340;
-const TOP = 210;
-const COLH = 470;
-const MID = TOP + COLH / 2;
+const CATS = [
+  { id: 1, name: "Electronics", c: C.blue },
+  { id: 2, name: "Fashion", c: C.green },
+  { id: 3, name: "Grocery", c: C.amber },
+];
+// [order_id, category_id, total_amount]
+const ORDERS: [number, number, number][] = [
+  [101, 2, 420], [102, 1, 1200], [103, 3, 150], [104, 1, 800], [105, 2, 380], [106, 3, 220],
+  [107, 1, 650], [108, 2, 510], [109, 3, 95], [110, 1, 830], [111, 2, 290], [112, 3, 185],
+];
+const SUMS = [3480, 1600, 650];
+const TOTAL = 5730;
 
-const Header: React.FC<{i: number; n: string; sub: string; color: string; p: number}> = ({i, n, sub, color, p}) => (
-  <div dir="ltr" style={{position: 'absolute', left: COLX[i], top: 150, width: COLW, opacity: p, transform: `translateY(${(1 - p) * 20}px)`}}>
-    <div style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color}}>{n}</div>
-    <div style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginTop: 2}}>{sub}</div>
-  </div>
-);
+const TX = 70, TY = 140, TW = 640;
+const ROW0 = 262, ROWS = 50;
+const BX = (k: number) => 780 + k * 370;
+const BW = 330, B_TOP = 360, B_BOT = 780, STACK_BOT = 765;
+
+const FLY0 = 23.4, FLY_STEP = 0.44, FLY_DUR = 0.72;
 
 export const Scene1: React.FC = () => {
-  const f = useCurrentFrame();
-  const p0 = prog(f, t(4.3), 22);
-  const p1 = prog(f, t(5.4), 22);
-  const p2 = prog(f, t(6.5), 22);
-  const p3 = prog(f, t(7.6), 22);
-  const chips = [pop(f, t(13.4)), pop(f, t(14.6)), pop(f, t(16.0))];
-  const code = ['UPDATE products', 'SET unit_price = 120', 'WHERE product_id = 7;'];
-  const typedCode = typed(code.join('\n'), f, t(20.2), 0.55).split('\n');
-  const blocked = prog(f, t(22.1), 18);
-  const ramPulse = prog(f, t(23.7), sec(1.3));
-  const ramHit = pop(f, t(24.9));
-  const walPulse = prog(f, t(26.3), sec(1.5));
-  const walRec = pop(f, t(27.8));
-  const walName = prog(f, t(28.9), 20);
-  const laser = prog(f, t(26.6), sec(1.6));
-  const shield = pop(f, t(33.8));
-  const outage = f >= t(36.4) && f < t(37.8);
-  const recovered = pop(f, t(37.9));
-  const pulse = 0.5 + 0.5 * Math.sin(f / 8);
+  const t = useT();
 
-  const flowDot = (a: number, b: number, p: number, color: string) =>
-    p > 0 && p < 1 ? (
-      <g>
-        <circle cx={lerp(a, b, p)} cy={MID} r={22} fill={color} opacity={0.22} />
-        <circle cx={lerp(a, b, p)} cy={MID} r={9} fill={color} />
-      </g>
-    ) : null;
+  // slot index per order inside its bucket
+  const counts = [0, 0, 0];
+  const slots = ORDERS.map(([, cat]) => counts[cat - 1]++);
+
+  const cp = eio(t, 33.0, 34.2);
+  const stackH = 208 * lerp(1, 0.2, cp);
+  const plateBottom =
+    t < 33.0 ? lerp(372, 555, eo(t, 32.0, 33.0)) : t < 34.4 ? STACK_BOT - stackH - 2 : lerp(STACK_BOT - 208 * 0.2 - 2, 372, eio(t, 34.5, 35.4));
+  const pistonOn = win(t, 31.9, 35.7, 0.3);
+  const colored = prog(t, 20.8, 21.6);
+  const rowsFade = 1 - prog(t, 34.25, 34.5);
+  const sumShow = prog(t, 34.3, 34.8);
 
   return (
-    <Stage dur={1230} inFx="none" outFx="zoom">
-      <TopBadge text="لغة معالجة البيانات | DML (Data Manipulation Language)" from={t(2)} to={t(18)} />
+    <AbsoluteFill>
+      {/* ───────── SVG layer: buckets, pistons, arrows ───────── */}
+      <svg width={1170} height={620} viewBox="700 190 1170 620" style={{ position: "absolute", left: 700, top: 190 }}>
+        <defs>
+          <filter id="s1glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" />
+          </filter>
+        </defs>
 
-      <Header i={0} n="1 · DML Editor" sub="INSERT · UPDATE · DELETE" color={C.text} p={p0} />
-      <Header i={1} n="2 · Shared Buffers" sub="RAM — fast, volatile" color={C.blue} p={p1} />
-      <Header i={2} n="3 · Write-Ahead Log" sub="WAL — durable record" color={C.amber} p={p2} />
-      <Header i={3} n="4 · Data Files" sub="Disk — written later" color={C.muted} p={p3} />
+        {/* buckets */}
+        {CATS.map((cat, k) => {
+          const p = eb(t, 20.9 + k * 0.25, 21.9 + k * 0.25);
+          if (p <= 0) return null;
+          const x0 = BX(k);
+          const rise = (1 - p) * 140;
+          const pulse = win(t, 29.3 + k * 0.5, 30.4 + k * 0.5, 0.25);
+          return (
+            <g key={k} transform={`translate(0 ${rise})`} opacity={Math.min(1, p * 1.4)}>
+              <path
+                d={`M ${x0} ${B_TOP} L ${x0} ${B_BOT - 40} Q ${x0} ${B_BOT} ${x0 + 40} ${B_BOT} L ${x0 + BW - 40} ${B_BOT} Q ${x0 + BW} ${B_BOT} ${x0 + BW} ${B_BOT - 40} L ${x0 + BW} ${B_TOP}`}
+                fill={`${cat.c}10`}
+                stroke={cat.c}
+                strokeWidth={4}
+                strokeLinejoin="round"
+              />
+              {pulse > 0 && (
+                <rect x={x0 - 10} y={B_TOP - 70} width={BW + 20} height={64} rx={16} fill="none" stroke={cat.c} strokeWidth={3} opacity={pulse} />
+              )}
+            </g>
+          );
+        })}
 
-      {/* 1 · editor */}
-      <Win x={COLX[0]} y={TOP} w={COLW} h={COLH} title="DML Editor" accent={C.border} opacity={p0}>
-        <div dir="ltr" style={{position: 'absolute', inset: 0, background: C.deep, padding: 22, fontFamily: MONO, fontSize: 20}}>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24}}>
-            {['INSERT', 'UPDATE', 'DELETE'].map((c, i) => (
-              <div key={c} style={{transform: `scale(${chips[i]})`, transformOrigin: 'left center', opacity: clamp(chips[i])}}>
-                <Chip color={i === 0 ? C.blue : i === 1 ? C.amber : C.red}>{c}</Chip>
-              </div>
-            ))}
-          </div>
-          {typedCode.map((l, i) => (
-            <div key={i} style={{whiteSpace: 'pre', minHeight: 32}}>
-              <Sql text={l} />
-            </div>
-          ))}
-        </div>
-      </Win>
-
-      {/* 2 · RAM */}
-      <div style={{position: 'absolute', left: COLX[1], top: TOP, width: COLW, height: COLH, borderRadius: 22, background: C.card, border: `2px solid ${ramHit > 0.5 ? C.blue : C.border}`, boxShadow: `0 26px 70px rgba(2,6,23,.55), 0 0 ${40 * ramHit * pulse}px ${C.blue}33`, opacity: p1}}>
-        <div style={{position: 'absolute', left: 30, top: 34, display: 'grid', gridTemplateColumns: 'repeat(3, 84px)', gap: 18}}>
-          {Array.from({length: 12}).map((_, i) => {
-            const hot = i === 7;
+        {/* pistons */}
+        {pistonOn > 0 &&
+          CATS.map((cat, k) => {
+            const x0 = BX(k);
             return (
-              <div key={i} dir="ltr" style={{height: 84, borderRadius: 14, background: hot && ramHit > 0.4 ? `${C.blue}44` : C.deep, border: `2px solid ${hot && ramHit > 0.4 ? C.blue : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 17, color: hot ? C.blue : '#475569', transform: hot ? `scale(${1 + 0.08 * ramHit})` : 'none'}}>
-                {hot && ramHit > 0.4 ? '120' : `p${i}`}
-              </div>
+              <g key={k} opacity={pistonOn}>
+                <rect x={x0 + BW / 2 - 9} y={352} width={18} height={Math.max(0, plateBottom - 22 - 352)} fill="#475569" />
+                <rect x={x0 + 14} y={plateBottom - 22} width={BW - 28} height={22} rx={8} fill={cat.c} />
+              </g>
             );
           })}
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, bottom: 34, opacity: clamp(ramHit)}}>
-          <Chip color={C.blue}>dirty page</Chip>
-        </div>
-      </div>
-
-      {/* 3 · WAL */}
-      <div style={{position: 'absolute', left: COLX[2], top: TOP, width: COLW, height: COLH, borderRadius: 22, background: C.card, border: `2px solid ${walRec > 0.4 ? C.amber : C.border}`, boxShadow: `0 26px 70px rgba(2,6,23,.55), 0 0 ${40 * walRec * pulse}px ${C.amber}44`, opacity: p2, overflow: 'hidden'}}>
-        <div dir="ltr" style={{padding: '34px 26px', fontFamily: MONO, fontSize: 19, color: C.muted}}>
-          {['0/16B3A00 · INSERT', '0/16B3A28 · UPDATE', '0/16B3A50 · COMMIT'].map((l, i) => (
-            <div key={l} style={{height: 54, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', opacity: 0.5}}>{l}</div>
-          ))}
-          <div style={{height: 64, marginTop: 10, borderRadius: 12, background: `${C.amber}${walRec > 0.3 ? '2A' : '00'}`, border: `2px solid ${walRec > 0.3 ? C.amber : 'transparent'}`, display: 'flex', alignItems: 'center', padding: '0 12px', color: C.amber, fontWeight: 700, opacity: clamp(walRec), transform: `translateX(${(1 - clamp(walRec)) * -30}px)`}}>0/16B3A78 · UPDATE ✓</div>
-        </div>
-        <div style={{position: 'absolute', left: 0, right: 0, top: 150 + laser * 250, height: 5, background: C.amber, boxShadow: `0 0 20px ${C.amber}`, opacity: laser > 0 && laser < 1 ? 1 : 0}} />
-        <div dir="ltr" style={{position: 'absolute', left: 26, bottom: 30, opacity: walName}}>
-          <Chip color={C.amber}>fsync · durable</Chip>
-        </div>
-      </div>
-
-      {/* 4 · disk */}
-      <div style={{position: 'absolute', left: COLX[3], top: TOP, width: COLW, height: COLH, borderRadius: 22, background: C.card, border: `2px dashed ${C.border}`, opacity: p3 * 0.8}}>
-        <svg width={COLW} height={COLH}>
-          <g transform="translate(170 210)" opacity={0.55}>
-            <ellipse cx={0} cy={80} rx={96} ry={26} fill="#334155" />
-            <rect x={-96} y={-60} width={192} height={140} fill="#475569" />
-            <ellipse cx={0} cy={-60} rx={96} ry={26} fill="#64748B" />
-          </g>
-          <text x={COLW / 2} y={380} textAnchor="middle" fontFamily={MONO} fontSize={20} fill={C.muted}>checkpoint later</text>
-        </svg>
-      </div>
-
-      {/* flow arrows */}
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-        {[0, 1].map((i) => (
-          <line key={i} x1={COLX[i] + COLW + 10} x2={COLX[i + 1] - 10} y1={MID} y2={MID} stroke={i === 0 ? C.blue : C.amber} strokeWidth={5} strokeDasharray="12 10" opacity={prog(f, t(5.4 + i * 1.1), 20) * 0.7} />
-        ))}
-        <line x1={COLX[2] + COLW + 10} x2={COLX[3] - 10} y1={MID} y2={MID} stroke={C.muted} strokeWidth={5} strokeDasharray="4 12" opacity={blocked * 0.8} />
-        <g opacity={blocked}>
-          <circle cx={(COLX[2] + COLW + COLX[3]) / 2} cy={MID} r={26} fill={C.bg} stroke={C.red} strokeWidth={4} />
-          <g stroke={C.red} strokeWidth={6} strokeLinecap="round">
-            <line x1={(COLX[2] + COLW + COLX[3]) / 2 - 11} y1={MID - 11} x2={(COLX[2] + COLW + COLX[3]) / 2 + 11} y2={MID + 11} />
-            <line x1={(COLX[2] + COLW + COLX[3]) / 2 + 11} y1={MID - 11} x2={(COLX[2] + COLW + COLX[3]) / 2 - 11} y2={MID + 11} />
-          </g>
-        </g>
-        {flowDot(COLX[0] + COLW, COLX[1], ramPulse, C.blue)}
-        {flowDot(COLX[1] + COLW, COLX[2], walPulse, C.amber)}
       </svg>
 
-      {/* durability shield */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 730, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 36, opacity: clamp(shield), transform: `scale(${0.85 + 0.15 * clamp(shield)})`}}>
-        <svg width={92} height={104} viewBox="0 0 80 92">
-          <path d="M40 4 L74 18 V46 C74 66 58 80 40 88 C22 80 6 66 6 46 V18 Z" fill={`${C.green}22`} stroke={C.green} strokeWidth={5} />
-          <polyline points="26,46 36,57 56,34" fill="none" stroke={C.green} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+      {/* global aggregation arrows (own small SVG: only this region repaints) */}
+      {win(t, 10.0, 15.8, 0.4) > 0 && (
+        <svg width={320} height={440} viewBox="705 310 320 440" style={{ position: "absolute", left: 705, top: 310, opacity: win(t, 10.0, 15.8, 0.4) }}>
+          {[0, 1, 2, 3].map((i) => (
+            <path
+              key={i}
+              d={`M ${712} ${330 + i * 150} C ${860} ${330 + i * 150}, ${900} ${540}, ${1010} ${540}`}
+              fill="none"
+              stroke={C.blue}
+              strokeWidth={3}
+              strokeDasharray="14 12"
+              strokeDashoffset={-t * 90}
+              opacity={0.8}
+            />
+          ))}
         </svg>
-        <div>
-          <Mix style={{fontSize: 44, fontWeight: 700, color: C.text, display: 'block'}}>سلامة المعاملات حتى لو انقطع التيار</Mix>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 24, color: C.green, marginTop: 4, opacity: clamp(recovered)}}>✓ Recovered by replaying the WAL</div>
-        </div>
-      </div>
+      )}
 
-      {/* power outage flicker */}
-      {outage && (
-        <div style={{position: 'absolute', left: 0, right: 0, top: 130, height: 590, background: 'rgba(2,6,23,0.78)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <svg width={120} height={150} viewBox="0 0 60 80">
-            <polygon points="36,2 10,46 28,46 22,78 52,32 33,32" fill={C.amber} />
-          </svg>
+      {/* ───────── Top badge (2s–18s) ───────── */}
+      {win(t, 2.0, 18.0, 0.6) > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 780,
+            top: 124,
+            width: 1070,
+            height: 62,
+            opacity: win(t, 2.0, 18.0, 0.6),
+            transform: `translateY(${(1 - prog(t, 2.0, 2.7)) * -24}px)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 18,
+            borderRadius: 999,
+            border: `2px solid ${C.blue}88`,
+            background: "#0B1B33",
+            boxShadow: `0 0 20px ${C.blue}33`,
+          }}
+        >
+          <span style={{ fontFamily: AR, fontWeight: 900, fontSize: 34, color: C.text, direction: "rtl" }}>التجميع الفئوي</span>
+          <span style={{ color: C.blue, fontSize: 30 }}>|</span>
+          <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 28, color: C.blue }}>Grouped Aggregation &amp; Bucketing</span>
         </div>
       )}
 
-      <Caption text="DML Execution ──► Shared Buffers (RAM) ──► Write-Ahead Log (WAL)" from={t(22)} to={t(38)} />
-    </Stage>
+      {/* ───────── Table card ───────── */}
+      <div
+        style={{
+          position: "absolute",
+          left: TX - (1 - eo(t, 0.1, 1.1)) * 500,
+          top: TY,
+          width: TW,
+          height: 740,
+          borderRadius: 24,
+          background: C.card2,
+          border: `2px solid ${C.line}`,
+          boxShadow: "none",
+        }}
+      >
+        <div style={{ height: 60, display: "flex", alignItems: "center", gap: 14, padding: "0 24px", borderBottom: `1.5px solid ${C.line}` }}>
+          <svg width={30} height={30} viewBox="0 0 30 30">
+            <ellipse cx="15" cy="7" rx="11" ry="5" fill="none" stroke={C.blue} strokeWidth="2.2" />
+            <path d="M4 7v16c0 2.8 5 5 11 5s11-2.2 11-5V7" fill="none" stroke={C.blue} strokeWidth="2.2" />
+            <path d="M4 15c0 2.8 5 5 11 5s11-2.2 11-5" fill="none" stroke={C.blue} strokeWidth="2.2" />
+          </svg>
+          <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.text }}>orders</span>
+          <span style={{ fontFamily: MONO, fontSize: 18, color: C.dim, marginLeft: "auto" }}>manzooma_store_db</span>
+        </div>
+        <div style={{ height: 50, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "center", padding: "0 44px 0 44px", fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.dim }}>
+          <span>order_id</span>
+          <span
+            style={{
+              textAlign: "center",
+              color: colored > 0 ? C.blue : C.dim,
+              textShadow: colored > 0 && win(t, 29.3, 31.6, 0.3) > 0 ? `0 0 18px ${C.blue}` : "none",
+            }}
+          >
+            category_id
+          </span>
+          <span style={{ textAlign: "right" }}>total_amount</span>
+        </div>
+        {ORDERS.map((_, i) => (
+          <div key={i} style={{ position: "absolute", left: 22, top: ROW0 - TY + i * ROWS, width: 596, height: 42, borderRadius: 10, border: `1px dashed ${C.line}55` }} />
+        ))}
+      </div>
+
+      {/* ───────── Flying rows ───────── */}
+      {ORDERS.map(([id, cat, amt], i) => {
+        const appear = eb(t, 0.8 + i * 0.14, 1.3 + i * 0.14);
+        if (appear <= 0) return null;
+        const k = cat - 1;
+        const ts = FLY0 + i * FLY_STEP;
+        const p = eio(t, ts, ts + FLY_DUR);
+        const s = slots[i];
+        const col = CATS[k].c;
+        const tableLeft = TX - (1 - eo(t, 0.1, 1.1)) * 500 + 22;
+        const x = lerp(tableLeft, BX(k) + 20, p);
+        const w = lerp(596, 290, p);
+        const lift = Math.sin(Math.PI * p) * 80;
+        // compressed geometry
+        const step = 52 * lerp(1, 0.2, cp);
+        const h = lerp(42, 44, p) * (p >= 1 ? lerp(1, 0.2, cp) : 1);
+        const slotTop = STACK_BOT - (s + 1) * step + (p >= 1 ? 6 * lerp(1, 0.2, cp) : 6);
+        const y = lerp(ROW0 + i * ROWS, slotTop, p) - lift;
+        const op = Math.min(1, appear) * (p >= 1 ? rowsFade : 1);
+        if (op <= 0) return null;
+        const fs = p >= 1 ? 22 * Math.min(1, Math.max(0.55, lerp(1, 0.2, cp) * 1.4)) : 21;
+        const landed = p >= 1 && t < ts + FLY_DUR + 0.25 ? 1 - prog(t, ts + FLY_DUR, ts + FLY_DUR + 0.25) : 0;
+        return (
+          <div
+            key={id}
+            style={{
+              position: "absolute",
+              left: x,
+              top: y,
+              width: w,
+              height: h,
+              opacity: op,
+              borderRadius: 10,
+              overflow: "hidden",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              alignItems: "center",
+              padding: p > 0.5 ? "0 16px" : "0 22px",
+              background: colored > 0 ? `${col}${p > 0.5 ? "30" : "18"}` : "#1B2740",
+              border: `1.5px solid ${colored > 0 ? col : C.line}`,
+              boxShadow: landed > 0 ? `0 0 ${Math.min(20, 24 * landed)}px ${col}` : "none",
+              fontFamily: MONO,
+              fontWeight: 500,
+              fontSize: fs,
+              color: C.text,
+            }}
+          >
+            <span>#{id}</span>
+            <span style={{ color: colored > 0 ? col : C.text, fontWeight: 700, textAlign: "center" }}>{cat}</span>
+            <span style={{ textAlign: "right" }}>{amt}</span>
+          </div>
+        );
+      })}
+
+      {/* ───────── Global aggregation demo (8.4s–16s) ───────── */}
+      {win(t, 8.4, 15.9, 0.45) > 0 && (
+        <div style={{ position: "absolute", left: 0, top: 0, opacity: win(t, 8.4, 15.9, 0.45) }}>
+          <div
+            style={{
+              position: "absolute",
+              left: 800,
+              top: 230,
+              width: 1000,
+              padding: "16px 26px",
+              borderRadius: 16,
+              background: "#0B1222",
+              border: `2px solid ${C.line}`,
+            }}
+          >
+            <CodeLine text={typed("SELECT SUM(total_amount) FROM orders;", t, 8.5, 10.0)} caret={t < 10.1} fs={30} />
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              left: 1010,
+              top: 410,
+              width: 560,
+              height: 260,
+              borderRadius: 26,
+              background: `${C.blue}14`,
+              border: `3px solid ${C.blue}`,
+              boxShadow: `0 0 ${Math.min(20, 30 + 20 * Math.sin(t * 5))}px ${C.blue}55`,
+              transform: `scale(${0.85 + 0.15 * eb(t, 10.2, 11.0)})`,
+              opacity: prog(t, 10.2, 10.8),
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontFamily: MONO, fontSize: 22, color: C.dim, marginTop: 28 }}>Global Aggregation · 1 row</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 100, color: C.blue, marginTop: 6 }}>{fmt(TOTAL * eo(t, 10.8, 12.4))}</div>
+            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 28, color: C.text, direction: "rtl" }}>الجدول كله في رقم واحد</div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────── Real-world questions (16.4s–20.6s) ───────── */}
+      {[
+        { a: 16.5, y: 330, en: "SUM(total_amount)  per department ?", ar: "إجمالي مبيعات كل قسم" },
+        { a: 18.45, y: 520, en: "AVG(total_amount)  per city ?", ar: "متوسط طلبات كل مدينة" },
+      ].map((q, i) => {
+        const o = win(t, q.a, 20.6, 0.4);
+        if (o <= 0) return null;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: 880,
+              top: q.y,
+              width: 880,
+              height: 140,
+              opacity: o,
+              transform: `translateX(${(1 - eo(t, q.a, q.a + 0.6)) * 160}px)`,
+              borderRadius: 24,
+              background: C.card,
+              border: `2px solid ${C.violet}88`,
+              boxShadow: `0 0 20px ${C.violet}22`,
+              padding: "22px 34px",
+            }}
+          >
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.violet }}>{q.en}</div>
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 40, color: C.text, direction: "rtl", textAlign: "right", marginTop: 6 }}>{q.ar}</div>
+          </div>
+        );
+      })}
+
+      {/* ───────── GROUP BY keyword ───────── */}
+      {t > 20.66 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 780,
+            top: 208,
+            width: 560,
+            height: 70,
+            borderRadius: 16,
+            background: `${C.blue}1A`,
+            border: `3px solid ${C.blue}`,
+            boxShadow: `0 0 ${Math.min(20, 34 + 40 * (1 - prog(t, 20.66, 21.6)))}px ${C.blue}77`,
+            transform: `scale(${1 + 0.3 * (1 - eb(t, 20.66, 21.2))})`,
+            transformOrigin: "left center",
+            display: "flex",
+            alignItems: "center",
+            paddingLeft: 24,
+            opacity: Math.min(prog(t, 20.66, 20.9), 1 - prog(t, 38.4, 38.9)),
+          }}
+        >
+          <CodeLine text="GROUP BY category_id" fs={34} />
+        </div>
+      )}
+      <Arabic x={1360} y={214} w={490} fs={32} color={C.blue} o={win(t, 29.3, 31.7, 0.35)}>
+        نفس القيمة = نفس الوعاء
+      </Arabic>
+
+      {/* ───────── Bucket tabs ───────── */}
+      {CATS.map((cat, k) => {
+        const p = eb(t, 20.9 + k * 0.25, 21.9 + k * 0.25);
+        if (p <= 0) return null;
+        return (
+          <div
+            key={k}
+            style={{
+              position: "absolute",
+              left: BX(k),
+              top: B_TOP - 64 + (1 - p) * 140,
+              width: BW,
+              height: 54,
+              opacity: Math.min(1, p * 1.4),
+              borderRadius: 14,
+              background: cat.c,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              fontFamily: MONO,
+              fontWeight: 700,
+              fontSize: 23,
+              color: "#07101F",
+            }}
+          >
+            <span>category_id = {cat.id}</span>
+          </div>
+        );
+      })}
+      {CATS.map((cat, k) => {
+        const o = win(t, 21.4 + k * 0.25, 38.9, 0.4) * (1 - sumShow * 0);
+        if (o <= 0) return null;
+        return (
+          <div key={k} style={{ position: "absolute", left: BX(k), top: B_BOT + 10, width: BW, textAlign: "center", fontFamily: AR, fontWeight: 700, fontSize: 24, color: cat.c, opacity: o * (1 - prog(t, 35.4, 35.8)) }}>
+            {cat.name}
+          </div>
+        );
+      })}
+      {win(t, 27.6, 31.2, 0.3) > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 1040,
+            top: 300 - 6,
+            opacity: 0,
+          }}
+        />
+      )}
+      {win(t, 27.7, 30.5, 0.3) > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 1236,
+            top: 290,
+            padding: "6px 22px",
+            borderRadius: 999,
+            background: C.text,
+            color: "#07101F",
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 26,
+            opacity: win(t, 27.7, 30.5, 0.3),
+            transform: `scale(${0.7 + 0.3 * eb(t, 27.7, 28.2)})`,
+          }}
+        >
+          Buckets
+        </div>
+      )}
+
+      {/* ───────── Summary rows inside buckets + result cards ───────── */}
+      {CATS.map((cat, k) => {
+        if (sumShow <= 0) return null;
+        return (
+          <div
+            key={k}
+            style={{
+              position: "absolute",
+              left: BX(k) + 20,
+              top: STACK_BOT - 52 + 6,
+              width: 290,
+              height: 44,
+              opacity: sumShow,
+              borderRadius: 10,
+              background: `${cat.c}33`,
+              border: `2px solid ${C.blue}`,
+              boxShadow: `0 0 20px ${C.blue}99`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: MONO,
+              fontWeight: 700,
+              fontSize: 25,
+              color: C.text,
+              transform: `scale(${0.8 + 0.2 * eb(t, 34.3, 34.9)})`,
+            }}
+          >
+            Σ {fmt(SUMS[k])}
+          </div>
+        );
+      })}
+      {CATS.map((cat, k) => {
+        const a = 35.6 + k * 0.45;
+        const o = prog(t, a, a + 0.5);
+        if (o <= 0) return null;
+        return (
+          <div
+            key={k}
+            style={{
+              position: "absolute",
+              left: BX(k),
+              top: 812 + (1 - eo(t, a, a + 0.6)) * 60,
+              width: BW,
+              height: 100,
+              opacity: o,
+              borderRadius: 20,
+              background: C.card,
+              border: `2.5px solid ${C.blue}`,
+              boxShadow: `0 0 20px ${C.blue}66`,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontFamily: MONO, fontSize: 18, color: C.dim, marginTop: 10 }}>category_id = {cat.id} → SUM</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 46, color: cat.c }}>{fmt(SUMS[k] * eo(t, a + 0.1, a + 1.0))}</div>
+          </div>
+        );
+      })}
+
+      {/* ───────── Bottom tag (22s–38s) ───────── */}
+      <Banner x={780} y={940} w={1070} a={22.0} b={38.6} color={C.blue} fs={23}>
+        GROUP BY category_id ──► Groups Identical Keys into Separate Buckets
+      </Banner>
+    </AbsoluteFill>
   );
 };

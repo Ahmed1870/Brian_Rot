@@ -1,133 +1,301 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eo, fmt, prog, typed, useT, win } from "../lib";
 
-// SC05 (frames 4930-6070, global 164.3-202.3s): RETURNING removes the extra SELECT roundtrip.
-const S = 164.33;
-const t = (g: number) => sec(g - S);
+const CATS = ["Electronics", "Fashion", "Beauty", "Grocery"];
+const YEARS = [2023, 2024, 2025];
+const DATA = [
+  [38200, 62500, 98400],
+  [27900, 54300, 71200],
+  [12100, 33800, 58900],
+  [9400, 21700, 44600],
+];
+const MAX = 98400;
+const GX = 1010, GY = 214, LABW = 200, CW = 200, CH = 88, GAP = 8;
+const cellX = (c: number) => GX + LABW + 10 + c * (CW + 10);
+const cellY = (r: number) => GY + r * (CH + GAP);
 
-const OLD = ['INSERT INTO orders (customer_id, total_amount)', 'VALUES (5, 450.00);', 'SELECT order_id FROM orders', 'ORDER BY order_id DESC LIMIT 1;'];
-const NEW = ['INSERT INTO orders (customer_id, total_amount)', 'VALUES (5, 450.00)', 'RETURNING order_id, order_date;'];
+// ranked result (year DESC, total DESC) among cells >= 50,000
+const RANKED = [
+  { y: 2025, cat: "Electronics", v: 98400, r: 0, c: 2 },
+  { y: 2025, cat: "Fashion", v: 71200, r: 1, c: 2 },
+  { y: 2025, cat: "Beauty", v: 58900, r: 2, c: 2 },
+  { y: 2024, cat: "Electronics", v: 62500, r: 0, c: 1 },
+  { y: 2024, cat: "Fashion", v: 54300, r: 1, c: 1 },
+];
+
+const hex = (a: number) => Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, "0");
+
+const EX = 70, EY = 140, EW = 900, EH = 450;
+const rowTop = (i: number) => 18 + i * 38;
 
 export const Scene5: React.FC = () => {
-  const f = useCurrentFrame();
-  const oldIn = prog(f, t(169.6), 22) * (1 - prog(f, t(179.6), 12));
-  const newIn = prog(f, t(179.9), 20);
-  const trip1 = prog(f, t(170.0), sec(2.2));
-  const trip2 = prog(f, t(173.6), sec(2.4));
-  const idBack = pop(f, t(176.6));
-  const chipI = pop(f, t(183.2));
-  const chipU = pop(f, t(184.8));
-  const chipD = pop(f, t(186.9));
-  const beamOut = prog(f, t(188.9), sec(1.1));
-  const beamBack = prog(f, t(190.0), sec(1.4));
-  const card = pop(f, t(191.2));
-  const zero = pop(f, t(193.8));
-  const speed = prog(f, t(196.9), sec(2.5));
-  const pulse = 0.5 + 0.5 * Math.sin(f / 8);
+  const t = useT();
 
-  // bottom diagram: App <-> PostgreSQL
-  const AX = 360;
-  const DX = 1560;
-  const AY = 740;
+  const L = [
+    typed("SELECT category_id,", t, 176.0, 177.2),
+    typed("       EXTRACT(YEAR FROM order_date) AS order_year,", t, 177.2, 179.6),
+    typed("       SUM(total_amount) AS total_sales", t, 179.6, 181.4),
+    typed("FROM orders", t, 181.4, 182.2),
+    typed("GROUP BY category_id, order_year", t, 183.3, 186.6),
+    typed("HAVING SUM(total_amount) > 50000", t, 197.6, 199.6),
+    typed("ORDER BY order_year DESC, total_sales DESC;", t, 199.6, 202.2),
+  ];
+  const caretRow = L.findIndex((s, i) => s.length > 0 && (i === 6 || L[i + 1].length === 0));
+  const typing = (t > 176 && t < 186.8) || (t > 197.6 && t < 202.4);
 
-  const arrow = (y: number, p: number, dir: 1 | -1, color: string) => {
-    const x1 = dir === 1 ? AX + 120 : DX - 120;
-    const x2 = dir === 1 ? DX - 120 : AX + 120;
-    const cx = lerp(x1, x2, p);
-    return (
-      <g opacity={p > 0 ? 1 : 0}>
-        <line x1={x1} y1={y} x2={cx} y2={y} stroke={color} strokeWidth={6} strokeLinecap="round" />
-        <circle cx={cx} cy={y} r={11} fill={color} />
-      </g>
-    );
-  };
+  const rowGlow = win(t, 186.8, 188.7, 0.3);
+  const colGlow = win(t, 188.9, 190.8, 0.3);
+  const filterT = prog(t, 200.5, 201.5);
+  const gridOn = eo(t, 175.4, 176.8);
+  const stamp = eb(t, 205.6, 206.2);
+  const kpi = win(t, 208.6, 213.2, 0.4);
 
   return (
-    <Stage dur={1140} inFx="zoom" outFx="down">
-      <TopBadge text="السلاح السري | RETURNING" from={t(165.8)} to={t(180)} color={C.green} />
-
-      {/* old way editor */}
-      <div style={{opacity: oldIn}}>
-        <Editor x={90} y={170} w={940} h={300} title="old_way.sql" lines={OLD} start={t(169.6)} cps={1.1} size={26} accent={C.amber} />
+    <AbsoluteFill>
+      {/* editor */}
+      <div style={{ opacity: eo(t, 175.3, 176.0), transform: `translateX(${(1 - eo(t, 175.3, 176.2)) * -120}px)` }}>
+        <Window x={EX} y={EY} w={EW} h={EH} title="enterprise_report.sql" glow={typing ? 1 : 0}>
+          {L.map((s, i) =>
+            s.length > 0 ? (
+              <div key={i} style={{ position: "absolute", left: 24, top: rowTop(i) }}>
+                <CodeLine text={s} fs={24} caret={typing && i === caretRow} />
+              </div>
+            ) : null,
+          )}
+        </Window>
       </div>
-      {/* new way editor */}
-      <div style={{opacity: newIn}}>
-        <Editor x={90} y={170} w={940} h={300} title="returning.sql" lines={NEW} start={t(179.9)} cps={0.68} size={28} accent={C.green} />
+
+      {/* grid title */}
+      <div style={{ position: "absolute", left: GX, top: 122, width: 840, fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.dim, opacity: gridOn }}>
+        analytics matrix · category × order_year
       </div>
 
-      {/* statement chips */}
-      <div dir="ltr" style={{position: 'absolute', left: 90, top: 500, display: 'flex', gap: 16}}>
-        {[
-          {n: 'INSERT', c: C.blue, p: chipI},
-          {n: 'UPDATE', c: C.amber, p: chipU},
-          {n: 'DELETE', c: C.red, p: chipD},
-        ].map((x) => (
-          <div key={x.n} style={{transform: `scale(${clamp(x.p)})`, opacity: clamp(x.p), transformOrigin: 'left center'}}>
-            <Chip color={x.c} style={{fontSize: 26}}>{x.n} … RETURNING</Chip>
+      {/* year headers */}
+      {YEARS.map((y, c) => (
+        <div
+          key={y}
+          style={{
+            position: "absolute",
+            left: cellX(c),
+            top: 158,
+            width: CW,
+            height: 48,
+            opacity: gridOn,
+            borderRadius: 12,
+            background: colGlow > 0 ? `${C.blue}30` : "#111B30",
+            border: `2px solid ${colGlow > 0 ? C.blue : C.line}`,
+            boxShadow: colGlow > 0 ? `0 0 ${Math.min(20, 24 * colGlow)}px ${C.blue}` : "none",
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 26,
+            lineHeight: "44px",
+            color: colGlow > 0 ? C.blue : C.text,
+            textAlign: "center",
+          }}
+        >
+          {y}
+        </div>
+      ))}
+      {/* category labels */}
+      {CATS.map((n, r) => (
+        <div
+          key={n}
+          style={{
+            position: "absolute",
+            left: GX,
+            top: cellY(r),
+            width: LABW,
+            height: CH,
+            opacity: gridOn,
+            borderRadius: 14,
+            background: rowGlow > 0 ? `${C.blue}30` : "#111B30",
+            border: `2px solid ${rowGlow > 0 ? C.blue : C.line}`,
+            boxShadow: rowGlow > 0 ? `0 0 ${Math.min(20, 24 * rowGlow)}px ${C.blue}` : "none",
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 23,
+            lineHeight: `${CH - 4}px`,
+            color: rowGlow > 0 ? C.blue : C.text,
+            textAlign: "center",
+          }}
+        >
+          {n}
+        </div>
+      ))}
+      {/* cells */}
+      {DATA.map((row, r) =>
+        row.map((v, c) => {
+          const idx = r * 3 + c;
+          const a = 192.0 + idx * 0.3;
+          const e = eo(t, a, a + 0.9);
+          const pass = v >= 50000;
+          const heat = 0.14 + 0.5 * (v / MAX);
+          const bg = filterT > 0 ? (pass ? `${C.green}${hex(0.16 + 0.3 * (v / MAX))}` : "#0B1222") : e > 0 ? `${C.blue}${hex(heat)}` : "transparent";
+          const border = filterT > 0 ? (pass ? C.green : C.line) : e > 0 ? `${C.blue}99` : `${C.line}`;
+          return (
+            <div
+              key={idx}
+              style={{
+                position: "absolute",
+                left: cellX(c),
+                top: cellY(r),
+                width: CW,
+                height: CH,
+                opacity: gridOn * (filterT > 0 && !pass ? 1 - 0.65 * filterT : 1),
+                borderRadius: 14,
+                background: bg,
+                border: `${filterT > 0 && pass ? 3 : 2}px ${e > 0 ? "solid" : "dashed"} ${border}`,
+                boxShadow: filterT > 0 && pass ? `0 0 ${Math.min(20, 22 + 8 * Math.sin(t * 4 + idx))}px ${C.green}77` : "none",
+                textAlign: "center",
+                transform: `scale(${0.9 + 0.1 * Math.min(1, e)})`,
+              }}
+            >
+              {e > 0 && (
+                <>
+                  <div style={{ fontFamily: MONO, fontSize: 15, color: C.dim, marginTop: 8 }}>SUM</div>
+                  <div
+                    style={{
+                      fontFamily: MONO,
+                      fontWeight: 700,
+                      fontSize: 31,
+                      color: filterT > 0 ? (pass ? "#6EE7B7" : C.red) : C.text,
+                      textDecoration: filterT > 0 && !pass ? "line-through" : "none",
+                    }}
+                  >
+                    {fmt(v * e)}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        }),
+      )}
+
+      {/* HAVING threshold tag */}
+      {filterT > 0 && (
+        <div style={{ position: "absolute", left: GX + LABW + 10, top: 590 + 16, width: 630, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.green, opacity: filterT }}>
+          HAVING &gt; 50,000 → 5 of 12 groups survive
+        </div>
+      )}
+
+      {/* ranked report */}
+      {t > 202.4 && (
+        <div style={{ position: "absolute", left: 70, top: 628, width: 900 }}>
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.dim, opacity: prog(t, 202.4, 203.0), marginBottom: 10 }}>
+            ORDER BY order_year DESC, total_sales DESC
           </div>
-        ))}
-      </div>
+          {RANKED.map((r, i) => {
+            const a = 202.8 + i * 0.55;
+            const e = eb(t, a, a + 0.6);
+            return (
+              <div
+                key={i}
+                style={{
+                  height: 56,
+                  marginBottom: 8,
+                  opacity: Math.min(1, e * 1.4),
+                  transform: `translateX(${(1 - Math.min(1, e)) * 420}px)`,
+                  borderRadius: 14,
+                  background: `${C.green}${hex(0.12 + 0.14 * (r.v / MAX))}`,
+                  border: `2.5px solid ${C.green}`,
+                  boxShadow: `0 0 20px ${C.green}44`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 18,
+                  padding: "0 20px",
+                  fontFamily: MONO,
+                  fontWeight: 700,
+                  fontSize: 25,
+                  color: C.text,
+                }}
+              >
+                <span style={{ width: 40, height: 40, borderRadius: 20, background: C.green, color: "#07101F", textAlign: "center", lineHeight: "40px" }}>{i + 1}</span>
+                <span style={{ width: 90, color: C.blue }}>{r.y}</span>
+                <span style={{ flex: 1 }}>{r.cat}</span>
+                <span style={{ color: "#6EE7B7" }}>{fmt(r.v)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      {/* result card */}
-      <div style={{position: 'absolute', left: 1090, top: 170, width: 740, height: 330, borderRadius: 26, background: C.card, border: `3px solid ${C.green}`, boxShadow: `0 30px 90px rgba(2,6,23,.65), 0 0 ${60 * clamp(card) * pulse}px ${C.green}44`, opacity: clamp(card), transform: `scale(${0.8 + 0.2 * clamp(card)})`}}>
-        <div dir="ltr" style={{padding: '28px 38px'}}>
-          <div style={{fontFamily: MONO, fontSize: 22, color: C.muted}}>RETURNING → result</div>
-          <div style={{display: 'flex', gap: 30, marginTop: 16}}>
-            <div style={{flex: 1, background: C.deep, borderRadius: 16, padding: '16px 20px', border: `2px solid ${C.green}`}}>
-              <div style={{fontFamily: MONO, fontSize: 20, color: C.muted}}>order_id</div>
-              <div style={{fontFamily: MONO, fontSize: 76, fontWeight: 700, color: C.green, lineHeight: 1.1}}>101</div>
-            </div>
-            <div style={{flex: 1.5, background: C.deep, borderRadius: 16, padding: '16px 20px', border: `2px solid ${C.border}`}}>
-              <div style={{fontFamily: MONO, fontSize: 20, color: C.muted}}>order_date</div>
-              <div style={{fontFamily: MONO, fontSize: 30, fontWeight: 700, color: C.text, marginTop: 18}}>2025-06-01<br />10:42:07</div>
-            </div>
+      {/* enterprise stamp */}
+      {stamp > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 640,
+            top: 700,
+            width: 300,
+            height: 110,
+            borderRadius: 16,
+            border: `6px solid ${C.green}`,
+            color: C.green,
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 30,
+            textAlign: "center",
+            lineHeight: "50px",
+            paddingTop: 4,
+            background: "#0B1222D0",
+            transform: `rotate(-9deg) scale(${1.6 - 0.6 * stamp})`,
+            opacity: Math.min(1, stamp * 1.5) * (1 - prog(t, 212.6, 213.2)),
+            boxShadow: `0 0 20px ${C.green}77`,
+          }}
+        >
+          ENTERPRISE
+          <br />
+          APPROVED ✓
+        </div>
+      )}
+
+      {/* KPI dashboard */}
+      {kpi > 0 && (
+        <div style={{ position: "absolute", left: GX, top: 640, width: 840, opacity: kpi }}>
+          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.text, direction: "rtl", textAlign: "right", marginBottom: 14 }}>
+            لوحة مؤشرات الأداء <span style={{ fontFamily: MONO, color: C.blue, fontSize: 26 }}>Dashboard</span>
+          </div>
+          <div style={{ display: "flex", gap: 25 }}>
+            {[
+              { k: "TOP CATEGORY", v: "Electronics", c: C.blue },
+              { k: "BEST YEAR", v: "2025", c: C.green },
+              { k: "GROUPS ≥ 50K", v: "5", c: C.amber },
+            ].map((s, i) => {
+              const e = eb(t, 208.7 + i * 0.3, 209.4 + i * 0.3);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    width: 260,
+                    height: 170,
+                    borderRadius: 20,
+                    background: `${s.c}18`,
+                    border: `3px solid ${s.c}`,
+                    boxShadow: `0 0 20px ${s.c}55`,
+                    textAlign: "center",
+                    transform: `translateY(${(1 - Math.min(1, e)) * 50}px)`,
+                    opacity: Math.min(1, e * 1.5),
+                  }}
+                >
+                  <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.dim, marginTop: 22 }}>{s.k}</div>
+                  <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: s.v.length > 5 ? 36 : 68, color: s.c, marginTop: s.v.length > 5 ? 38 : 8 }}>{s.v}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* app <-> db diagram */}
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-        <rect x={AX - 120} y={AY - 110} width={240} height={220} rx={24} fill={C.card} stroke={C.blue} strokeWidth={3} />
-        <text x={AX} y={AY + 10} textAnchor="middle" fontFamily={MONO} fontSize={34} fontWeight={700} fill={C.blue}>App</text>
-        <text x={AX} y={AY + 50} textAnchor="middle" fontFamily={MONO} fontSize={19} fill={C.muted}>your code</text>
-        <rect x={DX - 120} y={AY - 110} width={240} height={220} rx={24} fill={C.card} stroke={C.green} strokeWidth={3} />
-        <text x={DX} y={AY + 10} textAnchor="middle" fontFamily={MONO} fontSize={30} fontWeight={700} fill={C.green}>PostgreSQL</text>
-        <text x={DX} y={AY + 50} textAnchor="middle" fontFamily={MONO} fontSize={19} fill={C.muted}>engine</text>
-
-        {/* old way: 2 roundtrips */}
-        <g opacity={oldIn}>
-          {arrow(AY - 56, trip1, 1, C.amber)}
-          <text x={(AX + DX) / 2} y={AY - 74} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.amber} opacity={trip1}>① INSERT</text>
-          {arrow(AY + 4, trip2, 1, C.red)}
-          <text x={(AX + DX) / 2} y={AY - 14} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.red} opacity={trip2}>② extra SELECT</text>
-          {arrow(AY + 64, clamp(idBack), -1, C.muted)}
-          <text x={(AX + DX) / 2} y={AY + 108} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.muted} opacity={clamp(idBack)}>id ← only now</text>
-        </g>
-        <g opacity={oldIn}>
-          <text x={(AX + DX) / 2} y={AY + 172} textAnchor="middle" fontFamily={MONO} fontSize={30} fontWeight={700} fill={C.red} opacity={trip2}>2 roundtrips</text>
-        </g>
-
-        {/* new way: 1 roundtrip with return beam */}
-        <g opacity={newIn}>
-          {arrow(AY - 30, beamOut, 1, C.blue)}
-          {arrow(AY + 30, beamBack, -1, C.green)}
-          {beamBack > 0 && beamBack < 1 && <circle cx={lerp(DX - 120, AX + 120, beamBack)} cy={AY + 30} r={26} fill={C.green} opacity={0.25} />}
-          <text x={(AX + DX) / 2} y={AY - 56} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.blue} opacity={beamOut}>INSERT … RETURNING</text>
-          <text x={(AX + DX) / 2} y={AY + 74} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.green} opacity={beamBack}>order_id, order_date</text>
-        </g>
-      </svg>
-
-      <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 880, display: 'flex', justifyContent: 'center', gap: 28, alignItems: 'center', opacity: clamp(zero)}}>
-        <div style={{transform: `scale(${clamp(zero)})`}}><Chip color={C.green} style={{fontSize: 30, padding: '8px 28px'}}><Check p={1} size={30} /> Zero Extra SELECT Roundtrip</Chip></div>
-        <div style={{width: 280, height: 14, borderRadius: 7, background: C.deep, border: `2px solid ${C.border}`, overflow: 'hidden', opacity: speed}}>
-          <div style={{width: `${speed * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`}} />
-        </div>
-      </div>
-
-      <Caption text="INSERT INTO orders ... RETURNING order_id, order_date;" from={t(180.5)} to={t(192)} />
-      <Caption text="RETURNING Clause ──► Eliminates Extra SELECT Roundtrip" from={t(194)} to={t(201)} />
-    </Stage>
+      {/* captions */}
+      <Banner x={70} y={992} w={1780} a={176.2} b={196.8} color={C.blue} fs={26}>
+        GROUP BY category_id, order_year ──► Multi-Dimensional Matrix Analytics
+      </Banner>
+      <Banner x={70} y={992} w={1780} a={197.4} b={213.0} color={C.green} fs={26}>
+        Enterprise Reporting ──► Grouping + Aggregation + Filtering + Sorting
+      </Banner>
+    </AbsoluteFill>
   );
 };

@@ -1,114 +1,290 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Caption, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner } from "../components/common";
+import { C, eb, eio, eo, lerp, prog, useT, win } from "../lib";
 
-// SC04 (frames 3745-4930, global 124.8-164.3s): DELETE (DML, row level, FK-guarded) vs TRUNCATE (DDL, page reset).
-const S = 124.83;
-const t = (g: number) => sec(g - S);
+const KC = [C.blue, C.green, C.amber];
+const LX = [70, 990];
+const LY = 180, LW = 860, LH = 600;
 
-const CUST = [
-  {id: 8, n: 'Mona'},
-  {id: 9, n: 'Karim'},
-  {id: 10, n: 'Nour'},
-  {id: 5, n: 'Sara'},
-];
+const HASH_KEYS = [2, 1, 3, 1, 3, 2, 1, 2, 3];
+const HASH_T0 = 140.4, HASH_STEP = 0.9, HASH_FLY = 0.7;
+const SORT_KEYS = [1, 1, 1, 2, 2, 2, 3, 3, 3];
+const sortX = (n: number) => 40 + n * 80 + Math.floor(n / 3) * 28;
+
+const Chip: React.FC<{ k: number; x: number; y: number; o?: number; lit?: boolean; w?: number }> = ({ k, x, y, o = 1, lit, w = 68 }) => (
+  <div
+    style={{
+      position: "absolute",
+      left: x,
+      top: y,
+      width: w,
+      height: 46,
+      opacity: o,
+      borderRadius: 11,
+      background: lit ? KC[k - 1] : `${KC[k - 1]}33`,
+      border: `2.5px solid ${KC[k - 1]}`,
+      boxShadow: lit ? `0 0 20px ${KC[k - 1]}AA` : "none",
+      color: lit ? "#07101F" : C.text,
+      fontFamily: MONO,
+      fontWeight: 700,
+      fontSize: 26,
+      lineHeight: "41px",
+      textAlign: "center",
+    }}
+  >
+    {k}
+  </div>
+);
+
+const Gauge: React.FC<{ y: number; label: string; fill: number; color: string; limit?: boolean; note?: string }> = ({ y, label, fill, color, limit, note }) => (
+  <div style={{ position: "absolute", left: 40, top: y, width: 780 }}>
+    <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.dim, display: "flex", justifyContent: "space-between" }}>
+      <span>{label}</span>
+      <span style={{ color }}>{note}</span>
+    </div>
+    <div style={{ position: "relative", marginTop: 8, height: 28, borderRadius: 14, background: "#0B1222", border: `2px solid ${C.line}` }}>
+      <div style={{ width: `${Math.max(0.6, fill * 100)}%`, height: "100%", borderRadius: 12, background: color, boxShadow: `0 0 18px ${color}99` }} />
+      {limit && <div style={{ position: "absolute", left: "85%", top: -8, width: 4, height: 40, background: C.red }} />}
+    </div>
+  </div>
+);
 
 export const Scene4: React.FC = () => {
-  const f = useCurrentFrame();
-  const intro = prog(f, t(126.4), 24);
-  const rowHi = prog(f, t(132.1), 16);
-  const dissolve = prog(f, t(136.1), sec(1.6));
-  const fkLines = prog(f, t(139.9), 24);
-  const tryDel = prog(f, t(142.8), 14);
-  const shield = pop(f, t(144.9));
-  const tOn = prog(f, t(147.2), 22);
-  const ddl = pop(f, t(149.6));
-  const sweep = prog(f, t(151.2), sec(1.8));
-  const reset = pop(f, t(153.4));
-  const pages = prog(f, t(153.6), sec(2.3));
-  const fkErr = pop(f, t(156.4));
-  const seq = Math.round(lerp(4821, 1, reset > 0.5 ? 1 : 0));
-  const shake = f >= t(144.9) && f < t(147) ? Math.sin(f * 2.6) * 6 : 0;
+  const t = useT();
+
+  const hashAct = win(t, 139.2, 149.2, 0.4);
+  const grpAct = win(t, 149.2, 158.6, 0.4);
+  const laneOp = (i: number) => {
+    const base = eo(t, 133.4 + i * 0.4, 134.6 + i * 0.4);
+    const dimTo = i === 0 ? 0.42 : 0.42;
+    // while the other lane is active, dim this lane
+    const other = i === 0 ? grpAct : hashAct;
+    return base * (1 - other * (1 - dimTo));
+  };
+
+  // hash table counters
+  const cnt = [0, 0, 0];
+  const placed = HASH_KEYS.map((k, n) => {
+    const done = t >= HASH_T0 + n * HASH_STEP + HASH_FLY;
+    if (done) cnt[k - 1]++;
+    return done;
+  });
+  const processed = placed.filter(Boolean).length;
+  const memFill = (processed / 9) * 0.72 + 0.03 * Math.sin(t * 7) * (processed > 0 ? 1 : 0);
+
+  const beam = lerp(40, 806, eio(t, 153.5, 158.0));
+  const treeHot = win(t, 149.9, 153.6, 0.3);
 
   return (
-    <Stage dur={1185} inFx="up" outFx="zoom">
-      <TopBadge text="الحذف الآمن | DELETE مقابل TRUNCATE" from={t(126.4)} to={t(146)} color={C.red} />
-
-      {/* divider */}
-      <div style={{position: 'absolute', left: 959, top: 150, width: 2, height: 770, background: C.border, opacity: intro}} />
-
-      {/* ---------- left: DELETE ---------- */}
-      <div dir="ltr" style={{position: 'absolute', left: 90, top: 150, opacity: intro}}>
-        <Chip color={C.blue}>DELETE FROM · DML</Chip>
-      </div>
-      <Editor x={90} y={200} w={820} h={150} title="delete.sql" lines={['DELETE FROM customers', 'WHERE customer_id = 10;']} start={t(129.9)} cps={0.8} size={26} accent={C.blue} opacity={intro} />
-
-      <Win x={90} y={380} w={820} h={380} title="customers" accent={C.border} opacity={intro}>
-        <div dir="ltr" style={{padding: '12px 14px'}}>
-          {CUST.map((r) => {
-            const isTarget = r.id === 10;
-            const isFk = r.id === 5;
-            const dis = isTarget ? dissolve : 0;
-            return (
-              <div key={r.id} style={{display: 'flex', alignItems: 'center', height: 72, marginBottom: 8, borderRadius: 12, padding: '0 20px', fontFamily: MONO, fontSize: 28, color: C.text, background: isTarget && rowHi > 0.5 && dis < 0.1 ? `${C.blue}22` : isFk && tryDel > 0.4 ? `${C.red}22` : C.deep, border: `2px solid ${isFk && shield > 0.3 ? C.red : isTarget && rowHi > 0.5 ? C.blue : C.border}`, opacity: 1 - dis, transform: `translateX(${isFk ? shake : dis * 60}px) scaleY(${1 - 0.3 * dis})`}}>
-                <span style={{width: 90, color: C.muted}}>{r.id}</span>
-                <span style={{flex: 1}}>{r.n}</span>
-                {isFk && <span style={{fontSize: 20, color: C.amber, opacity: fkLines}}>3 orders ↗</span>}
-              </div>
-            );
-          })}
-        </div>
-      </Win>
-
-      {/* orders link for FK */}
-      <div dir="ltr" style={{position: 'absolute', left: 90, top: 790, width: 820, height: 110, borderRadius: 20, border: `2px solid ${shield > 0.3 ? C.red : C.border}`, background: shield > 0.3 ? `${C.red}14` : C.card, display: 'flex', alignItems: 'center', padding: '0 26px', gap: 20, opacity: fkLines}}>
-        <svg width={64} height={72} viewBox="0 0 80 92" style={{transform: `scale(${0.8 + 0.2 * clamp(shield)})`, opacity: shield > 0.1 ? 1 : 0.35}}>
-          <path d="M40 4 L74 18 V46 C74 66 58 80 40 88 C22 80 6 66 6 46 V18 Z" fill={`${C.red}22`} stroke={shield > 0.1 ? C.red : C.muted} strokeWidth={5} />
-        </svg>
-        <div>
-          <div style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: shield > 0.3 ? C.red : C.muted}}>FOREIGN KEY · ON DELETE RESTRICT</div>
-          <Mix style={{fontSize: 28, color: C.text}}>{shield > 0.3 ? 'مرفوض: العميل له طلبات قائمة' : 'orders.customer_id → customers'}</Mix>
-        </div>
+    <AbsoluteFill>
+      {/* title chip */}
+      <div
+        style={{
+          position: "absolute",
+          left: 560,
+          top: 118,
+          width: 800,
+          height: 52,
+          borderRadius: 999,
+          border: `2px solid ${C.blue}77`,
+          background: "#0B1B33",
+          textAlign: "center",
+          fontFamily: MONO,
+          fontWeight: 700,
+          fontSize: 25,
+          lineHeight: "48px",
+          color: C.blue,
+          opacity: win(t, 133.0, 171.0, 0.6),
+        }}
+      >
+        PostgreSQL 16 · Execution Strategy Visualizer
       </div>
 
-      {/* ---------- right: TRUNCATE ---------- */}
-      <div dir="ltr" style={{position: 'absolute', left: 1010, top: 150, opacity: lerp(0.35, 1, tOn)}}>
-        <Chip color={C.amber}>TRUNCATE · DDL</Chip>
-      </div>
-      <Editor x={1010} y={200} w={820} h={150} title="truncate.sql" lines={['TRUNCATE TABLE logs;']} start={t(147.3)} cps={0.7} size={30} accent={C.amber} opacity={lerp(0.35, 1, tOn)} />
+      {/* lanes */}
+      {[0, 1].map((i) => {
+        const c = i === 0 ? C.amber : C.green;
+        const act = i === 0 ? hashAct : grpAct;
+        const o = laneOp(i);
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: LX[i] + (i === 0 ? -1 : 1) * (1 - eo(t, 133.4 + i * 0.4, 134.8 + i * 0.4)) * 300,
+              top: LY,
+              width: LW,
+              height: LH,
+              opacity: o,
+              borderRadius: 28,
+              background: `linear-gradient(170deg, ${c}${act > 0 ? "1E" : "0E"}, ${C.card2})`,
+              border: `${act > 0 ? 4 : 2}px solid ${act > 0 ? c : C.line}`,
+              boxShadow: act > 0 ? `0 0 ${Math.min(20, 50 * act)}px ${c}66` : "none",
+            }}
+          >
+            <div style={{ position: "absolute", left: 40, top: 26, fontFamily: MONO, fontWeight: 700, fontSize: i === 0 ? 46 : 42, color: c }}>
+              {i === 0 ? "Hash Aggregate" : "Group Aggregate"}
+            </div>
+            <div style={{ position: "absolute", left: 40, top: 86, fontFamily: AR, fontWeight: 700, fontSize: 30, color: C.text, direction: "rtl" }}>
+              {i === 0 ? "بيانات غير مرتبة" : "بيانات مرتبة · B-Tree Index"}
+            </div>
 
-      <Win x={1010} y={380} w={820} h={380} title="logs" accent={C.border} opacity={lerp(0.4, 1, tOn)}>
-        <div dir="ltr" style={{padding: '14px 18px'}}>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12}}>
-            {Array.from({length: 18}).map((_, i) => {
-              const col = i % 6;
-              const gone = clamp((sweep * 7 - col) / 1.2) ;
-              return (
-                <div key={i} style={{height: 74, borderRadius: 12, background: `${C.amber}${gone > 0.5 ? '00' : '22'}`, border: `2px ${gone > 0.5 ? 'dashed' : 'solid'} ${gone > 0.5 ? C.border : C.amber}`, opacity: gone > 0.5 ? 0.3 : 1, fontFamily: MONO, fontSize: 16, color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  {gone > 0.5 ? '' : `page ${i}`}
+            {i === 0 && (
+              <>
+                {/* queue */}
+                {HASH_KEYS.map((k, n) => {
+                  const ts = HASH_T0 + n * HASH_STEP;
+                  const p = eio(t, ts, ts + HASH_FLY);
+                  const slot = HASH_KEYS.slice(0, n).filter((q) => q === k).length;
+                  const x = lerp(40 + n * 86, 470 + slot * 0, p);
+                  const y = lerp(166, 258 + (k - 1) * 72 - Math.sin(Math.PI * p) * 40, p);
+                  const appear = eo(t, 134.6 + n * 0.1, 135.4 + n * 0.1);
+                  const o2 = p >= 1 ? 0 : appear;
+                  return o2 > 0 ? <Chip key={n} k={k} x={x} y={y} o={o2} w={lerp(68, 60, p)} /> : null;
+                })}
+                <div style={{ position: "absolute", left: 40, top: 218, fontFamily: MONO, fontSize: 20, color: C.dim, opacity: prog(t, 135.5, 136.2) }}>unsorted input ▸</div>
+                {/* hash table */}
+                <div style={{ position: "absolute", left: 440, top: 222, width: 380, height: 258, borderRadius: 18, background: "#0B1222", border: `2.5px solid ${C.amber}`, opacity: eo(t, 138.4, 139.4) }}>
+                  <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 20, color: C.amber, margin: "6px 0 0 18px" }}>hash table · work_mem</div>
                 </div>
-              );
-            })}
+                {[1, 2, 3].map((k) => (
+                  <div
+                    key={k}
+                    style={{
+                      position: "absolute",
+                      left: 458,
+                      top: 258 + (k - 1) * 72,
+                      width: 344,
+                      height: 56,
+                      borderRadius: 12,
+                      background: `${KC[k - 1]}18`,
+                      border: `2px solid ${KC[k - 1]}88`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "0 18px",
+                      opacity: eo(t, 138.6 + k * 0.15, 139.6 + k * 0.15),
+                      fontFamily: MONO,
+                      fontWeight: 700,
+                      fontSize: 26,
+                      color: C.text,
+                    }}
+                  >
+                    <span style={{ color: KC[k - 1] }}>key {k}</span>
+                    <span>count = {cnt[k - 1]}</span>
+                  </div>
+                ))}
+                <Gauge y={510} label="work_mem" fill={memFill} color={C.amber} limit note={processed > 4 ? "extra memory ▲" : ""} />
+              </>
+            )}
+
+            {i === 1 && (
+              <>
+                {/* B-Tree icon */}
+                <svg width={240} height={206} style={{ position: "absolute", left: 590, top: 6, opacity: eo(t, 134.8, 135.8) }}>
+                  {[[120, 30, 50, 100], [120, 30, 190, 100], [50, 100, 20, 165], [50, 100, 80, 165], [190, 100, 160, 165], [190, 100, 220, 165]].map((l, n) => (
+                    <line key={n} x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke={treeHot > 0 ? C.green : C.line} strokeWidth={3} />
+                  ))}
+                  {[[120, 30], [50, 100], [190, 100], [20, 165], [80, 165], [160, 165], [220, 165]].map((p, n) => (
+                    <circle key={n} cx={p[0]} cy={p[1]} r={n < 3 ? 17 : 13} fill="#0B1222" stroke={treeHot > 0 ? C.green : C.dim} strokeWidth={3.5} />
+                  ))}
+                  <text x={120} y={202} textAnchor="middle" fontFamily={MONO} fontWeight={700} fontSize={17} fill={treeHot > 0 ? C.green : C.dim}>B-Tree Index</text>
+                </svg>
+                <div style={{ position: "absolute", left: 40, top: 222, fontFamily: MONO, fontSize: 20, color: C.dim, opacity: prog(t, 149.4, 150.2) }}>pre-sorted via index ▸</div>
+                {/* sorted ribbon */}
+                {SORT_KEYS.map((k, n) => {
+                  const a = eo(t, 149.6 + n * 0.08, 150.5 + n * 0.08);
+                  const lit = beam > sortX(n) + 34;
+                  return a > 0 ? <Chip key={n} k={k} x={sortX(n)} y={270 + (1 - a) * -30} o={a} lit={lit} /> : null;
+                })}
+                {/* beam */}
+                {t > 153.3 && t < 158.6 && (
+                  <>
+                    <div style={{ position: "absolute", left: beam - 2, top: 244, width: 5, height: 120, background: C.green, boxShadow: `0 0 20px ${C.green}`, opacity: win(t, 153.3, 158.6, 0.2) }} />
+                    <div style={{ position: "absolute", left: beam - 80, top: 244, width: 80, height: 120, background: `linear-gradient(90deg, transparent, ${C.green}33)`, opacity: win(t, 153.3, 158.6, 0.2) }} />
+                  </>
+                )}
+                {/* group results */}
+                {[0, 1, 2].map((g) => {
+                  const endX = sortX(g * 3 + 2) + 68;
+                  const a = beam > endX ? eb(t, 153.5 + (endX - 40) / 766 * 4.5, 153.5 + (endX - 40) / 766 * 4.5 + 0.6) : 0;
+                  if (a <= 0) return null;
+                  return (
+                    <div
+                      key={g}
+                      style={{
+                        position: "absolute",
+                        left: sortX(g * 3),
+                        top: 390 + (1 - Math.min(1, a)) * -30,
+                        width: 3 * 80 - 12,
+                        height: 56,
+                        opacity: Math.min(1, a),
+                        borderRadius: 12,
+                        background: `${KC[g]}2A`,
+                        border: `2.5px solid ${C.green}`,
+                        fontFamily: MONO,
+                        fontWeight: 700,
+                        fontSize: 22,
+                        color: C.text,
+                        textAlign: "center",
+                        lineHeight: "50px",
+                      }}
+                    >
+                      key {g + 1} → 3 rows
+                    </div>
+                  );
+                })}
+                <Gauge y={510} label="hash memory" fill={0.0} color={C.green} note="≈ 0" />
+              </>
+            )}
           </div>
-          <div style={{position: 'absolute', top: 0, bottom: 0, left: lerp(0, 820, sweep), width: 6, background: C.amber, boxShadow: `0 0 24px ${C.amber}`, opacity: sweep > 0 && sweep < 1 ? 1 : 0}} />
-          <div style={{marginTop: 22, display: 'flex', alignItems: 'center', gap: 18, fontFamily: MONO, fontSize: 24, color: C.text}}>
-            <span style={{color: C.muted}}>log_id sequence</span>
-            <span style={{fontSize: 44, fontWeight: 700, color: reset > 0.5 ? C.green : C.amber}}>{seq}</span>
-            {reset > 0.5 && <span style={{color: C.green, fontSize: 22, transform: `scale(${reset})`}}>↺ reset to 1</span>}
+        );
+      })}
+
+      {/* strategy captions */}
+      <Banner x={70} y={808} w={1780} a={139.8} b={149.0} color={C.amber} fs={27}>
+        Hash Aggregate ──► Builds Hash Table in work_mem (Unsorted Data)
+      </Banner>
+      <Banner x={70} y={808} w={1780} a={149.5} b={159.0} color={C.green} fs={27}>
+        Group Aggregate ──► Streams Pre-Sorted B-Tree Data (Zero Hash Overhead)
+      </Banner>
+
+      {/* speed comparison */}
+      {win(t, 159.6, 171.4, 0.5) > 0 && (
+        <div style={{ position: "absolute", left: 70, top: 808, width: 1780, height: 230, opacity: win(t, 159.6, 171.4, 0.5) }}>
+          {[
+            { y: 0, c: C.amber, label: "Hash Aggregate", w: 1180, a: 160.2, note: "unindexed" },
+            { y: 86, c: C.green, label: "Group Aggregate + B-Tree Index", w: 150, a: 161.2, note: "indexed" },
+          ].map((b, i) => (
+            <div key={i} style={{ position: "absolute", left: 0, top: b.y, width: 1780, height: 66 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, width: 520, fontFamily: MONO, fontWeight: 700, fontSize: 25, lineHeight: "66px", color: b.c }}>{b.label}</div>
+              <div style={{ position: "absolute", left: 540, top: 8, height: 50, width: b.w * eio(t, b.a, b.a + 2.2), borderRadius: 14, background: b.c, boxShadow: `0 0 20px ${b.c}77` }} />
+              <div style={{ position: "absolute", left: 540 + b.w * eio(t, b.a, b.a + 2.2) + 16, top: 0, fontFamily: MONO, fontSize: 22, lineHeight: "66px", color: C.dim }}>{b.note}</div>
+            </div>
+          ))}
+          <div
+            style={{
+              position: "absolute",
+              left: 1180,
+              top: 60,
+              fontFamily: AR,
+              fontWeight: 900,
+              fontSize: 50,
+              color: C.green,
+              direction: "rtl",
+              opacity: prog(t, 164.0, 164.8),
+              transform: `scale(${0.8 + 0.2 * eb(t, 164.0, 164.8)})`,
+              transformOrigin: "left center",
+            }}
+          >
+            فهرس صح = سرعة أضعاف
+          </div>
+          <div style={{ position: "absolute", left: 0, top: 184, width: 1780, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 28, color: C.text, opacity: prog(t, 167.0, 167.8) }}>
+            Right Index ⇒ <span style={{ color: C.green }}>Stream</span>, Not <span style={{ color: C.amber }}>Hash</span>
           </div>
         </div>
-      </Win>
-
-      <div dir="ltr" style={{position: 'absolute', left: 1010, top: 790, width: 820, display: 'flex', gap: 18, alignItems: 'center', opacity: ddl > 0 ? 1 : 0}}>
-        <div style={{transform: `scale(${clamp(ddl)})`, transformOrigin: 'left center'}}><Chip color={C.amber}>DDL command · data pages wiped at once</Chip></div>
-      </div>
-      <div dir="ltr" style={{position: 'absolute', left: 1010, top: 840, width: 820, borderRadius: 16, border: `2px solid ${C.red}`, background: `${C.red}14`, padding: '12px 22px', fontFamily: MONO, fontSize: 21, color: C.red, opacity: clamp(fkErr), transform: `translateY(${(1 - clamp(fkErr)) * 14}px)`}}>
-        ERROR: cannot truncate a table referenced in a foreign key constraint
-      </div>
-
-      <Caption text="DELETE FROM customers WHERE customer_id = 10;  (DML Row Delete)" from={t(129.5)} to={t(146)} />
-      <Caption text="TRUNCATE TABLE logs;  (DDL Fast Data Page Reset)" from={t(147.5)} to={t(163)} />
-    </Stage>
+      )}
+    </AbsoluteFill>
   );
 };

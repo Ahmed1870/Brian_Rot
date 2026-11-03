@@ -1,77 +1,214 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Check, Chip, Mix, Stage, clamp, pop, prog, sec, typed} from '../kit';
-import {Sql} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Logo } from "../components/common";
+import { C, eb, eio, eo, lerp, prog, useT } from "../lib";
 
-// SC06 (frames 6070-7200, global 202.3-240s): Manzooma Academy outro. Ends with a fade to black.
-const S = 202.33;
-const t = (g: number) => sec(g - S);
+const NX = (i: number) => 260 + i * 100;
+const NY = 618;
+
+const SKILLS = [
+  { a: 218.7, t: "GROUP BY", ar: "تجميع فئوي", c: C.blue },
+  { a: 220.9, t: "HAVING", ar: "تصفية المجموعات", c: C.green },
+  { a: 222.5, t: "Execution Order", ar: "خط سير الاستعلام", c: C.violet },
+  { a: 224.0, t: "PostgreSQL", ar: "Hash vs Group", c: C.amber },
+];
 
 export const Scene6: React.FC = () => {
-  const f = useCurrentFrame();
-  const card = prog(f, 0, 30);
-  const head = prog(f, t(203.7), 24);
-  const badge = pop(f, t(204.9));
-  const fill = prog(f, t(205.4), sec(5.6));
-  const res = prog(f, t(211.7), 24);
-  const next = prog(f, t(220.8), 28);
-  const code = typed('SELECT * FROM customers WHERE ...', f, t(225.4), 0.5);
-  const pct = Math.round(fill * 100);
+  const t = useT();
+  const cardIn = eo(t, 213.7, 215.0);
+  const logoIn = eb(t, 215.2, 216.2);
+  const pulse = 0.5; // constant: animated blur shadows are expensive to rasterise
+  const glowOp = 0.7 + 0.3 * Math.sin(t * 2.4);
+  const badge = eb(t, 216.6, 217.3);
+  const check = prog(t, 216.9, 217.5);
+  const filled = (i: number) => prog(t, 217.4 + i * 0.5, 217.9 + i * 0.5);
+  const burst = eo(t, 224.6, 225.6);
 
   return (
-    <Stage dur={1130} inFx="fade" outFx="black">
-      <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
-        <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
-          <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
-            <svg width={70} height={70} viewBox="0 0 70 70">
-              <line x1={14} y1={52} x2={35} y2={16} stroke={C.blue} strokeWidth={5} />
-              <line x1={35} y1={16} x2={56} y2={52} stroke={C.green} strokeWidth={5} />
-              <line x1={14} y1={52} x2={56} y2={52} stroke={C.amber} strokeWidth={5} />
-              <circle cx={14} cy={52} r={9} fill={C.blue} />
-              <circle cx={35} cy={16} r={9} fill={C.text} />
-              <circle cx={56} cy={52} r={9} fill={C.green} />
-            </svg>
-            <Mix style={{fontSize: 62, fontWeight: 700, color: C.text}}>منظومة أكاديمي</Mix>
-            <span style={{fontFamily: MONO, fontSize: 40, color: C.muted}}>|</span>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 40, fontWeight: 700, color: C.blue}}>Manzooma SQL Masterclass</span>
-          </div>
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 190}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
-            <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 38, fontWeight: 700, color: C.green}}>Lesson 10 Completed: <span style={{color: C.text}}>DML & RETURNING Mastered</span></div>
-          </div>
-          <div style={{marginTop: 34, display: 'flex', alignItems: 'center', gap: 28}}>
-            <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
-            </div>
-            <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
-          </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: C.muted}}>Module 3 · DML Operations — Completed</div>
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 400, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
-          <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
-            <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
-          </Chip>
-        </div>
-
-        <div style={{position: 'absolute', left: 90, right: 90, top: 500, height: 300, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
-          <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 11</Mix>
-            <Mix style={{fontSize: 44, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>استرجاع البيانات واستعلامات SELECT والترشيح بـ WHERE</Mix>
-          </div>
-          <div dir="ltr" style={{width: 560, height: 170, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '26px 28px', fontFamily: MONO, fontSize: 28, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 20, marginBottom: 16}}>-- Lesson 11</div>
-            <div>
-              <Sql text={code} />
-              <span style={{color: C.green}}>▌</span>
-            </div>
-          </div>
-        </div>
+    <AbsoluteFill>
+      {/* glass card */}
+      <div
+        style={{
+          position: "absolute",
+          left: 160,
+          top: 70 + (1 - cardIn) * 80,
+          width: 1600,
+          height: 940,
+          opacity: cardIn,
+          borderRadius: 44,
+          background: "linear-gradient(160deg, #1E293BCC 0%, #0F172AE6 55%, #0B1B33E6 100%)",
+          border: `2px solid ${C.blue}55`,
+          boxShadow: "none",
+        }}
+      />
+      {/* logo + title */}
+      <div style={{ position: "absolute", left: 840, top: 92, opacity: Math.min(1, logoIn * 1.4), transform: `scale(${0.7 + 0.3 * Math.min(1.1, logoIn)})`, transformOrigin: "center", willChange: "transform" }}>
+        <div style={{ position: "absolute", left: -20, top: -20, width: 280, height: 280, borderRadius: 140, background: "radial-gradient(#38BDF83C, transparent 70%)", opacity: glowOp, willChange: "opacity" }} />
+        <Logo size={240} style={{ position: "relative" }} />
       </div>
-    </Stage>
+      <div style={{ position: "absolute", left: 160, top: 336, width: 1600, textAlign: "center", opacity: prog(t, 215.6, 216.4), transform: `translateY(${(1 - eo(t, 215.6, 216.6)) * 30}px)` }}>
+        <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 64, color: C.text, direction: "rtl", lineHeight: 1.15 }}>
+          منظومة <span style={{ color: C.blue }}>أكاديمي</span>
+        </div>
+        <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.blue, letterSpacing: 2 }}>Manzooma SQL Masterclass</div>
+      </div>
+
+      {/* completed badge */}
+      <div
+        style={{
+          position: "absolute",
+          left: 330,
+          top: 488,
+          width: 1260,
+          height: 70,
+          borderRadius: 999,
+          background: `${C.green}1E`,
+          border: `3px solid ${C.green}`,
+          boxShadow: `0 0 ${Math.min(20, 30 + 14 * pulse)}px ${C.green}66`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 20,
+          opacity: Math.min(1, badge * 1.5),
+          transform: `scale(${0.85 + 0.15 * Math.min(1.1, badge)})`,
+        }}
+      >
+        <svg width={46} height={46} viewBox="0 0 46 46">
+          <circle cx="23" cy="23" r="21" fill={C.green} />
+          <path d="M12 24 L20 32 L35 15" fill="none" stroke="#07101F" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - check} />
+        </svg>
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 31, color: C.text }}>
+          Lesson 14 Completed: <span style={{ color: C.green }}>GROUP BY &amp; HAVING Mastered</span>
+        </span>
+      </div>
+
+      {/* lesson progress path */}
+      <svg width={1600} height={170} viewBox="160 535 1600 170" style={{ position: "absolute", left: 160, top: 535 }}>
+        <defs>
+          <filter id="s6g" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="8" />
+          </filter>
+        </defs>
+        <line x1={NX(0)} y1={NY} x2={NX(14)} y2={NY} stroke={C.line} strokeWidth={6} strokeLinecap="round" opacity={prog(t, 217.0, 217.6)} />
+        <line x1={NX(0)} y1={NY} x2={lerp(NX(0), NX(13), eio(t, 217.4, 224.4))} y2={NY} stroke={C.green} strokeWidth={6} strokeLinecap="round" opacity={prog(t, 217.0, 217.6)} />
+        {Array.from({ length: 15 }, (_, i) => {
+          const f = i < 14 ? filled(i) : 0;
+          const isNext = i === 14;
+          const nextA = eb(t, 233.6, 234.4);
+          if (isNext && nextA <= 0) return null;
+          const r = 21;
+          return (
+            <g key={i} opacity={prog(t, 217.0 + i * 0.03, 217.4 + i * 0.03)}>
+              {i === 13 && burst > 0 && <circle cx={NX(i)} cy={NY} r={r + 40 * burst} fill="none" stroke={C.green} strokeWidth={4} opacity={1 - burst} />}
+              {i === 13 && f > 0 && <circle cx={NX(i)} cy={NY} r={r + 9} fill={C.green} opacity={0.28} />}
+              <circle
+                cx={NX(i)}
+                cy={NY}
+                r={isNext ? r * Math.min(1.1, nextA) : r}
+                fill={f > 0 ? C.green : "#0B1222"}
+                stroke={isNext ? C.blue : f > 0 ? C.green : C.line}
+                strokeWidth={4}
+                strokeDasharray={isNext ? "7 6" : undefined}
+                opacity={isNext ? Math.min(1, nextA) : 1}
+              />
+              <text x={NX(i)} y={NY + 8} textAnchor="middle" fontFamily={MONO} fontWeight={700} fontSize={i >= 9 ? 19 : 22} fill={f > 0 ? "#07101F" : isNext ? C.blue : C.dim} opacity={isNext ? Math.min(1, nextA) : 1}>
+                {i + 1}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ position: "absolute", left: 160, top: 650, width: 1600, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.green, opacity: prog(t, 224.8, 225.6) }}>
+        Grouped Aggregations Mastered
+      </div>
+
+      {/* skills */}
+      <div style={{ position: "absolute", left: 160, top: 696, width: 1600, display: "flex", justifyContent: "center", gap: 20 }}>
+        {SKILLS.map((s, i) => {
+          const e = eb(t, s.a, s.a + 0.6);
+          return (
+            <div
+              key={i}
+              style={{
+                width: 330,
+                height: 84,
+                borderRadius: 20,
+                background: `${s.c}16`,
+                border: `2.5px solid ${s.c}`,
+                boxShadow: `0 0 20px ${s.c}44`,
+                textAlign: "center",
+                opacity: Math.min(1, e * 1.5),
+                transform: `translateY(${(1 - Math.min(1, e)) * 40}px)`,
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 27, color: s.c, marginTop: 8 }}>{s.t}</div>
+              <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 23, color: C.text, direction: "rtl" }}>{s.ar}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* resources */}
+      {(() => {
+        const e = eb(t, 229.4, 230.2);
+        if (e <= 0) return null;
+        return (
+          <div
+            style={{
+              position: "absolute",
+              left: 210,
+              top: 806,
+              width: 700,
+              height: 170,
+              borderRadius: 26,
+              background: `${C.blue}14`,
+              border: `3px solid ${C.blue}`,
+              boxShadow: `0 0 ${Math.min(20, 28 + 14 * pulse)}px ${C.blue}55`,
+              opacity: Math.min(1, e * 1.5),
+              transform: `translateY(${(1 - Math.min(1, e)) * 50}px)`,
+              padding: "14px 30px",
+            }}
+          >
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.text, direction: "rtl", textAlign: "right" }}>الشيتات والتمارين التطبيقية</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.dim, marginTop: 4 }}>GROUP BY scripts · practice sheets</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 31, color: C.blue, marginTop: 10, textDecoration: "underline", textUnderlineOffset: 8 }}>solutions.gomaaintelligence.me</div>
+          </div>
+        );
+      })()}
+
+      {/* next lesson */}
+      {(() => {
+        const e = eb(t, 233.5, 234.3);
+        if (e <= 0) return null;
+        return (
+          <div
+            style={{
+              position: "absolute",
+              left: 950,
+              top: 806,
+              width: 760,
+              height: 170,
+              borderRadius: 26,
+              background: `${C.violet}14`,
+              border: `3px solid ${C.violet}`,
+              boxShadow: `0 0 ${Math.min(20, 28 + 14 * pulse)}px ${C.violet}55`,
+              opacity: Math.min(1, e * 1.5),
+              transform: `translateY(${(1 - Math.min(1, e)) * 50}px)`,
+              padding: "12px 30px",
+            }}
+          >
+            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 24, color: C.violet, direction: "rtl", textAlign: "right" }}>الدرس القادم</div>
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 29, color: C.text, direction: "rtl", textAlign: "right" }}>
+              الدرس 15: دمج الدوال الشرطية مع التجميع
+            </div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.violet, marginTop: 2 }}>CASE WHEN in Aggregations</div>
+            <div style={{ fontFamily: MONO, fontWeight: 500, fontSize: 20, color: C.dim, marginTop: 4, whiteSpace: "pre", lineHeight: 1.5 }}>
+              {"SUM(CASE WHEN total_amount > 500 THEN 1 ELSE 0 END)"}
+            </div>
+          </div>
+        );
+      })()}
+    </AbsoluteFill>
   );
 };

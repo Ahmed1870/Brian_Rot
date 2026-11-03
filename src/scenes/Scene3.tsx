@@ -1,116 +1,332 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Caption, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eio, eo, fmt, lerp, prog, typed, useT, win } from "../lib";
 
-// SC03 (frames 2390-3745, global 79.7-124.8s): UPDATE ... WHERE, the blind-UPDATE trap, MVCC dead tuples, VACUUM.
-const S = 79.67;
-const t = (g: number) => sec(g - S);
+const EX = 100, EY = 150, EW = 1020, EH = 520;
+const LH = 43;
+const rowTop = (i: number) => 24 + i * LH;
 
-const PRODUCTS = [
-  {id: 1, n: 'Keyboard', cat: 5, p: 120},
-  {id: 2, n: 'Mouse', cat: 5, p: 80},
-  {id: 3, n: 'Monitor', cat: 2, p: 250},
-  {id: 4, n: 'Cable', cat: 5, p: 45},
-  {id: 5, n: 'Laptop', cat: 3, p: 300},
-  {id: 6, n: 'Webcam', cat: 2, p: 60},
+const PIPE = [
+  { k: "FROM", c: C.blue, ar: "جلب الصفوف" },
+  { k: "WHERE", c: C.amber, ar: "يشوف صفوف فردية بس" },
+  { k: "GROUP BY", c: C.blue, ar: "بتتكوّن المجموعات هنا" },
+  { k: "HAVING", c: C.green, ar: "يشوف المجموعات الجاهزة" },
+];
+const PX = 1170, PW = 650, PY = (i: number) => 190 + i * 136, PH = 96;
+
+const RESULT = [
+  { id: 1, name: "Electronics", v: 48200, ok: true },
+  { id: 2, name: "Fashion", v: 31750, ok: true },
+  { id: 4, name: "Beauty", v: 12300, ok: true },
+  { id: 3, name: "Grocery", v: 9640, ok: false },
 ];
 
-const Tuple: React.FC<{y: number; label: string; price: string; state: 'live' | 'dead' | 'new' | 'free'; p: number; tag?: string}> = ({y, label, price, state, p, tag}) => {
-  const col = state === 'new' ? C.green : state === 'dead' ? C.muted : state === 'free' ? C.border : C.blue;
-  return (
-    <div dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: y, height: 96, borderRadius: 16, border: `2px ${state === 'free' ? 'dashed' : 'solid'} ${col}`, background: state === 'new' ? `${C.green}18` : state === 'free' ? 'transparent' : C.deep, display: 'flex', alignItems: 'center', padding: '0 24px', gap: 24, fontFamily: MONO, color: state === 'dead' ? C.muted : C.text, opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 24}px)`}}>
-      <span style={{fontSize: 22, color: col, width: 120}}>{label}</span>
-      <span style={{fontSize: 26, flex: 1}}>{state === 'free' ? 'free space' : `product_id=1 · unit_price=${price}`}</span>
-      {tag && <Chip color={state === 'dead' ? C.red : C.green} style={{fontSize: 20}}>{tag}</Chip>}
-    </div>
-  );
-};
-
 export const Scene3: React.FC = () => {
-  const f = useCurrentFrame();
-  const tbl = prog(f, t(81.4), 24);
-  const hi = prog(f, t(84.0), 18);
-  const raise = prog(f, t(85.0), 20);
-  const blind = prog(f, t(92.8), 22);
-  const alarm = prog(f, t(93.7), 18);
-  const mvcc = prog(f, t(99.3), 24);
-  const tblOut = 1 - mvcc;
-  const oldDead = prog(f, t(109.4), sec(2.6));
-  const newPop = pop(f, t(112.9));
-  const vac = prog(f, t(117.4), sec(3));
-  const shake = f >= t(93.7) && f < t(96.5) ? Math.sin(f * 2.4) * 6 * (1 - prog(f, t(93.7), sec(2.8))) : 0;
-  const rowsAffected = Math.round(lerp(3, 6, blind));
+  const t = useT();
+
+  /* ───── code state ───── */
+  const L0 = typed("SELECT category_id, SUM(total_amount)", t, 97.5, 99.2);
+  const L1 = typed("FROM orders", t, 99.2, 100.0);
+  const L2 = typed("WHERE SUM(total_amount) > 10000", t, 100.8, 103.4);
+  const fixed = t > 126.0;
+  const gText = typed(fixed ? "GROUP BY category_id" : "GROUP BY category_id;", t, 103.4, 104.2);
+  const L4 = typed("HAVING SUM(total_amount) > 10000;", t, 126.6, 129.8);
+
+  const whereOut = prog(t, 125.0, 125.8);
+  const gMove = eio(t, 125.6, 126.4);
+  const err = t >= 104.3 && t < 125.0;
+  const shake = t > 104.3 && t < 105.1 ? Math.sin((t - 104.3) * 90) * 10 * (1 - prog(t, 104.3, 105.1)) : 0;
+  const ok = prog(t, 129.8, 130.4);
+  const edColor = ok > 0 ? C.green : err ? C.red : C.blue;
+  const caretRow = t < 99.2 ? 0 : t < 100.8 ? 1 : t < 103.4 ? 2 : t < 104.3 ? 3 : t > 126.6 && t < 129.9 ? 3 : -1;
+
+  const errCard = win(t, 104.3, 125.2, 0.5);
+  const okCard = prog(t, 129.8, 130.5);
+  const arena = win(t, 88.2, 97.4, 0.5);
+  const pipe = Math.min(prog(t, 97.6, 98.6), 1 - prog(t, 126.0, 126.8));
+  const result = prog(t, 126.8, 127.6);
 
   return (
-    <Stage dur={1355} inFx="left" outFx="up">
-      <TopBadge text="UPDATE ... SET · قوة وحذر التحديث" from={t(81.2)} to={t(98)} color={C.amber} />
+    <AbsoluteFill>
+      {/* ───────── arena: WHERE vs HAVING ───────── */}
+      {arena > 0 && (
+        <div style={{ position: "absolute", inset: 0, opacity: arena }}>
+          {[
+            { x: 140, c: C.amber, k: "WHERE", en: "Row Filter", ar: "بتصفّي الصفوف الفردية", a: 95.1, from: -1 },
+            { x: 1030, c: C.green, k: "HAVING", en: "Group Filter", ar: "بتصفّي المجموعات الجاهزة", a: 95.75, from: 1 },
+          ].map((s, i) => {
+            const e = eb(t, 88.6 + i * 0.35, 89.6 + i * 0.35);
+            const hit = win(t, s.a, s.a + 1.6, 0.25);
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: s.x + (1 - e) * 420 * s.from,
+                  top: 250,
+                  width: 750,
+                  height: 470,
+                  borderRadius: 34,
+                  background: `linear-gradient(160deg, ${s.c}22, ${C.card2})`,
+                  border: `${3 + hit * 3}px solid ${s.c}`,
+                  boxShadow: `0 0 ${Math.min(20, 30 + hit * 60)}px ${s.c}${hit > 0 ? "99" : "44"}`,
+                  transform: `scale(${1 + hit * 0.04})`,
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 86, color: s.c, marginTop: 60 }}>{s.k}</div>
+                <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 36, color: C.text, marginTop: 10 }}>{s.en}</div>
+                <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 44, color: C.text, marginTop: 24, direction: "rtl" }}>{s.ar}</div>
+                <div style={{ fontFamily: MONO, fontSize: 26, color: C.dim, marginTop: 22 }}>{i === 0 ? "BEFORE  GROUP BY" : "AFTER  GROUP BY"}</div>
+              </div>
+            );
+          })}
+          <div
+            style={{
+              position: "absolute",
+              left: 960 - 62,
+              top: 430,
+              width: 124,
+              height: 124,
+              borderRadius: 62,
+              background: C.red,
+              color: "#fff",
+              fontFamily: MONO,
+              fontWeight: 700,
+              fontSize: 54,
+              lineHeight: "124px",
+              textAlign: "center",
+              transform: `scale(${eb(t, 89.4, 90.2)}) rotate(${Math.sin(t * 3) * 4}deg)`,
+              boxShadow: `0 0 20px ${C.red}99`,
+            }}
+          >
+            VS
+          </div>
+          <div style={{ position: "absolute", left: 0, top: 770, width: 1920, textAlign: "center", fontFamily: AR, fontWeight: 900, fontSize: 42, color: C.text, direction: "rtl", opacity: prog(t, 91.0, 91.8) }}>
+            أشهر مواجهة وأكبر مصدر للأخطاء في المقابلات الفنية
+          </div>
+        </div>
+      )}
 
-      <Editor x={90} y={170} w={900} h={250} title="update_prices.sql" lines={['UPDATE products', 'SET unit_price = unit_price * 1.10', 'WHERE category_id = 5;']} start={t(81.2)} cps={0.75} size={26} accent={C.amber} strikeLine={blind > 0.5 && mvcc < 0.5 ? 2 : -1} dim={mvcc > 0.5} />
-
-      {/* products table (correct vs blind) */}
-      <div style={{opacity: tbl * tblOut}}>
-        <Win x={90} y={460} w={900} h={440} title="products" accent={blind > 0.5 ? C.red : C.border} opacity={1}>
-          <div dir="ltr" style={{padding: '14px 12px 0 12px', transform: `translateX(${shake}px)`}}>
-            <div style={{display: 'flex', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `2px solid ${C.border}`, paddingBottom: 8}}>
-              <div style={{width: 110, paddingLeft: 10}}>id</div>
-              <div style={{width: 260, paddingLeft: 10}}>name</div>
-              <div style={{width: 200, paddingLeft: 10}}>category_id</div>
-              <div style={{width: 200, paddingLeft: 10}}>unit_price</div>
+      {/* ───────── editor ───────── */}
+      {t > 96.9 && (
+        <div style={{ opacity: eo(t, 96.9, 97.6), transform: `translateX(${shake}px) translateY(${(1 - eo(t, 96.9, 97.6)) * 40}px)` }}>
+          <Window x={EX} y={EY} w={EW} h={EH} title="manzooma_store_db — query.sql" color={edColor} glow={err || ok > 0 ? 1 : 0}>
+            <svg width={EW} height={EH - 52} style={{ position: "absolute", left: 0, top: 0 }}>
+              {err && L2.length > 25 && (
+                <path
+                  d={`M 28 ${rowTop(2) + 36} ${Array.from({ length: 31 }, (_, n) => `L ${28 + (n + 1) * 16} ${rowTop(2) + 36 + (n % 2 === 0 ? -5 : 3)}`).join(" ")}`}
+                  stroke={C.red}
+                  strokeWidth={3}
+                  fill="none"
+                  opacity={1 - whereOut}
+                />
+              )}
+            </svg>
+            <div style={{ position: "absolute", left: 28, top: rowTop(0) }}>
+              <CodeLine text={L0} caret={caretRow === 0} />
             </div>
-            {PRODUCTS.map((r) => {
-              const target = r.cat === 5;
-              const hot = target && hi > 0.5;
-              const changed = (target && raise > 0.5) || blind > 0.5;
-              const price = changed ? String(Math.round(r.p * 1.1 * 10) / 10) : String(r.p);
-              const rowCol = blind > 0.5 ? C.red : C.green;
-              return (
-                <div key={r.id} style={{display: 'flex', alignItems: 'center', height: 54, fontFamily: MONO, fontSize: 22, color: C.text, background: blind > 0.5 ? `${C.red}22` : hot ? `${C.blue}1F` : 'transparent', borderBottom: `1px solid ${C.border}`, borderRadius: 6}}>
-                  <div style={{width: 110, paddingLeft: 10, color: C.muted}}>{r.id}</div>
-                  <div style={{width: 260, paddingLeft: 10}}>{r.n}</div>
-                  <div style={{width: 200, paddingLeft: 10, color: target ? C.blue : C.muted, fontWeight: target ? 700 : 400}}>{r.cat}</div>
-                  <div style={{width: 200, paddingLeft: 10, color: changed ? rowCol : C.text, fontWeight: changed ? 700 : 400}}>{price}</div>
-                </div>
-              );
-            })}
-          </div>
-        </Win>
-      </div>
-
-      {/* right side: correct behaviour counter / danger banner */}
-      <div style={{position: 'absolute', left: 1050, top: 170, width: 780, opacity: tbl * tblOut}}>
-        <div dir="ltr" style={{background: C.card, border: `2px solid ${blind > 0.5 ? C.red : C.green}`, borderRadius: 22, padding: '26px 34px'}}>
-          <div style={{fontFamily: MONO, fontSize: 22, color: C.muted}}>rows affected</div>
-          <div style={{fontFamily: MONO, fontSize: 110, fontWeight: 700, lineHeight: 1.1, color: blind > 0.5 ? C.red : C.green}}>{hi > 0.5 ? rowsAffected : 0}<span style={{fontSize: 44, color: C.muted}}> / 6</span></div>
-          <Chip color={blind > 0.5 ? C.red : C.green} style={{marginTop: 8}}>{blind > 0.5 ? 'NO WHERE → entire table' : 'WHERE category_id = 5'}</Chip>
+            <div style={{ position: "absolute", left: 28, top: rowTop(1) }}>
+              <CodeLine text={L1} caret={caretRow === 1} />
+            </div>
+            {t < 125.9 && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: 28 + whereOut * 120,
+                  top: rowTop(2),
+                  opacity: 1 - whereOut,
+                  textDecoration: whereOut > 0 ? "line-through" : "none",
+                }}
+              >
+                <CodeLine text={L2} caret={caretRow === 2} override={err ? "#FCA5A5" : undefined} />
+                {err && L2.length > 25 && (
+                  <span style={{ position: "absolute", left: 560, top: 2, fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.red }}>✕</span>
+                )}
+              </div>
+            )}
+            {gText.length > 0 && (
+              <div style={{ position: "absolute", left: 28, top: lerp(rowTop(3), rowTop(2), gMove) }}>
+                <CodeLine text={gText} caret={caretRow === 3 && t < 104.3} />
+              </div>
+            )}
+            {L4.length > 0 && (
+              <div style={{ position: "absolute", left: 28, top: rowTop(3) }}>
+                <CodeLine text={L4} caret={t < 129.9} override={ok > 0 ? "#6EE7B7" : undefined} />
+              </div>
+            )}
+            {err && (
+              <div style={{ position: "absolute", right: 24, bottom: 18, fontFamily: MONO, fontSize: 19, color: C.red, fontWeight: 700 }}>
+                WHERE ▸ aggregate ✕
+              </div>
+            )}
+            {ok > 0 && (
+              <div style={{ position: "absolute", right: 24, bottom: 18, fontFamily: MONO, fontSize: 19, color: C.green, fontWeight: 700, opacity: ok }}>
+                HAVING ▸ aggregate ✓
+              </div>
+            )}
+          </Window>
         </div>
-        <div style={{marginTop: 26, borderRadius: 22, border: `3px solid ${C.red}`, background: `${C.red}1A`, padding: '24px 30px', opacity: alarm, transform: `translateY(${(1 - alarm) * 30}px) translateX(${shake}px)`}}>
-          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 20}}>
-            <svg width={70} height={64} viewBox="0 0 70 64"><path d="M35 4 L66 58 H4 Z" fill="none" stroke={C.red} strokeWidth={6} strokeLinejoin="round" /><line x1={35} y1={24} x2={35} y2={40} stroke={C.red} strokeWidth={6} strokeLinecap="round" /><circle cx={35} cy={50} r={3.5} fill={C.red} /></svg>
-            <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.red, lineHeight: 1.3}}>Blind UPDATE Trap:<br />Omitting WHERE updates the entire table!</div>
+      )}
+
+      {/* rejection beam (editor → engine) */}
+      {t > 104.3 && t < 107 && (
+        <svg width={580} height={200} viewBox="620 280 580 200" style={{ position: "absolute", left: 620, top: 280 }}>
+          <path
+            d={`M 640 333 C 860 333, 960 ${PY(1) + 48}, ${PX} ${PY(1) + 48}`}
+            fill="none"
+            stroke={C.red}
+            strokeWidth={5}
+            strokeDasharray="22 14"
+            strokeDashoffset={-t * 400}
+            opacity={win(t, 104.3, 107, 0.3)}
+          />
+        </svg>
+      )}
+
+      {/* ───────── error / success card ───────── */}
+      {errCard > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: EX,
+            top: 700 + (1 - eb(t, 104.3, 104.9)) * 60,
+            width: EW,
+            height: 150,
+            opacity: errCard,
+            borderRadius: 22,
+            background: `${C.red}1C`,
+            border: `3px solid ${C.red}`,
+            boxShadow: `0 0 ${Math.min(20, 30 + 25 * Math.abs(Math.sin(t * 6)))}px ${C.red}66`,
+            padding: "20px 30px",
+          }}
+        >
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.red }}>
+            {typed("ERROR: aggregate functions are not allowed in WHERE", t, 105.2, 110.2)}
           </div>
-          <Mix style={{display: 'block', marginTop: 12, fontSize: 36, fontWeight: 700, color: C.text}}>التحديث الأعمى = تغيير الجدول بالكامل</Mix>
+          <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 28, color: C.text, marginTop: 14, direction: "rtl", opacity: prog(t, 110.4, 111.2) }}>
+            المحرك رفض الاستعلام — WHERE بتشتغل قبل التجميع
+          </div>
         </div>
-      </div>
-
-      {/* MVCC heap page */}
-      <div style={{opacity: mvcc}}>
-        <Win x={1050} y={170} w={780} h={600} title="Heap Page · MVCC" accent={C.blue} opacity={1}>
-          <Tuple y={26} label="ctid (0,1)" price="120" state={vac > 0.7 ? 'free' : oldDead > 0.5 ? 'dead' : 'live'} p={1} tag={vac > 0.7 ? undefined : oldDead > 0.5 ? 'DEAD TUPLE' : undefined} />
-          <div style={{opacity: newPop}}>
-            <Tuple y={150} label="ctid (0,2)" price="132" state="new" p={newPop} tag="NEW VERSION" />
+      )}
+      {okCard > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: EX,
+            top: 700 + (1 - eo(t, 129.8, 130.5)) * 50,
+            width: EW,
+            height: 150,
+            opacity: okCard,
+            borderRadius: 22,
+            background: `${C.green}1C`,
+            border: `3px solid ${C.green}`,
+            boxShadow: `0 0 20px ${C.green}66`,
+            padding: "20px 30px",
+          }}
+        >
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 32, color: C.green }}>✓ Query OK — 3 rows returned</div>
+          <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 28, color: C.text, marginTop: 14, direction: "rtl" }}>
+            HAVING بتتنفذ بعد GROUP BY — الشرط التجميعي مكانه هنا
           </div>
-          <Tuple y={274} label="ctid (0,3)" price="—" state="free" p={vac > 0.7 ? 1 : 0} />
-          <div dir="ltr" style={{position: 'absolute', left: 30, top: 410, fontFamily: MONO, fontSize: 22, color: C.muted}}>old row is never overwritten — flagged, then cleaned</div>
-          <div style={{position: 'absolute', left: 30, right: 30, top: 460, opacity: vac}}>
-            <Chip color={C.green} style={{fontSize: 28, padding: '10px 26px'}}>VACUUM → space reclaimed ✓</Chip>
-          </div>
-          <div style={{position: 'absolute', left: -60 + vac * 880, top: 26, width: 8, height: 96, background: C.green, opacity: vac > 0 && vac < 1 ? 0.9 : 0, boxShadow: `0 0 18px ${C.green}`}} />
-        </Win>
-      </div>
+        </div>
+      )}
 
-      <Caption text="UPDATE products SET unit_price = unit_price * 1.10 WHERE ..." from={t(83)} to={t(98)} />
-      <Caption text="MVCC Mechanics ──► Creates New Tuple Version & Flags Dead Tuple" from={t(105)} to={t(123.5)} />
-    </Stage>
+      {/* ───────── engine pipeline (right) ───────── */}
+      {pipe > 0 && (
+        <div style={{ position: "absolute", inset: 0, opacity: pipe }}>
+          <div style={{ position: "absolute", left: PX, top: 130, width: PW, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.dim }}>ENGINE ORDER</div>
+          {PIPE.map((p, i) => {
+            const isWhere = i === 1;
+            const isGroup = i === 2;
+            const hot = (isWhere && t > 100.8 && t < 125.4) || (i === 3 && t > 126.8);
+            const ghost = isGroup && t > 113.6 && t < 125.4;
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: PX,
+                  top: PY(i) + (1 - eo(t, 98 + i * 0.2, 98.8 + i * 0.2)) * 50,
+                  width: PW,
+                  height: PH,
+                  borderRadius: 20,
+                  background: `${p.c}${hot ? "26" : "10"}`,
+                  border: `${hot ? 4 : 2}px ${ghost ? "dashed" : "solid"} ${hot || ghost ? (ghost ? C.dim : p.c) : C.line}`,
+                  boxShadow: hot ? `0 0 20px ${p.c}77` : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "0 30px",
+                  opacity: ghost ? 0.7 : 1,
+                }}
+              >
+                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 34, color: p.c }}>{p.k}</span>
+                <span style={{ fontFamily: AR, fontWeight: 700, fontSize: 26, color: ghost ? C.red : C.text, direction: "rtl" }}>{ghost ? "لسه مفيش مجموعات ✕" : p.ar}</span>
+              </div>
+            );
+          })}
+          {/* connectors */}
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ position: "absolute", left: PX + PW / 2 - 3, top: PY(i) + PH, width: 6, height: 40, background: C.line }} />
+          ))}
+                  </div>
+      )}
+
+      {/* ───────── result table (right) ───────── */}
+      {result > 0 && (
+        <div style={{ position: "absolute", left: PX, top: 150, width: PW, opacity: result }}>
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.dim, marginBottom: 14, display: "flex", justifyContent: "space-between" }}>
+            <span>category</span>
+            <span>SUM(total_amount)</span>
+          </div>
+          {RESULT.map((r, i) => {
+            const a = 127.4 + i * 0.5;
+            const e = eb(t, a, a + 0.6);
+            const rej = !r.ok;
+            const strike = rej ? prog(t, a + 1.4, a + 2.0) : 0;
+            return (
+              <div
+                key={r.id}
+                style={{
+                  height: 112,
+                  marginBottom: 18,
+                  borderRadius: 20,
+                  background: strike > 0.5 ? `${C.red}12` : `${C.green}16`,
+                  border: `3px solid ${strike > 0.5 ? C.red : C.green}`,
+                  boxShadow: strike > 0.5 ? "none" : `0 0 ${Math.min(20, 26 + 10 * Math.sin(t * 4 + i))}px ${C.green}55`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "0 28px",
+                  opacity: e > 0 ? (strike > 0.5 ? 0.55 : 1) : 0,
+                  transform: `translateX(${(1 - Math.min(1, e)) * 160}px)`,
+                }}
+              >
+                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.text }}>
+                  {r.id} · {r.name}
+                </span>
+                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 38, color: strike > 0.5 ? C.red : C.green, textDecoration: strike > 0.5 ? "line-through" : "none" }}>
+                  {fmt(r.v)} {strike > 0.5 ? "✕" : "✓"}
+                </span>
+              </div>
+            );
+          })}
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.dim, textAlign: "center", opacity: prog(t, 129.4, 130.0) }}>
+            9,640 &lt; 10,000 → rejected after aggregation
+          </div>
+        </div>
+      )}
+
+      {/* ───────── captions ───────── */}
+      <Banner x={100} y={900} w={1720} a={104.6} b={125.2} color={C.red} fs={28}>
+        WHERE SUM(...) &gt; 10000 ──► ERROR: aggregate functions not allowed in WHERE
+      </Banner>
+      <Banner x={100} y={900} w={1720} a={126.0} b={132.2} color={C.green} fs={28}>
+        HAVING SUM(...) &gt; 10000 ──► Evaluates Condition Post-Aggregation
+      </Banner>
+    </AbsoluteFill>
   );
 };
