@@ -1,22 +1,22 @@
 {
-  "name": "manzooma-sql-lesson21",
+  "name": "manzooma-sql-lesson-17-left-right-join",
   "version": "1.0.0",
   "private": true,
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 17: LEFT JOIN, RIGHT JOIN and NULL handling (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts Monzoma-SQL-L21 out/Lesson21_SQL-Scalar-Subqueries.mp4",
-    "typecheck": "tsc --noEmit"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts SQL-L17-Left-Right-Join out/sql-l17-left-right-join.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.300",
-    "@remotion/google-fonts": "4.0.300",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.300"
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
-    "typescript": "5.6.3"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }
