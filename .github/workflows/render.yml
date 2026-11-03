@@ -1,4 +1,4 @@
-name: Render SQL Lesson 17 LEFT RIGHT JOIN
+name: Render SQL Lesson 15 Conditional Aggregation
 on:
   push:
     branches: [main]
@@ -13,8 +13,8 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L17-Left-Right-Join out/sql-l17-left-right-join.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: npx remotion render src/index.ts SQL-L15-Conditional-Aggregation out/sql-l15-conditional-aggregation.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l17-left-right-join
-          path: out/sql-l17-left-right-join.mp4
+          name: sql-l15-conditional-aggregation
+          path: out/sql-l15-conditional-aggregation.mp4

@@ -11,8 +11,9 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200; // 240s * 30fps
+export const COMP_ID = 'SQL-L15-Conditional-Aggregation';
 
-// Manzooma course palette
+// Manzooma course palette (same family as the earlier lessons)
 export const C = {
   bg: '#0F172A',
   card: '#1E293B',
@@ -20,18 +21,21 @@ export const C = {
   border: '#334155',
   muted: '#94A3B8',
   text: '#F8FAFC',
-  blue: '#38BDF8', // pgAdmin GUI / Query Tool
-  green: '#10B981', // PostgreSQL service / verified
-  amber: '#F59E0B', // superuser / security lock / packets
-  red: '#EF4444', // connection refused
+  blue: '#38BDF8', // single-pass scanner / FILTER gate
+  green: '#10B981', // completed / SUM / verified
+  amber: '#F59E0B', // returned / pivot columns
+  red: '#EF4444', // cancelled / traps / slow path
 };
 
-// Scene boundaries follow the REAL voiceover pauses (39.0s / 79.2s / 121.2s / 158.5s / 196.3s)
+// Scene boundaries sit in the REAL silence gaps of the voiceover (3.5s gaps at 38.7-42.2 / 84.7-88.3 / 130.7-134.3 / 171.5-175.1 / 211.6-215.2)
 export const SCENES = {
-  s1: {from: 0, dur: 1170},
-  s2: {from: 1170, dur: 1205},
-  s3: {from: 2375, dur: 1260},
-  s4: {from: 3635, dur: 1120},
-  s5: {from: 4755, dur: 1135},
-  s6: {from: 5890, dur: 1310},
+  s1: {from: 0, dur: 1215},
+  s2: {from: 1215, dur: 1380},
+  s3: {from: 2595, dur: 1380},
+  s4: {from: 3975, dur: 1225},
+  s5: {from: 5200, dur: 1202},
+  s6: {from: 6402, dur: 798},
 };
+
+// scene start in seconds (absolute) - scenes convert absolute voiceover seconds with t(g) = sec(g - S)
+export const START = {s1: 0, s2: 40.5, s3: 86.5, s4: 132.5, s5: 173.33, s6: 213.4};

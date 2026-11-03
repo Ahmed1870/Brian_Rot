@@ -1,26 +1,29 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, FONT, MONO} from '../theme';
-import {Check, Chip, Mix, Stage, clamp, pop, prog, sec, typed} from '../kit';
-import {Sql} from '../kit';
+import {C, MONO, START} from '../theme';
+import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (frames 5890-7200, global 196.3-240s): Manzooma Academy outro. Ends with a fade to black.
-const S = 196.33;
+// SC06 (global 213.4-240s): Manzooma Academy outro. Ends with a fade to black.
+// Anchors (s): 215.2 "well done" | 216.1 lesson achieved | 218.9 FILTER mastered | 221.4 unit four finished | 224.1 download scripts + sheets | 230.8 get ready | 233 unit five / lesson 16
+const S = START.s6;
 const t = (g: number) => sec(g - S);
+
+const SKILLS = ['CASE WHEN ✓', 'COUNT / ELSE trap ✓', 'FILTER ✓', 'Pivot ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
   const card = prog(f, 0, 30);
-  const head = prog(f, t(197.0), 24);
-  const badge = pop(f, t(198.4));
-  const fill = prog(f, t(199.0), sec(9));
-  const res = prog(f, t(204.5), 24);
-  const next = prog(f, t(214.7), 28);
-  const code = typed('A FULL OUTER JOIN B;', f, t(215.6), 0.5);
+  const head = prog(f, t(215.3), 24);
+  const badge = pop(f, t(216.1));
+  const fill = prog(f, t(216.6), sec(4.8));
+  const modDone = prog(f, t(221.4), 20);
+  const res = prog(f, t(224.1), 24);
+  const next = prog(f, t(230.8), 28);
+  const code = typed("SELECT * FROM orders o\nINNER JOIN customers c\n  ON o.customer_id = c.id;", f, t(233.2), 0.55).split('\n');
   const pct = Math.round(fill * 100);
 
   return (
-    <Stage dur={1310} inFx="fade" outFx="black">
+    <Stage dur={798} inFx="fade" outFx="black">
       <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
         <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
           <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
@@ -38,37 +41,54 @@ export const Scene6: React.FC = () => {
           </div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 190}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 170}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 38, fontWeight: 700, color: C.green}}>Lesson 17 Completed: <span style={{color: C.text}}>LEFT JOIN & Churn Analytics Mastered</span></div>
+            <div style={{fontFamily: MONO, fontSize: 32, fontWeight: 700, color: C.green}}>
+              Lesson 15 Completed: <span style={{color: C.text}}>Conditional Aggregation &amp; FILTER Mastered</span>
+            </div>
           </div>
-          <div style={{marginTop: 34, display: 'flex', alignItems: 'center', gap: 28}}>
+          <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
               <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: C.muted}}>Module 5 · SQL Joins — Outer Joins & NULL Padding Mastered</div>
+          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
+            Module 4 · Data Retrieval &amp; Analysis — {modDone > 0.5 ? 'Completed ✓' : 'in progress'}
+          </div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 400, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 16}}>
+          {SKILLS.map((s, i) => {
+            const p = pop(f, t(217.4 + i * 0.7));
+            return (
+              <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
+                <Chip color={C.blue} style={{fontSize: 22}}>{s}</Chip>
+              </div>
+            );
+          })}
+        </div>
+
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 440, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
           <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
             <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
           </Chip>
         </div>
 
-        <div style={{position: 'absolute', left: 90, right: 90, top: 500, height: 300, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
+        <div style={{position: 'absolute', left: 90, right: 90, top: 535, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 18</Mix>
-            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>الربط الشامل والتقاطعي FULL OUTER & CROSS JOIN</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 16 · الوحدة الخامسة</Mix>
+            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>الربط الداخلي INNER JOIN ودمج سجلات الجداول المترابطة</Mix>
           </div>
-          <div dir="ltr" style={{width: 560, height: 170, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '26px 28px', fontFamily: MONO, fontSize: 28, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 20, marginBottom: 16}}>-- Lesson 18</div>
-            <div>
-              <Sql text={code} />
-              <span style={{color: C.green}}>▌</span>
-            </div>
+          <div dir="ltr" style={{width: 560, height: 200, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '20px 26px', fontFamily: MONO, fontSize: 25, color: C.text}}>
+            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 16</div>
+            {code.map((l, i) => (
+              <div key={i} style={{whiteSpace: 'pre', minHeight: 36}}>
+                <Sql text={l} />
+                {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
+              </div>
+            ))}
           </div>
         </div>
       </div>

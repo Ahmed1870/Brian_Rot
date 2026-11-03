@@ -1,101 +1,163 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec} from '../kit';
+import {C, MONO, START} from '../theme';
+import {Caption, Chip, Mix, Sql, Stage, TopBadge, Warn, clamp, pop, prog, sec} from '../kit';
 
-// SC05 (frames 4755-5890, global 158.5-196.3s): multi-table LEFT JOIN -> funnel, retention, activation, churn (illustrative numbers).
-const S = 158.5;
+// SC05 (global 173.3-213.4s): engineering benchmark - 3 subqueries + LEFT JOINs (3 disk scans, RAM, 45ms) vs FILTER single scan (0.003s).
+// Anchors (s): 175.1 engineering view | 183.3 LEFT JOIN | 186.8 JOINs eat RAM | 191.0 pages read several times | 193.1 FILTER walks row by row
+// 197.1 one single read | 200.9 under a fraction of a millisecond | 203.0 mastery = the difference | 207.3 very slowly | 209.4 blink of an eye
+const S = START.s5;
 const t = (g: number) => sec(g - S);
-const CODE = [
-  'SELECT c.customer_id,',
-  '  COUNT(DISTINCT o.order_id) AS total_orders,',
-  '  COUNT(DISTINCT r.review_id) AS total_reviews',
-  'FROM customers c',
-  'LEFT JOIN orders o ON c.customer_id = o.customer_id',
-  'LEFT JOIN reviews r ON o.order_id = r.order_id',
-  'GROUP BY c.customer_id;',
-];
-const KPI = [
-  {k: 'Activation', v: 64, u: '%', c: C.green, g: 182.0},
-  {k: 'Retention', v: 42, u: '%', c: C.blue, g: 175.6},
-  {k: 'Churn', v: 36, u: '%', c: C.red, g: 185.0},
-  {k: 'Avg rating', v: 4.3, u: '★', c: C.amber, g: 187.3},
-];
+
+const PW = 840;
+const LX = 90;
+const RX = 990;
+const PY = 190;
+const PH = 715;
+const COLS = 8;
+const ROWS = 3;
+const CW = 80;
+const CH = 54;
+const GAP = 12;
+const GRID_W = COLS * CW + (COLS - 1) * GAP;
+
+type Sweep = {at: number; dur: number};
+
+const PageGrid: React.FC<{x: number; y: number; color: string; sweeps: Sweep[]}> = ({x, y, color, sweeps}) => {
+  const f = useCurrentFrame();
+  const gx = x + (PW - GRID_W) / 2;
+  const cells: React.ReactNode[] = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      let lit = 0;
+      sweeps.forEach((s) => {
+        const p = clamp((f - t(s.at)) / sec(s.dur));
+        if (p <= 0) return;
+        const reached = c + 0.5 <= p * COLS;
+        if (!reached) return;
+        const fade = p >= 1 ? clamp(1 - (f - t(s.at) - sec(s.dur)) / sec(1.0)) : 1;
+        lit = Math.max(lit, fade);
+      });
+      cells.push(
+        <div key={`${r}-${c}`} style={{position: 'absolute', left: c * (CW + GAP), top: r * (CH + GAP), width: CW, height: CH, borderRadius: 10, background: lit > 0.02 ? `${color}${Math.round(lit * 60 + 14).toString(16).padStart(2, '0')}` : C.deep, border: `2px solid ${lit > 0.02 ? color : C.border}`, boxShadow: lit > 0.5 ? `0 0 14px ${color}66` : 'none'}} />,
+      );
+    }
+  }
+  const active = sweeps
+    .map((s) => ({p: clamp((f - t(s.at)) / sec(s.dur)), i: 0}))
+    .filter((s) => s.p > 0 && s.p < 1)[0];
+  return (
+    <div style={{position: 'absolute', left: gx, top: y, width: GRID_W, height: ROWS * CH + (ROWS - 1) * GAP}}>
+      {cells}
+      {active ? <div style={{position: 'absolute', left: active.p * GRID_W - 3, top: -10, width: 6, height: ROWS * CH + (ROWS - 1) * GAP + 20, borderRadius: 3, background: color, boxShadow: `0 0 20px 6px ${color}88`}} /> : null}
+    </div>
+  );
+};
+
+const Bar: React.FC<{x: number; y: number; w: number; label: string; pct: number; color: string}> = ({x, y, w, label, pct, color}) => (
+  <div dir="ltr" style={{position: 'absolute', left: x, top: y, width: w}}>
+    <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 21, color: C.muted, marginBottom: 8}}>
+      <span>{label}</span>
+      <span style={{color}}>{Math.round(pct * 100)}%</span>
+    </div>
+    <div style={{height: 24, borderRadius: 12, background: C.deep, border: `2px solid ${C.border}`, overflow: 'hidden'}}>
+      <div style={{width: `${clamp(pct) * 100}%`, height: '100%', background: color, borderRadius: 12}} />
+    </div>
+  </div>
+);
 
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
-  const n1 = pop(f, t(168.0));
-  const n2 = pop(f, t(170.9));
-  const n3 = pop(f, t(172.4));
-  const dash = prog(f, t(174.4), 24);
-  const fun = (i: number) => prog(f, t(177.8) + i * 14, sec(2));
-  const seal = pop(f, t(191.5));
-  const glow = 0.5 + 0.5 * Math.sin(f / 8);
-  const BW = 640;
+  const left = prog(f, t(175.2), 24);
+  const code1 = prog(f, t(183.3), 20);
+  const ram1 = 0.9 * prog(f, t(186.8), sec(3.6));
+  const ms = Math.round(45 * clamp((f - t(190.9)) / sec(5.8)));
+  const msShow = f >= t(190.9);
+  const right = 0.3 + 0.7 * prog(f, t(193.1), 22);
+  const code2 = prog(f, t(193.2), 20);
+  const ram2 = 0.08 * prog(f, t(197.05), sec(1));
+  const time2 = pop(f, t(200.89));
+  const seal = prog(f, t(202.95), 18);
+  const slow = prog(f, t(207.27), 24);
+  const bolt = pop(f, t(209.42));
+  const shake = f >= t(207.27) && f < t(209.3) ? Math.sin(f * 2.2) * 5 : 0;
+  const reads1 = [t(191.0), t(192.7), t(194.4)].filter((x) => f >= x).length;
+  const reads2 = f >= t(197.05) ? 1 : 0;
 
   return (
-    <Stage dur={1135} inFx="zoom" outFx="down">
-      <TopBadge text="التحليل المؤسسي | Multi-Table LEFT JOIN" from={t(159.8)} to={t(170)} color={C.blue} />
+    <Stage dur={1202} inFx="up" outFx="fade">
+      <TopBadge text="الأداء الفائق · Single Scan vs Multiple JOINs" from={t(175.4)} to={t(191)} color={C.green} />
 
-      <Editor x={90} y={150} w={1100} h={400} title="funnel_analysis.sql" lines={CODE} start={t(160.2)} cps={1.9} size={22} accent={C.blue} />
-
-      {/* table chain */}
-      <div dir="ltr" style={{position: 'absolute', left: 1230, top: 170, width: 600, fontFamily: MONO}}>
-        {[
-          {n: 'customers', c: C.blue, p: n1},
-          {n: 'orders', c: C.green, p: n2},
-          {n: 'reviews', c: C.amber, p: n3},
-        ].map((x, i) => (
-          <div key={x.n}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 16, height: 70, borderRadius: 16, border: `2px solid ${x.c}`, background: `${x.c}1A`, padding: '0 24px', fontSize: 28, color: C.text, opacity: clamp(x.p), transform: `translateX(${(1 - clamp(x.p)) * 40}px)`}}>
-              <span style={{color: x.c, fontWeight: 700}}>{i === 0 ? 'FROM' : 'LEFT JOIN'}</span>
-              {x.n}
-            </div>
-            {i < 2 && <div style={{height: 34, marginLeft: 40, borderLeft: `4px dashed ${C.border}`}} />}
-          </div>
-        ))}
-      </div>
-
-      {/* funnel dashboard */}
-      <Win x={90} y={580} w={1000} h={320} title="customer funnel" accent={C.border} opacity={dash}>
-        <div dir="ltr" style={{padding: '18px 26px', fontFamily: MONO}}>
-          {[
-            {n: 'Customers', v: 100, c: C.blue, l: '1,000'},
-            {n: 'Placed orders', v: 64, c: C.green, l: '640'},
-            {n: 'Left reviews', v: 41, c: C.amber, l: '410'},
-          ].map((r, i) => (
-            <div key={r.n} style={{display: 'flex', alignItems: 'center', gap: 18, marginBottom: 18}}>
-              <span style={{width: 190, fontSize: 22, color: C.muted}}>{r.n}</span>
-              <div style={{width: BW, height: 44, background: C.deep, borderRadius: 10, overflow: 'hidden'}}>
-                <div style={{width: (BW * r.v * fun(i)) / 100, height: '100%', background: r.c, borderRadius: 10}} />
-              </div>
-              <span style={{fontSize: 26, color: C.text, fontWeight: 700, opacity: fun(i)}}>{r.l}</span>
-            </div>
-          ))}
+      {/* ================= LEFT: subqueries + LEFT JOIN */}
+      <div style={{position: 'absolute', left: LX, top: PY, width: PW, height: PH, borderRadius: 26, background: 'rgba(30,41,59,0.6)', border: `2px solid ${C.red}`, boxShadow: `0 0 40px ${C.red}22`, opacity: left * (1 - 0.35 * slow), transform: `translateX(${shake}px)`}}>
+        <div style={{position: 'absolute', left: 26, top: 18}}>
+          <Chip color={C.red} style={{fontSize: 22}}>3 Subqueries + LEFT JOIN</Chip>
         </div>
-      </Win>
-
-      {/* KPIs */}
-      <div dir="ltr" style={{position: 'absolute', left: 1130, top: 580, width: 700, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18}}>
-        {KPI.map((k) => {
-          const p = prog(f, t(k.g), 24);
-          const val = k.u === '★' ? (k.v * p).toFixed(1) : String(Math.round(k.v * p));
-          return (
-            <div key={k.k} style={{height: 140, borderRadius: 20, border: `2px solid ${k.c}`, background: C.card, padding: '16px 24px', opacity: p, transform: `translateY(${(1 - p) * 24}px)`}}>
-              <div style={{fontFamily: MONO, fontSize: 22, color: C.muted}}>{k.k}</div>
-              <div style={{fontFamily: MONO, fontSize: 64, fontWeight: 700, color: k.c, lineHeight: 1.1}}>{val}<span style={{fontSize: 34}}>{k.u}</span></div>
-            </div>
-          );
-        })}
+        <div dir="ltr" style={{position: 'absolute', left: 26, right: 26, top: 80, height: 130, borderRadius: 14, background: C.deep, border: `2px solid ${C.border}`, padding: '14px 18px', fontFamily: MONO, fontSize: 19, lineHeight: 1.55, opacity: code1, transform: `translateY(${(1 - code1) * 16}px)`}}>
+          <div><Sql text="FROM (SELECT SUM(total_amount) … 'Completed') a" /></div>
+          <div><Sql text="LEFT JOIN (SELECT SUM(total_amount) … 'Returned') b" /></div>
+          <div><Sql text="LEFT JOIN (SELECT COUNT(*) … 'Cancelled') c" /></div>
+        </div>
+        <Bar x={26} y={495} w={PW - 52} label="RAM · temp tables" pct={ram1} color={C.red} />
+      </div>
+      <PageGrid x={LX} y={PY + 245} color={C.red} sweeps={[{at: 191.0, dur: 1.5}, {at: 192.7, dur: 1.5}, {at: 194.4, dur: 1.5}]} />
+      <div dir="ltr" style={{position: 'absolute', left: LX + 26, top: PY + 436, fontFamily: MONO, fontSize: 24, color: C.red, opacity: left}}>
+        DISK READS <span style={{fontSize: 34, fontWeight: 700}}>{reads1}×</span>
+      </div>
+      <div dir="ltr" style={{position: 'absolute', left: LX + 26, top: PY + 572, opacity: left * (msShow ? 1 : 0.3)}}>
+        <div style={{fontFamily: MONO, fontSize: 22, color: C.muted}}>execution time</div>
+        <div style={{fontFamily: MONO, fontSize: 92, fontWeight: 700, lineHeight: 1.1, color: C.red}}>
+          {msShow ? ms : '—'}
+          <span style={{fontSize: 44, color: C.muted}}> ms</span>
+        </div>
+      </div>
+      <div style={{position: 'absolute', left: LX + PW - 190, top: PY + 590, opacity: slow}}>
+        <Warn size={96} />
+      </div>
+      <div style={{position: 'absolute', left: LX + PW - 400, top: PY + 690 - 40, width: 360, textAlign: 'right', opacity: slow}}>
+        <Mix style={{fontSize: 30, fontWeight: 700, color: C.red}}>بطيء جداً</Mix>
       </div>
 
-      <div dir="ltr" style={{position: 'absolute', left: 1130, top: 862, display: 'flex', alignItems: 'center', gap: 16, opacity: clamp(seal), transform: `scale(${0.85 + 0.15 * clamp(seal)})`, transformOrigin: 'left center'}}>
-        <Check p={clamp(seal)} size={44} />
-        <Chip color={C.green} style={{fontSize: 24, boxShadow: `0 0 ${18 * glow}px ${C.green}55`}}>Enterprise Metric Seal · illustrative data</Chip>
+      {/* ================= RIGHT: FILTER single scan */}
+      <div style={{position: 'absolute', left: RX, top: PY, width: PW, height: PH, borderRadius: 26, background: 'rgba(30,41,59,0.6)', border: `2px solid ${C.green}`, boxShadow: `0 0 40px ${C.green}22`, opacity: right}}>
+        <div style={{position: 'absolute', left: 26, top: 18}}>
+          <Chip color={C.green} style={{fontSize: 22}}>FILTER · Single Scan</Chip>
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 26, right: 26, top: 80, height: 130, borderRadius: 14, background: C.deep, border: `2px solid ${C.border}`, padding: '14px 18px', fontFamily: MONO, fontSize: 19, lineHeight: 1.55, opacity: code2, transform: `translateY(${(1 - code2) * 16}px)`}}>
+          <div><Sql text="SUM(total_amount) FILTER (WHERE … 'Completed')," /></div>
+          <div><Sql text="SUM(total_amount) FILTER (WHERE … 'Returned')," /></div>
+          <div><Sql text="COUNT(*) FILTER (WHERE … 'Cancelled')" /></div>
+        </div>
+        <Bar x={26} y={495} w={PW - 52} label="RAM · no temp tables" pct={ram2} color={C.green} />
+      </div>
+      <PageGrid x={RX} y={PY + 245} color={C.green} sweeps={[{at: 197.05, dur: 0.9}]} />
+      <div dir="ltr" style={{position: 'absolute', left: RX + 26, top: PY + 436, fontFamily: MONO, fontSize: 24, color: C.green, opacity: right}}>
+        DISK READS <span style={{fontSize: 34, fontWeight: 700}}>{reads2}×</span>
+      </div>
+      <div dir="ltr" style={{position: 'absolute', left: RX + 26, top: PY + 572, opacity: clamp(time2), transform: `scale(${0.85 + 0.15 * clamp(time2)})`, transformOrigin: 'left center'}}>
+        <div style={{fontFamily: MONO, fontSize: 22, color: C.muted}}>execution time</div>
+        <div style={{fontFamily: MONO, fontSize: 92, fontWeight: 700, lineHeight: 1.1, color: C.green, textShadow: `0 0 28px ${C.green}66`}}>
+          0.003<span style={{fontSize: 44, color: C.muted}}> s</span>
+        </div>
       </div>
 
-      <Caption text="Multi-Table LEFT JOIN ──► Customer ➔ Orders ➔ Reviews Funnel" from={t(166.5)} to={t(177)} />
-      <Caption text="Enterprise Value ──► Computes Retention, Activation & Churn Rates" from={t(178)} to={t(195)} />
+      {/* quality seal */}
+      <div style={{position: 'absolute', left: RX + PW - 330, top: PY + 585, opacity: seal, transform: `rotate(-8deg) scale(${1.7 - 0.7 * seal})`, transformOrigin: 'center'}}>
+        <div style={{border: `5px double ${C.green}`, borderRadius: 18, padding: '14px 26px', textAlign: 'center', background: `${C.green}14`}}>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 34, fontWeight: 700, color: C.green}}>OPTIMIZED ✓</div>
+          <Mix style={{display: 'block', fontSize: 22, color: C.text}}>اعتماد بنيوي</Mix>
+        </div>
+      </div>
+
+      {/* lightning bolt */}
+      <div style={{position: 'absolute', left: RX + PW - 110, top: PY + 16, opacity: clamp(bolt), transform: `scale(${0.6 + 0.4 * clamp(bolt)})`}}>
+        <svg width={70} height={90} viewBox="0 0 70 90" style={{filter: `drop-shadow(0 0 14px ${C.amber})`}}>
+          <polygon points="42,2 8,50 32,50 24,88 62,36 38,36" fill={C.amber} />
+        </svg>
+      </div>
+
+      <Caption text="Multiple JOINs & Subqueries ──► 3x Disk Reads (45ms) (Slow)" from={t(177)} to={t(192.5)} tone="danger" />
+      <Caption text="Conditional FILTER Aggregation ──► 1x Single Scan (0.003s Lightning Fast)" from={t(193.4)} to={t(209)} tone="ok" />
     </Stage>
   );
 };

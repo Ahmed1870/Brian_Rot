@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-17-left-right-join",
+  "name": "manzooma-sql-lesson-15-conditional-aggregation",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 17: LEFT JOIN, RIGHT JOIN and NULL handling (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 15: Conditional Aggregation (CASE WHEN inside aggregates, FILTER, Pivoting) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L17-Left-Right-Join out/sql-l17-left-right-join.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L15-Conditional-Aggregation out/sql-l15-conditional-aggregation.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
