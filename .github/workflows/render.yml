@@ -1,4 +1,4 @@
-name: Render video
+name: Render SQL Lesson 12 ORDER BY LIMIT OFFSET
 on:
   push:
     branches: [main]
@@ -12,11 +12,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run generate-audio
-      - run: npx remotion render src/index.ts Monzoma-SQL-L07 out/Monzoma-SQL-L07.mp4
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L12-OrderBy-Limit-Offset out/sql-l12-orderby-limit-offset.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: Monzoma-SQL-L07
-          path: out/*.mp4
-          if-no-files-found: error
+          name: sql-l12-orderby-limit-offset
+          path: out/sql-l12-orderby-limit-offset.mp4

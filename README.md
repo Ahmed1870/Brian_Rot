@@ -1,9 +1,8 @@
-# Manzooma — Lesson 07: Foreign Keys & Referential Integrity
-Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s). Composition ID: `Monzoma-SQL-L07`.
+# Manzooma | SQL From Zero to Professional - Lesson 12 - ORDER BY, NULLS, LIMIT, OFFSET
 
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/Monzoma-SQL-L07.mp4
+- Composition id: `SQL-L12-OrderBy-Limit-Offset` - 1920x1080, 30fps, 7200 frames (4:00)
+- Scene boundaries follow the REAL voiceover pauses: 0 | 1270 | 2667 | 3879 | 5036 | 6339 | 7200
+- Voiceover: public/voiceover.mp3 (240.04s)
 
-Voiceover: `public/voiceover_lesson_07.mp3` (already contains ~1.2 s of lead-in, starts at frame 0). Cue times live in `src/timeline.json`.
+    npm install && npm start
+    npm run build   # -> out/sql-l12-orderby-limit-offset.mp4
