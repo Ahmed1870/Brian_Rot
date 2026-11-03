@@ -1,3 +1,9 @@
-# Ahmed x Manzooma - SQL Lesson 16: INNER JOIN
-Remotion 16:9 (1920x1080 @30fps, 7200 frames = 4:00). Narration: public/voiceover_lesson_16.mp3 (starts at frame 0).
-No Tailwind: every position is an inline style. `npm run check` guards layout + forbids className.
+# Manzooma — Lesson 07: Foreign Keys & Referential Integrity
+Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s). Composition ID: `Monzoma-SQL-L07`.
+
+    npm install
+    npm run generate-audio   # SFX + music (needed once for local preview)
+    npm start                # Remotion Studio
+    npm run render           # renders out/Monzoma-SQL-L07.mp4
+
+Voiceover: `public/voiceover_lesson_07.mp3` (already contains ~1.2 s of lead-in, starts at frame 0). Cue times live in `src/timeline.json`.

@@ -1,24 +1,23 @@
 {
-  "name": "ahmed-manzooma-sql-l16",
+  "name": "monzoma-sql-l07",
   "version": "1.0.0",
   "private": true,
-  "description": "Ahmed x Manzooma - SQL Lesson 16: INNER JOIN (16:9, 4:00) - Remotion",
+  "description": "Manzooma — SQL From Zero to Professional — Lesson 07 (Advanced Constraints)",
   "scripts": {
-    "sfx": "python3 scripts/generate_sfx.py",
-    "prep": "node scripts/prep.mjs", "check": "node scripts/check_layout.mjs",
-    "start": "node scripts/prep.mjs && remotion studio src/index.ts",
-    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L16 out/ahmed_sql_lesson16.mp4 --codec h264 --concurrency 2"
+    "start": "remotion studio src/index.ts",
+    "generate-audio": "node scripts/generate-audio.cjs",
+    "render": "npm run generate-audio && remotion render src/index.ts Monzoma-SQL-L07 out/Monzoma-SQL-L07.mp4",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.300",
-    "@remotion/google-fonts": "4.0.300",
-    "@remotion/layout-utils": "4.0.300",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "remotion": "4.0.300"
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "19.0.0",
-    "typescript": "5.8.2"
+    "@types/react": "^18.3.0",
+    "typescript": "^5.4.0"
   }
 }
