@@ -1,150 +1,139 @@
-import React from 'react';
-import TL from '../timeline.json';
-import {C, K, FONT_AR, FONT_MONO} from '../theme';
-import {Bg, Glass} from '../components/Glass';
-import {Bi, Pill, appear, pop} from '../components/Text';
-import {LOGO_PATHS, LOGO_VIEW} from '../logoData';
-import {eo, hash, mix, prog, pulse} from '../lib/anim';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Logo } from "../components/common";
+import { C, eb, eio, eo, prog, useT } from "../lib";
 
-const S = TL.cues.sc06;
-const LW = 150;
-const LH = (LW * LOGO_VIEW.h) / LOGO_VIEW.w;
-const SKILLS = ['Correlated Subquery', 'EXISTS', 'NOT EXISTS', 'Semi / Anti Join'];
+const SKILLS = [
+  { a: 217.4, t: "Derived Tables", ar: "استعلام فرعي في FROM", c: C.blue },
+  { a: 218.5, t: "Mandatory Alias", ar: "اسم مستعار إلزامي", c: C.green },
+  { a: 219.5, t: "AVG(SUM) in 2 steps", ar: "تجميع على تجميع", c: C.violet },
+  { a: 220.5, t: "Flattening", ar: "تفتيت الاستعلام البسيط", c: C.amber },
+];
+const FUNCS = [
+  { a: 236.5, s: "LENGTH" },
+  { a: 237.1, s: "SUBSTRING" },
+  { a: 237.9, s: "CONCAT" },
+  { a: 238.8, s: "TRIM" },
+  { a: 239.2, s: "REPLACE" },
+];
+const BAR_X = 260, BAR_W = 1400, BAR_Y = 618;
 
-const Check: React.FC<{c?: string; s?: number}> = ({c = K.num, s = 34}) => (
-  <svg width={s} height={s} viewBox="0 0 34 34" fill="none" stroke={c} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18 L14 26 L29 8" /></svg>
-);
-
-export const Scene6: React.FC<{t: number}> = ({t}) => {
-  const ring = eo(prog(t, S.progress[0], S.progress[1]));
-  const done = t >= S.progress[1] - 0.4;
-  const badgeP = pop(t, S.badge, S.badge + 0.8);
-  const nextP = pop(t, S.next, S.next + 0.9);
-  const sheetsP = pop(t, S.sheets, S.sheets + 0.9);
-  const cardP = pop(t, S.header + 1.2, S.header + 2.2);
-  const R = 92;
-  const circ = 2 * Math.PI * R;
-  const np = Math.sin(prog(t, S.nextPulse, S.nextPulse + 2.2) * Math.PI);
-  const lp = Math.sin(prog(t, S.linkPulse, S.linkPulse + 2.2) * Math.PI);
-  const sweep = mix(-300, 1900, ((t - S.sheets - 1) * 0.25) % 1);
+export const Scene6: React.FC = () => {
+  const t = useT();
+  const cardIn = eo(t, 213.5, 214.8);
+  const logoIn = eb(t, 214.0, 215.0);
+  const badge = eb(t, 215.6, 216.3);
+  const check = prog(t, 215.9, 216.5);
+  const fill = eio(t, 217.0, 221.4);
+  const pct = Math.round(fill * 100);
+  const done = prog(t, 221.4, 222.1);
 
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
+    <AbsoluteFill>
+      <div
+        style={{
+          position: "absolute",
+          left: 160,
+          top: 70 + (1 - cardIn) * 80,
+          width: 1600,
+          height: 940,
+          opacity: cardIn,
+          borderRadius: 44,
+          background: "linear-gradient(160deg, #1E293BCC 0%, #0F172AE6 55%, #0B1B33E6 100%)",
+          border: `2px solid ${C.blue}55`,
+        }}
+      />
+      <div style={{ position: "absolute", left: 840, top: 92, opacity: Math.min(1, logoIn * 1.4), transform: `scale(${0.7 + 0.3 * Math.min(1.1, logoIn)})`, willChange: "transform" }}>
+        <Logo size={240} />
+      </div>
+      <div style={{ position: "absolute", left: 160, top: 336, width: 1600, textAlign: "center", opacity: prog(t, 214.5, 215.3), transform: `translateY(${(1 - eo(t, 214.5, 215.5)) * 30}px)` }}>
+        <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 64, color: C.text, direction: "rtl", lineHeight: 1.15 }}>
+          منظومة <span style={{ color: C.blue }}>أكاديمي</span>
+        </div>
+        <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.blue, letterSpacing: 2 }}>Manzooma SQL Masterclass</div>
+      </div>
 
-      {/* header */}
-      <div style={{position: 'absolute', left: 100, top: 54, width: 1720, display: 'flex', alignItems: 'center', gap: 28, opacity: appear(t, S.header, S.header + 0.6)}}>
-        <svg width={LW} height={LH} viewBox={`${LOGO_VIEW.x} ${LOGO_VIEW.y} ${LOGO_VIEW.w} ${LOGO_VIEW.h}`} style={{filter: 'drop-shadow(0 0 14px rgba(56,189,248,0.4))'}}>
-          <g transform="translate(0,600) scale(0.1,-0.1)" fill="#F8FAFC">
-            {LOGO_PATHS.map((p, i) => (
-              <path key={i} d={p.d} opacity={eo(prog(t, S.header + 0.1 + hash(i) * 0.8, S.header + 0.9 + hash(i) * 0.8))} />
-            ))}
-          </g>
+      <div
+        style={{
+          position: "absolute",
+          left: 300,
+          top: 488,
+          width: 1320,
+          height: 70,
+          borderRadius: 999,
+          background: `${C.green}1E`,
+          border: `3px solid ${C.green}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 20,
+          opacity: Math.min(1, badge * 1.5),
+          transform: `scale(${0.85 + 0.15 * Math.min(1.1, badge)})`,
+        }}
+      >
+        <svg width={46} height={46} viewBox="0 0 46 46">
+          <circle cx="23" cy="23" r="21" fill={C.green} />
+          <path d="M12 24 L20 32 L35 15" fill="none" stroke="#07101F" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - check} />
         </svg>
-        <Bi ar="منظومة أكاديمي" en="Manzooma SQL Masterclass" size={58} t={t} start={S.header + 0.2} weight={900} gap={26} />
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 28, color: C.text }}>
+          Lesson 24 Completed: <span style={{ color: C.green }}>Derived Tables &amp; Module 6 Mastered</span>
+        </span>
       </div>
 
-      {/* completed lesson card */}
-      <div style={{position: 'absolute', left: 100, top: 214, width: 900, height: 420, opacity: Math.min(1, cardP * 1.5), transform: `translateY(${(1 - cardP) * 60}px)`}}>
-        <Glass w={900} h={420} t={t} tint={K.num} glow={24} style={{border: `2px solid ${K.num}66`}}>
-          <div style={{padding: '28px 40px'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 36}}>
-              <div style={{position: 'relative', width: 210, height: 210}}>
-                <svg width="210" height="210" viewBox="0 0 210 210" style={{transform: 'rotate(-90deg)'}}>
-                  <circle cx="105" cy="105" r={R} fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="18" />
-                  <circle cx="105" cy="105" r={R} fill="none" stroke={K.num} strokeWidth="18" strokeLinecap="round" strokeDasharray={`${circ * ring} ${circ}`} />
-                </svg>
-                <div style={{position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
-                  <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 66, color: C.text, lineHeight: 1}}>23</span>
-                  <span style={{fontFamily: FONT_MONO, fontSize: 20, color: K.num}}>{Math.round(ring * 100)}%</span>
-                </div>
-              </div>
-              <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start'}}>
-                <div style={{opacity: Math.min(1, badgeP * 1.5), transform: `scale(${0.8 + 0.2 * badgeP})`, transformOrigin: '0 50%'}}>
-                  <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 26px', borderRadius: 26, background: `${K.num}22`, border: `2px solid ${K.num}`, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, lineHeight: 1.25, color: C.text, maxWidth: '100%', boxSizing: 'border-box', boxShadow: `0 0 ${24 + 12 * pulse(t, 1.6)}px ${K.num}66`}}>
-                    <Check s={30} />
-                    <span>Lesson 23 Completed: Correlated Subqueries & EXISTS Mastered</span>
-                  </div>
-                </div>
-                <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 26, color: C.dim, direction: 'rtl'}}>الوحدة السادسة — الاستعلامات الفرعية والتداخل</div>
-                <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-                  {SKILLS.map((s, i) => (
-                    <div key={s} style={{opacity: appear(t, S.progress[1] + i * 0.35, S.progress[1] + 0.6 + i * 0.35), transform: `translateY(${(1 - appear(t, S.progress[1] + i * 0.35, S.progress[1] + 0.6 + i * 0.35)) * 16}px)`}}>
-                      <Pill mono size={21} bg={`${K.txt}1A`} color={C.text} border={`${K.txt}77`}>{s}</Pill>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <div style={{ position: "absolute", left: BAR_X, top: BAR_Y - 44, width: BAR_W, display: "flex", justifyContent: "space-between", fontFamily: MONO, fontWeight: 700, fontSize: 22, opacity: prog(t, 216.8, 217.4) }}>
+        <span style={{ color: C.dim }}>MODULE 6 · SUBQUERIES &amp; NESTED QUERIES</span>
+        <span style={{ color: C.green, fontSize: 28 }}>{pct}%</span>
+      </div>
+      <div style={{ position: "absolute", left: BAR_X, top: BAR_Y, width: BAR_W, height: 28, borderRadius: 14, background: "#0B1222", border: `2px solid ${C.line}`, opacity: prog(t, 216.8, 217.4) }}>
+        <div style={{ width: `${Math.max(0.5, fill * 100)}%`, height: "100%", borderRadius: 12, background: `linear-gradient(90deg, ${C.blue}, ${C.green})` }} />
+      </div>
+      <div style={{ position: "absolute", left: 160, top: 656, width: 1600, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.green, opacity: done }}>
+        100% Module 6 Subqueries Completed
+      </div>
+
+      <div style={{ position: "absolute", left: 160, top: 704, width: 1600, display: "flex", justifyContent: "center", gap: 20 }}>
+        {SKILLS.map((s, i) => {
+          const e = eb(t, s.a, s.a + 0.6);
+          return (
+            <div key={i} style={{ width: 360, height: 84, borderRadius: 20, background: `${s.c}16`, border: `2.5px solid ${s.c}`, textAlign: "center", opacity: Math.min(1, e * 1.5), transform: `translateY(${(1 - Math.min(1, e)) * 40}px)` }}>
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: s.c, marginTop: 8 }}>{s.t}</div>
+              <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 22, color: C.text, direction: "rtl" }}>{s.ar}</div>
             </div>
-            {/* lesson track */}
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 34, gap: 0}}>
-              {[21, 22, 23, 24].map((n, i) => {
-                const complete = n < 23 || (n === 23 && done);
-                const isNext = n === 24;
-                const popP = n === 23 ? pop(t, S.progress[1] - 0.4, S.progress[1] + 0.4) : 1;
-                return (
-                  <React.Fragment key={n}>
-                    {i > 0 ? <div style={{width: 96, height: 6, borderRadius: 3, background: n <= 23 ? K.num : 'rgba(255,255,255,0.12)', opacity: n === 23 ? 0.3 + 0.7 * ring : 1}} /> : null}
-                    <div style={{width: 76, height: 76, borderRadius: 38, background: complete ? K.num : 'transparent', border: `4px ${isNext ? 'dashed' : 'solid'} ${complete ? K.num : isNext ? K.bool : 'rgba(255,255,255,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, color: complete ? C.bg : isNext ? K.bool : C.dim, transform: `scale(${n === 23 ? 0.8 + 0.2 * popP : 1 + (isNext ? 0.06 * pulse(t, 1.4) : 0)})`, boxShadow: isNext ? `0 0 ${12 + 14 * pulse(t, 1.4)}px ${K.bool}66` : undefined}}>
-                      {complete ? <Check c={C.bg} s={36} /> : String(n)}
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-            </div>
+          );
+        })}
+      </div>
+
+      {(() => {
+        const e = eb(t, 227.0, 227.8);
+        if (e <= 0) return null;
+        return (
+          <div style={{ position: "absolute", left: 210, top: 818, width: 700, height: 160, borderRadius: 26, background: `${C.blue}14`, border: `3px solid ${C.blue}`, opacity: Math.min(1, e * 1.5), transform: `translateY(${(1 - Math.min(1, e)) * 50}px)`, padding: "14px 30px" }}>
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.text, direction: "rtl", textAlign: "right" }}>الشيتات والتمارين التطبيقية</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.dim, marginTop: 4 }}>derived tables scripts · practice sheets</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 31, color: C.blue, marginTop: 10, textDecoration: "underline", textUnderlineOffset: 8 }}>solutions.gomaaintelligence.me</div>
           </div>
-        </Glass>
-      </div>
+        );
+      })()}
 
-      {/* next lesson card */}
-      <div style={{position: 'absolute', left: 1040, top: 214, width: 780, height: 420, opacity: Math.min(1, nextP * 1.5), transform: `translateY(${(1 - nextP) * 70}px) scale(${1 + 0.02 * np})`}}>
-        <Glass w={780} h={420} t={t + 2} tint={K.bool} glow={24 + 30 * np} style={{border: `2px solid ${K.bool}${np > 0.2 ? 'CC' : '66'}`}}>
-          <div style={{padding: '30px 40px', display: 'flex', gap: 30, alignItems: 'center', height: '100%', boxSizing: 'border-box'}}>
-            <div style={{display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0}}>
-              {[{l: 'FROM', c: K.num, g: '▤'}, {l: '(SELECT …)', c: K.bool, g: '⊂'}, {l: 'AS t', c: K.txt, g: '▦'}].map((o, i) => {
-                const op = appear(t, S.next + 0.4 + i * 0.3, S.next + 1 + i * 0.3);
-                return (
-                  <div key={o.l} style={{display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderRadius: 14, background: `${o.c}22`, border: `2px solid ${o.c}`, opacity: op, transform: `translateX(${(1 - op) * -40}px)`, minWidth: 190}}>
-                    <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: o.c, width: 30, textAlign: 'center'}}>{o.g}</span>
-                    <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: C.text}}>{o.l}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 10, direction: 'rtl'}}>
-              <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: K.bool, letterSpacing: 3, direction: 'ltr', textAlign: 'right'}}>LESSON 24</div>
-              <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 34, color: K.bool}}>الدرس القادم:</div>
-              <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 38, lineHeight: 1.3, color: C.text}}>الاستعلامات الفرعية في بند FROM</div>
-              <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 25, color: C.text, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap'}}>Derived Tables</div>
-              <div style={{fontFamily: FONT_MONO, fontSize: 19, color: C.dim, direction: 'ltr', textAlign: 'right'}}>Lesson 24: Subqueries in FROM &amp; Derived Tables</div>
-            </div>
-          </div>
-        </Glass>
-      </div>
-
-      {/* sheets + exercises */}
-      <div style={{position: 'absolute', left: 100, top: 676, width: 1720, height: 300, opacity: Math.min(1, sheetsP * 1.5), transform: `translateY(${(1 - sheetsP) * 70}px)`}}>
-        <Glass w={1720} h={300} t={t + 4} tint={K.txt} glow={22} sheen={false} style={{border: `2px solid ${K.txt}66`}}>
-          <div style={{position: 'absolute', top: -60, bottom: -60, left: sweep - 100, width: 160, transform: 'rotate(16deg)', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent)'}} />
-          <div style={{padding: '34px 50px', display: 'flex', alignItems: 'center', gap: 44, height: '100%', boxSizing: 'border-box', direction: 'rtl'}}>
-            <div style={{display: 'flex', gap: 20}}>
-              {[{l: 'EXISTS', c: K.txt}, {l: 'التمارين', c: K.num}, {l: 'الحلول', c: K.bool}].map((s, i) => (
-                <div key={i} style={{width: 150, height: 190, borderRadius: 20, background: `${s.c}1F`, border: `2.5px solid ${s.c}`, padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, transform: `rotate(${(i - 1) * 5}deg) translateY(${Math.sin(t * 1.4 + i) * 6}px)`}}>
-                  {[0.9, 0.7, 0.85, 0.55, 0.8].map((w, k) => (
-                    <div key={k} style={{height: 9, width: `${w * 100}%`, borderRadius: 5, background: s.c, opacity: 0.7}} />
-                  ))}
-                  <div style={{marginTop: 'auto', fontFamily: FONT_AR, fontWeight: 800, fontSize: 26, color: s.c, textAlign: 'center'}}>{s.l}</div>
-                </div>
+      {(() => {
+        const e = eb(t, 231.4, 232.2);
+        if (e <= 0) return null;
+        return (
+          <div style={{ position: "absolute", left: 950, top: 818, width: 760, height: 160, borderRadius: 26, background: `${C.violet}14`, border: `3px solid ${C.violet}`, opacity: Math.min(1, e * 1.5), transform: `translateY(${(1 - Math.min(1, e)) * 50}px)`, padding: "12px 30px" }}>
+            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 24, color: C.violet, direction: "rtl", textAlign: "right" }}>الدرس القادم · الوحدة السابعة</div>
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl", textAlign: "right" }}>الدرس 25: دوال النصوص المتقدمة</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.violet, marginTop: 2 }}>Advanced String Functions</div>
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              {FUNCS.map((f) => (
+                <span key={f.s} style={{ fontFamily: MONO, fontWeight: 700, fontSize: 15, color: C.text, padding: "3px 9px", borderRadius: 8, border: `1.5px solid ${C.violet}`, background: `${C.violet}22`, opacity: prog(t, f.a, f.a + 0.3) }}>
+                  {f.s}
+                </span>
               ))}
             </div>
-            <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 14}}>
-              <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 40, color: C.text}}>الشيتات والتمارين:</div>
-              <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 52, color: K.txt, direction: 'ltr', textAlign: 'right', textShadow: `0 0 ${28 + 30 * lp}px ${K.txt}${lp > 0.2 ? 'CC' : '66'}`, whiteSpace: 'nowrap'}}>solutions.gomaaintelligence.me</div>
-              <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl'}}>سكريبتات الاستعلامات المترابطة المعتمدة وأوراق العمل</div>
-            </div>
           </div>
-        </Glass>
-      </div>
-    </div>
+        );
+      })()}
+    </AbsoluteFill>
   );
 };

@@ -1,100 +1,247 @@
-import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine} from '../components/Code';
-import {Bi, appear, pop} from '../components/Text';
-import {Tag} from '../components/Tag';
-import {eo, fmt, mix, prog, pulse, seg} from '../lib/anim';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Arabic, Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eo, fmt, prog, typed, useT, win } from "../lib";
 
-const S = TL.cues.sc01;
-const PUR = '#A855F7';
-const EMP = [
-  {n: 'أحمد', d: 'Sales', s: 9000}, {n: 'سارة', d: 'IT', s: 11000}, {n: 'منى', d: 'Sales', s: 8000},
-  {n: 'عمر', d: 'HR', s: 7500}, {n: 'ياسمين', d: 'IT', s: 13000}, {n: 'كريم', d: 'HR', s: 6500},
+const ROWS: [number, number][] = [
+  [101, 1850],
+  [102, 920],
+  [103, 2400],
+  [104, 610],
 ];
-const AVG: Record<string, number> = {Sales: 8500, IT: 12000, HR: 7000};
-const CODE: CodeLine[] = [
-  {text: 'SELECT e.first_name, e.salary', at: 1.6},
-  {text: 'FROM employees e', at: 2.8},
-  {text: 'WHERE e.salary > (', at: 3.6},
-  {text: '  SELECT AVG(salary) FROM employees', at: 4.6},
-  {text: '  WHERE department_id = e.department_id', at: 6.0},
-  {text: ');', at: 8.0},
-];
-const TX = 60, TY = 200, RH = 70, HEAD = 56;
-const TOKEN = {x: 1500, y: 200 + 52 + 18 + 4 * 46 + 23};
-const bz = (u: number, a: number, b: number, c: number, d: number) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
+const CX = 1130, CY = 190, CW = 720, CH = 380;
 
-export const Scene1: React.FC<{t: number}> = ({t}) => {
-  const rel = t - S.pulse + 12; // first cycle starts at 6
-  const k = t < 6 ? -1 : Math.min(S.rows - 1, Math.floor((t - 6) / S.step));
-  const u = k < 0 ? 0 : t >= 6 + S.rows * S.step ? 1 : prog(t - 6 - k * S.step, 0, S.step);
-  const done = t >= 6 + S.rows * S.step;
-  const e = k >= 0 ? EMP[k] : EMP[0];
-  const rowY = TY + HEAD + Math.max(0, k) * RH + RH / 2;
-  const sig = prog(u, 0.08, 0.42);
-  const infer = prog(u, 0.42, 0.7);
-  const ret = prog(u, 0.7, 0.9);
-  const ring = prog(t, S.pulse, S.pulse + 1.4);
-  const badgeP = pop(t, S.badge[0], S.badge[0] + 0.8) * (1 - seg(t, S.badge[1] - 0.4, S.badge[1]));
-  const sx = 400, ex = TOKEN.x - 20, ey = TOKEN.y;
-  const px = bz(eo(sig), sx, 800, 1150, ex), py = bz(eo(sig), rowY, rowY - 140, ey - 190, ey);
+export const Scene1: React.FC = () => {
+  const t = useT();
+  const L = [
+    typed("SELECT customer_id, total_spent", t, 15.8, 17.0),
+    typed("FROM (", t, 17.1, 17.8),
+    typed("  SELECT customer_id, SUM(total_amount) AS total_spent", t, 18.0, 20.6),
+    typed("  FROM orders", t, 20.6, 21.4),
+    typed("  GROUP BY customer_id", t, 21.4, 22.6),
+    typed(")", t, 22.6, 22.9) + typed(" AS customer_summary;", t, 33.9, 35.4),
+  ];
+  const caret = t < 17.1 ? 0 : t < 18.0 ? 1 : t < 20.6 ? 2 : t < 21.4 ? 3 : t < 22.6 ? 4 : t < 33.9 ? -1 : 5;
+  const typing = (t > 15.8 && t < 22.9) || (t > 33.9 && t < 35.5);
+  const box = eo(t, 19.0, 20.2);
+  const card = eb(t, 20.5, 21.3);
+  const alias = eb(t, 34.8, 35.5);
+
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
-      <div style={{position: 'absolute', left: 0, top: 92, width: 1920, display: 'flex', justifyContent: 'center', opacity: Math.min(1, badgeP * 1.5), transform: `translateY(${(1 - badgeP) * -60}px)`}}>
-        {badgeP > 0.01 ? <div style={{padding: '16px 48px', borderRadius: 999, background: 'rgba(30,41,59,0.95)', border: `2px solid ${PUR}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${PUR}55`}}><Bi ar="الاستعلامات المترابطة" en="Correlated Subqueries & Row-by-Row Binding" size={46} t={t} start={S.badge[0] + 0.15} sep={PUR} /></div> : null}
+    <AbsoluteFill>
+      {/* top badge 2s–18s */}
+      <div
+        style={{
+          position: "absolute",
+          left: 70,
+          top: 116,
+          width: 1000,
+          height: 58,
+          opacity: win(t, 2.0, 18.0, 0.6),
+          transform: `translateY(${(1 - prog(t, 2.0, 2.7)) * -24}px)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 14,
+          borderRadius: 999,
+          border: `2px solid ${C.blue}88`,
+          background: "#0B1B33",
+        }}
+      >
+        <span style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl" }}>الجداول المشتقة</span>
+        <span style={{ color: C.blue, fontSize: 26 }}>|</span>
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.blue }}>Derived Tables (Subqueries in FROM)</span>
       </div>
-      <div style={{position: 'absolute', left: 0, top: 96, width: 1920, display: 'flex', justifyContent: 'center', height: 60}}><Tag t={t} range={[22, 38]} head="Inner Query References Outer Row:" body="WHERE department_id = e.department_id" color={PUR} size={28} /></div>
 
-      {/* outer table */}
-      <div style={{position: 'absolute', left: TX, top: TY, width: 800, opacity: appear(t, 0.5, 1.4)}}>
-        <div style={{borderRadius: 22, background: '#0B1222', border: `2px solid ${D.code}66`, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,0.5)'}}>
-          <div style={{height: HEAD, display: 'flex', alignItems: 'center', background: '#111B31', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 21, color: D.code}}>
-            {[['employees e', 220], ['department_id', 200], ['salary', 140], ['dept avg', 160], ['', 80]].map(([l, w]) => <div key={l as string} style={{width: w as number, padding: '0 18px'}}>{l}</div>)}
-          </div>
-          {EMP.map((x, i) => {
-            const active = i === k && !done;
-            const seen = i < k || (i === k && ret > 0) || done;
-            const above = x.s > AVG[x.d];
+      {/* intro: where we are */}
+      {win(t, 5.6, 18.0, 0.5) > 0 && (
+        <div style={{ position: "absolute", left: 70, top: 230, width: 1000, opacity: win(t, 5.6, 18.0, 0.5) }}>
+          <Arabic x={0} y={0} w={1000} fs={38} color={C.text} o={prog(t, 5.6, 6.4)}>
+            اتعلمنا الاستعلامات الفرعية في:
+          </Arabic>
+          {[
+            { a: 8.7, k: "SELECT", c: C.green, ok: true },
+            { a: 9.9, k: "WHERE", c: C.green, ok: true },
+            { a: 14.6, k: "FROM", c: C.blue, ok: false },
+          ].map((p, i) => {
+            const e = eb(t, p.a, p.a + 0.5);
             return (
-              <div key={i} style={{height: RH, display: 'flex', alignItems: 'center', borderTop: '1px solid rgba(71,85,105,0.5)', background: active ? `${D.code}2A` : seen && above && done ? `${D.cat}22` : 'transparent', fontFamily: FONT_MONO, fontSize: 25, color: C.text, boxShadow: active ? `inset 4px 0 0 ${D.code}` : undefined}}>
-                <div style={{width: 220, padding: '0 18px', fontFamily: FONT_AR, fontWeight: 800}}>{x.n}</div>
-                <div style={{width: 200, padding: '0 18px', color: active ? PUR : C.text, fontWeight: active ? 800 : 500}}>{x.d}</div>
-                <div style={{width: 140, padding: '0 18px'}}>{fmt(x.s)}</div>
-                <div style={{width: 160, padding: '0 18px', color: D.key, fontWeight: 800, opacity: seen ? 1 : 0}}>{fmt(AVG[x.d])}</div>
-                <div style={{width: 80, textAlign: 'center', fontSize: 30, fontWeight: 800, color: above ? D.cat : D.err, opacity: seen ? 1 : 0}}>{above ? '✓' : '✕'}</div>
+              <div
+                key={p.k}
+                style={{
+                  position: "absolute",
+                  left: i * 330,
+                  top: 110,
+                  width: 300,
+                  height: 110,
+                  opacity: Math.min(1, e * 1.5),
+                  transform: `scale(${0.8 + 0.2 * Math.min(1, e)})`,
+                  borderRadius: 22,
+                  background: `${p.c}18`,
+                  border: `3px solid ${p.c}`,
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 36, color: p.c, marginTop: 14 }}>{p.k}</div>
+                <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: p.ok ? C.green : C.blue }}>{p.ok ? "subquery ✓" : "subquery ?"}</div>
               </div>
             );
           })}
         </div>
-      </div>
+      )}
 
-      {/* inner query */}
-      <div style={{opacity: appear(t, 0.8, 1.6)}}><Code lines={CODE} t={t} x={920} y={200} w={940} h={350} title="correlated.sql" fontSize={27} lineH={46} accent={PUR} /></div>
-      {ring > 0 && ring < 1 ? <div style={{position: 'absolute', left: TOKEN.x - 140 * ring, top: TOKEN.y - 24 * ring - 12, width: 280 * ring, height: 48 * ring + 24, borderRadius: 999, border: `4px solid ${PUR}`, opacity: 1 - ring}} /> : null}
-
-      {/* bound value card */}
-      <div style={{position: 'absolute', left: 920, top: 590, width: 940, height: 290, borderRadius: 24, background: 'linear-gradient(160deg,#22304A,#1B2740)', border: `2px solid ${PUR}88`, opacity: appear(t, 6, 7), padding: '22px 34px', boxSizing: 'border-box', boxShadow: `0 0 ${24 + 20 * pulse(t, 1.6)}px ${PUR}44`}}>
-        <div style={{fontFamily: FONT_MONO, fontSize: 21, color: C.mute, letterSpacing: 2}}>INNER QUERY · BOUND TO OUTER ROW</div>
-        <div style={{display: 'flex', alignItems: 'center', gap: 26, marginTop: 14}}>
-          <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 36, color: C.text}}>e.department_id = <span style={{color: PUR}}>'{done ? '…' : e.d}'</span></div>
+      {/* editor */}
+      {t > 15.0 && (
+        <div style={{ opacity: eo(t, 15.0, 15.8), transform: `translateX(${(1 - eo(t, 15.0, 15.9)) * -120}px)` }}>
+          <Window x={70} y={190} w={1000} h={380} title="customer_summary.sql" glow={typing ? 1 : 0}>
+            <div
+              style={{
+                position: "absolute",
+                left: 14,
+                top: 88,
+                width: 880,
+                height: 126,
+                borderRadius: 14,
+                border: `3px solid ${C.blue}`,
+                background: `${C.blue}10`,
+                opacity: box * (t > 23.5 ? 0.55 : 1),
+                transform: `scaleY(${0.3 + 0.7 * box})`,
+                transformOrigin: "top",
+              }}
+            />
+            {L.map((s, i) =>
+              s.length > 0 ? (
+                <div key={i} style={{ position: "absolute", left: 28, top: 18 + i * 38 }}>
+                  <CodeLine text={s} fs={24} caret={caret === i} />
+                </div>
+              ) : null,
+            )}
+          </Window>
         </div>
-        <div style={{display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 20, opacity: infer}}>
-          <span style={{fontFamily: FONT_MONO, fontSize: 28, color: C.dim}}>AVG(salary) =</span>
-          <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 74, color: D.key, textShadow: `0 0 26px ${D.key}66`}}>{done ? '' : fmt(AVG[e.d] * Math.min(1, infer * 1.2))}</span>
-        </div>
-        <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, marginTop: 6, opacity: ret, color: e.s > AVG[e.d] ? D.cat : D.err}}>{done ? 'rows above their department average: 3' : `${fmt(e.s)} > ${fmt(AVG[e.d])} → ${e.s > AVG[e.d] ? 'TRUE ✓' : 'FALSE ✕'}`}</div>
-      </div>
+      )}
 
-      {/* purple loop signal */}
-      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-        {sig > 0 && !done && ret < 1 ? <>
-          <path d={`M${sx} ${rowY} C 800 ${rowY - 140} 1150 ${ey - 190} ${ex} ${ey}`} fill="none" stroke={PUR} strokeWidth="5" strokeDasharray="10 12" strokeDashoffset={-t * 90} opacity={0.35 + 0.5 * (1 - ret)} />
-          <circle cx={px} cy={py} r="11" fill={PUR} style={{filter: `drop-shadow(0 0 14px ${PUR})`}} />
-        </> : null}
-      </svg>
-    </div>
+      {/* virtual temp table card */}
+      {card > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: CX,
+            top: CY,
+            width: CW,
+            height: CH,
+            opacity: Math.min(1, card * 1.4),
+            transform: `translateX(${(1 - Math.min(1, card)) * -260}px) scale(${0.7 + 0.3 * Math.min(1, card)})`,
+            transformOrigin: "left center",
+            borderRadius: 26,
+            background: C.card2,
+            border: `3px solid ${C.blue}`,
+            boxShadow: `0 0 20px ${C.blue}55`,
+          }}
+        >
+          <div style={{ height: 62, display: "flex", alignItems: "center", padding: "0 26px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.blue }}>
+            virtual temp table · in memory
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", padding: "14px 40px 6px", fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.dim }}>
+            <span>customer_id</span>
+            <span style={{ textAlign: "right" }}>total_spent</span>
+          </div>
+          {ROWS.map(([id, v], i) => {
+            const e = eb(t, 21.0 + i * 0.35, 21.6 + i * 0.35);
+            return (
+              <div
+                key={id}
+                style={{
+                  position: "absolute",
+                  left: 24,
+                  top: 124 + i * 62,
+                  width: CW - 48,
+                  height: 52,
+                  opacity: Math.min(1, e * 1.5),
+                  transform: `translateX(${(1 - Math.min(1, e)) * 100}px)`,
+                  borderRadius: 12,
+                  background: `${C.blue}18`,
+                  border: `2px solid ${C.blue}77`,
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  alignItems: "center",
+                  padding: "0 16px",
+                  fontFamily: MONO,
+                  fontWeight: 700,
+                  fontSize: 24,
+                  color: C.text,
+                }}
+              >
+                <span>{id}</span>
+                <span style={{ textAlign: "right", color: "#7DD3FC" }}>{fmt(v * eo(t, 21.2 + i * 0.35, 22.2 + i * 0.35))}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {/* derived / inline view labels */}
+      {[
+        { a: 22.5, s: "Derived Table", c: C.blue },
+        { a: 23.7, s: "Inline View", c: C.violet },
+      ].map((p, i) => {
+        const e = eb(t, p.a, p.a + 0.5);
+        return e > 0 ? (
+          <div key={p.s} style={{ position: "absolute", left: CX + i * 250, top: CY + CH + 18, padding: "8px 22px", borderRadius: 999, border: `2.5px solid ${p.c}`, background: `${p.c}18`, fontFamily: MONO, fontWeight: 700, fontSize: 22, color: p.c, opacity: Math.min(1, e * 1.5), transform: `scale(${0.8 + 0.2 * Math.min(1, e)})` }}>
+            {p.s}
+          </div>
+        ) : null;
+      })}
+      {/* alias tag */}
+      {alias > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: CX + CW - 340,
+            top: CY - 28,
+            width: 330,
+            height: 50,
+            borderRadius: 999,
+            background: C.green,
+            color: "#07101F",
+            fontFamily: MONO,
+            fontWeight: 700,
+            fontSize: 22,
+            lineHeight: "50px",
+            textAlign: "center",
+            opacity: Math.min(1, alias * 1.5),
+            transform: `scale(${1.6 - 0.6 * Math.min(1, alias)})`,
+            boxShadow: `0 0 ${Math.round(20 - 10 * Math.min(1, alias))}px ${C.green}`,
+          }}
+        >
+          AS customer_summary
+        </div>
+      )}
+      {/* outer query reads through the alias */}
+      {t > 40.0 && (
+        <>
+          <div style={{ position: "absolute", left: 1074, top: 276, width: 56, height: 0, borderTop: `4px dashed ${C.green}`, opacity: prog(t, 40.0, 40.5) }} />
+          <div style={{ position: "absolute", left: CX, top: CY + CH + 18 + 64, width: 720, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.green, opacity: prog(t, 40.0, 40.6) }}>
+            customer_summary.total_spent ✓
+          </div>
+        </>
+      )}
+
+      {/* strict rule */}
+      {win(t, 24.8, 30.4, 0.4) > 0 && (
+        <div style={{ position: "absolute", left: 70, top: 620, width: 1000, height: 110, borderRadius: 22, background: `${C.amber}16`, border: `3px solid ${C.amber}`, opacity: win(t, 24.8, 30.4, 0.4), transform: `scale(${0.9 + 0.1 * eb(t, 24.8, 25.4)})`, textAlign: "center" }}>
+          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 40, color: C.amber, direction: "rtl", marginTop: 8 }}>⚠ قاعدة هندسية صارمة</div>
+          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.text }}>every derived table must have an alias</div>
+        </div>
+      )}
+      {t > 30.6 && (
+        <Arabic x={70} y={620} w={1000} fs={34} color={C.text} o={Math.min(prog(t, 30.6, 31.4), 1)}>
+          الـ <span style={{ color: C.green, fontFamily: MONO }}>Alias</span> بيعرّف الجدول في الذاكرة، وبيخلّي الاستعلام الخارجي يوصل لأعمدته
+        </Arabic>
+      )}
+
+      <Banner x={70} y={900} w={1780} a={22.0} b={43.8} color={C.blue} fs={26}>
+        FROM (Subquery) AS alias ──► Mandatory Table Alias in PostgreSQL
+      </Banner>
+    </AbsoluteFill>
   );
 };

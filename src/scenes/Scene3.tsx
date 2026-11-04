@@ -1,86 +1,238 @@
-import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine} from '../components/Code';
-import {appear, pop} from '../components/Text';
-import {Tag} from '../components/Tag';
-import {back, eo, hash, prog, pulse} from '../lib/anim';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner } from "../components/common";
+import { C, eb, eio, eo, fmt, prog, useT, win } from "../lib";
 
-const S = TL.cues.sc03;
-const L: CodeLine[] = [
-  {text: 'SELECT name FROM customers', at: 87.4}, {text: 'WHERE customer_id NOT IN (', at: 88.0},
-  {text: '  SELECT customer_id FROM orders', at: 88.7}, {text: ');', at: 89.6},
+const RAW = ["customer_id", "email", "city", "order_date", "status", "total_amount"];
+const EXPOSED = ["customer_id", "total_orders", "total_spent"];
+const ST = [
+  { x: 90, k: "1 · FROM", s: "inner subquery", a: 94.2, c: C.blue },
+  { x: 690, k: "2 · WHERE", s: "outer query", a: 105.3, c: C.amber },
+  { x: 1290, k: "3 · SELECT", s: "outer query", a: 116.3, c: C.green },
 ];
-const R: CodeLine[] = [
-  {text: 'SELECT name FROM customers c', at: 110.4}, {text: 'WHERE NOT EXISTS (', at: 111.2},
-  {text: '  SELECT 1 FROM orders o', at: 112.0}, {text: '  WHERE o.customer_id = c.customer_id', at: 112.8}, {text: ');', at: 114.2},
-];
-const IDS: (number | null)[] = [1, 3, null];
-const INACTIVE = [{id: 2, n: 'منى'}, {id: 4, n: 'عمر'}, {id: 5, n: 'أحمد'}];
+const RY = 300, ROWH = 52;
+const PROBES = [119.5, 122.0, 123.9];
 
-const NullChips: React.FC<{color: string; ignored?: boolean}> = ({color, ignored}) => (
-  <div style={{display: 'flex', alignItems: 'center', gap: 12, fontFamily: FONT_MONO, fontSize: 25, color: C.dim}}>
-    orders.customer_id =
-    {IDS.map((v, i) => (
-      <span key={i} style={{padding: '4px 16px', borderRadius: 10, fontWeight: 800, background: v === null ? `${D.err}33` : 'rgba(255,255,255,0.07)', border: `2px solid ${v === null ? D.err : 'rgba(255,255,255,0.15)'}`, color: v === null ? '#FCA5A5' : C.text, textDecoration: v === null && ignored ? 'line-through' : 'none', opacity: v === null && ignored ? 0.5 : 1}}>{v === null ? 'NULL' : v}</span>
-    ))}
-  </div>
-);
+const probe = (t: number, a: number) => {
+  const dt = t - a;
+  if (dt < 0 || dt > 1.9) return null;
+  if (dt < 0.9) return { x: 1280 - (1280 - 668) * eio(dt, 0, 0.9), o: 1, hit: 0 };
+  if (dt < 1.2) return { x: 668, o: 1, hit: 1 - (dt - 0.9) / 0.3 };
+  const p = (dt - 1.2) / 0.7;
+  return { x: 668 + (1000 - 668) * p, o: 1 - p, hit: 0 };
+};
 
-export const Scene3: React.FC<{t: number}> = ({t}) => {
-  const inP = pop(t, 85.2, 86.4);
-  const crash = prog(t, S.crash, S.crash + 0.7);
-  const shake = t >= S.crash && t < S.crash + 1.6 ? Math.sin((t - S.crash) * 80) * 10 * (1 - prog(t, S.crash, S.crash + 1.6)) : 0;
-  const focusR = 0.45 + 0.55 * eo(prog(t, 108, 110));
-  const focusL = 1 - 0.5 * eo(prog(t, 108, 110));
-  const shield = back(prog(t, S.shield, S.shield + 0.8));
-  const warn = 0.5 + 0.5 * pulse(t, 0.9);
-  const step = (a: number) => appear(t, a, a + 0.5);
+export const Scene3: React.FC = () => {
+  const t = useT();
+  const barrier = eb(t, 106.5, 107.2);
+  const hitNow = PROBES.map((a) => probe(t, a)).find((p) => p && p.hit > 0);
+  const emailY = RY + 70 + 1 * ROWH + 22;
+
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} tint={t < 108 ? D.err : D.cat} />
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="NOT IN Trap" body="──► Fails in Presence of NULLs (Three-Valued Logic Crash)" color={D.err} size={25} /></div>
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="NOT EXISTS Immunity" body="──► 100% NULL-Safe Boolean Subquery Evaluation" color={D.cat} size={25} /></div>
-
-      {/* LEFT: NOT IN crash */}
-      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: focusL * Math.min(1, inP * 1.5), transform: `translateX(${shake}px)`}}>
-        <div style={{position: 'absolute', left: 60, top: 190, width: 880, height: 700, borderRadius: 28, border: `2.5px solid ${D.err}`, background: `rgba(127,29,29,${0.12 + 0.12 * crash})`, boxShadow: `0 0 ${24 + 30 * crash * warn}px ${D.err}66`}} />
-        <Code lines={L} t={t} x={90} y={215} w={820} h={270} title="not_in.sql" fontSize={25} lineH={46} accent={D.err} />
-        <div style={{position: 'absolute', left: 90, top: 510, opacity: step(90.5)}}><NullChips color={D.err} /></div>
-        <div style={{position: 'absolute', left: 90, top: 580, width: 820}}>
-          {[['2 <> 1', 'TRUE', D.cat, 92], ['2 <> 3', 'TRUE', D.cat, 93.4], ['2 <> NULL', 'UNKNOWN', D.err, 94.8]].map(([a, b, c, at]) => (
-            <div key={a as string} style={{display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, padding: '10px 22px', marginBottom: 10, borderRadius: 12, background: 'rgba(255,255,255,0.05)', opacity: step(at as number), transform: `translateX(${(1 - step(at as number)) * -40}px)`}}>
-              <span style={{color: C.text}}>{a}</span><span style={{color: c as string}}>{b}</span>
-            </div>
-          ))}
-          <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 26, color: '#FCA5A5', direction: 'rtl', opacity: step(96.2), marginTop: 4}}>النتيجة UNKNOWN → يُرفض الصف</div>
-        </div>
-        {crash > 0 ? <div style={{position: 'absolute', left: 90, top: 806, width: 820, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 60, color: D.err, opacity: Math.min(1, crash * 2), textShadow: crash < 1 ? `4px 0 ${D.code}, -4px 0 #fff` : `0 0 30px ${D.err}`}}>(0 rows)</div> : null}
-      </div>
-
-      {/* RIGHT: NOT EXISTS shield pass */}
-      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: focusR * Math.min(1, inP * 1.5)}}>
-        <div style={{position: 'absolute', left: 980, top: 190, width: 880, height: 700, borderRadius: 28, border: `2.5px solid ${D.cat}`, background: `rgba(16,185,129,${0.05 + 0.08 * shield})`, boxShadow: `0 0 ${20 + 26 * shield}px ${D.cat}66`}} />
-        <Code lines={R} t={t} x={1010} y={215} w={820} h={310} title="not_exists.sql" fontSize={25} lineH={46} accent={D.cat} />
-        <div style={{position: 'absolute', left: 1010, top: 545, opacity: step(114.6)}}><NullChips color={D.cat} ignored /></div>
-        {shield > 0.02 ? (
-          <div style={{position: 'absolute', left: 1010, top: 610, width: 820, opacity: Math.min(1, shield * 1.5)}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 22, padding: '10px 26px', borderRadius: 20, background: `${D.cat}22`, border: `2px solid ${D.cat}`, transform: `scale(${0.8 + 0.2 * shield})`, transformOrigin: '0 50%'}}>
-              <svg width="56" height="64" viewBox="0 0 86 98" fill="none"><path d="M43 4 L80 18 V48 C80 70 64 86 43 94 C22 86 6 70 6 48 V18 Z" fill={`${D.cat}33`} stroke={D.cat} strokeWidth="7" strokeLinejoin="round" /><path d="M27 48 L39 60 L61 34" stroke="#fff" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <div><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: C.text}}>NULL-safe</div><div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 24, color: D.cat, direction: 'rtl'}}>تفحص وجود السطر لا محتوى الخلايا</div></div>
-            </div>
-            <div style={{marginTop: 18, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: D.cat}}>inactive customers →</div>
-            <div style={{display: 'flex', gap: 14, marginTop: 10}}>
-              {INACTIVE.map((c, i) => {
-                const p = back(prog(t, S.shield + 0.5 + i * 0.35, S.shield + 1.1 + i * 0.35));
-                return <div key={c.id} style={{flex: 1, padding: '14px 18px', borderRadius: 18, background: `${D.cat}26`, border: `2px solid ${D.cat}`, opacity: Math.min(1, p * 2), transform: `translateY(${(1 - p) * 40}px)`, boxShadow: `0 0 24px ${D.cat}55`}}><div style={{fontFamily: FONT_MONO, fontSize: 20, color: C.mute}}>id {c.id}</div><div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 34, color: C.text}}>{c.n}</div></div>;
-              })}
-            </div>
-            <div style={{marginTop: 18, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 46, color: D.cat, textAlign: 'center', opacity: appear(t, S.shield + 2, S.shield + 2.6)}}>(3 rows) ✓</div>
+    <AbsoluteFill>
+      {/* pipeline stations */}
+      {ST.map((s, i) => {
+        const e = eb(t, 89.4 + i * 0.3, 90.1 + i * 0.3);
+        const lit = t >= s.a;
+        return e > 0 ? (
+          <div
+            key={s.k}
+            style={{
+              position: "absolute",
+              left: s.x,
+              top: 150,
+              width: 540,
+              height: 84,
+              opacity: Math.min(1, e * 1.5),
+              transform: `translateY(${(1 - Math.min(1, e)) * -40}px)`,
+              borderRadius: 20,
+              background: lit ? `${s.c}22` : "#111B30",
+              border: `${lit ? 4 : 2}px solid ${lit ? s.c : C.line}`,
+              boxShadow: lit ? `0 0 18px ${s.c}66` : "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 28px",
+            }}
+          >
+            <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 32, color: lit ? s.c : C.text }}>{s.k}</span>
+            <span style={{ fontFamily: MONO, fontSize: 20, color: C.dim }}>{s.s}</span>
           </div>
-        ) : null}
-      </div>
-    </div>
+        ) : null;
+      })}
+      {[0, 1].map((i) => (
+        <div key={i} style={{ position: "absolute", left: 90 + 540 + i * 600 + 6, top: 186, fontFamily: MONO, fontWeight: 700, fontSize: 34, color: C.dim, opacity: prog(t, 90.6, 91.2) }}>
+          ➔
+        </div>
+      ))}
+
+      {/* raw table */}
+      {(() => {
+        const e = eo(t, 90.0, 91.0);
+        return (
+          <div style={{ position: "absolute", left: 90, top: RY, width: 470, height: 420, opacity: e, transform: `translateX(${(1 - e) * -120}px)`, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }}>
+            <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.dim }}>orders · raw table · disk</div>
+            {RAW.map((c, i) => {
+              const isEmail = c === "email";
+              const flash = isEmail && hitNow ? hitNow.hit : 0;
+              return (
+                <div
+                  key={c}
+                  style={{
+                    position: "absolute",
+                    left: 18,
+                    top: 70 + i * ROWH,
+                    width: 434,
+                    height: 44,
+                    borderRadius: 10,
+                    background: flash > 0 ? `${C.red}33` : "#1B2740",
+                    border: `2px solid ${flash > 0 ? C.red : C.line}`,
+                    fontFamily: MONO,
+                    fontWeight: 700,
+                    fontSize: 21,
+                    lineHeight: "40px",
+                    paddingLeft: 16,
+                    color: C.text,
+                  }}
+                >
+                  {c}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* barrier */}
+      {barrier > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: 610,
+            top: RY - 10,
+            width: 34,
+            height: 440,
+            opacity: Math.min(1, barrier * 1.4),
+            transform: `scaleY(${0.3 + 0.7 * Math.min(1, barrier)})`,
+            borderRadius: 14,
+            background: `${C.red}${hitNow ? "55" : "26"}`,
+            border: `3px solid ${C.red}`,
+          }}
+        />
+      )}
+
+      {/* derived card */}
+      {(() => {
+        const e = eb(t, 97.0, 97.8);
+        if (e <= 0) return null;
+        return (
+          <div style={{ position: "absolute", left: 720, top: RY, width: 470, height: 420, opacity: Math.min(1, e * 1.4), transform: `scale(${0.85 + 0.15 * Math.min(1, e)})`, borderRadius: 24, background: C.card2, border: `3px solid ${C.blue}`, boxShadow: `0 0 18px ${C.blue}44` }}>
+            <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.blue }}>customer_summary · RAM</div>
+            {EXPOSED.map((c, i) => {
+              const a = 97.7 + i * 0.5;
+              const r = eb(t, a, a + 0.5);
+              const lit = t > 114.4 && t < 118.0;
+              return (
+                <div
+                  key={c}
+                  style={{
+                    position: "absolute",
+                    left: 18,
+                    top: 70 + i * 62,
+                    width: 434,
+                    height: 50,
+                    opacity: Math.min(1, r * 1.5),
+                    transform: `translateX(${(1 - Math.min(1, r)) * 80}px)`,
+                    borderRadius: 10,
+                    background: lit ? `${C.green}33` : `${C.blue}22`,
+                    border: `2.5px solid ${lit ? C.green : C.blue}`,
+                    fontFamily: MONO,
+                    fontWeight: 700,
+                    fontSize: 23,
+                    lineHeight: "45px",
+                    paddingLeft: 16,
+                    color: C.text,
+                  }}
+                >
+                  {c}
+                </div>
+              );
+            })}
+            {t > 100.1 && (
+              <div style={{ position: "absolute", left: 18, bottom: 16, width: 434, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.green, opacity: prog(t, 100.1, 100.7) }}>
+                materialized in memory ✓
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* outer query */}
+      {(() => {
+        const e = eb(t, 102.5, 103.3);
+        if (e <= 0) return null;
+        return (
+          <div style={{ position: "absolute", left: 1290, top: RY, width: 540, height: 420, opacity: Math.min(1, e * 1.4), transform: `translateX(${(1 - Math.min(1, e)) * 140}px)`, borderRadius: 24, background: "#0B1222", border: `2px solid ${C.amber}` }}>
+            <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.amber }}>outer query</div>
+            <div style={{ padding: "22px 24px", fontFamily: MONO, fontWeight: 500, fontSize: 22, lineHeight: 1.7, color: C.text, whiteSpace: "pre" }}>
+              <span style={{ color: C.blue, fontWeight: 700 }}>SELECT</span> customer_id, total_spent{"\n"}
+              <span style={{ color: C.blue, fontWeight: 700 }}>FROM</span> customer_summary{"\n"}
+              <span style={{ color: C.blue, fontWeight: 700 }}>WHERE</span> total_spent &gt; 1000;
+            </div>
+            {t > 111.0 && (
+              <div style={{ position: "absolute", left: 24, bottom: 20, width: 492, fontFamily: AR, fontWeight: 700, fontSize: 26, color: C.green, direction: "rtl", textAlign: "right", opacity: prog(t, 111.0, 111.8) }}>
+                بيشوف الأعمدة المعرّضة صراحةً بس
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* green probe (allowed) */}
+      {t > 112.0 && t < 114.2 && (
+        <div style={{ position: "absolute", left: 1280 - (1280 - 1170) * eio(t, 112.0, 113.4), top: RY + 70 + 2 * 62 + 12, width: 120, height: 28, borderRadius: 14, background: C.green, color: "#07101F", fontFamily: MONO, fontWeight: 700, fontSize: 16, textAlign: "center", lineHeight: "28px", opacity: win(t, 112.0, 114.2, 0.25) }}>
+          total_spent ✓
+        </div>
+      )}
+      {/* red probes (blocked) */}
+      {PROBES.map((a) => {
+        const p = probe(t, a);
+        if (!p || p.o <= 0) return null;
+        return (
+          <div key={a} style={{ position: "absolute", left: p.x, top: emailY - 14, width: 110, height: 28, opacity: p.o, borderRadius: 14, background: p.hit > 0 || p.o < 1 ? C.red : C.blue, color: "#fff", fontFamily: MONO, fontWeight: 700, fontSize: 16, textAlign: "center", lineHeight: "28px", boxShadow: `0 0 12px ${p.hit > 0 || p.o < 1 ? C.red : C.blue}` }}>
+            {p.hit > 0 || p.o < 1 ? "email ✕" : "email ?"}
+          </div>
+        );
+      })}
+
+      {/* scope title */}
+      {win(t, 107.2, 111.6, 0.4) > 0 && (
+        <div style={{ position: "absolute", left: 610, top: 246, width: 700, height: 50, opacity: win(t, 107.2, 111.6, 0.4), borderRadius: 999, border: `2.5px solid ${C.blue}`, background: "#0B1B33", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 26, lineHeight: "46px", color: C.blue }}>
+          Scope of Visibility
+        </div>
+      )}
+
+      {/* protection */}
+      {[
+        { a: 125.7, x: 560, s: "DATA PROTECTION ✓", c: C.green, w: 410 },
+        { a: 127.2, x: 990, s: "MEMORY ▼", c: C.amber, w: 300 },
+      ].map((p) => {
+        const e = eb(t, p.a, p.a + 0.5);
+        return e > 0 ? (
+          <div key={p.s} style={{ position: "absolute", left: p.x, top: 752, width: p.w, height: 60, opacity: Math.min(1, e * 1.5), transform: `scale(${0.8 + 0.2 * Math.min(1, e)})`, borderRadius: 16, background: `${p.c}1A`, border: `3px solid ${p.c}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 26, lineHeight: "54px", color: p.c }}>
+            {p.s}
+          </div>
+        ) : null;
+      })}
+
+      <Banner x={70} y={900} w={1780} a={90.2} b={106.0} color={C.blue} fs={26}>
+        Execution Order: Inner Subquery Materializes FIRST in FROM Stage
+      </Banner>
+      <Banner x={70} y={900} w={1780} a={106.6} b={129.3} color={C.red} fs={25}>
+        Scope of Visibility ──► Outer Query Can ONLY Access Exposed Subquery Columns
+      </Banner>
+      <div style={{ display: "none" }}>{fmt(0)}</div>
+    </AbsoluteFill>
   );
 };
