@@ -3,58 +3,66 @@ import {useCurrentFrame} from 'remotion';
 import {C, S} from '../theme';
 import {B} from '../layout';
 import {cairo, mono} from '../fonts';
-import {Caption, Card, Scene, Tag, Title, ease, prog} from '../common';
+import {Caption, Card, Defs, Scene, Title, ease, fs, lerp, prog} from '../common';
 
-const ROWS = [{e: 'أحمد (CEO)', m: null}, {e: 'سارة', m: 'أحمد'}, {e: 'منى', m: 'أحمد'}, {e: 'كريم', m: 'سارة'}, {e: 'ليلى', m: 'سارة'}] as const;
-const RY = 250, RP = 62;
+const SPEND = [9800, 9100, 8700, 8200, 7600, 6900, 6400, 5800, 5300, 4900, 4400, 3900, 3500, 3100, 2800, 2400, 2000, 1600, 1100, 700];
+const QC = [C.green, C.amber, C.blue, C.dim];
+const CUT = 450; // 3001: lasers cut the dataset
+const QUERY = ['SELECT customer_id, total_spent,', '       NTILE(4) OVER(ORDER BY total_spent DESC) AS spending_quartile', 'FROM customer_spending;'];
 
-const Case: React.FC<{box: typeof B.s3.inner; left: boolean; t0: number}> = ({box, left, t0}) => {
+export const Scene03: React.FC = () => {
   const f = useCurrentFrame();
-  const col = left ? C.blue : C.red;
-  const drop = prog(f, t0 + 150, t0 + 260); // CEO row disappears (INNER only)
-  const nul = ease(prog(f, t0 + 120, t0 + 200)); // NULL block slides in (LEFT only)
-  const shake = !left && f > t0 + 150 && f < t0 + 260 ? Math.sin(f * 2.5) * 8 : 0;
+  const K = B.s3.code, A = B.s3.area;
+  const size = fs(QUERY[1], K.w - 80, 38, mono);
+  const total = QUERY.reduce((a, l) => a + l.length, 0);
+  let shown = Math.floor(prog(f, 20, 300) * total);
+  const move = ease(prog(f, CUT + 90, CUT + 200));
+  const laser = prog(f, CUT, CUT + 90);
+  const colW = A.w / 4;
+
   return (
-    <Card box={box} accent={col} at={t0 === 0 ? 6 : t0}>
-      <div style={{position: 'absolute', left: 30, top: 20, direction: 'ltr'}}><Tag color={col}>{left ? 'LEFT JOIN' : 'INNER JOIN'}</Tag></div>
-      <div style={{position: 'absolute', left: 30, right: 30, top: 62, direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 28, color: C.text, lineHeight: 1.45, whiteSpace: 'pre'}}>
-        <div><span style={{color: C.pink}}>FROM</span> employees e</div>
-        <div><span style={{color: left ? C.blue : C.red}}>{left ? 'LEFT JOIN' : 'INNER JOIN'}</span> employees m</div>
-        <div>{'  '}<span style={{color: C.pink}}>ON</span> e.manager_id = m.employee_id;</div>
-      </div>
-      <div style={{position: 'absolute', left: 30, right: 30, top: 206, display: 'flex', direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 22}}>
-        <span style={{width: 400, color: C.blue}}>employee</span><span style={{color: C.purple}}>manager</span>
-      </div>
-      {ROWS.map((r, i) => {
-        const ceo = i === 0;
-        const gone = ceo && !left && drop > 0;
-        const o = prog(f, t0 + 20 + i * 14, t0 + 50 + i * 14);
+    <Scene dur={S.s3.dur} accent={C.purple}>
+      <Title ar="التقسيم إلى شرائح متساوية" en="NTILE(4) · Quartile Buckets" chip="SC 03 · NTILE" accent={C.purple} />
+
+      <Card box={K} accent={C.line} at={6}>
+        {QUERY.map((l, i) => {
+          const take = Math.max(0, Math.min(l.length, shown)); shown -= l.length;
+          return <div key={i} style={{position: 'absolute', left: 36, top: 18 + i * 56, whiteSpace: 'pre', fontFamily: mono, fontWeight: 700, fontSize: size, direction: 'ltr', color: C.text, height: 56}}>{l.slice(0, take).split(/(SELECT|NTILE|OVER|ORDER BY|DESC|AS|FROM)/).map((t, j) => <span key={j} style={{color: t === 'NTILE' ? C.purple : /^(SELECT|OVER|ORDER BY|DESC|AS|FROM)$/.test(t) ? C.pink : C.text}}>{t}</span>)}</div>;
+        })}
+      </Card>
+
+      {/* four bucket cards appear after the cut */}
+      {[0, 1, 2, 3].map((q) => (
+        <div key={q} style={{position: 'absolute', left: A.x + q * colW + 8, top: A.y, width: colW - 16, height: A.h, borderRadius: 24, border: `3px solid ${QC[q]}`, background: `rgba(15,23,42,0.5)`, opacity: ease(prog(f, CUT + 60, CUT + 140))}}>
+          <div style={{position: 'absolute', left: 0, right: 0, top: 14, textAlign: 'center', fontFamily: mono, fontWeight: 700, fontSize: 28, color: QC[q]}}>Q{q + 1}{q === 0 ? ' · TOP 25% VIP' : ''}</div>
+        </div>
+      ))}
+
+      {/* 20 customers: one block -> four buckets */}
+      {SPEND.map((s, i) => {
+        const q = Math.floor(i / 5), r = i % 5;
+        const g = {x: A.x + 14 + (i % 10) * 177, y: A.y + 150 + Math.floor(i / 10) * 100};
+        const b = {x: A.x + q * colW + 36, y: A.y + 70 + r * 76};
+        const x = lerp(g.x, b.x, move), y = lerp(g.y, b.y, move);
+        const w = lerp(165, colW - 72, move);
+        const vip = q === 0 && move > 0.95;
         return (
-          <div key={i} style={{position: 'absolute', left: 30, right: 30, top: RY + i * RP, height: RP - 10, display: 'flex', gap: 16, direction: 'ltr', opacity: gone ? 1 : o, transform: gone ? `translateX(${shake}px)` : undefined}}>
-            {gone ? (
-              <div style={{flex: 1, borderRadius: 14, border: `3px dashed ${C.red}`, background: `rgba(239,68,68,${0.12 + 0.1 * drop})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: cairo, fontWeight: 900, fontSize: 26, color: C.red}}>سطر الـ CEO اتمسح! manager_id IS NULL</div>
-            ) : (
-              <>
-                <div style={{width: 400, borderRadius: 14, border: `2px solid ${ceo && left ? C.blue : C.line}`, background: ceo && left ? 'rgba(56,189,248,0.16)' : C.panel2, display: 'flex', alignItems: 'center', padding: '0 20px', fontFamily: cairo, fontWeight: 700, fontSize: 28, color: C.text}}>{r.e}</div>
-                <div style={{flex: 1, borderRadius: 14, border: `2px solid ${ceo && left ? C.amber : C.line}`, background: ceo && left ? 'rgba(245,158,11,0.16)' : C.panel2, display: 'flex', alignItems: 'center', padding: '0 20px', fontFamily: ceo ? mono : cairo, fontWeight: 700, fontSize: 28, color: ceo ? C.amber : C.text, opacity: ceo ? nul : 1, transform: ceo ? `translateX(${(1 - nul) * 120}px)` : undefined}}>{ceo ? 'NULL' : r.m}</div>
-              </>
-            )}
+          <div key={i} style={{position: 'absolute', left: x, top: y, width: w, height: lerp(76, 64, move), borderRadius: 14, border: `2px solid ${move > 0.5 ? QC[q] : C.line}`, background: vip ? 'rgba(16,185,129,0.20)' : C.panel2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', direction: 'ltr', fontFamily: mono, fontWeight: 700, opacity: prog(f, 40 + i * 6, 70 + i * 6)}}>
+            <span style={{fontSize: 22, color: C.dim}}>C{101 + i}</span>
+            <span style={{fontSize: w > 200 ? 26 : 22, color: C.text}}>${s.toLocaleString('en-US')}</span>
+            {move > 0.9 && w > 200 && <span style={{fontSize: 20, color: QC[q]}}>q{q + 1}</span>}
           </div>
         );
       })}
-      <div style={{position: 'absolute', left: 30, right: 30, bottom: 26, direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 30, color: col, textAlign: 'center', opacity: prog(f, t0 + (left ? 260 : 200), t0 + (left ? 320 : 260))}}>
-        {left ? 'رأس المؤسسة محفوظ، والمدير NULL' : 'فقدنا رأس المؤسسة نهائياً!'}
-      </div>
-    </Card>
+
+      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
+        <Defs />
+        {[1, 2, 3].map((k) => laser > 0 && laser < 1 ? <rect key={k} x={A.x + k * colW - 4} y={A.y} width={8} height={A.h * laser} rx={4} fill={C.purple} filter="url(#glow)" /> : null)}
+      </svg>
+      <div style={{position: 'absolute', left: A.x, top: A.y + 20, width: A.w, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 30, color: C.dim, opacity: prog(f, 80, 120) * (1 - prog(f, CUT, CUT + 40))}}>20 عميل مرتّبين بالإنفاق (مثال لـ 100)</div>
+
+      <Caption from={90} to={630} color={C.purple}>NTILE(4) OVER(ORDER BY total_spent DESC) ──► Divides Rows into 4 Equal Buckets</Caption>
+      <Caption from={750} to={1230} color={C.green}>Quartile Distribution ──► Segments Top 25%, VIPs & Percentile Cohorts</Caption>
+    </Scene>
   );
 };
-
-export const Scene03: React.FC = () => (
-  <Scene dur={S.s3.dur} accent={C.red}>
-    <Title ar="حماية قمة الهرم الإداري" en="INNER JOIN vs LEFT JOIN for the CEO" chip="SC 03 · TOP LEVEL" accent={C.red} />
-    <Case box={B.s3.inner} left={false} t0={0} />
-    <Case box={B.s3.left} left t0={450} />
-    <Caption from={90} to={630} color={C.red}>INNER JOIN Hazard ──► Drops CEO Record (where manager_id IS NULL)!</Caption>
-    <Caption from={750} to={1230} color={C.green}>LEFT JOIN Solution ──► Preserves Top Level Leadership with NULL Manager</Caption>
-  </Scene>
-);

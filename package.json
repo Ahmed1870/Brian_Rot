@@ -1,13 +1,13 @@
 {
-  "name": "ahmed-manzooma-sql-l19",
+  "name": "ahmed-manzooma-sql-l33",
   "version": "1.0.0",
   "private": true,
-  "description": "Ahmed x Manzooma - SQL Lesson 19: SELF JOIN & Hierarchies (16:9, 4:00) - Remotion",
+  "description": "Ahmed x Manzooma - SQL Lesson 33: Ranking Functions (16:9, 4:00) - Remotion",
   "scripts": {
     "sfx": "python3 scripts/generate_sfx.py",
     "prep": "node scripts/prep.mjs", "check": "node scripts/check_layout.mjs",
     "start": "node scripts/prep.mjs && remotion studio src/index.ts",
-    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L19 out/ahmed_sql_lesson19.mp4 --codec h264 --concurrency 2"
+    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L33 out/ahmed_sql_lesson33.mp4 --codec h264 --concurrency 2"
   },
   "dependencies": {
     "@remotion/cli": "4.0.300",

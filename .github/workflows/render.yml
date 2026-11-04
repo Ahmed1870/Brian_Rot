@@ -1,4 +1,4 @@
-name: Render SQL Lesson 19 (Ahmed x Manzooma)
+name: Render SQL Lesson 33 (Ahmed x Manzooma)
 on:
   push:
     branches: [main]
@@ -18,9 +18,9 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run render
       - name: Verify video exists
-        run: test -s out/ahmed_sql_lesson19.mp4 && ls -lh out/
+        run: test -s out/ahmed_sql_lesson33.mp4 && ls -lh out/
       - uses: actions/upload-artifact@v4
         with:
-          name: ahmed_sql_lesson19
-          path: out/ahmed_sql_lesson19.mp4
+          name: ahmed_sql_lesson33
+          path: out/ahmed_sql_lesson33.mp4
           if-no-files-found: error

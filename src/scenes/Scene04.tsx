@@ -3,86 +3,80 @@ import {useCurrentFrame} from 'remotion';
 import {C, S} from '../theme';
 import {B} from '../layout';
 import {cairo, mono} from '../fonts';
-import {Caption, Card, Defs, Scene, Title, fs, prog} from '../common';
+import {Caption, Card, Defs, Scene, Tag, Title, ease, lerp, prog} from '../common';
 
-type Seg = [string, string];
-const CODE: Seg[][] = [
-  [['SELECT', C.pink], [' emp.name, mgr.name, dir.name', C.text]],
-  [['FROM', C.pink], [' employees ', C.text], ['emp', C.blue]],
-  [['LEFT JOIN', C.pink], [' employees ', C.text], ['mgr', C.green]],
-  [['  ON', C.pink], [' emp.manager_id = mgr.employee_id', C.text]],
-  [['LEFT JOIN', C.pink], [' employees ', C.text], ['dir', C.purple]],
-  [['  ON', C.pink], [' mgr.manager_id = dir.employee_id;', C.text]],
-];
-// tree nodes (relative to the tree card)
-const NW = 170, NH = 80;
-const NODES = [
-  {id: 'd', n: 'أحمد', r: 'dir', x: 450, y: 100, c: C.purple, lvl: 0},
-  {id: 'm1', n: 'سارة', r: 'mgr', x: 250, y: 300, c: C.green, lvl: 1, p: 'd'},
-  {id: 'm2', n: 'خالد', r: 'mgr', x: 650, y: 300, c: C.green, lvl: 1, p: 'd'},
-  {id: 'e1', n: 'كريم', r: 'emp', x: 130, y: 500, c: C.blue, lvl: 2, p: 'm1'},
-  {id: 'e2', n: 'ليلى', r: 'emp', x: 370, y: 500, c: C.blue, lvl: 2, p: 'm1'},
-  {id: 'e3', n: 'منى', r: 'emp', x: 530, y: 500, c: C.blue, lvl: 2, p: 'm2'},
-  {id: 'e4', n: 'هدى', r: 'emp', x: 770, y: 500, c: C.blue, lvl: 2, p: 'm2'},
-];
-const at = (l: number) => 450 + l * 120; // level reveal frames
-const PATH = ['e1', 'm1', 'd'];
+const DATA = [{n: 'كيبورد', v: 1200}, {n: 'لابتوب', v: 3400}, {n: 'ماوس', v: 900}, {n: 'شاشة', v: 2600}, {n: 'سماعة', v: 1800}, {n: 'شاحن', v: 500}];
+const SORTED = [...DATA].sort((a, b) => b.v - a.v);
+const RY = 120, RP = 80;
+const slotOf = (n: string) => SORTED.findIndex((x) => x.n === n);
+
+const Row: React.FC<{x: number; y: number; w: number; name: string; val: number; color: string; rank?: number; o?: number}> = ({x, y, w, name, val, color, rank, o = 1}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: w, height: RP - 14, borderRadius: 14, border: `3px solid ${color}`, background: C.panel2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', direction: 'ltr', opacity: o}}>
+    {rank !== undefined && <span style={{width: 50, height: 44, borderRadius: 10, background: color, color: C.bg, fontFamily: mono, fontWeight: 700, fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{rank}</span>}
+    <span style={{fontFamily: cairo, fontWeight: 900, fontSize: 28, color: C.text, flex: 1, textAlign: 'center', direction: 'rtl'}}>{name}</span>
+    <span style={{fontFamily: mono, fontWeight: 700, fontSize: 24, color: C.text}}>${val}</span>
+  </div>
+);
 
 export const Scene04: React.FC = () => {
   const f = useCurrentFrame();
-  const K = B.s4.code, T = B.s4.tree;
-  const size = fs('SELECT emp.name, mgr.name, dir.name', K.w - 70, 32, mono);
-  const total = CODE.reduce((a, l) => a + l.reduce((b, s) => b + s[0].length, 0), 0);
-  let shown = Math.floor(prog(f, 20, 420) * total);
-  const trace = prog(f, 800, 1000);
-  const byId = (id: string) => NODES.find((n) => n.id === id)!;
+  const I = B.s4.input, So = B.s4.sort, W = B.s4.win, O = B.s4.out;
+  const sortP = ease(prog(f, 120, 380));
+  const stamp = (i: number) => prog(f, 460 + i * 60, 500 + i * 60);
+  const sweep = prog(f, 450, 450 + 6 * 60);
+  const mem = ease(prog(f, 100, 360));
+  const wActive = f >= 450;
+  const card = (box: typeof I, color: string, tag: string, at: number, active: boolean, children: React.ReactNode, note?: string) => (
+    <Card box={box} accent={active ? color : C.line} at={at}>
+      <div style={{position: 'absolute', left: 24, top: 22, direction: 'ltr'}}><Tag color={color}>{tag}</Tag></div>
+      {children}
+      {note && <div style={{position: 'absolute', left: 24, right: 24, bottom: 22, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 26, color}}>{note}</div>}
+    </Card>
+  );
 
   return (
-    <Scene dur={S.s4.dur} accent={C.purple}>
-      <Title ar="التتبع الشجري متعدد المستويات" en="Multi-Level SELF JOIN" chip="SC 04 · TREE" accent={C.purple} />
+    <Scene dur={S.s4.dur} accent={C.amber}>
+      <Title ar="كواليس تنفيذ دوال الترتيب" en="Sort Node ➔ WindowAgg Node" chip="SC 04 · ENGINE" accent={C.amber} />
 
-      <Card box={K} accent={C.line} at={6}>
-        {CODE.map((l, i) => (
-          <div key={i} style={{position: 'absolute', left: 30, top: 40 + i * 62, height: 62, whiteSpace: 'pre', fontFamily: mono, fontWeight: 700, fontSize: size, direction: 'ltr'}}>
-            {l.map((s, j) => { const take = Math.max(0, Math.min(s[0].length, shown)); shown -= s[0].length; return <span key={j} style={{color: s[1]}}>{s[0].slice(0, take)}</span>; })}
+      {card(I, C.dim, 'INPUT · UNSORTED', 6, true, DATA.map((d, i) => <Row key={i} x={20} y={RY + i * RP} w={I.w - 40} name={d.n} val={d.v} color={C.line} o={prog(f, 20 + i * 10, 50 + i * 10)} />))}
+
+      {card(So, C.amber, 'SORT NODE · work_mem', 24, f >= 100 && f < 450, (
+        <>
+          {DATA.map((d, i) => <Row key={i} x={20} y={lerp(RY + i * RP, RY + slotOf(d.n) * RP, sortP)} w={So.w - 40} name={d.n} val={d.v} color={sortP > 0.95 ? C.amber : C.line} o={prog(f, 100 + i * 8, 130 + i * 8)} />)}
+          <div style={{position: 'absolute', left: 24, right: 24, bottom: 76, direction: 'ltr', opacity: prog(f, 100, 140)}}>
+            <div style={{height: 16, background: 'rgba(100,116,139,0.35)', borderRadius: 8, overflow: 'hidden'}}><div style={{width: `${mem * 100}%`, height: '100%', background: C.amber}} /></div>
           </div>
-        ))}
-        <div style={{position: 'absolute', left: 30, right: 30, top: 460, display: 'flex', gap: 16, direction: 'ltr', opacity: prog(f, 420, 470)}}>
-          {[['emp', 'موظف', C.blue], ['mgr', 'مدير مباشر', C.green], ['dir', 'مدير قطاع', C.purple]].map(([k, ar, c]) => (
-            <div key={k} style={{flex: 1, borderRadius: 14, border: `3px solid ${c}`, background: C.panel2, padding: '10px 8px', textAlign: 'center'}}>
-              <div style={{fontFamily: mono, fontWeight: 700, fontSize: 26, color: c}}>{k}</div>
-              <div style={{fontFamily: cairo, fontWeight: 700, fontSize: 24, color: C.text}}>{ar}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{position: 'absolute', left: 30, right: 30, bottom: 28, direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 30, color: C.purple, opacity: prog(f, 800, 860)}}>تكرار الربط الذاتي = مستوى إداري جديد</div>
-      </Card>
+        </>
+      ), 'فرز في الذاكرة')}
 
-      <Card box={T} accent={C.purple} at={440} />
+      {card(W, C.blue, 'WINDOWAGG NODE', 40, wActive && sweep < 1, (
+        <>
+          {SORTED.map((d, i) => <Row key={i} x={20} y={RY + i * RP} w={W.w - 40} name={d.n} val={d.v} color={stamp(i) > 0.5 ? C.blue : C.line} rank={stamp(i) > 0.5 ? i + 1 : undefined} o={prog(f, 440 + i * 4, 470 + i * 4)} />)}
+        </>
+      ), 'مسح واحد (Single Pass)')}
+
+      {card(O, C.green, 'OUTPUT · RANKED', 56, f > 450 + 6 * 60, (
+        <>
+          {SORTED.map((d, i) => <Row key={i} x={20} y={RY + i * RP} w={O.w - 40} name={d.n} val={d.v} color={C.green} rank={i + 1} o={stamp(i)} />)}
+        </>
+      ), 'الرتب جاهزة بالذاكرة')}
+
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <Defs />
-        {NODES.filter((n) => n.p).map((n) => {
-          const p = byId(n.p!);
-          const t = prog(f, at(n.lvl) - 30, at(n.lvl) + 20);
-          const hot = trace > 0 && PATH.includes(n.id) && PATH.includes(n.p!);
-          return <line key={n.id} x1={T.x + p.x} y1={T.y + p.y + NH / 2} x2={T.x + p.x + (n.x - p.x) * t} y2={T.y + p.y + NH / 2 + (n.y - p.y - NH) * t} stroke={hot ? C.amber : C.dim} strokeWidth={hot ? 7 : 3} opacity={t > 0 ? 1 : 0} filter={hot ? 'url(#glow)' : undefined} />;
-        })}
-        {NODES.map((n) => {
-          const o = prog(f, at(n.lvl), at(n.lvl) + 30);
-          const hot = trace > 0 && PATH.includes(n.id);
+        {[I.x + I.w, So.x + So.w, W.x + W.w].map((x, i) => {
+          const on = prog(f, i === 0 ? 100 : i === 1 ? 420 : 440 + 6 * 60, i === 0 ? 140 : i === 1 ? 460 : 840 + 40);
           return (
-            <g key={n.id} opacity={o} filter={hot ? 'url(#glow)' : undefined}>
-              <rect x={T.x + n.x - NW / 2} y={T.y + n.y - NH / 2} width={NW} height={NH} rx={18} fill={C.bg2} stroke={hot ? C.amber : n.c} strokeWidth={hot ? 6 : 4} />
-              <text x={T.x + n.x} y={T.y + n.y + 4} textAnchor="middle" fontFamily={cairo} fontSize={30} fontWeight={900} fill={C.text}>{n.n}</text>
-              <text x={T.x + n.x} y={T.y + n.y + 30} textAnchor="middle" fontFamily={mono} fontSize={20} fontWeight={700} fill={n.c}>{n.r}</text>
+            <g key={i} opacity={on}>
+              <line x1={x + 4} y1={540} x2={x + 36} y2={540} stroke={[C.amber, C.blue, C.green][i]} strokeWidth={6} strokeLinecap="round" />
+              <polygon points={`${x + 40},540 ${x + 26},530 ${x + 26},550`} fill={[C.amber, C.blue, C.green][i]} />
             </g>
           );
         })}
+        {sweep > 0 && sweep < 1 && <rect x={W.x + 10} y={W.y + RY + sweep * 6 * RP - 6} width={W.w - 20} height={6} rx={3} fill={C.blue} filter="url(#glow)" />}
       </svg>
-      <div style={{position: 'absolute', left: T.x + 30, top: T.y + T.h - 78, width: T.w - 60, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 32, color: C.amber, opacity: trace}}>كريم ➔ سارة ➔ أحمد</div>
 
-      <Caption from={60} to={540} color={C.purple}>Multi-Level SELF JOIN ──► Employee ➔ Direct Manager ➔ Department Director</Caption>
-      <Caption from={660} to={1080} color={C.green}>Hierarchical Tree ──► Navigates Multi-Tier Organizational Structures</Caption>
+      <Caption from={60} to={540} color={C.amber}>PostgreSQL Engine Execution: Sort Node ➔ WindowAgg Node</Caption>
+      <Caption from={660} to={1080} color={C.green}>In-Memory Ranking ──► Single-Pass Evaluation in work_mem</Caption>
     </Scene>
   );
 };

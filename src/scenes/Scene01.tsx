@@ -3,64 +3,62 @@ import {useCurrentFrame} from 'remotion';
 import {C, S} from '../theme';
 import {B} from '../layout';
 import {cairo, mono} from '../fonts';
-import {Caption, Card, Defs, Scene, Title, ease, fs, lerp, prog} from '../common';
+import {Caption, Card, Defs, Scene, Tag, Title, ease, fs, prog} from '../common';
 
-const MGR = [null, 1, 1, 2, 2]; // manager_id per employee_id 1..5
-const CWD = 520, HEAD = 64, COLH = 40, RP = 54, TOP = 36;
-const rowY = (i: number) => TOP + HEAD + COLH + i * RP; // relative to stage
-
-const TCard: React.FC<{x: number; color: string; alias: string; show: number; split: number}> = ({x, color, alias, show, split}) => (
-  <div style={{position: 'absolute', left: x, top: TOP, width: CWD, height: HEAD + COLH + 5 * RP + 18, borderRadius: 22, background: 'linear-gradient(160deg,#223047,#16203A)', border: `3px solid ${split > 0.4 ? color : C.line}`, opacity: show, boxShadow: '0 18px 40px rgba(0,0,0,0.45)', direction: 'ltr'}}>
-    <div style={{height: HEAD, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px'}}>
-      <span style={{fontFamily: mono, fontWeight: 700, fontSize: 30, color: C.text}}>employees</span>
-      <span style={{fontFamily: mono, fontWeight: 700, fontSize: 28, color: C.bg, background: color, borderRadius: 999, padding: '2px 20px', opacity: split > 0.4 ? 1 : 0}}>{alias}</span>
-    </div>
-    <div style={{height: COLH, display: 'flex', justifyContent: 'space-between', padding: '0 24px', alignItems: 'center', fontFamily: mono, fontWeight: 700, fontSize: 22, color: C.dim}}><span>employee_id</span><span style={{color: split > 0.4 ? color : C.dim}}>manager_id</span></div>
-    {MGR.map((m, i) => (
-      <div key={i} style={{height: RP - 8, margin: '0 14px 8px', borderRadius: 10, background: C.panel2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 14px', fontFamily: mono, fontWeight: 700, fontSize: 26, color: C.text}}>
-        <span>{i + 1}</span><span style={{color: m === null ? C.amber : C.text}}>{m === null ? 'NULL' : m}</span>
-      </div>
-    ))}
-  </div>
-);
+const ROWS = [
+  {n: 'لابتوب', s: 4200}, {n: 'شاشة', s: 3100}, {n: 'سماعة', s: 3100}, {n: 'كيبورد', s: 2200}, {n: 'ماوس', s: 900},
+];
+const RY = 120, RP = 100;
 
 export const Scene01: React.FC = () => {
   const f = useCurrentFrame();
-  const St = B.s1.stage, N = B.s1.note;
-  const split = ease(prog(f, 181, 360));
-  const eX = lerp(640, 140, split), mX = lerp(640, 1140, split);
-  const eEdge = St.x + 140 + CWD, mEdge = St.x + 1140;
-  const LABEL = 'employees e  ──[ e.manager_id = m.employee_id ]──►  employees m';
+  const Bd = B.s1.board, D = B.s1.side;
+  const probe = prog(f, 181, 540); // laser probe goes down the list
+  const stampOf = (i: number) => probe * 5 > i + 0.3;
+  const win = prog(f, 541, 600);
 
   return (
     <Scene dur={S.s1.dur} accent={C.blue}>
-      <Title ar="الربط الذاتي" en="SELF JOIN & Self-Referential Schema" chip="SC 01 · SELF JOIN" accent={C.blue} />
-      <Card box={St} accent={C.line} at={4} />
-      <div style={{position: 'absolute', left: St.x, top: St.y, width: St.w, height: St.h}}>
-        <TCard x={mX} color={C.purple} alias="m" show={split > 0.02 ? split : 0} split={split} />
-        <TCard x={eX} color={C.blue} alias="e" show={prog(f, 10, 40)} split={split} />
-      </div>
+      <Title ar="دوال الترتيب والتصنيف المتقدمة" en="Advanced Ranking Functions" chip="SC 01 · ROW_NUMBER" accent={C.blue} />
+
+      <Card box={Bd} accent={C.line} at={4}>
+        <div style={{position: 'absolute', left: 28, top: 22, direction: 'ltr'}}><Tag color={C.blue}>TOP PRODUCTS · BY SALES</Tag></div>
+        <div style={{position: 'absolute', left: 28, right: 28, top: 70, display: 'flex', direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 22, color: C.dim}}>
+          <span style={{width: 150}}>row_number</span><span style={{width: 300}}>product</span><span>sales</span>
+        </div>
+        {ROWS.map((r, i) => {
+          const st = stampOf(i);
+          const first = i === 0 && win > 0;
+          return (
+            <div key={i} style={{position: 'absolute', left: 20, right: 20, top: RY + i * RP, height: RP - 14, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 20, padding: '0 20px', direction: 'ltr', background: first ? 'rgba(16,185,129,0.14)' : C.panel2, border: `3px solid ${first ? C.green : st ? C.blue : C.line}`, opacity: prog(f, 20 + i * 10, 50 + i * 10)}}>
+              <div style={{width: 110, height: 62, borderRadius: 14, background: st ? (first ? C.green : C.blue) : 'transparent', border: `3px dashed ${st ? 'transparent' : C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: mono, fontWeight: 700, fontSize: 40, color: C.bg, transform: `scale(${st ? 1 : 0.9})`}}>{st ? i + 1 : ''}</div>
+              <span style={{width: 300, fontFamily: cairo, fontWeight: 900, fontSize: 34, color: C.text, direction: 'rtl', textAlign: 'left', marginLeft: 20}}>{r.n}</span>
+              <div style={{flex: 1, height: 22, borderRadius: 11, background: 'rgba(100,116,139,0.3)'}}><div style={{width: `${(r.s / 4200) * 100}%`, height: '100%', borderRadius: 11, background: C.row}} /></div>
+              <span style={{width: 120, textAlign: 'right', fontFamily: mono, fontWeight: 700, fontSize: 30, color: C.text}}>${r.s.toLocaleString('en-US')}</span>
+            </div>
+          );
+        })}
+      </Card>
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <Defs />
-        {MGR.map((m, i) => {
-          if (m === null) return null;
-          const t = ease(prog(f, 541 + i * 14, 620 + i * 14));
-          const y1 = St.y + rowY(i) + 23, y2 = St.y + rowY(m - 1) + 23;
-          const x2 = lerp(eEdge, mEdge, t), ye = lerp(y1, y2, t);
-          return t > 0 ? <path key={i} d={`M ${eEdge} ${y1} C ${eEdge + 160 * t} ${y1}, ${x2 - 160 * t} ${ye}, ${x2} ${ye}`} fill="none" stroke={C.blue} strokeWidth={5} filter="url(#glow)" /> : null;
-        })}
-        <text x={(eEdge + mEdge) / 2} y={St.y + 80} textAnchor="middle" fontFamily={mono} fontSize={26} fontWeight={700} fill={C.blue} opacity={prog(f, 560, 600)}>e.manager_id → m.employee_id</text>
+        {probe > 0 && probe < 1 && <rect x={Bd.x + 14} y={Bd.y + RY + probe * 5 * RP - 8} width={Bd.w - 28} height={7} rx={4} fill={C.blue} filter="url(#glow)" />}
       </svg>
 
-      <Card box={N} accent={C.line} at={540}>
-        <div style={{position: 'absolute', left: 30, right: 30, top: 26, textAlign: 'center', direction: 'ltr', whiteSpace: 'nowrap', fontFamily: mono, fontWeight: 700, fontSize: fs(LABEL, N.w - 60, 46, mono), color: C.text}}>
-          <span style={{color: C.blue}}>employees e</span>  ──[ <span style={{color: C.pink}}>e.manager_id = m.employee_id</span> ]──►  <span style={{color: C.purple}}>employees m</span>
+      <Card box={D} accent={C.blue} at={150}>
+        <div style={{position: 'absolute', left: 28, right: 28, top: 26, direction: 'ltr', fontFamily: mono, fontWeight: 700, color: C.text, lineHeight: 1.5}}>
+          {[['SELECT', ' product, sales,'], ['  ROW_NUMBER()', ''], ['  OVER(ORDER BY sales DESC)', ''], ['  AS rn', ''], ['FROM', ' sales_by_product;']].map(([k, v], i) => (
+            <div key={i} style={{whiteSpace: 'pre', fontSize: fs('  OVER(ORDER BY sales DESC)', 504, 26, mono), opacity: prog(f, 160 + i * 12, 190 + i * 12)}}><span style={{color: i === 1 ? C.blue : C.pink}}>{k}</span>{v}</div>
+          ))}
         </div>
-        <div style={{position: 'absolute', left: 30, right: 30, bottom: 28, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 34, color: C.green, opacity: prog(f, 640, 700)}}>نفس الجدول ← نسختين افتراضيتين في الذاكرة</div>
+        <div style={{position: 'absolute', left: 28, right: 28, top: 270, direction: 'rtl', opacity: prog(f, 560, 620)}}>
+          <div style={{fontFamily: cairo, fontWeight: 900, fontSize: 32, color: C.green}}>رقم فريد لكل صف: 1، 2، 3، 4، 5</div>
+          <div style={{marginTop: 14, fontFamily: cairo, fontWeight: 700, fontSize: 28, color: C.text, lineHeight: 1.5}}>حتى لو الشاشة والسماعة نفس المبيعات (3,100)، كل واحد ليه رقم مختلف</div>
+        </div>
+        <div style={{position: 'absolute', left: 28, bottom: 28, direction: 'ltr', opacity: prog(f, 600, 650)}}><span style={{fontFamily: mono, fontWeight: 700, fontSize: 26, color: C.bg, background: C.green, borderRadius: 999, padding: '6px 22px'}}>UNIQUE ✓</span></div>
       </Card>
 
-      <Caption from={60} to={540} ltr={false} color={C.blue}>الربط الذاتي | SELF JOIN & Self-Referential Schema</Caption>
-      <Caption from={660} to={1140} color={C.green}>employees e (Employees) ──[e.manager_id = m.employee_id]──► employees m (Managers)</Caption>
+      <Caption from={60} to={540} ltr={false} color={C.blue}>دوال الترتيب والتصنيف المتقدمة | Advanced Ranking Functions</Caption>
+      <Caption from={660} to={1140} color={C.green}>ROW_NUMBER() OVER(ORDER BY ...) ──► Assigns Unique Sequential Integers</Caption>
     </Scene>
   );
 };
