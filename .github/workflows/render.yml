@@ -1,26 +1,28 @@
-name: Render SQL Lesson 18 (Ahmed x Manzooma)
+name: Render SQL Lesson 22 Set Subqueries
 on:
   push:
     branches: [main]
   workflow_dispatch:
-concurrency:
-  group: render-main
-  cancel-in-progress: true
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Guard - this repo must contain lesson 22 only
+        run: |
+          grep -q "SQL-L22-Set-Subqueries" src/theme.ts
+          grep -q "SQL-L22-Set-Subqueries" package.json
+          test -f public/voiceover_lesson_22.mp3
+          test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run render
-      - name: Verify video exists
-        run: test -s out/ahmed_sql_lesson18.mp4 && ls -lh out/
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L22-Set-Subqueries out/sql-l22-set-subqueries.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l22-set-subqueries.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: ahmed_sql_lesson18
-          path: out/ahmed_sql_lesson18.mp4
+          name: sql-l22-set-subqueries
+          path: out/sql-l22-set-subqueries.mp4
           if-no-files-found: error

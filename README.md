@@ -1,3 +1,10 @@
-# Ahmed x Manzooma - SQL Lesson 18: FULL OUTER JOIN & CROSS JOIN
-Remotion 16:9 (1920x1080 @30fps, 7200 frames = 4:00). Narration: public/voiceover_lesson_18.mp3 (starts at frame 0).
-Render: `npm run render` -> out/ahmed_sql_lesson18.mp4 (CI artifact: ahmed_sql_lesson18). prep.mjs fails the build if anything belongs to another lesson.
+# Manzooma | SQL From Zero to Professional - Lesson 22 - Set filtering with subqueries (IN / NOT IN / ANY / ALL)
+
+- Composition id: `SQL-L22-Set-Subqueries` - 1920x1080, 30fps, 7200 frames (4:00)
+- Output: `out/sql-l22-set-subqueries.mp4` - artifact `sql-l22-set-subqueries`
+- Scene boundaries sit in the REAL voiceover gaps: 0 | 1200 | 2550 | 3900 | 5100 | 6270 | 7200
+- Voiceover: public/voiceover_lesson_22.mp3 (240.04s) - the ONLY file in public/
+- Swap system: every lesson replaces this whole project (deploy.sh wipes + rewrites + verifies the names match).
+
+    npm install && npm start
+    npm run build
