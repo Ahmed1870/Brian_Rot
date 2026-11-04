@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200; // 240s * 30fps
-export const LESSON = 25;
-export const COMP_ID = 'SQL-L25-String-Functions';
+export const LESSON = 29;
+export const COMP_ID = 'SQL-L29-Case-When';
 
 export const C = {
   bg: '#0F172A',
@@ -25,17 +25,18 @@ export const C = {
   green: '#10B981', // match / safe / > ANY
   amber: '#F59E0B', // > ALL / cohort
   red: '#EF4444', // NULL crash / invalid
-  purple: '#A855F7', // character index ruler
+  purple: '#A855F7',
+  bronze: '#CD7F32', // Bronze tier
 };
 
-// Scene boundaries sit in the real voiceover pauses (42.7-43.5 / 80.6-89.3 / 131.8-132.7 / 169.6-178.4 / ~211.5)
+// Scene boundaries sit in the real voiceover gaps (38.7-41.1 / 83.6-86.3 / 128.7-131.2 / 168.6-171.2 / 207.6-210.2)
 export const SCENES = {
-  s1: {from: 0, dur: 1290},
-  s2: {from: 1290, dur: 1260},
-  s3: {from: 2550, dur: 1410},
-  s4: {from: 3960, dur: 1260},
-  s5: {from: 5220, dur: 1125},
-  s6: {from: 6345, dur: 855},
+  s1: {from: 0, dur: 1200},
+  s2: {from: 1200, dur: 1350},
+  s3: {from: 2550, dur: 1350},
+  s4: {from: 3900, dur: 1200},
+  s5: {from: 5100, dur: 1170},
+  s6: {from: 6270, dur: 930},
 };
 // scene start in seconds (absolute) - scenes convert absolute voiceover seconds with t(g) = sec(g - S)
-export const START = {s1: 0, s2: 43, s3: 85, s4: 132, s5: 174, s6: 211.5};
+export const START = {s1: 0, s2: 40, s3: 85, s4: 130, s5: 170, s6: 209};

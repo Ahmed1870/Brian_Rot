@@ -1,61 +1,57 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {EMAILS} from '../data';
+import {Caption, Check, Editor, Kpi, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
+import {CUSTOMERS, TIERS} from '../data';
 
-// SC05 (174-211.5s): REPLACE - legacy domain swap across all rows.
-// Anchors (s): 178.4 enterprise | 185.5 REPLACE searches | 190.0 swap | 193.0 old domains | 200.3 combining | 206.3 standardized
+// SC05 (170-209s): enterprise loyalty tiers + dynamic discounts.
+// Anchors (s): 171.2 enterprise | 181.9 three tiers | 184.2 Gold | 187.7 Silver | 191.2 Bronze | 192.7 discounts | 196.9 integrated technique
 const S = START.s5;
 const t = (g: number) => sec(g - S);
+const COL: Record<string, string> = {gold: C.green, silver: C.amber, bronze: C.bronze};
+const AT: Record<string, number> = {gold: 184.2, silver: 187.7, bronze: 191.2};
 
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
-  const hl = clamp(lin(f, t(185.5), 16));
-  const stamp = clamp(pop(f, t(193.0)));
+  const seal = clamp(pop(f, t(196.9)));
+  const keys = ['gold', 'silver', 'bronze'] as const;
   return (
-    <Stage dur={1125} inFx="up" outFx="fade">
-      <TopBadge text="استبدال الأنماط | Global Pattern Swap with REPLACE" from={sec(1)} to={sec(32)} color={C.amber} />
+    <Stage dur={1170} inFx="morph" outFx="fade">
+      <TopBadge text="شرائح الولاء | Loyalty Tiers & Dynamic Discounts" from={sec(1)} to={sec(36)} color={C.green} />
 
-      <Editor x={80} y={170} w={1160} h={240} title="Query Editor" lines={['SELECT email,', "  REPLACE(email, '@old-domain.com', '@manzooma.com')", '  AS updated_email', 'FROM employees;']} start={t(178.4)} cps={1.0} size={26} hl={f > t(185.5) ? 1 : -1} hlColor={C.amber} />
+      <Editor x={80} y={170} w={940} h={380} title="Query Editor" lines={['SELECT customer_name, total_spent,', '  CASE', "    WHEN total_spent >= 10000 THEN 'Gold (15% Off)'", "    WHEN total_spent >= 5000  THEN 'Silver (10% Off)'", "    ELSE 'Bronze (5% Off)'", '  END AS loyalty_segment', 'FROM customer_spending_summary;']} start={t(171.2)} cps={1.0} size={24} hl={f >= t(191.2) ? 4 : f >= t(187.7) ? 3 : f >= t(184.2) ? 2 : -1} hlColor={f >= t(191.2) ? C.bronze : f >= t(187.7) ? C.amber : C.green} />
 
-      <div style={{position: 'absolute', left: 1290, top: 200, width: 550, display: 'flex', justifyContent: 'center', opacity: stamp, transform: `scale(${0.8 + 0.2 * stamp}) rotate(-4deg)`}}>
-        <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 14, border: `4px solid ${C.green}`, borderRadius: 18, padding: '14px 30px', fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.green, background: `${C.green}14`}}>
-          <Check p={stamp} size={52} /> APPROVED
-        </div>
-      </div>
+      {keys.map((k, i) => {
+        const tr = TIERS[k];
+        const p = clamp(lin(f, t(192.7 + i * 0.6), 14));
+        return <Kpi key={k} x={80} y={590 + i * 100} w={940} h={86} label={`${tr.name} · total_spent ≥ ${tr.min.toLocaleString('en-US')}`} ar={k === 'gold' ? 'عميل ذهبي' : k === 'silver' ? 'عميل فضي' : 'عميل برونزي'} value={tr.off} color={COL[k]} p={p} glow={p} />;
+      })}
 
-      <Win x={80} y={440} w={1760} h={440} title="employees" accent={C.border}>
-        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: 52, display: 'flex', alignItems: 'center', padding: '0 40px', fontFamily: MONO, fontSize: 26, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-          <span style={{width: 780}}>email</span>
-          <span>updated_email</span>
-        </div>
-        {EMAILS.map((e, i) => {
-          const user = e.split('@')[0];
-          const p = clamp(lin(f, t(179.5 + i * 0.5), 12));
-          const flip = clamp(lin(f, t(190.0 + i * 0.5), 12));
-          const flipped = flip >= 0.5;
-          const sy = Math.abs(Math.cos(flip * Math.PI));
+      <Win x={1060} y={170} w={780} h={720} title="loyalty_report" accent={C.green}>
+        {keys.map((k, ti) => {
+          const rows = CUSTOMERS.filter((c) => c.tier === k);
+          const tp = clamp(lin(f, t(AT[k]), 14));
           return (
-            <div key={e} dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 64 + i * 80, height: 68, display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: MONO, fontSize: 36, opacity: p}}>
-              <span style={{width: 756}}>
-                <span style={{color: C.text}}>{user}</span>
-                <span style={{color: C.amber, fontWeight: 700, background: `${C.amber}${hl > 0.3 ? '33' : '00'}`, borderRadius: 6, padding: '0 4px', boxShadow: hl > 0.3 ? `0 0 16px ${C.amber}66` : 'none'}}>@old-domain.com</span>
-              </span>
-              <span style={{color: C.muted, marginRight: 34, opacity: flip > 0 ? 1 : 0.3}}>→</span>
-              <span style={{display: 'inline-block', transform: `scaleY(${flip > 0 && flip < 1 ? Math.max(0.05, sy) : 1})`, opacity: flip > 0 ? 1 : 0}}>
-                <span style={{color: C.text}}>{user}</span>
-                <span style={{color: flipped ? C.green : C.amber, fontWeight: 700, textShadow: flipped ? `0 0 14px ${C.green}` : 'none'}}>{flipped ? '@manzooma.com' : '@old-domain.com'}</span>
-              </span>
+            <div key={k}>
+              <div dir="ltr" style={{position: 'absolute', left: 28, top: 20 + ti * 196, fontFamily: MONO, fontSize: 28, fontWeight: 700, color: COL[k], opacity: tp}}>{TIERS[k].name} · {TIERS[k].off}</div>
+              {rows.map((c, ci) => {
+                const p = clamp(pop(f, t(AT[k] + 0.4 + ci * 0.5)));
+                return (
+                  <div key={c.name} dir="ltr" style={{boxSizing: 'border-box', position: 'absolute', left: 28 + ci * 360, top: 68 + ti * 196, width: 340, height: 104, borderRadius: 18, border: `3px solid ${COL[k]}`, background: `${COL[k]}1c`, opacity: p, transform: `translateY(${(1 - p) * 24}px) scale(${0.9 + 0.1 * p})`, padding: '14px 22px', fontFamily: MONO}}>
+                    <div style={{fontSize: 32, fontWeight: 700, color: C.text}}>{c.name}</div>
+                    <div style={{fontSize: 26, color: COL[k], marginTop: 6}}>{c.spent.toLocaleString('en-US')}</div>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
       </Win>
-      <div dir="ltr" style={{position: 'absolute', right: 80, top: 880, opacity: clamp(lin(f, t(206.3), 16)), display: 'none'}}>
-        <Chip color={C.green}>standardized</Chip>
+      <div dir="ltr" style={{position: 'absolute', left: 1240, top: 818, display: 'flex', alignItems: 'center', gap: 14, opacity: seal, transform: `scale(${0.85 + 0.15 * seal})`, background: C.card, border: `3px solid ${C.green}`, borderRadius: 18, padding: '8px 26px', fontFamily: MONO, fontSize: 30, fontWeight: 700, color: C.green}}>
+        <Check p={seal} size={40} /> TIER APPROVED
       </div>
-      <Caption text="REPLACE(email, 'old', 'new') ──► Global Pattern Swap across Columns" from={t(179)} to={t(194)} />
-      <Caption text="Enterprise Transformation ──► Standardizes Legacy Records & Domains" from={t(196)} to={t(210)} tone="ok" />
+      <Caption text="Enterprise Classification ──► Dynamic Loyalty Tiering & Discount Rules" from={t(174)} to={t(190)} />
+      <Caption text="Precision Marketing ──► Categorizes High-Value Cohorts Automatically" from={t(196)} to={sec(38.5)} tone="ok" />
     </Stage>
   );
 };

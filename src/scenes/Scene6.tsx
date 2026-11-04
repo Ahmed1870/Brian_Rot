@@ -3,27 +3,27 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (211.5-240s): Manzooma Academy outro. Ends with a fade to black.
-// Anchors (s): 211.9 great | 213.8 we mastered | 220.7 download scripts | 225.9 link | 228.2 get ready | 231.3 next lesson | 234.3 case functions
+// SC06 (209-240s): Manzooma Academy outro. Ends with a fade to black.
+// Anchors (s): 210.2 great | 211.6 we mastered | 217.9 download scripts | 222.9 link | 225.2 get ready | 228.0 next lesson | 230.2 conditional aggregation
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['LENGTH ✓', 'SUBSTRING ✓', 'CONCAT_WS ✓', 'TRIM ✓', 'REPLACE ✓'];
+const SKILLS = ['CASE WHEN ✓', 'Searched CASE ✓', 'ELSE & NULL ✓', 'SUM(CASE) ✓', 'Short-Circuit ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
   const card = prog(f, 0, 30);
-  const head = prog(f, t(212.0), 24);
-  const badge = pop(f, t(212.3));
-  const fill = prog(f, t(213.8), sec(4.8));
-  const modDone = prog(f, t(219.6), 20);
-  const res = prog(f, t(220.7), 24);
-  const next = prog(f, t(228.2), 28);
-  const code = typed("SELECT INITCAP(name),\n  UPPER(city_code)\nFROM customers\nWHERE name ~* '^a';", f, t(231.3), 0.55).split('\n');
+  const head = prog(f, t(210.4), 24);
+  const badge = pop(f, t(210.8));
+  const fill = prog(f, t(211.6), sec(4.8));
+  const modDone = prog(f, t(216.2), 20);
+  const res = prog(f, t(217.9), 24);
+  const next = prog(f, t(225.2), 28);
+  const code = typed("SELECT region,\n  SUM(CASE WHEN paid\n    THEN amt END)\nFROM sales GROUP BY 1;", f, t(228.0), 0.55).split('\n');
   const pct = Math.round(fill * 100);
 
   return (
-    <Stage dur={855} inFx="fade" outFx="black">
+    <Stage dur={930} inFx="fade" outFx="black">
       <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
         <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
           <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
@@ -45,7 +45,7 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 32, fontWeight: 700, color: C.green}}>
-              Lesson 25 Completed: <span style={{color: C.text}}>String Manipulation Mastered</span>
+              Lesson 29 Completed: <span style={{color: C.text}}>CASE WHEN Conditional Logic Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
@@ -55,13 +55,13 @@ export const Scene6: React.FC = () => {
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 7 · String &amp; Temporal Data — {modDone > 0.5 ? 'Advanced String Functions Mastered ✓' : 'started'}
+            Module 8 · Conditional Analysis — {modDone > 0.5 ? 'CASE WHEN & Conditional Analysis Mastered ✓' : 'started'}
           </div>
         </div>
 
         <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 16}}>
           {SKILLS.map((s, i) => {
-            const p = pop(f, t(215.5 + i * 0.9));
+            const p = pop(f, t(212.8 + i * 0.9));
             return (
               <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
                 <Chip color={C.blue} style={{fontSize: 22}}>{s}</Chip>
@@ -78,11 +78,11 @@ export const Scene6: React.FC = () => {
 
         <div style={{position: 'absolute', left: 90, right: 90, top: 535, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 26</Mix>
-            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>دوال حالة الأحرف والتعبير النمطي UPPER, LOWER, INITCAP, REGEXP</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 30</Mix>
+            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>التجميع الشرطي المتقدم وتقنيات Pivot والجداول الملتفة</Mix>
           </div>
           <div dir="ltr" style={{width: 560, height: 210, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '20px 26px', fontFamily: MONO, fontSize: 24, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 26</div>
+            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 30</div>
             {code.map((l, i) => (
               <div key={i} style={{whiteSpace: 'pre', minHeight: 36}}>
                 <Sql text={l} />

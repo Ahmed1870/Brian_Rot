@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-25-string-functions",
+  "name": "manzooma-sql-lesson-29-case-when",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 25: Advanced string functions (LENGTH, SUBSTRING, CONCAT_WS, TRIM, REPLACE) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 29: CASE WHEN conditional expressions (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L25-String-Functions out/sql-l25-string-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L29-Case-When out/sql-l29-case-when.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

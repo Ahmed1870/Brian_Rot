@@ -1,73 +1,79 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Chip, Stage, TopBadge, Win, clamp, lin, pop, sec, typed} from '../kit';
-import {NAMES} from '../data';
+import {Caption, Chip, Editor, Kpi, Stage, TopBadge, Win, clamp, lerp, lin, pop, sec} from '../kit';
+import {ORDERS} from '../data';
 
-// SC03 (85-132s): || trap vs CONCAT_WS.
-// Anchors (s): 89.3 on the contrary | 99.9 traditional operator | 105.3 instead | 110.3 CONCAT_WS | 116.4 separator | 120.9 ignores NULL | 125.1 build names
+// SC03 (85-130s): conditional aggregation - SUM(CASE WHEN ...) pivots rows into columns.
+// Anchors (s): 86.3 most powerful use | 95.5 instead of total | 100.0 you can write SUM(CASE..) | 108.4 rows -> columns | 116.7 no JOINs | 122.4 monitoring dashboards
 const S = START.s3;
 const t = (g: number) => sec(g - S);
-
-const Row: React.FC<{y: number; a: string; b: string | null; p: number}> = ({y, a, b, p}) => (
-  <div dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: y, height: 54, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 28, opacity: p}}>
-    <span style={{width: 300, color: C.text}}>{a}</span>
-    <span style={{color: b === null ? C.red : C.text, fontWeight: b === null ? 700 : 400}}>{b === null ? 'NULL' : b}</span>
-  </div>
-);
+const RY0 = 56 + 52;
+const RH = 58;
+const TX = 1080;
+const TY = 170;
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const win = clamp(lin(f, t(89.3), 16));
-  const crash = clamp(lin(f, t(99.9), 12));
-  const fuse = clamp(lin(f, t(116.4), 20));
-  const code2 = typed("CONCAT_WS(' ', first_name, last_name)", f, t(105.3), 0.9);
-  const shake = crash > 0 && crash < 1 ? Math.sin(f * 2.2) * 10 * (1 - crash) : 0;
-  const pin = clamp(lin(f, t(89.3), 16));
+  let shipped = 0;
+  let cancelled = 0;
+  const flights: React.ReactNode[] = [];
+  ORDERS.forEach((o, i) => {
+    const st = t(100.0 + i * 1.1);
+    const p = lin(f, st, 26);
+    const ok = o.status === 'shipped';
+    if (p >= 1) {
+      if (ok) shipped += o.amount;
+      else cancelled += o.amount;
+    } else if (p > 0) {
+      const fx = TX + 520;
+      const fy = TY + RY0 + i * RH + 28;
+      const tx = 700;
+      const ty = ok ? 610 : 750;
+      const e = p * p * (3 - 2 * p);
+      flights.push(
+        <div key={o.id} dir="ltr" style={{position: 'absolute', left: lerp(fx, tx, e) - 60, top: lerp(fy, ty, e) - 24, width: 120, height: 48, borderRadius: 24, background: ok ? C.green : C.amber, color: C.bg, fontFamily: MONO, fontWeight: 700, fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 18px ${ok ? C.green : C.amber}`}}>{o.amount}</div>,
+      );
+    }
+  });
+  const done = f >= t(100.0 + 5 * 1.1) + 26;
+  const fmt = (n: number) => n.toLocaleString('en-US');
 
   return (
-    <Stage dur={1410} inFx="left" outFx="down">
-      <TopBadge text="الدمج النصي الآمن | CONCAT vs the || Operator" from={sec(2)} to={sec(40)} color={C.blue} />
+    <Stage dur={1350} inFx="up" outFx="up">
+      <TopBadge text="التجميع الشرطي | Conditional Aggregation" from={sec(1)} to={sec(40)} color={C.green} />
 
-      {/* LEFT: || operator */}
-      <Win x={80} y={180} w={860} h={640} title="operator ||" accent={crash > 0.5 ? C.red : C.border} opacity={win}>
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 20, fontFamily: MONO, fontSize: 28, color: C.text}}>first_name <span style={{color: C.blue}}>||</span> ' ' <span style={{color: C.blue}}>||</span> last_name</div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 90, fontFamily: MONO, fontSize: 22, color: C.muted}}>first_name · last_name</div>
-        {NAMES.map((n, i) => <Row key={i} y={124 + i * 54} a={n.first} b={n.last} p={pin} />)}
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 270, fontFamily: MONO, fontSize: 22, color: C.muted}}>result</div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: 306, height: 84, borderRadius: 16, border: `3px solid ${C.green}`, background: `${C.green}14`, display: 'flex', alignItems: 'center', padding: '0 26px', fontFamily: MONO, fontSize: 38, fontWeight: 700, color: C.text, opacity: clamp(lin(f, t(94), 14))}}>Ahmed Hassan</div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: 410, height: 84, borderRadius: 16, border: `3px solid ${crash > 0.3 ? C.red : C.border}`, background: crash > 0.3 ? `${C.red}22` : C.deep, display: 'flex', alignItems: 'center', justifyContent: crash > 0.3 ? 'center' : 'flex-start', padding: '0 26px', fontFamily: MONO, fontSize: 38, fontWeight: 700, color: crash > 0.3 ? C.red : C.text, transform: `translateX(${shake}px)`, boxShadow: crash > 0.3 ? `0 0 30px ${C.red}77` : 'none', opacity: clamp(lin(f, t(94), 14))}}>
-          {crash > 0.3 ? 'NULL  ✗' : 'Mona …'}
+      <Editor x={80} y={170} w={950} h={330} title="Query Editor" lines={['SELECT', "  SUM(CASE WHEN order_status = 'shipped'", '      THEN total_amount ELSE 0 END) AS shipped_revenue,', "  SUM(CASE WHEN order_status = 'cancelled'", '      THEN total_amount ELSE 0 END) AS cancelled_revenue', 'FROM orders;']} start={t(95.5)} cps={1.0} size={24} hl={f > t(100) ? 1 : -1} hlColor={C.green} />
+
+      <Win x={TX} y={TY} w={760} h={480} title="orders" opacity={clamp(lin(f, t(86.3), 16))}>
+        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: 52, display: 'flex', alignItems: 'center', padding: '0 30px', fontFamily: MONO, fontSize: 24, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+          <span style={{width: 100}}>id</span><span style={{width: 300}}>order_status</span><span>total_amount</span>
         </div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 520, fontFamily: MONO, fontSize: 24, color: C.red, opacity: crash}}>NULL + text = NULL</div>
+        {ORDERS.map((o, i) => {
+          const sent = f >= t(100.0 + i * 1.1) + 26;
+          const col = o.status === 'shipped' ? C.green : C.amber;
+          return (
+            <div key={o.id} dir="ltr" style={{position: 'absolute', left: 14, right: 14, top: 58 + i * RH, height: RH - 6, borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: MONO, fontSize: 28, color: sent ? '#64748B' : C.text, background: f >= t(100.0 + i * 1.1) && !sent ? `${col}33` : 'transparent'}}>
+              <span style={{width: 100}}>{o.id}</span>
+              <span style={{width: 300, color: sent ? '#64748B' : col, fontWeight: 700}}>{o.status}</span>
+              <span>{o.amount}</span>
+            </div>
+          );
+        })}
       </Win>
 
-      {/* RIGHT: CONCAT_WS */}
-      <Win x={980} y={180} w={860} h={640} title="CONCAT_WS" accent={fuse > 0.5 ? C.green : C.border} opacity={clamp(lin(f, t(105.3), 16))}>
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 20, fontFamily: MONO, fontSize: 28, color: C.text, whiteSpace: 'pre'}}>
-          <span style={{color: C.blue, fontWeight: 700}}>{code2.slice(0, 9)}</span>{code2.slice(9)}
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 90, fontFamily: MONO, fontSize: 22, color: C.muted}}>first_name · last_name</div>
-        {NAMES.map((n, i) => <Row key={i} y={124 + i * 54} a={n.first} b={n.last} p={clamp(lin(f, t(106), 14))} />)}
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 270, fontFamily: MONO, fontSize: 22, color: C.muted}}>result</div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: 306, height: 84, borderRadius: 16, border: `3px solid ${C.green}`, background: `${C.green}14`, display: 'flex', alignItems: 'center', padding: '0 26px', fontFamily: MONO, fontSize: 38, fontWeight: 700, color: C.text, opacity: clamp(lin(f, t(110.3), 14)), transform: `translateX(${(1 - clamp(lin(f, t(110.3), 14))) * 30}px)`}}>
-          Ahmed<span style={{display: 'inline-block', width: 26 + 10 * fuse, height: 40, margin: '0 6px', borderRadius: 8, background: C.green, boxShadow: `0 0 ${24 * fuse}px ${C.green}`, opacity: 0.35 + 0.65 * fuse}} />Hassan
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: 410, height: 84, borderRadius: 16, border: `3px solid ${C.green}`, background: `${C.green}14`, display: 'flex', alignItems: 'center', padding: '0 26px', fontFamily: MONO, fontSize: 38, fontWeight: 700, color: C.text, opacity: clamp(lin(f, t(116.4), 14)), boxShadow: `0 0 ${26 * fuse}px ${C.green}66`}}>
-          Mona
-          <span style={{marginLeft: 'auto', fontSize: 24, color: C.green}}>NULL skipped ✓</span>
-        </div>
-        <div style={{position: 'absolute', left: 30, top: 520, display: 'flex', gap: 12, opacity: clamp(lin(f, t(110.3), 14))}}>
-          <Chip color={C.amber} style={{fontSize: 22}}>WS = With Separator</Chip>
-        </div>
-      </Win>
+      <Kpi x={80} y={560} w={950} h={120} label="shipped_revenue" ar="مبيعات مشحونة" value={fmt(shipped)} color={C.green} p={lin(f, t(98.5), 16)} glow={done ? 1 : 0} />
+      <Kpi x={80} y={700} w={950} h={120} label="cancelled_revenue" ar="مبيعات ملغاة" value={fmt(cancelled)} color={C.amber} p={lin(f, t(98.5), 16)} glow={done ? 1 : 0} />
+      {flights}
 
-      <div style={{position: 'absolute', left: 80, right: 80, top: 850, display: 'flex', justifyContent: 'center', opacity: clamp(lin(f, t(125.1), 16))}}>
-        <Chip color={C.green} style={{fontSize: 28, padding: '10px 30px'}}>✓ Full names &amp; composite addresses — safely</Chip>
+      <div style={{position: 'absolute', left: 1080, top: 700, width: 760, display: 'flex', flexDirection: 'column', gap: 14}}>
+        <div style={{opacity: clamp(pop(f, t(108.4)))}}><Chip color={C.blue} style={{fontSize: 26}}>Rows → Horizontal Columns (Pivot)</Chip></div>
+        <div style={{opacity: clamp(pop(f, t(116.7)))}}><Chip color={C.green} style={{fontSize: 26}}>✓ one scan · no extra JOINs</Chip></div>
+        <div style={{opacity: clamp(pop(f, t(122.4)))}}><Chip color={C.amber} style={{fontSize: 26}}>✓ monitoring dashboards</Chip></div>
       </div>
 
-      <Caption text="Operator || Trap ──► NULL + Text = NULL (Destructive Output)" from={t(98.5)} to={t(108)} tone="danger" />
-      <Caption text="CONCAT_WS(' ', col1, col2) ──► Safe Null-Bypassing Text Fusion" from={t(115)} to={sec(44.5)} tone="ok" />
+      <Caption text="SUM(CASE WHEN status = 'shipped' THEN amount ELSE 0 END)" from={t(96)} to={t(108)} />
+      <Caption text="Conditional Aggregation ──► Pivots Row Values into Horizontal Metrics" from={t(110)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };
