@@ -1,4 +1,4 @@
-name: Render video
+name: Render SQL Lesson 21 Scalar Subqueries
 on:
   push:
     branches: [main]
@@ -12,10 +12,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run render
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L21-Scalar-Subqueries out/sql-l21-scalar-subqueries.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: Ahmed-SQL-L23
-          path: out/*.mp4
-          if-no-files-found: error
+          name: sql-l21-scalar-subqueries
+          path: out/sql-l21-scalar-subqueries.mp4

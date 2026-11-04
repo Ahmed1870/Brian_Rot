@@ -1,15 +1,8 @@
 import React from 'react';
-import { Composition } from 'remotion';
-import { Lesson23 } from './Lesson23';
-import tl from './timeline.json';
+import {Composition} from 'remotion';
+import {Video} from './Video';
+import {FPS, H, TOTAL_FRAMES, W} from './theme';
 
-export const Root: React.FC = () => (
-  <Composition
-    id="Ahmed-SQL-L23"
-    component={Lesson23}
-    durationInFrames={tl.total * tl.fps}
-    fps={tl.fps}
-    width={1920}
-    height={1080}
-  />
+export const RemotionRoot: React.FC = () => (
+  <Composition id="SQL-L21-Scalar-Subqueries" component={Video} durationInFrames={TOTAL_FRAMES} fps={FPS} width={W} height={H} />
 );

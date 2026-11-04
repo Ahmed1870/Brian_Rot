@@ -1,10 +1,8 @@
-# Manzooma — Lesson 23: Correlated Subqueries & EXISTS
-Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s).
-Composition ID: `Ahmed-SQL-L23` · Output: `out/ahmed_sql_lesson23.mp4` (names live in `package.json` "render" + `src/Root.tsx`).
+# Manzooma | SQL From Zero to Professional - Lesson 21 - Scalar Subqueries (SELECT & WHERE)
 
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/ahmed_sql_lesson23.mp4
+- Composition id: `SQL-L21-Scalar-Subqueries` - 1920x1080, 30fps, 7200 frames (4:00)
+- Scenes (match the spec exactly): 0 | 1200 | 2550 | 3900 | 5100 | 6300 | 7200
+- Voiceover: public/voiceover.mp3 (240.04s; narration ends at 234.8s)
 
-Voiceover: `public/voiceover_lesson_23.mp3` (already has ~1.1 s lead-in, starts at frame 0). Cue times: `src/timeline.json`.
+    npm install && npm start
+    npm run build   # -> out/sql-l21-scalar-subqueries.mp4
