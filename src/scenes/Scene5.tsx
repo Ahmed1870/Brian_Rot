@@ -1,93 +1,72 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {ENTERPRISE_CUSTOMERS} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {appear} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {back, eo, fmt, prog, pulse, seg} from '../lib/anim';
 
-// SC05 (170-210s): Enterprise Data Cleansing — Manzoma Store Pipeline
-// Anchors (s): 171.1 enterprise | 175.0 INITCAP(LOWER) | 180.0 regex domain | 185.0 official domain | 192.0 governance | 200.0 standardized
-const S = START.s5;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc05;
+const T0 = S.typeT;
+const CODE: CodeLine[] = [
+  'SELECT e.first_name, e.salary, e.department_id', 'FROM employees e', 'WHERE e.salary > (', '    SELECT AVG(salary) FROM employees', '    WHERE department_id = e.department_id',
+  ') AND NOT EXISTS (', '    SELECT 1 FROM disciplinary_actions d', '    WHERE d.employee_id = e.employee_id', ');',
+].map((text, i) => ({text, at: T0 + i * 1.9, dt: 0.03}));
+const CARDS = [
+  {n: 'أحمد', d: 'Sales', s: 9000, avg: 8500, bad: false}, {n: 'عمر', d: 'HR', s: 7500, avg: 7000, bad: true}, {n: 'ياسمين', d: 'IT', s: 13000, avg: 12000, bad: false},
+];
 
-export const Scene5: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(171.5), 14));
-  const tableP = clamp(lin(f, t(180), 16));
-  const sealP = pop(f, t(192));
-
+export const Scene5: React.FC<{t: number}> = ({t}) => {
+  const enter = appear(t, 170.3, 171.3);
+  const warm = 0.5 + 0.5 * pulse(t, 1.2);
+  const audit = prog(t, 188.6, 190);
+  const out = eo(prog(t, 191, 192.6));
+  const stamp = prog(t, S.seal, S.seal + 0.55);
+  const stampP = stamp <= 0 ? 0 : stamp < 1 ? 1.8 - 0.8 * eo(stamp) : 1;
+  const count = t > 192.6 ? 2 : 3;
+  let slot = 0;
   return (
-    <Stage dur={1200} inFx="morph" outFx="fade">
-      <TopBadge text="التطبيق المؤسسي | Enterprise Data Cleansing & Governance" from={sec(1)} to={sec(38)} color={C.green} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="Enterprise Subqueries" body="──► Correlated Salary Benchmark + NOT EXISTS Audit" color={D.code} size={26} /></div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Sub-Millisecond Execution" body="──► Zero Row Duplication & Clean Business Logic" color={D.cat} size={26} /></div>
+      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={940} h={560} title="hr_report.sql" fontSize={24} lineH={50} /></div>
 
-      <Editor
-        x={80}
-        y={170}
-        w={980}
-        h={250}
-        title="Enterprise Cleaning Pipeline · manzooma_store_db"
-        lines={[
-          'SELECT customer_id,',
-          '       INITCAP(LOWER(first_name)) AS clean_name,',
-          '       LOWER(email) AS normalized_email',
-          'FROM customers',
-          "WHERE email ~* '^[A-Z0-9._%+-]+@manzooma\\.com$';",
-        ]}
-        start={t(171.5)}
-        cps={0.85}
-        size={22}
-        hl={f >= t(180) ? 4 : f >= t(175) ? 1 : -1}
-        hlColor={f >= t(180) ? C.green : C.blue}
-      />
-
-      {/* Report panel right */}
-      <Win x={1100} y={170} w={740} h={250} title="report · clean_customers" accent={C.green} opacity={clamp(lin(f, t(186), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 28, top: 14, fontFamily: MONO, fontSize: 22, color: C.green}}>
-          High-Precision Data Governance
+      {/* executive HR report */}
+      <div style={{position: 'absolute', left: 1040, top: 190, width: 820, height: 700, borderRadius: 28, background: 'linear-gradient(160deg,#22304A,#1B2740)', border: `2.5px solid ${D.cat}`, boxShadow: `0 28px 70px rgba(0,0,0,0.5), 0 0 ${24 + 22 * warm * (t > S.seal ? 1 : 0)}px ${D.cat}66`, opacity: appear(t, 172, 173), overflow: 'hidden'}}>
+        <div style={{height: 84, background: `linear-gradient(90deg, ${D.cat}55, ${D.cat}11)`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 30px'}}>
+          <span style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 36, color: C.text}}>تقرير الموارد البشرية</span>
+          <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: D.cat}}>{count} employees</span>
         </div>
-        <div dir="ltr" style={{position: 'absolute', left: 28, top: 56, right: 28, display: 'flex', gap: 14, flexWrap: 'wrap'}}>
-          <Chip color={C.blue} style={{fontSize: 20}}>INITCAP(LOWER())</Chip>
-          <Chip color={C.green} style={{fontSize: 20}}>~* regex domain</Chip>
-          <Chip color={C.amber} style={{fontSize: 20}}>zero mismatch</Chip>
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 28, right: 28, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <div style={{fontFamily: MONO, fontSize: 22, color: C.text, fontWeight: 700}}>
-            standardized outlets ✓
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 10, opacity: clamp(sealP), transform: `scale(${0.85 + 0.15 * clamp(sealP)})`}}>
-            <Check p={sealP} size={40} color={C.green} />
-            <div style={{fontFamily: MONO, fontSize: 20, color: C.green, fontWeight: 700}}>Seal ✓</div>
-          </div>
-        </div>
-      </Win>
-
-      {/* Cleaned customer table */}
-      <Win x={80} y={450} w={1760} h={420} title="cleansed & filtered output" accent={C.green} opacity={tableP}>
-        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: 56, display: 'flex', alignItems: 'center', padding: '0 30px', fontFamily: MONO, fontSize: 22, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-          <span style={{width: 180}}>raw_name</span>
-          <span style={{width: 220, color: C.blue}}>clean_name</span>
-          <span style={{flex: 1, color: C.green}}>normalized_email</span>
-          <span style={{width: 200, textAlign: 'right'}}>domain_pass</span>
-        </div>
-        {ENTERPRISE_CUSTOMERS.map((c, i) => {
-          const rowP = clamp(pop(f, t(181 + i * 0.8)));
-          const domainPass = c.domain === 'manzooma.com';
+        {CARDS.map((c, i) => {
+          const inP = back(prog(t, 182.5 + i * 0.9, 183.3 + i * 0.9));
+          const flagged = c.bad && audit > 0;
+          const gone = c.bad ? out : 0;
+          const myIdx = CARDS.slice(0, i).filter((x) => !x.bad || out < 1).length;
+          const y = 106 + (c.bad ? 0 : 0) + i * 150 - (CARDS.slice(0, i).filter((x) => x.bad).length) * 150 * out;
+          slot += 1;
           return (
-            <div key={i} dir="ltr" style={{position: 'absolute', left: 16, right: 16, top: 64 + i * 50, height: 46, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 24, background: domainPass ? `${C.green}14` : 'transparent', border: `1px solid ${domainPass ? C.green : C.border}`, opacity: rowP, transform: `translateX(${(1 - rowP) * 30}px)`}}>
-              <span style={{width: 180, color: C.muted}}>{c.raw}</span>
-              <span style={{width: 220, color: C.blue, fontWeight: 700}}>
-                ──► {c.clean}
-              </span>
-              <span style={{flex: 1, color: C.green}}>{c.email.toLowerCase()}</span>
-              <span style={{width: 200, textAlign: 'right', color: domainPass ? C.green : C.red, fontWeight: 700}}>
-                {domainPass ? '✓ official' : '✗ external'}
-              </span>
+            <div key={c.n} style={{position: 'absolute', left: 24, right: 24, top: y, height: 132, borderRadius: 20, background: flagged ? `rgba(127,29,29,${0.35 * (1 - gone)})` : `${D.cat}1F`, border: `2px solid ${flagged ? D.err : D.cat}`, opacity: Math.min(1, inP * 2) * (1 - gone), transform: `translateX(${(1 - inP) * 120 + (flagged && gone < 1 ? Math.sin(t * 70) * 6 * (1 - audit * 0.0) : 0) + gone * 300}px)`, display: 'flex', alignItems: 'center', gap: 24, padding: '0 28px'}}>
+              <div style={{width: 70, height: 70, borderRadius: 35, background: flagged ? D.err : D.cat, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_AR, fontWeight: 900, fontSize: 38, color: C.bg}}>{c.n[0]}</div>
+              <div style={{flex: 1}}>
+                <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 38, color: C.text}}>{c.n} <span style={{fontFamily: FONT_MONO, fontSize: 21, color: C.mute}}>{c.d}</span></div>
+                <div style={{fontFamily: FONT_MONO, fontSize: 23, color: C.dim}}>salary {fmt(c.s)} &gt; avg {fmt(c.avg)}</div>
+              </div>
+              {flagged ? <span style={{padding: '8px 18px', borderRadius: 12, background: D.err, color: '#fff', fontFamily: FONT_AR, fontWeight: 800, fontSize: 24}}>مخالفة إدارية ✕</span> : <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 40, color: D.cat, opacity: t > 189 ? 1 : 0.0}}>✓</span>}
             </div>
           );
         })}
-      </Win>
-
-      <Caption text="Enterprise Cleaning ──► INITCAP(LOWER(name)) + Regex Domain Filtering" from={t(175)} to={t(195)} />
-      <Caption text="High-Precision Data Governance ──► Zero Mismatch & Standardized Outlets" from={t(197)} to={sec(38.5)} tone="ok" />
-    </Stage>
+        {audit > 0 ? <div style={{position: 'absolute', left: 30, bottom: 28, fontFamily: FONT_MONO, fontSize: 21, color: C.dim, opacity: Math.min(1, audit * 2)}}>NOT EXISTS → disciplinary_actions: employee 4 (عمر) ✕</div> : null}
+        {stampP > 0 ? (
+          <div style={{position: 'absolute', right: 30, bottom: 70, opacity: Math.min(1, stamp * 4), transform: `rotate(-8deg) scale(${stampP})`}}>
+            <div style={{padding: '12px 28px', borderRadius: 18, border: `5px double ${D.cat}`, background: 'rgba(11,18,34,0.92)', boxShadow: `0 0 ${30 + 20 * warm}px ${D.cat}`, textAlign: 'center'}}>
+              <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 40, color: D.cat}}>VERIFIED ✓</div>
+              <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 22, color: C.text, direction: 'rtl'}}>اعتماد الأداء التنفيذي</div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 };

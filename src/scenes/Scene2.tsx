@@ -1,117 +1,82 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
-import {NAMES} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {appear, pop} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {back, eo, prog, pulse} from '../lib/anim';
 
-// SC02 (40-85s): LIKE vs ILIKE — Wildcards and Case Sensitivity
-// Anchors (s): 41.1 wildcards | 45.0 LIKE | 52.0 ILIKE | 60.0 % | 65.0 _ | 70.0 case-insensitive | 78.0 easy find
-const S = START.s2;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc02;
+const CUST = [{id: 1, n: 'سارة'}, {id: 2, n: 'منى'}, {id: 3, n: 'عمر'}, {id: 4, n: 'أحمد'}];
+const ORD = [4, 1, 1, 2, 4, 1, 2, 4]; // orders.customer_id per row
+const STEP = 0.28;
+const CODE: CodeLine[] = [{text: 'WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)', at: S.typeT, dt: 0.045}];
 
-export const Scene2: React.FC = () => {
-  const f = useCurrentFrame();
-  // Left panel: LIKE 'a%' (case-sensitive) — only 'ahmed' matches
-  // Right panel: ILIKE 'a%' (case-insensitive) — both 'ahmed' and 'Ahmed' match
-  const leftP = clamp(lin(f, t(41.5), 14));
-  const rightP = clamp(lin(f, t(52), 14));
-  const wildcardP = clamp(lin(f, t(60), 14));
-
-  // Scan animation: a laser passes through the rows
-  const leftScan = clamp(lin(f, t(46), sec(5)));
-  const rightScan = clamp(lin(f, t(53), sec(5)));
-
-  const ROW_H = 56;
-  const ROW0 = 70;
-
+export const Scene2: React.FC<{t: number}> = ({t}) => {
+  const enter = appear(t, 40.3, 41.3);
+  let k = -1;
+  S.cycles.forEach((s, i) => { if (t >= s) k = i; });
+  const s0 = k >= 0 ? S.cycles[k] : 0;
+  const cust = k >= 0 ? CUST[k] : CUST[0];
+  const first = ORD.findIndex((x) => x === cust.id);
+  const total = first < 0 ? ORD.length : first + 1;
+  const scanned = k < 0 ? 0 : Math.min(total, Math.max(0, Math.floor((t - s0 - 0.3) / STEP) + 1));
+  const stopped = k >= 0 && scanned >= total;
+  const verdict = (i: number) => (i < k || (i === k && stopped)) ? (CUST[i].id !== 3) : null;
+  const snap = k >= 0 && stopped && first >= 0 ? Math.sin(prog(t - s0 - 0.3 - total * STEP, 0, 0.6) * Math.PI) : 0;
+  const alt = Math.floor(t / 2) % 2 === 0;
   return (
-    <Stage dur={1350} inFx="left" outFx="left">
-      <TopBadge text="المطابقة بالأنماط | LIKE vs ILIKE Wildcards" from={sec(2)} to={sec(40)} color={C.amber} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="WHERE EXISTS" body="(SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)" color={D.code} size={25} /></div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Short-Circuiting Mechanics" body="──► Stops Scanning Upon FIRST Matching Row (High Speed)" color={D.cat} size={25} /></div>
+      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={1800} h={130} title="exists.sql" fontSize={30} lineH={56} /></div>
+      {t > 55 ? <div style={{position: 'absolute', right: 80, top: 196, opacity: appear(t, 55, 56), fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: D.key}}>SELECT {alt ? '1' : '*'} <span style={{color: D.cat}}>≡ نفس النتيجة</span></div> : null}
 
-      {/* LEFT: LIKE 'a%' — case-sensitive */}
-      <div style={{opacity: leftP, transform: `translateX(${(1 - leftP) * -30}px)`}}>
-        <Editor x={80} y={180} w={860} h={150} title="PostgreSQL · Case-Sensitive" lines={["WHERE name LIKE 'a%'"]} start={t(42)} cps={1.0} size={28} accent={C.red} />
-        <Win x={80} y={350} w={860} h={540} title="LIKE 'a%' · matches lowercase only" accent={C.red}>
-          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 30px', fontFamily: MONO, fontSize: 22, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-            <span style={{width: 80}}>id</span>
-            <span style={{flex: 1}}>name</span>
-            <span style={{width: 180, textAlign: 'right'}}>match</span>
-          </div>
-          {NAMES.map((n, i) => {
-            const scanRow = Math.floor(leftScan * NAMES.length);
-            const scanned = i <= scanRow;
-            const isMatch = n.name === 'ahmed'; // case-sensitive: only 'ahmed' (lowercase)
-            const showMatch = scanned && isMatch;
-            const showReject = scanned && !isMatch && n.name.toLowerCase() === 'ahmed'; // 'Ahmed' would be a case-mismatch
-            const showMiss = scanned && !isMatch && n.name.toLowerCase() !== 'ahmed';
+      {/* customers (outer) */}
+      <div style={{position: 'absolute', left: 60, top: 370, width: 560, opacity: enter}}>
+        <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: D.code, marginBottom: 12}}>customers c</div>
+        {CUST.map((c, i) => {
+          const v = verdict(i);
+          const act = i === k && !stopped;
+          return (
+            <div key={c.id} style={{height: 96, marginBottom: 14, borderRadius: 18, display: 'flex', alignItems: 'center', gap: 18, padding: '0 24px', background: act || (i === k) ? `${D.code}26` : 'rgba(255,255,255,0.05)', border: `2px solid ${i === k ? D.code : 'rgba(255,255,255,0.12)'}`, boxShadow: i === k ? `0 0 26px ${D.code}55` : undefined}}>
+              <span style={{fontFamily: FONT_MONO, fontSize: 26, color: C.mute}}>{c.id}</span>
+              <span style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 36, color: C.text}}>{c.n}</span>
+              <span style={{marginLeft: 'auto', padding: '6px 20px', borderRadius: 12, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, background: v === null ? 'transparent' : v ? D.cat : '#334155', color: v === null ? 'transparent' : v ? C.bg : C.dim, transform: `scale(${v === null ? 0.6 : 1})`}}>{v ? 'TRUE' : 'FALSE'}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* orders (inner) with laser scanner */}
+      <div style={{position: 'absolute', left: 700, top: 370, width: 620, opacity: enter}}>
+        <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: D.key, marginBottom: 12}}>orders o</div>
+        <div style={{borderRadius: 20, background: '#0B1222', border: `2px solid ${D.key}66`, overflow: 'hidden', position: 'relative'}}>
+          {ORD.map((cid, r) => {
+            const hit = k >= 0 && cid === cust.id && r === first;
+            const scannedRow = r < scanned;
+            const cut = stopped && first >= 0 && r >= total;
             return (
-              <div key={n.id} dir="ltr" style={{position: 'absolute', left: 14, right: 14, top: ROW0 + i * ROW_H + 4, height: ROW_H - 8, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: MONO, fontSize: 26, background: showMatch ? `${C.red}33` : 'transparent', border: `2px solid ${showMatch ? C.red : 'transparent'}`, color: showMiss ? '#64748B' : C.text, opacity: scanned ? 1 : 0.4}}>
-                <span style={{width: 64, fontWeight: 700, color: C.blue}}>{n.id}</span>
-                <span style={{flex: 1}}>{n.name}</span>
-                <span style={{width: 180, textAlign: 'right', color: showMatch ? C.green : showReject ? C.red : '#475569', fontWeight: 700}}>
-                  {showMatch ? '✓ match' : showReject ? '✗ case mismatch' : showMiss ? '— no' : ''}
-                </span>
+              <div key={r} style={{height: 62, display: 'flex', alignItems: 'center', gap: 30, padding: '0 28px', fontFamily: FONT_MONO, fontSize: 26, borderTop: r ? '1px solid rgba(71,85,105,0.4)' : undefined, color: cut ? '#334155' : C.text, background: hit && stopped ? `${D.cat}44` : scannedRow ? `${D.key}1F` : 'transparent', boxShadow: hit && stopped ? `inset 0 0 ${30 * (0.5 + snap)}px ${D.cat}` : undefined, opacity: cut ? 0.45 : 1}}>
+                <span style={{color: C.mute, width: 70}}>#{101 + r}</span><span>customer_id = {cid}</span>
+                {hit && stopped ? <span style={{marginLeft: 'auto', color: D.cat, fontWeight: 800}}>MATCH ✓</span> : null}
               </div>
             );
           })}
-          {/* scan laser */}
-          {leftScan < 1 ? (
-            <div style={{position: 'absolute', left: 0, right: 0, top: ROW0 + leftScan * NAMES.length * ROW_H, height: 3, background: C.red, boxShadow: `0 0 20px ${C.red}`, opacity: 0.9}} />
-          ) : null}
-          <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 24, display: 'flex', gap: 12, alignItems: 'center', opacity: clamp(pop(f, t(58)))}}>
-            <Warn size={44} />
-            <div style={{fontFamily: MONO, fontSize: 26, color: C.red, fontWeight: 700}}>Result: 1 row · misses 'Ahmed'</div>
-          </div>
-        </Win>
+          {k >= 0 && !stopped ? <div style={{position: 'absolute', left: 0, right: 0, top: Math.min(8, scanned) * 62 - 4, height: 8, background: `linear-gradient(90deg,transparent,${D.code},transparent)`, boxShadow: `0 0 20px ${D.code}`}} /> : null}
+        </div>
       </div>
 
-      {/* RIGHT: ILIKE 'a%' — case-insensitive */}
-      <div style={{opacity: rightP, transform: `translateX(${(1 - rightP) * 30}px)`}}>
-        <Editor x={980} y={180} w={860} h={150} title="PostgreSQL · Case-Insensitive" lines={["WHERE name ILIKE 'a%'"]} start={t(52.5)} cps={1.0} size={28} accent={C.green} />
-        <Win x={980} y={350} w={860} h={540} title="ILIKE 'a%' · matches any case" accent={C.green}>
-          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 30px', fontFamily: MONO, fontSize: 22, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-            <span style={{width: 80}}>id</span>
-            <span style={{flex: 1}}>name</span>
-            <span style={{width: 180, textAlign: 'right'}}>match</span>
-          </div>
-          {NAMES.map((n, i) => {
-            const scanRow = Math.floor(rightScan * NAMES.length);
-            const scanned = i <= scanRow;
-            const isMatch = n.name.toLowerCase().startsWith('a'); // case-insensitive: both 'ahmed' and 'Ahmed' match
-            const showMatch = scanned && isMatch;
-            const showMiss = scanned && !isMatch;
-            return (
-              <div key={n.id} dir="ltr" style={{position: 'absolute', left: 14, right: 14, top: ROW0 + i * ROW_H + 4, height: ROW_H - 8, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: MONO, fontSize: 26, background: showMatch ? `${C.green}33` : 'transparent', border: `2px solid ${showMatch ? C.green : 'transparent'}`, color: showMiss ? '#64748B' : C.text, opacity: scanned ? 1 : 0.4}}>
-                <span style={{width: 64, fontWeight: 700, color: C.blue}}>{n.id}</span>
-                <span style={{flex: 1}}>{n.name}</span>
-                <span style={{width: 180, textAlign: 'right', color: showMatch ? C.green : showMiss ? '#475569' : '#475569', fontWeight: 700}}>{showMatch ? '✓ match' : showMiss ? '— no' : ''}</span>
-              </div>
-            );
-          })}
-          {rightScan < 1 ? (
-            <div style={{position: 'absolute', left: 0, right: 0, top: ROW0 + rightScan * NAMES.length * ROW_H, height: 3, background: C.green, boxShadow: `0 0 20px ${C.green}`, opacity: 0.9}} />
-          ) : null}
-          <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 24, display: 'flex', gap: 12, alignItems: 'center', opacity: clamp(pop(f, t(66)))}}>
-            <Check p={pop(f, t(66))} size={44} />
-            <div style={{fontFamily: MONO, fontSize: 24, color: C.green, fontWeight: 700}}>Result: 2 rows · both 'ahmed' & 'Ahmed'</div>
-          </div>
-        </Win>
+      {/* counters */}
+      <div style={{position: 'absolute', left: 1400, top: 370, width: 460, opacity: appear(t, 52, 53)}}>
+        <div style={{borderRadius: 24, padding: '28px 32px', background: stopped && first >= 0 ? `${D.cat}1F` : 'rgba(255,255,255,0.05)', border: `2px solid ${stopped && first >= 0 ? D.cat : 'rgba(255,255,255,0.14)'}`, boxShadow: stopped && first >= 0 ? `0 0 ${30 + 20 * snap}px ${D.cat}` : undefined}}>
+          <div style={{fontFamily: FONT_MONO, fontSize: 20, color: C.mute, letterSpacing: 2}}>ROWS SCANNED</div>
+          <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 90, color: stopped && first >= 0 ? D.cat : C.text, lineHeight: 1.1}}>{scanned}<span style={{fontSize: 38, color: C.mute}}> / {ORD.length}</span></div>
+          <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 30, color: stopped && first >= 0 ? D.cat : C.dim, direction: 'rtl', minHeight: 44}}>{stopped ? (first >= 0 ? 'توقف مبكر: وُجد أول سطر مطابق' : 'مسح كامل: لا يوجد تطابق') : 'جارٍ المسح…'}</div>
+        </div>
       </div>
-
-      {/* Wildcard legend at bottom */}
-      <div style={{position: 'absolute', left: 80, top: 892, width: 1760, opacity: wildcardP, display: 'flex', gap: 24, justifyContent: 'center'}}>
-        <Chip color={C.amber} style={{fontSize: 26}}>
-          <span style={{fontSize: 32, fontWeight: 700}}>%</span> &nbsp;multiple chars
-        </Chip>
-        <Chip color={C.amber} style={{fontSize: 26}}>
-          <span style={{fontSize: 32, fontWeight: 700}}>_</span> &nbsp;single char
-        </Chip>
-        <Chip color={C.red} style={{fontSize: 26}}>LIKE = case-sensitive</Chip>
-        <Chip color={C.green} style={{fontSize: 26}}>ILIKE = case-insensitive</Chip>
-      </div>
-
-      <Caption text="LIKE 'a%' ──► Case-Sensitive Matching (% = Multiple, _ = Single)" from={t(42)} to={t(60)} tone="danger" />
-      <Caption text="ILIKE 'a%' ──► PostgreSQL Case-Insensitive Pattern Matching" from={t(62)} to={sec(44)} tone="ok" />
-    </Stage>
+    </div>
   );
 };

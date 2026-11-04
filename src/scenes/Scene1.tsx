@@ -1,164 +1,100 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {CASE_RESULTS, CHAOTIC_EMAILS} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {Bi, appear, pop} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {eo, fmt, mix, prog, pulse, seg} from '../lib/anim';
 
-// SC01 (0-40s): Case Normalization — LOWER, UPPER, INITCAP
-// Anchors (s): 1.0 welcome | 5.5 case sensitivity problem | 9.0 search fails | 14.0 LOWER | 19.0 UPPER | 24.0 INITCAP | 30.0 unified | 35.0 reliable
-const S = START.s1;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc01;
+const PUR = '#A855F7';
+const EMP = [
+  {n: 'أحمد', d: 'Sales', s: 9000}, {n: 'سارة', d: 'IT', s: 11000}, {n: 'منى', d: 'Sales', s: 8000},
+  {n: 'عمر', d: 'HR', s: 7500}, {n: 'ياسمين', d: 'IT', s: 13000}, {n: 'كريم', d: 'HR', s: 6500},
+];
+const AVG: Record<string, number> = {Sales: 8500, IT: 12000, HR: 7000};
+const CODE: CodeLine[] = [
+  {text: 'SELECT e.first_name, e.salary', at: 1.6},
+  {text: 'FROM employees e', at: 2.8},
+  {text: 'WHERE e.salary > (', at: 3.6},
+  {text: '  SELECT AVG(salary) FROM employees', at: 4.6},
+  {text: '  WHERE department_id = e.department_id', at: 6.0},
+  {text: ');', at: 8.0},
+];
+const TX = 60, TY = 200, RH = 70, HEAD = 56;
+const TOKEN = {x: 1500, y: 200 + 52 + 18 + 4 * 46 + 23};
+const bz = (u: number, a: number, b: number, c: number, d: number) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
 
-/** Render a string with per-character transformation + color sweep. */
-const TransformRow: React.FC<{
-  y: number;
-  mode: 'lower' | 'upper' | 'initcap';
-  color: string;
-  label: string;
-  start: number;
-  end: number;
-  active: boolean;
-}> = ({y, mode, color, label, start, end, active}) => {
-  const f = useCurrentFrame();
-  const gateP = clamp(lin(f, start, 12));
-  // Progress: 0..1 of how many chars have been processed
-  const processingDur = end - start;
-  const prog2 = clamp(lin(f, start + 12, processingDur - 12));
-  const charProgress = Math.floor(prog2 * CASE_RESULTS.raw.length);
-
-  const transform = (ch: string, idx: number): string => {
-    if (idx >= charProgress) return ch;
-    if (mode === 'lower') return ch.toLowerCase();
-    if (mode === 'upper') return ch.toUpperCase();
-    // initcap
-    const prev = idx > 0 ? CASE_RESULTS.raw[idx - 1] : ' ';
-    const isWordStart = /[^a-zA-Z0-9]/.test(prev) || idx === 0;
-    return isWordStart ? ch.toUpperCase() : ch.toLowerCase();
-  };
-
-  // Layout: raw text at x=120 (width ~520), gate at x=680, result at x=740
-  const GATE_X = 680;
-  const RAW_X = 120;
-  const RESULT_X = 740;
-
+export const Scene1: React.FC<{t: number}> = ({t}) => {
+  const rel = t - S.pulse + 12; // first cycle starts at 6
+  const k = t < 6 ? -1 : Math.min(S.rows - 1, Math.floor((t - 6) / S.step));
+  const u = k < 0 ? 0 : t >= 6 + S.rows * S.step ? 1 : prog(t - 6 - k * S.step, 0, S.step);
+  const done = t >= 6 + S.rows * S.step;
+  const e = k >= 0 ? EMP[k] : EMP[0];
+  const rowY = TY + HEAD + Math.max(0, k) * RH + RH / 2;
+  const sig = prog(u, 0.08, 0.42);
+  const infer = prog(u, 0.42, 0.7);
+  const ret = prog(u, 0.7, 0.9);
+  const ring = prog(t, S.pulse, S.pulse + 1.4);
+  const badgeP = pop(t, S.badge[0], S.badge[0] + 0.8) * (1 - seg(t, S.badge[1] - 0.4, S.badge[1]));
+  const sx = 400, ex = TOKEN.x - 20, ey = TOKEN.y;
+  const px = bz(eo(sig), sx, 800, 1150, ex), py = bz(eo(sig), rowY, rowY - 140, ey - 190, ey);
   return (
-    <>
-      {/* Row label */}
-      <div dir="ltr" style={{position: 'absolute', left: 80, top: y - 30, fontFamily: MONO, fontSize: 20, fontWeight: 700, color, opacity: gateP}}>
-        {label}
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 0, top: 92, width: 1920, display: 'flex', justifyContent: 'center', opacity: Math.min(1, badgeP * 1.5), transform: `translateY(${(1 - badgeP) * -60}px)`}}>
+        {badgeP > 0.01 ? <div style={{padding: '16px 48px', borderRadius: 999, background: 'rgba(30,41,59,0.95)', border: `2px solid ${PUR}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${PUR}55`}}><Bi ar="الاستعلامات المترابطة" en="Correlated Subqueries & Row-by-Row Binding" size={46} t={t} start={S.badge[0] + 0.15} sep={PUR} /></div> : null}
       </div>
+      <div style={{position: 'absolute', left: 0, top: 96, width: 1920, display: 'flex', justifyContent: 'center', height: 60}}><Tag t={t} range={[22, 38]} head="Inner Query References Outer Row:" body="WHERE department_id = e.department_id" color={PUR} size={28} /></div>
 
-      {/* Raw text (left of gate) — always visible, chars get dimmed as they're processed */}
-      <div dir="ltr" style={{position: 'absolute', left: RAW_X, top: y, fontFamily: MONO, fontSize: 28, fontWeight: 700, letterSpacing: 1, whiteSpace: 'pre'}}>
-        {CASE_RESULTS.raw.split('').map((ch, i) => {
-          const processed = i < charProgress;
-          return (
-            <span key={i} style={{color: processed ? '#475569' : C.muted, opacity: processed ? 0.5 : 1}}>
-              {ch}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Gate (vertical laser line) */}
-      <div style={{position: 'absolute', left: GATE_X - 2, top: y - 6, width: 4, height: 44, background: color, opacity: gateP, boxShadow: `0 0 ${active ? 24 : 10}px ${color}`}} />
-      {/* Gate glow ring */}
-      <div style={{position: 'absolute', left: GATE_X - 14, top: y - 10, width: 28, height: 52, borderRadius: 14, border: `2px solid ${color}`, opacity: gateP * (active ? 0.8 : 0.3), background: `${color}11`}} />
-
-      {/* Arrow */}
-      <div dir="ltr" style={{position: 'absolute', left: GATE_X + 20, top: y + 2, fontFamily: MONO, fontSize: 24, color, opacity: gateP}}>
-        ──►
-      </div>
-
-      {/* Result text (right of gate) — chars appear as they're processed */}
-      <div dir="ltr" style={{position: 'absolute', left: RESULT_X, top: y, fontFamily: MONO, fontSize: 28, fontWeight: 700, letterSpacing: 1, whiteSpace: 'pre'}}>
-        {CASE_RESULTS.raw.split('').map((ch, i) => {
-          const processed = i < charProgress;
-          if (!processed) return <span key={i} style={{color: '#334155', opacity: 0.3}}>{transform(ch, i) === ' ' ? ' ' : '·'}</span>;
-          return (
-            <span key={i} style={{color, textShadow: `0 0 8px ${color}88`}}>
-              {transform(ch, i)}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Status indicator */}
-      <div dir="ltr" style={{position: 'absolute', left: GATE_X - 50, top: y + 44, width: 100, textAlign: 'center', fontFamily: MONO, fontSize: 16, color: active ? color : '#475569', opacity: gateP}}>
-        {active ? '◆ active' : prog2 >= 1 ? '◆ done ✓' : '◆ idle'}
-      </div>
-    </>
-  );
-};
-
-export const Scene1: React.FC = () => {
-  const f = useCurrentFrame();
-
-  // Show chaotic emails cycling
-  const emailIdx = Math.floor(Math.max(0, (f - t(2))) / 90) % CHAOTIC_EMAILS.length;
-  const email = CHAOTIC_EMAILS[Math.max(0, emailIdx)];
-
-  // Lower gate active 6-13s, upper 13-20s, initcap 20-30s
-  const lowerActive = f >= t(6) && f < t(13.5);
-  const upperActive = f >= t(14) && f < t(20.5);
-  const initcapActive = f >= t(21) && f < t(30);
-
-  const tableP = clamp(lin(f, t(30), 16));
-  const sealP = pop(f, t(35));
-
-  return (
-    <Stage dur={1200} inFx="zoom" outFx="left">
-      <TopBadge text="تنسيق حالة الأحرف | String Case Normalization" from={sec(2)} to={sec(18)} />
-
-      {/* chaotic email display top-left */}
-      <div style={{position: 'absolute', left: 80, top: 175, opacity: clamp(lin(f, t(1), 12))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 8}}>◆ raw input · chaotic case</div>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.red, padding: '10px 18px', border: `2px dashed ${C.red}`, borderRadius: 12, background: `${C.red}0d`, minWidth: 460, display: 'inline-block'}}>
-          {email}
-        </div>
-      </div>
-
-      {/* problem callout top-right */}
-      <div style={{position: 'absolute', right: 80, top: 175, width: 560, opacity: clamp(lin(f, t(5.5), 16))}}>
-        <div style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 8}}>◆ problem</div>
-        <div style={{padding: '12px 18px', border: `2px solid ${C.red}`, borderRadius: 12, background: `${C.red}0d`}}>
-          <Mix style={{fontSize: 24, color: C.text, lineHeight: 1.4, display: 'block'}}>
-            البحث المباشر يفشل حين تختلف حالة الأحرف
-          </Mix>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.red, fontWeight: 700, marginTop: 6}}>
-            → Case Sensitivity Trap
+      {/* outer table */}
+      <div style={{position: 'absolute', left: TX, top: TY, width: 800, opacity: appear(t, 0.5, 1.4)}}>
+        <div style={{borderRadius: 22, background: '#0B1222', border: `2px solid ${D.code}66`, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,0.5)'}}>
+          <div style={{height: HEAD, display: 'flex', alignItems: 'center', background: '#111B31', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 21, color: D.code}}>
+            {[['employees e', 220], ['department_id', 200], ['salary', 140], ['dept avg', 160], ['', 80]].map(([l, w]) => <div key={l as string} style={{width: w as number, padding: '0 18px'}}>{l}</div>)}
           </div>
+          {EMP.map((x, i) => {
+            const active = i === k && !done;
+            const seen = i < k || (i === k && ret > 0) || done;
+            const above = x.s > AVG[x.d];
+            return (
+              <div key={i} style={{height: RH, display: 'flex', alignItems: 'center', borderTop: '1px solid rgba(71,85,105,0.5)', background: active ? `${D.code}2A` : seen && above && done ? `${D.cat}22` : 'transparent', fontFamily: FONT_MONO, fontSize: 25, color: C.text, boxShadow: active ? `inset 4px 0 0 ${D.code}` : undefined}}>
+                <div style={{width: 220, padding: '0 18px', fontFamily: FONT_AR, fontWeight: 800}}>{x.n}</div>
+                <div style={{width: 200, padding: '0 18px', color: active ? PUR : C.text, fontWeight: active ? 800 : 500}}>{x.d}</div>
+                <div style={{width: 140, padding: '0 18px'}}>{fmt(x.s)}</div>
+                <div style={{width: 160, padding: '0 18px', color: D.key, fontWeight: 800, opacity: seen ? 1 : 0}}>{fmt(AVG[x.d])}</div>
+                <div style={{width: 80, textAlign: 'center', fontSize: 30, fontWeight: 800, color: above ? D.cat : D.err, opacity: seen ? 1 : 0}}>{above ? '✓' : '✕'}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* 3 case-normalization rows */}
-      <TransformRow y={340} mode="lower" color={C.blue} label="LOWER()" start={t(6)} end={t(13)} active={lowerActive} />
-      <TransformRow y={500} mode="upper" color={C.amber} label="UPPER()" start={t(14)} end={t(20)} active={upperActive} />
-      <TransformRow y={660} mode="initcap" color={C.green} label="INITCAP()" start={t(21)} end={t(30)} active={initcapActive} />
+      {/* inner query */}
+      <div style={{opacity: appear(t, 0.8, 1.6)}}><Code lines={CODE} t={t} x={920} y={200} w={940} h={350} title="correlated.sql" fontSize={27} lineH={46} accent={PUR} /></div>
+      {ring > 0 && ring < 1 ? <div style={{position: 'absolute', left: TOKEN.x - 140 * ring, top: TOKEN.y - 24 * ring - 12, width: 280 * ring, height: 48 * ring + 24, borderRadius: 999, border: `4px solid ${PUR}`, opacity: 1 - ring}} /> : null}
 
-      {/* Unified result table at the bottom */}
-      <Win x={80} y={770} w={1760} h={150} title="normalized output · reliable search base" accent={C.green} opacity={tableP}>
-        <div dir="ltr" style={{position: 'absolute', left: 28, right: 28, top: 12, height: 32, display: 'flex', gap: 28, alignItems: 'center', fontFamily: MONO, fontSize: 20, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-          <span style={{width: 180}}>function</span>
-          <span style={{flex: 1}}>result</span>
-          <span style={{width: 280}}>use case</span>
+      {/* bound value card */}
+      <div style={{position: 'absolute', left: 920, top: 590, width: 940, height: 290, borderRadius: 24, background: 'linear-gradient(160deg,#22304A,#1B2740)', border: `2px solid ${PUR}88`, opacity: appear(t, 6, 7), padding: '22px 34px', boxSizing: 'border-box', boxShadow: `0 0 ${24 + 20 * pulse(t, 1.6)}px ${PUR}44`}}>
+        <div style={{fontFamily: FONT_MONO, fontSize: 21, color: C.mute, letterSpacing: 2}}>INNER QUERY · BOUND TO OUTER ROW</div>
+        <div style={{display: 'flex', alignItems: 'center', gap: 26, marginTop: 14}}>
+          <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 36, color: C.text}}>e.department_id = <span style={{color: PUR}}>'{done ? '…' : e.d}'</span></div>
         </div>
-        <div style={{position: 'absolute', left: 28, right: 28, top: 50, bottom: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-around'}}>
-          {[
-            {fn: 'LOWER()', res: CASE_RESULTS.lower, uc: 'email matching', color: C.blue, p: pop(f, t(31))},
-            {fn: 'UPPER()', res: CASE_RESULTS.upper, uc: 'constants / codes', color: C.amber, p: pop(f, t(32))},
-            {fn: 'INITCAP()', res: CASE_RESULTS.initcap, uc: 'display names', color: C.green, p: pop(f, t(33))},
-          ].map((r) => (
-            <div key={r.fn} dir="ltr" style={{display: 'flex', gap: 28, alignItems: 'center', opacity: clamp(r.p), transform: `translateX(${(1 - clamp(r.p)) * 30}px)`}}>
-              <div style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: r.color, width: 180}}>{r.fn}</div>
-              <div style={{fontFamily: MONO, fontSize: 22, color: r.color, flex: 1, fontWeight: 700}}>{r.res}</div>
-              <div style={{fontFamily: MONO, fontSize: 18, color: C.muted, width: 280}}>{r.uc}</div>
-            </div>
-          ))}
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 20, opacity: infer}}>
+          <span style={{fontFamily: FONT_MONO, fontSize: 28, color: C.dim}}>AVG(salary) =</span>
+          <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 74, color: D.key, textShadow: `0 0 26px ${D.key}66`}}>{done ? '' : fmt(AVG[e.d] * Math.min(1, infer * 1.2))}</span>
         </div>
-      </Win>
+        <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, marginTop: 6, opacity: ret, color: e.s > AVG[e.d] ? D.cat : D.err}}>{done ? 'rows above their department average: 3' : `${fmt(e.s)} > ${fmt(AVG[e.d])} → ${e.s > AVG[e.d] ? 'TRUE ✓' : 'FALSE ✕'}`}</div>
+      </div>
 
-      <Caption text="LOWER() | UPPER() | INITCAP() ──► Normalizes Text for Reliable Search" from={t(22)} to={sec(38)} />
-    </Stage>
+      {/* purple loop signal */}
+      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        {sig > 0 && !done && ret < 1 ? <>
+          <path d={`M${sx} ${rowY} C 800 ${rowY - 140} 1150 ${ey - 190} ${ex} ${ey}`} fill="none" stroke={PUR} strokeWidth="5" strokeDasharray="10 12" strokeDashoffset={-t * 90} opacity={0.35 + 0.5 * (1 - ret)} />
+          <circle cx={px} cy={py} r="11" fill={PUR} style={{filter: `drop-shadow(0 0 14px ${PUR})`}} />
+        </> : null}
+      </svg>
+    </div>
   );
 };

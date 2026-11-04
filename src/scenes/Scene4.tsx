@@ -1,173 +1,82 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {BTreeNode, Caption, Check, Chip, Editor, Kpi, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
-import {PERF} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {appear, pop} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {back, eo, mix, prog, pulse} from '../lib/anim';
 
-// SC04 (130-170s): Expression Indexes — Performance Trap & Fix
-// Anchors (s): 131.1 trap | 136.0 LOWER(email) | 140.0 B-Tree | 145.0 Full Table Scan | 150.0 slow | 155.0 CREATE INDEX | 160.0 Expression Index | 165.0 0.0001s
-const S = START.s4;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc04;
+const PUR = '#A855F7';
+const CODE: CodeLine[] = [
+  {text: 'SELECT c.name FROM customers c', at: 130.7}, {text: 'WHERE EXISTS (', at: 131.6},
+  {text: '  SELECT 1 FROM orders o', at: 132.4}, {text: '  WHERE o.customer_id = c.customer_id', at: 133.2}, {text: ');', at: 134.4},
+];
+const NODES = [
+  {id: 'root', x: 1230, y: 200, w: 520, label: 'Hash Semi Join', sub: 'EXISTS → semi-join', c: PUR, at: S.rewrite + 1.0},
+  {id: 'a', x: 980, y: 400, w: 440, label: 'Seq Scan on customers c', sub: 'outer rows', c: D.code, at: S.rewrite + 2.0},
+  {id: 'b', x: 1450, y: 400, w: 400, label: 'Hash', sub: 'work_mem', c: D.key, at: S.rewrite + 2.4},
+  {id: 'c', x: 1450, y: 590, w: 400, label: 'Index Scan on orders o', sub: 'index probing', c: D.cat, at: S.rewrite + 3.2},
+];
+const EDGES = [['root', 'a'], ['root', 'b'], ['b', 'c']];
+const nd = (id: string) => NODES.find((n) => n.id === id)!;
 
-export const Scene4: React.FC = () => {
-  const f = useCurrentFrame();
-  const trapP = clamp(lin(f, t(131.5), 14));
-  const slowP = clamp(lin(f, t(140), 16));
-  const fixP = clamp(lin(f, t(155), 16));
-  const seekP = clamp(lin(f, t(162), 18));
-
-  // Animated scan progress for the full table scan (slow)
-  const scanProg = clamp(lin(f, t(141), sec(18)));
-  // Animated index seek (fast — jumps directly to the leaf node)
-  const seekProg = clamp(lin(f, t(163), sec(2.5)));
-
-  // B-Tree index visualization on the right (3 levels: root → branch → leaves)
-  const treeP = clamp(lin(f, t(155), 14));
-
-  // Counter for the slow scan
-  const rowsScanned = Math.floor(scanProg * PERF.rowsScanned);
-  const scanMs = (scanProg * PERF.fullScanMs).toFixed(1);
-  const seekMs = (PERF.indexSeekMs).toFixed(3);
-
+export const Scene4: React.FC<{t: number}> = ({t}) => {
+  const enter = appear(t, 130.3, 131.3);
+  const rw = eo(prog(t, S.rewrite, S.rewrite + 1.4));
+  const loop = (t * 1.2) % 1;
+  const hashP = back(prog(t, S.hash, S.hash + 0.8));
+  const mem = eo(prog(t, S.hash, S.hash + 2.5));
+  const warm = 0.5 + 0.5 * pulse(t, 1.2);
+  const anti = t > S.rewrite + 4 && Math.floor((t - S.rewrite - 4) / 3) % 2 === 1;
   return (
-    <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="كواليس الأداء | Expression Index Optimization" from={sec(2)} to={sec(40)} color={C.amber} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="Query Planner Optimization" body="──► Rewrites EXISTS Subqueries to Semi-Joins" color={D.code} size={26} /></div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Index Probing & Hash Anti-Join" body="──► Eliminates Row-by-Row Overhead" color={D.code} size={26} /></div>
+      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={860} h={300} title="exists.sql" fontSize={24} lineH={44} accent={PUR} /></div>
 
-      {/* Problem editor */}
-      <div style={{opacity: trapP}}>
-        <Editor
-          x={80}
-          y={180}
-          w={880}
-          h={170}
-          title="Performance Trap"
-          lines={['SELECT * FROM customers', "WHERE LOWER(email) = 'john.doe@manzooma.com';"]}
-          start={t(131.5)}
-          cps={1.0}
-          size={26}
-          accent={C.red}
-          hl={1}
-          hlColor={C.red}
-        />
+      {/* before: mechanical row-by-row loop */}
+      <div style={{position: 'absolute', left: 60, top: 520, width: 860, height: 330, borderRadius: 24, border: `2px solid ${D.err}${rw > 0.5 ? '44' : 'AA'}`, background: 'rgba(30,41,59,0.8)', padding: '22px 30px', boxSizing: 'border-box', opacity: (1 - 0.65 * rw) * enter}}>
+        <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 28, color: D.err, direction: 'rtl', textDecoration: rw > 0.6 ? 'line-through' : 'none'}}>التنفيذ المنطقي: حلقة صفًا بصف</div>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{display: 'flex', alignItems: 'center', gap: 16, marginTop: 20, fontFamily: FONT_MONO, fontSize: 25, color: C.text}}>
+            <span style={{width: 150}}>customer {i + 1}</span>
+            <div style={{flex: 1, height: 22, borderRadius: 11, background: 'rgba(255,255,255,0.07)', position: 'relative', overflow: 'hidden'}}><div style={{position: 'absolute', left: `${((loop + i * 0.3) % 1) * 90}%`, width: '14%', height: 22, borderRadius: 11, background: D.err}} /></div>
+            <span style={{color: D.err}}>scan orders</span>
+          </div>
+        ))}
       </div>
 
-      {/* Fix editor */}
-      <div style={{opacity: fixP, transform: `translateY(${(1 - fixP) * 24}px)`}}>
-        <Editor
-          x={980}
-          y={180}
-          w={860}
-          h={170}
-          title="Expression Index Fix"
-          lines={['CREATE INDEX idx_email_lower', 'ON customers (LOWER(email));']}
-          start={t(155.5)}
-          cps={0.9}
-          size={22}
-          accent={C.green}
-          hl={1}
-          hlColor={C.green}
-        />
+      {/* after: optimizer plan tree */}
+      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        {EDGES.map(([a, b]) => {
+          const A = nd(a), B = nd(b);
+          const p = eo(prog(t, B.at - 0.5, B.at + 0.4));
+          return <line key={a + b} x1={A.x + A.w / 2} y1={A.y + 90} x2={A.x + A.w / 2 + (B.x + B.w / 2 - A.x - A.w / 2) * p} y2={A.y + 90 + (B.y - A.y - 90) * p} stroke={D.code} strokeWidth="5" strokeLinecap="round" style={{filter: `drop-shadow(0 0 8px ${D.code})`}} />;
+        })}
+      </svg>
+      {NODES.map((n) => {
+        const p = back(prog(t, n.at, n.at + 0.7));
+        const label = n.id === 'root' && anti ? 'Hash Anti Join' : n.label;
+        const sub = n.id === 'root' && anti ? 'NOT EXISTS → anti-join' : n.sub;
+        return (
+          <div key={n.id} style={{position: 'absolute', left: n.x, top: n.y, width: n.w, height: 90, borderRadius: 20, background: `${n.c}26`, border: `3px solid ${n.c}`, opacity: Math.min(1, p * 2), transform: `scale(${0.8 + 0.2 * p})`, boxShadow: `0 0 ${24 + 16 * warm}px ${n.c}55`, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 22px'}}>
+            <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, color: C.text}}>{label}</span>
+            <span style={{fontFamily: FONT_MONO, fontSize: 19, color: n.c}}>{sub}</span>
+          </div>
+        );
+      })}
+      <div style={{position: 'absolute', left: 980, top: 740, width: 880, opacity: Math.min(1, hashP * 1.6), transform: `translateY(${(1 - hashP) * 30}px)`}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: D.key}}><span>work_mem</span><span>Hash built in memory ✓</span></div>
+        <div style={{height: 26, borderRadius: 13, background: 'rgba(255,255,255,0.07)', marginTop: 10}}><div style={{width: `${mix(10, 62, mem)}%`, height: 26, borderRadius: 13, background: D.key}} /></div>
+        <div style={{display: 'flex', gap: 14, marginTop: 24}}>
+          {[['Row-by-row', 0.92, D.err], ['Semi-Join', 0.22, D.code]].map(([l, w, c]) => (
+            <div key={l as string} style={{flex: 1}}><div style={{fontFamily: FONT_MONO, fontSize: 21, color: c as string, fontWeight: 800}}>{l}</div><div style={{height: 20, borderRadius: 10, background: 'rgba(255,255,255,0.07)', marginTop: 6}}><div style={{width: `${(w as number) * 100 * mem}%`, height: 20, borderRadius: 10, background: c as string}} /></div></div>
+          ))}
+        </div>
       </div>
-
-      {/* LEFT: Full Table Scan visualization */}
-      <Win x={80} y={360} w={880} h={540} title="WITHOUT Expression Index · Full Table Scan" accent={C.red} opacity={slowP}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 14, fontFamily: MONO, fontSize: 20, color: C.red}}>
-          B-Tree index bypassed · scanning every row sequentially
-        </div>
-        {/* table rows visualization */}
-        <div style={{position: 'absolute', left: 24, right: 24, top: 50, height: 360, display: 'flex', flexDirection: 'column', gap: 4}}>
-          {Array.from({length: 8}).map((_, i) => {
-            const rowScanned = i / 8 < scanProg;
-            const isCurrentRow = Math.abs(i / 8 - scanProg) < 0.12;
-            const bg = isCurrentRow ? C.red + '33' : rowScanned ? C.red + '14' : 'transparent';
-            const bd = isCurrentRow ? C.red : 'transparent';
-            return (
-              <div key={i} dir="ltr" style={{display: 'flex', gap: 12, alignItems: 'center', padding: '4px 10px', fontFamily: MONO, fontSize: 17, background: bg, border: '1px solid ' + bd, borderRadius: 6, opacity: rowScanned ? 1 : 0.5, height: 40}}>
-                <span style={{color: '#475569', width: 110, fontSize: 16}}>#{((i + 1) * 125000).toLocaleString()}</span>
-                <span style={{color: C.muted, flex: 1}}>user{i}@example.com</span>
-                <span style={{color: rowScanned ? C.red : '#475569', width: 80, textAlign: 'right'}}>{rowScanned ? 'scanned' : 'pending'}</span>
-              </div>
-            );
-          })}
-        </div>
-        {/* scan laser indicator — removed to avoid overlap with footer */}
-        {/* bottom status bar */}
-        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 14, height: 50, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 22, color: C.red, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>{rowsScanned.toLocaleString()} rows scanned</span>
-          <span>{scanMs}ms</span>
-        </div>
-      </Win>
-
-      {/* RIGHT: Expression Index Seek visualization with B-Tree */}
-      <Win x={980} y={360} w={860} h={540} title="WITH Expression Index · Index Only Scan" accent={C.green} opacity={seekP}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 14, fontFamily: MONO, fontSize: 22, color: C.green}}>
-          Index seek · jumps directly to leaf node
-        </div>
-
-        {/* B-Tree visualization */}
-        <svg width={860} height={420} style={{position: 'absolute', left: 0, top: 50}}>
-          {/* Level 1: root */}
-          <BTreeNodeSvg x={400} y={20} w={80} h={40} label="root" color={C.green} p={treeP} />
-          {/* Level 2: branches */}
-          <BTreeNodeSvg x={180} y={120} w={80} h={40} label="≤ m" color={C.blue} p={treeP * clamp(lin(f, t(157), 10))} glow={seekProg > 0.3 ? 1 : 0} />
-          <BTreeNodeSvg x={620} y={120} w={80} h={40} label="> m" color={C.blue} p={treeP * clamp(lin(f, t(158), 10))} />
-          {/* Level 3: leaves */}
-          <BTreeNodeSvg x={120} y={240} w={90} h={44} label="a-f" color={C.muted} p={treeP * clamp(lin(f, t(159), 10))} />
-          <BTreeNodeSvg x={230} y={240} w={90} h={44} label="g-m" color={C.muted} p={treeP * clamp(lin(f, t(159.5), 10))} />
-          <BTreeNodeSvg x={340} y={240} w={90} h={44} label="n-s" color={C.muted} p={treeP * clamp(lin(f, t(160), 10))} />
-          <BTreeNodeSvg x={450} y={240} w={90} h={44} label="t-z" color={C.amber} p={treeP * clamp(lin(f, t(160.5), 10))} glow={seekProg > 0.6 ? 1 : 0} highlight={seekProg > 0.6} />
-          <BTreeNodeSvg x={560} y={240} w={90} h={44} label="other" color={C.muted} p={treeP * clamp(lin(f, t(161), 10))} />
-          <BTreeNodeSvg x={670} y={240} w={90} h={44} label="num" color={C.muted} p={treeP * clamp(lin(f, t(161.5), 10))} />
-          {/* Connecting lines */}
-          <line x1={440} y1={60} x2={220} y2={120} stroke={C.border} strokeWidth={2} opacity={treeP} />
-          <line x1={440} y1={60} x2={660} y2={120} stroke={C.border} strokeWidth={2} opacity={treeP} />
-          <line x1={220} y1={160} x2={165} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
-          <line x1={220} y1={160} x2={275} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
-          <line x1={660} y1={160} x2={385} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
-          <line x1={660} y1={160} x2={495} y2={240} stroke={C.amber} strokeWidth={3} opacity={treeP * seekProg} />
-          <line x1={660} y1={160} x2={605} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
-          <line x1={660} y1={160} x2={715} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
-
-          {/* Seek path animation — laser jumping from root to leaf */}
-          {seekProg > 0 && seekProg < 1 ? (
-            <g>
-              {seekProg < 0.4 ? (
-                <circle cx={440} cy={40} r={8} fill={C.green} opacity={1 - seekProg / 0.4} />
-              ) : seekProg < 0.7 ? (
-                <circle cx={660} cy={140} r={8} fill={C.green} opacity={1 - (seekProg - 0.4) / 0.3} />
-              ) : (
-                <circle cx={495} cy={262} r={8} fill={C.green} opacity={1 - (seekProg - 0.7) / 0.3} />
-              )}
-            </g>
-          ) : null}
-
-          {/* Result leaf */}
-          {seekProg >= 1 ? (
-            <g>
-              <rect x={445} y={300} width={100} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} />
-              <text x={495} y={330} fill={C.green} fontSize={20} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ found</text>
-            </g>
-          ) : null}
-        </svg>
-
-        {/* bottom status bar */}
-        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700, opacity: seekP}}>
-          <span>{seekProg >= 1 ? '1 row · index seek' : 'seeking...'}</span>
-          <span>{seekMs}ms</span>
-        </div>
-      </Win>
-
-      <Caption text="WHERE LOWER(col) ──► Invalidates Normal B-Tree Index (Full Scan)" from={t(140)} to={t(155)} tone="danger" />
-      <Caption text="CREATE INDEX idx ON table (LOWER(col)) ──► Enables Expression Index Seek" from={t(157)} to={sec(44)} tone="ok" />
-    </Stage>
+    </div>
   );
 };
-
-// SVG-based B-Tree node (uses SVG primitives for cleaner rendering inside svg)
-const BTreeNodeSvg: React.FC<{x: number; y: number; w: number; h: number; label: string; color: string; p: number; glow?: number; highlight?: boolean}> = ({x, y, w, h, label, color, p, glow = 0, highlight = false}) => (
-  <g opacity={Math.max(0, Math.min(1, p))} transform={`translate(${x}, ${y})`}>
-    {glow > 0 ? <rect x={-6} y={-6} width={w + 12} height={h + 12} fill="none" stroke={color} strokeWidth={2} rx={12} opacity={glow * 0.4} /> : null}
-    <rect x={0} y={0} width={w} height={h} fill={`${color}22`} stroke={highlight ? C.amber : color} strokeWidth={highlight ? 3 : 2} rx={8} />
-    <text x={w / 2} y={h / 2 + 7} fill={color} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">{label}</text>
-  </g>
-);

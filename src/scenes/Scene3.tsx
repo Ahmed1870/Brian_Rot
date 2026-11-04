@@ -1,133 +1,86 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, EmailChip, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
-import {EMAILS, EMAIL_REGEX} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {appear, pop} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {back, eo, hash, prog, pulse} from '../lib/anim';
 
-// SC03 (85-130s): Regular Expressions — ~, ~*, REGEXP_MATCH
-// Anchors (s): 86.1 regex | 95.0 operators | 100.0 ~ and ~* | 105.0 REGEXP_MATCH | 115.0 emails | 120.0 SKUs | 125.0 precise
-const S = START.s3;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc03;
+const L: CodeLine[] = [
+  {text: 'SELECT name FROM customers', at: 87.4}, {text: 'WHERE customer_id NOT IN (', at: 88.0},
+  {text: '  SELECT customer_id FROM orders', at: 88.7}, {text: ');', at: 89.6},
+];
+const R: CodeLine[] = [
+  {text: 'SELECT name FROM customers c', at: 110.4}, {text: 'WHERE NOT EXISTS (', at: 111.2},
+  {text: '  SELECT 1 FROM orders o', at: 112.0}, {text: '  WHERE o.customer_id = c.customer_id', at: 112.8}, {text: ');', at: 114.2},
+];
+const IDS: (number | null)[] = [1, 3, null];
+const INACTIVE = [{id: 2, n: 'منى'}, {id: 4, n: 'عمر'}, {id: 5, n: 'أحمد'}];
 
-export const Scene3: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(86.5), 14));
-  const meshP = clamp(lin(f, t(95), 16));
-  const opP = clamp(lin(f, t(100), 14));
-  const scanP = clamp(lin(f, t(110), sec(15)));
+const NullChips: React.FC<{color: string; ignored?: boolean}> = ({color, ignored}) => (
+  <div style={{display: 'flex', alignItems: 'center', gap: 12, fontFamily: FONT_MONO, fontSize: 25, color: C.dim}}>
+    orders.customer_id =
+    {IDS.map((v, i) => (
+      <span key={i} style={{padding: '4px 16px', borderRadius: 10, fontWeight: 800, background: v === null ? `${D.err}33` : 'rgba(255,255,255,0.07)', border: `2px solid ${v === null ? D.err : 'rgba(255,255,255,0.15)'}`, color: v === null ? '#FCA5A5' : C.text, textDecoration: v === null && ignored ? 'line-through' : 'none', opacity: v === null && ignored ? 0.5 : 1}}>{v === null ? 'NULL' : v}</span>
+    ))}
+  </div>
+);
 
-  // Mesh filter visualization: emails flow from left, hit the mesh, valid pass through (green) and invalid bounce off (red)
-  const MESH_X = 760;
-
+export const Scene3: React.FC<{t: number}> = ({t}) => {
+  const inP = pop(t, 85.2, 86.4);
+  const crash = prog(t, S.crash, S.crash + 0.7);
+  const shake = t >= S.crash && t < S.crash + 1.6 ? Math.sin((t - S.crash) * 80) * 10 * (1 - prog(t, S.crash, S.crash + 1.6)) : 0;
+  const focusR = 0.45 + 0.55 * eo(prog(t, 108, 110));
+  const focusL = 1 - 0.5 * eo(prog(t, 108, 110));
+  const shield = back(prog(t, S.shield, S.shield + 0.8));
+  const warn = 0.5 + 0.5 * pulse(t, 0.9);
+  const step = (a: number) => appear(t, a, a + 0.5);
   return (
-    <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="التعابير النمطية | Regular Expressions: ~, ~*, REGEXP_MATCH" from={sec(2)} to={sec(40)} color={C.green} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} tint={t < 108 ? D.err : D.cat} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="NOT IN Trap" body="──► Fails in Presence of NULLs (Three-Valued Logic Crash)" color={D.err} size={25} /></div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="NOT EXISTS Immunity" body="──► 100% NULL-Safe Boolean Subquery Evaluation" color={D.cat} size={25} /></div>
 
-      {/* Editor with the regex query */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={180}
-          w={1760}
-          h={170}
-          title="PostgreSQL · Email Validation Query"
-          lines={[`SELECT email FROM customers WHERE email ~* '${EMAIL_REGEX}';`]}
-          start={t(86.5)}
-          cps={1.6}
-          size={26}
-          accent={C.green}
-          hl={0}
-          hlColor={C.green}
-        />
-      </div>
-
-      {/* Operator explainer on the left */}
-      <div style={{position: 'absolute', left: 80, top: 380, width: 600, opacity: opP, transform: `translateY(${(1 - opP) * 24}px)`}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginBottom: 12}}>◆ PostgreSQL Regex Operators</div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
-          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 18, padding: '12px 18px', border: `2px solid ${C.amber}`, borderRadius: 12, background: `${C.amber}0d`}}>
-            <span style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.amber, width: 60}}>~</span>
-            <div>
-              <div style={{fontFamily: MONO, fontSize: 22, color: C.text, fontWeight: 700}}>case-sensitive match</div>
-              <div style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>POSIX regex · returns rows matching</div>
+      {/* LEFT: NOT IN crash */}
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: focusL * Math.min(1, inP * 1.5), transform: `translateX(${shake}px)`}}>
+        <div style={{position: 'absolute', left: 60, top: 190, width: 880, height: 700, borderRadius: 28, border: `2.5px solid ${D.err}`, background: `rgba(127,29,29,${0.12 + 0.12 * crash})`, boxShadow: `0 0 ${24 + 30 * crash * warn}px ${D.err}66`}} />
+        <Code lines={L} t={t} x={90} y={215} w={820} h={270} title="not_in.sql" fontSize={25} lineH={46} accent={D.err} />
+        <div style={{position: 'absolute', left: 90, top: 510, opacity: step(90.5)}}><NullChips color={D.err} /></div>
+        <div style={{position: 'absolute', left: 90, top: 580, width: 820}}>
+          {[['2 <> 1', 'TRUE', D.cat, 92], ['2 <> 3', 'TRUE', D.cat, 93.4], ['2 <> NULL', 'UNKNOWN', D.err, 94.8]].map(([a, b, c, at]) => (
+            <div key={a as string} style={{display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, padding: '10px 22px', marginBottom: 10, borderRadius: 12, background: 'rgba(255,255,255,0.05)', opacity: step(at as number), transform: `translateX(${(1 - step(at as number)) * -40}px)`}}>
+              <span style={{color: C.text}}>{a}</span><span style={{color: c as string}}>{b}</span>
             </div>
-          </div>
-          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 18, padding: '12px 18px', border: `2px solid ${C.green}`, borderRadius: 12, background: `${C.green}0d`}}>
-            <span style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.green, width: 60}}>~*</span>
-            <div>
-              <div style={{fontFamily: MONO, fontSize: 22, color: C.text, fontWeight: 700}}>case-insensitive match</div>
-              <div style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>ignores case · flexible search</div>
-            </div>
-          </div>
-          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 18, padding: '12px 18px', border: `2px solid ${C.blue}`, borderRadius: 12, background: `${C.blue}0d`}}>
-            <span style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.blue, width: 150, lineHeight: 1.2, textAlign: 'center'}}>REGEXP_MATCH</span>
-            <div>
-              <div style={{fontFamily: MONO, fontSize: 20, color: C.text, fontWeight: 700}}>extract matching substrings</div>
-              <div style={{fontFamily: MONO, fontSize: 16, color: C.muted}}>returns matched groups as array</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Regex Mesh Filter visualization on the right */}
-      <Win x={720} y={380} w={1120} h={520} title="Regex Mesh Filter · email validation" accent={C.green} opacity={meshP}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 14, fontFamily: MONO, fontSize: 22, color: C.green}}>
-          pattern: ~* '{EMAIL_REGEX}'
-        </div>
-
-        {/* Mesh vertical line (the filter gate) */}
-        <div style={{position: 'absolute', left: 480, top: 50, bottom: 80, width: 4, background: C.green, opacity: meshP, boxShadow: `0 0 28px ${C.green}`}} />
-        {/* Mesh grid pattern (dashed vertical lines suggesting a filter) */}
-        <svg width={1120} height={520} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-          {[440, 460, 500, 520].map((x) => (
-            <line key={x} x1={x} y1={50} x2={x} y2={440} stroke={C.green} strokeWidth={1} strokeDasharray="3 6" opacity={meshP * 0.5} />
           ))}
-          <text x={490} y={460} fill={C.green} fontSize={18} fontFamily={MONO} textAnchor="middle" opacity={meshP}>mesh gate</text>
-        </svg>
-
-        {/* Email chips flow in from the left, hit the mesh, valid pass to the right (green), invalid bounce back (red) */}
-        {EMAILS.slice(0, 7).map((e, i) => {
-          const row = i;
-          const startY = 56 + row * 48;
-          // Each email starts flowing at t(98 + i*1.5) — early enough to fill the scene
-          const flowStart = t(98 + i * 1.5);
-          const flowP = clamp(lin(f, flowStart, sec(2.5)));
-          // x position: from 30 to either 540 (passed, valid) or back to 30 (rejected, invalid)
-          let endX: number;
-          if (e.valid) {
-            endX = 540;
-          } else {
-            // rejected — moves to mesh then bounces back
-            endX = 30;
-          }
-          const x = e.valid ? 30 + (endX - 30) * flowP : (flowP < 0.5 ? 30 + (480 - 30) * (flowP * 2) : 480 - (480 - 30) * ((flowP - 0.5) * 2));
-          const rejected = !e.valid && flowP > 0.5;
-          const passed = e.valid && flowP > 0.8;
-          const visible = flowP > 0;
-          return (
-            <EmailChip
-              key={i}
-              x={x}
-              y={startY}
-              w={400}
-              addr={e.addr}
-              valid={e.valid}
-              p={visible ? 1 : 0}
-              rejected={rejected}
-              passed={passed}
-            />
-          );
-        })}
-
-        {/* Result summary bottom-right */}
-        <div dir="ltr" style={{position: 'absolute', right: 24, bottom: 18, display: 'flex', gap: 14, opacity: clamp(pop(f, t(122)))}}>
-          <Chip color={C.green} style={{fontSize: 22}}>✓ {EMAILS.filter((e) => e.valid).length} valid</Chip>
-          <Chip color={C.red} style={{fontSize: 22}}>✗ {EMAILS.filter((e) => !e.valid).length} rejected</Chip>
+          <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 26, color: '#FCA5A5', direction: 'rtl', opacity: step(96.2), marginTop: 4}}>النتيجة UNKNOWN → يُرفض الصف</div>
         </div>
-      </Win>
+        {crash > 0 ? <div style={{position: 'absolute', left: 90, top: 806, width: 820, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 60, color: D.err, opacity: Math.min(1, crash * 2), textShadow: crash < 1 ? `4px 0 ${D.code}, -4px 0 #fff` : `0 0 30px ${D.err}`}}>(0 rows)</div> : null}
+      </div>
 
-      <Caption text="column ~* '^pattern$' ──► Regular Expression Matching in PostgreSQL" from={t(95)} to={t(115)} />
-      <Caption text="Regex Validation ──► Verifies Complex Formats (Emails, Phones, SKUs)" from={t(117)} to={sec(44)} tone="ok" />
-    </Stage>
+      {/* RIGHT: NOT EXISTS shield pass */}
+      <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: focusR * Math.min(1, inP * 1.5)}}>
+        <div style={{position: 'absolute', left: 980, top: 190, width: 880, height: 700, borderRadius: 28, border: `2.5px solid ${D.cat}`, background: `rgba(16,185,129,${0.05 + 0.08 * shield})`, boxShadow: `0 0 ${20 + 26 * shield}px ${D.cat}66`}} />
+        <Code lines={R} t={t} x={1010} y={215} w={820} h={310} title="not_exists.sql" fontSize={25} lineH={46} accent={D.cat} />
+        <div style={{position: 'absolute', left: 1010, top: 545, opacity: step(114.6)}}><NullChips color={D.cat} ignored /></div>
+        {shield > 0.02 ? (
+          <div style={{position: 'absolute', left: 1010, top: 610, width: 820, opacity: Math.min(1, shield * 1.5)}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 22, padding: '10px 26px', borderRadius: 20, background: `${D.cat}22`, border: `2px solid ${D.cat}`, transform: `scale(${0.8 + 0.2 * shield})`, transformOrigin: '0 50%'}}>
+              <svg width="56" height="64" viewBox="0 0 86 98" fill="none"><path d="M43 4 L80 18 V48 C80 70 64 86 43 94 C22 86 6 70 6 48 V18 Z" fill={`${D.cat}33`} stroke={D.cat} strokeWidth="7" strokeLinejoin="round" /><path d="M27 48 L39 60 L61 34" stroke="#fff" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <div><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: C.text}}>NULL-safe</div><div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 24, color: D.cat, direction: 'rtl'}}>تفحص وجود السطر لا محتوى الخلايا</div></div>
+            </div>
+            <div style={{marginTop: 18, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: D.cat}}>inactive customers →</div>
+            <div style={{display: 'flex', gap: 14, marginTop: 10}}>
+              {INACTIVE.map((c, i) => {
+                const p = back(prog(t, S.shield + 0.5 + i * 0.35, S.shield + 1.1 + i * 0.35));
+                return <div key={c.id} style={{flex: 1, padding: '14px 18px', borderRadius: 18, background: `${D.cat}26`, border: `2px solid ${D.cat}`, opacity: Math.min(1, p * 2), transform: `translateY(${(1 - p) * 40}px)`, boxShadow: `0 0 24px ${D.cat}55`}}><div style={{fontFamily: FONT_MONO, fontSize: 20, color: C.mute}}>id {c.id}</div><div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 34, color: C.text}}>{c.n}</div></div>;
+              })}
+            </div>
+            <div style={{marginTop: 18, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 46, color: D.cat, textAlign: 'center', opacity: appear(t, S.shield + 2, S.shield + 2.6)}}>(3 rows) ✓</div>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 };
