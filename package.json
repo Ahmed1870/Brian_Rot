@@ -1,23 +1,22 @@
 {
-  "name": "manzooma-sql-lesson-24-derived-tables",
+  "name": "manzooma-sql-lesson-25-string-functions",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma SQL From Zero to Professional - Lesson 24: Derived Tables (Subqueries in FROM)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 25: Advanced string functions (LENGTH, SUBSTRING, CONCAT_WS, TRIM, REPLACE) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "generate-audio": "node scripts/generate-audio.cjs",
-    "studio": "remotion studio src/index.ts",
-    "typecheck": "tsc --noEmit",
-    "render": "npm run generate-audio && remotion render src/index.ts SQL-L24-DerivedTables out/sql-l24-derived-tables.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts SQL-L25-String-Functions out/sql-l25-string-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.250",
-    "@remotion/google-fonts": "4.0.250",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.250"
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
-    "typescript": "5.5.4"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }
