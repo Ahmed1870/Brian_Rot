@@ -3,27 +3,27 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (209-240s): Manzooma Academy outro. Ends with a fade to black.
-// Anchors (s): 210.1 excellent | 216.8 protected | 220.1 download scripts | 227.8 prepare | 230.9 next lesson | 235.7 Correlated Subqueries
+// SC06 (210-240s): Manzooma Academy outro. Ends with a fade to black.
+// Anchors (s): 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 DATE_TRUNC, EXTRACT, INTERVAL
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['IN ✓', 'NOT IN + NULL trap ✓', 'ANY / ALL ✓', 'Hash Semi-Join ✓'];
+const SKILLS = ['UPPER ✓', 'LOWER ✓', 'INITCAP ✓', 'LIKE / ILIKE ✓', 'Regex ~ ~* ✓', 'Expression Index ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
   const card = prog(f, 0, 30);
-  const head = prog(f, t(210.1), 24);
-  const badge = pop(f, t(210.6));
-  const fill = prog(f, t(211.2), sec(4.8));
-  const modDone = prog(f, t(216.8), 20);
-  const res = prog(f, t(220.1), 24);
-  const next = prog(f, t(227.8), 28);
-  const code = typed("SELECT name FROM customers c\nWHERE EXISTS (\n  SELECT 1 FROM orders o\n  WHERE o.customer_id = c.id\n);", f, t(230.9), 0.55).split('\n');
+  const head = prog(f, t(211), 24);
+  const badge = pop(f, t(211.6));
+  const fill = prog(f, t(212.2), sec(4.8));
+  const modDone = prog(f, t(213.5), 20);
+  const res = prog(f, t(215), 24);
+  const next = prog(f, t(220), 28);
+  const code = typed("SELECT DATE_TRUNC('month', order_date),\n       EXTRACT(YEAR FROM order_date),\n       order_date + INTERVAL '30 days'\nFROM orders;", f, t(225), 0.75).split('\n');
   const pct = Math.round(fill * 100);
 
   return (
-    <Stage dur={930} inFx="fade" outFx="black">
+    <Stage dur={900} inFx="fade" outFx="black">
       <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
         <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
           <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
@@ -45,7 +45,7 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 32, fontWeight: 700, color: C.green}}>
-              Lesson 22 Completed: <span style={{color: C.text}}>IN, NOT IN, ANY, ALL Mastered</span>
+              Lesson 26 Completed: <span style={{color: C.text}}>Text Matching &amp; Regex Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
@@ -55,13 +55,13 @@ export const Scene6: React.FC = () => {
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 6 · Subqueries &amp; Nested Queries — {modDone > 0.5 ? 'Set Subquery Filtering Mastered ✓' : 'in progress'}
+            Module 7 · String &amp; Temporal Data Manipulation — {modDone > 0.5 ? 'Text Patterns & Regex Mastered ✓' : 'in progress'}
           </div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 16}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 14, flexWrap: 'wrap', maxWidth: 1540}}>
           {SKILLS.map((s, i) => {
-            const p = pop(f, t(217.2 + i * 0.8));
+            const p = pop(f, t(214 + i * 0.5));
             return (
               <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
                 <Chip color={C.blue} style={{fontSize: 22}}>{s}</Chip>
@@ -70,21 +70,21 @@ export const Scene6: React.FC = () => {
           })}
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 440, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 470, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
           <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
             <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
           </Chip>
         </div>
 
-        <div style={{position: 'absolute', left: 90, right: 90, top: 535, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
+        <div style={{position: 'absolute', left: 90, right: 90, top: 560, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 23</Mix>
-            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>الاستعلامات المترابطة Correlated Subqueries واستخدام EXISTS و NOT EXISTS</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 27</Mix>
+            <Mix style={{fontSize: 36, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>المعالجة الزمنية المتقدمة — DATE_TRUNC و EXTRACT و INTERVAL</Mix>
           </div>
-          <div dir="ltr" style={{width: 560, height: 210, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '20px 26px', fontFamily: MONO, fontSize: 24, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 23</div>
+          <div dir="ltr" style={{width: 580, height: 230, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 21, color: C.text}}>
+            <div style={{color: '#64748B', fontSize: 18, marginBottom: 8}}>-- Lesson 27</div>
             {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 36}}>
+              <div key={i} style={{whiteSpace: 'pre', minHeight: 30}}>
                 <Sql text={l} />
                 {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
               </div>

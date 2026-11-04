@@ -1,94 +1,133 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Cell, Chip, Editor, Stage, TopBadge, clamp, lin, pop, sec} from '../kit';
-import {PRICES, PRICE_SET} from '../data';
+import {Caption, Check, Chip, Editor, EmailChip, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
+import {EMAILS, EMAIL_REGEX} from '../data';
 
-// SC03 (85-130s): > ANY vs > ALL on a price ruler.
-// Anchors (s): 86.1 also | 95.0 ANY | 98.2 checks | 105.2 "> ANY" equals | 110.0 ALL | 118.3 "> ALL" | 122.9 enables
+// SC03 (85-130s): Regular Expressions — ~, ~*, REGEXP_MATCH
+// Anchors (s): 86.1 regex | 95.0 operators | 100.0 ~ and ~* | 105.0 REGEXP_MATCH | 115.0 emails | 120.0 SKUs | 125.0 precise
 const S = START.s3;
 const t = (g: number) => sec(g - S);
-const X = (v: number) => 160 + v * 3.6;
-const RY = 560;
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const anyOn = lin(f, t(95.0), 18);
-  const allOn = lin(f, t(110.0), 18);
-  const anyDim = clamp(lin(f, t(110.0), 20));
-  const anyEval = f >= t(98.2);
-  const allEval = f >= t(114.5);
+  const editorP = clamp(lin(f, t(86.5), 14));
+  const meshP = clamp(lin(f, t(95), 16));
+  const opP = clamp(lin(f, t(100), 14));
+  const scanP = clamp(lin(f, t(110), sec(15)));
+
+  // Mesh filter visualization: emails flow from left, hit the mesh, valid pass through (green) and invalid bounce off (red)
+  const MESH_X = 760;
 
   return (
     <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="مقارنة المصفوفات | Array Comparison: ANY & ALL" from={sec(2)} to={sec(40)} color={C.green} />
+      <TopBadge text="التعابير النمطية | Regular Expressions: ~, ~*, REGEXP_MATCH" from={sec(2)} to={sec(40)} color={C.green} />
 
-      <div style={{opacity: clamp(lin(f, t(95.0), 16))}}>
-        <Editor x={80} y={180} w={860} h={130} title="ANY" lines={['WHERE price > ANY (100, 200, 300)']} start={t(95.0)} cps={1.0} size={30} accent={C.green} />
-      </div>
-      <div style={{opacity: clamp(lin(f, t(110.0), 16))}}>
-        <Editor x={980} y={180} w={860} h={130} title="ALL" lines={['WHERE price > ALL (100, 200, 300)']} start={t(110.0)} cps={1.0} size={30} accent={C.amber} />
+      {/* Editor with the regex query */}
+      <div style={{opacity: editorP}}>
+        <Editor
+          x={80}
+          y={180}
+          w={1760}
+          h={170}
+          title="PostgreSQL · Email Validation Query"
+          lines={[`SELECT email FROM customers WHERE email ~* '${EMAIL_REGEX}';`]}
+          start={t(86.5)}
+          cps={1.6}
+          size={26}
+          accent={C.green}
+          hl={0}
+          hlColor={C.green}
+        />
       </div>
 
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-        {/* zones */}
-        <rect x={X(100)} y={400} width={X(450) - X(100)} height={320} fill={C.green} opacity={0.12 * anyOn * (1 - 0.8 * anyDim)} />
-        <rect x={X(300)} y={400} width={X(450) - X(300)} height={320} fill={C.amber} opacity={0.16 * allOn} />
-        {/* ruler */}
-        <line x1={X(0)} y1={RY} x2={X(450)} y2={RY} stroke={C.border} strokeWidth={6} strokeLinecap="round" />
-        {[0, 100, 200, 300, 400].map((v) => (
-          <g key={v}>
-            <line x1={X(v)} y1={RY - 10} x2={X(v)} y2={RY + 10} stroke={C.muted} strokeWidth={3} />
-            <text x={X(v)} y={RY + 42} fill={C.muted} fontSize={22} fontFamily={MONO} textAnchor="middle">{v}</text>
-          </g>
-        ))}
-        {/* threshold lines */}
-        <line x1={X(100)} y1={380} x2={X(100)} y2={380 + 340 * anyOn} stroke={C.green} strokeWidth={5} opacity={1 - 0.6 * anyDim} />
-        <line x1={X(300)} y1={380} x2={X(300)} y2={380 + 340 * allOn} stroke={C.amber} strokeWidth={5} />
-        <text x={X(100)} y={366} fill={C.green} fontSize={28} fontFamily={MONO} fontWeight={700} textAnchor="middle" opacity={anyOn}>MIN = 100</text>
-        <text x={X(300)} y={366} fill={C.amber} fontSize={28} fontFamily={MONO} fontWeight={700} textAnchor="middle" opacity={allOn}>MAX = 300</text>
-        {/* set markers */}
-        {PRICE_SET.map((v, i) => {
-          const p = clamp(pop(f, t(86.6 + i * 0.6)));
+      {/* Operator explainer on the left */}
+      <div style={{position: 'absolute', left: 80, top: 380, width: 600, opacity: opP, transform: `translateY(${(1 - opP) * 24}px)`}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginBottom: 12}}>◆ PostgreSQL Regex Operators</div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 18, padding: '12px 18px', border: `2px solid ${C.amber}`, borderRadius: 12, background: `${C.amber}0d`}}>
+            <span style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.amber, width: 60}}>~</span>
+            <div>
+              <div style={{fontFamily: MONO, fontSize: 22, color: C.text, fontWeight: 700}}>case-sensitive match</div>
+              <div style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>POSIX regex · returns rows matching</div>
+            </div>
+          </div>
+          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 18, padding: '12px 18px', border: `2px solid ${C.green}`, borderRadius: 12, background: `${C.green}0d`}}>
+            <span style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.green, width: 60}}>~*</span>
+            <div>
+              <div style={{fontFamily: MONO, fontSize: 22, color: C.text, fontWeight: 700}}>case-insensitive match</div>
+              <div style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>ignores case · flexible search</div>
+            </div>
+          </div>
+          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 18, padding: '12px 18px', border: `2px solid ${C.blue}`, borderRadius: 12, background: `${C.blue}0d`}}>
+            <span style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.blue, width: 150, lineHeight: 1.2, textAlign: 'center'}}>REGEXP_MATCH</span>
+            <div>
+              <div style={{fontFamily: MONO, fontSize: 20, color: C.text, fontWeight: 700}}>extract matching substrings</div>
+              <div style={{fontFamily: MONO, fontSize: 16, color: C.muted}}>returns matched groups as array</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Regex Mesh Filter visualization on the right */}
+      <Win x={720} y={380} w={1120} h={520} title="Regex Mesh Filter · email validation" accent={C.green} opacity={meshP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 14, fontFamily: MONO, fontSize: 22, color: C.green}}>
+          pattern: ~* '{EMAIL_REGEX}'
+        </div>
+
+        {/* Mesh vertical line (the filter gate) */}
+        <div style={{position: 'absolute', left: 480, top: 50, bottom: 80, width: 4, background: C.green, opacity: meshP, boxShadow: `0 0 28px ${C.green}`}} />
+        {/* Mesh grid pattern (dashed vertical lines suggesting a filter) */}
+        <svg width={1120} height={520} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+          {[440, 460, 500, 520].map((x) => (
+            <line key={x} x1={x} y1={50} x2={x} y2={440} stroke={C.green} strokeWidth={1} strokeDasharray="3 6" opacity={meshP * 0.5} />
+          ))}
+          <text x={490} y={460} fill={C.green} fontSize={18} fontFamily={MONO} textAnchor="middle" opacity={meshP}>mesh gate</text>
+        </svg>
+
+        {/* Email chips flow in from the left, hit the mesh, valid pass to the right (green), invalid bounce back (red) */}
+        {EMAILS.slice(0, 7).map((e, i) => {
+          const row = i;
+          const startY = 56 + row * 48;
+          // Each email starts flowing at t(98 + i*1.5) — early enough to fill the scene
+          const flowStart = t(98 + i * 1.5);
+          const flowP = clamp(lin(f, flowStart, sec(2.5)));
+          // x position: from 30 to either 540 (passed, valid) or back to 30 (rejected, invalid)
+          let endX: number;
+          if (e.valid) {
+            endX = 540;
+          } else {
+            // rejected — moves to mesh then bounces back
+            endX = 30;
+          }
+          const x = e.valid ? 30 + (endX - 30) * flowP : (flowP < 0.5 ? 30 + (480 - 30) * (flowP * 2) : 480 - (480 - 30) * ((flowP - 0.5) * 2));
+          const rejected = !e.valid && flowP > 0.5;
+          const passed = e.valid && flowP > 0.8;
+          const visible = flowP > 0;
           return (
-            <g key={v} opacity={p}>
-              <circle cx={X(v)} cy={RY} r={20 * p} fill={C.blue} stroke={C.bg} strokeWidth={4} />
-              <text x={X(v)} y={RY - 34} fill={C.blue} fontSize={26} fontFamily={MONO} fontWeight={700} textAnchor="middle">{v}</text>
-            </g>
+            <EmailChip
+              key={i}
+              x={x}
+              y={startY}
+              w={400}
+              addr={e.addr}
+              valid={e.valid}
+              p={visible ? 1 : 0}
+              rejected={rejected}
+              passed={passed}
+            />
           );
         })}
-      </svg>
-      <div dir="ltr" style={{position: 'absolute', left: 160, top: 640, fontFamily: MONO, fontSize: 24, color: C.blue, opacity: clamp(lin(f, t(86.1), 16))}}>subquery → [100, 200, 300]</div>
 
-      {/* product dots */}
-      {PRICES.map((p, i) => {
-        const show = clamp(lin(f, t(89 + i * 0.5), 14));
-        const passAny = p.p > 100;
-        const passAll = p.p > 300;
-        let color: string = C.muted;
-        let mark = '';
-        if (allEval) {
-          color = passAll ? C.amber : '#475569';
-          mark = passAll ? '✓' : '✗';
-        } else if (anyEval && f < t(110)) {
-          color = passAny ? C.green : C.red;
-          mark = passAny ? '✓' : '✗';
-        }
-        return (
-          <div key={p.n} dir="ltr" style={{position: 'absolute', left: X(p.p) - 70, top: 760, width: 140, textAlign: 'center', opacity: show, transform: `translateY(${(1 - show) * 24}px)`}}>
-            <div style={{margin: '0 auto', width: 56, height: 56, borderRadius: 28, border: `4px solid ${color}`, background: `${color}33`, color, fontFamily: MONO, fontSize: 30, fontWeight: 700, lineHeight: '48px'}}>{mark}</div>
-            <div style={{fontFamily: MONO, fontSize: 22, color: C.text, marginTop: 6}}>{p.n}</div>
-            <div style={{fontFamily: MONO, fontSize: 22, color}}>{p.p}</div>
-          </div>
-        );
-      })}
-      <div dir="ltr" style={{position: 'absolute', right: 80, top: 680, display: 'flex', gap: 14, opacity: clamp(lin(f, t(122.9), 16))}}>
-        <Chip color={C.green}>&gt; ANY → 4 rows</Chip>
-        <Chip color={C.amber}>&gt; ALL → 2 rows</Chip>
-      </div>
+        {/* Result summary bottom-right */}
+        <div dir="ltr" style={{position: 'absolute', right: 24, bottom: 18, display: 'flex', gap: 14, opacity: clamp(pop(f, t(122)))}}>
+          <Chip color={C.green} style={{fontSize: 22}}>✓ {EMAILS.filter((e) => e.valid).length} valid</Chip>
+          <Chip color={C.red} style={{fontSize: 22}}>✗ {EMAILS.filter((e) => !e.valid).length} rejected</Chip>
+        </div>
+      </Win>
 
-      <Caption text="> ANY ([100, 200, 300]) ──► Greater than MIN value (> 100)" from={t(98.2)} to={t(109)} />
-      <Caption text="> ALL ([100, 200, 300]) ──► Greater than MAX value (> 300)" from={t(118.3)} to={sec(44.5)} />
+      <Caption text="column ~* '^pattern$' ──► Regular Expression Matching in PostgreSQL" from={t(95)} to={t(115)} />
+      <Caption text="Regex Validation ──► Verifies Complex Formats (Emails, Phones, SKUs)" from={t(117)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };

@@ -1,73 +1,173 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Cell, Chip, Editor, Kpi, Mix, Stage, TopBadge, Win, clamp, lerp, lin, pop, sec} from '../kit';
-import {CUSTOMERS, SET_IDS} from '../data';
+import {BTreeNode, Caption, Check, Chip, Editor, Kpi, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
+import {PERF} from '../data';
 
-// SC04 (130-170s): Hash Semi-Join inside work_mem, early exit on first match.
-// Anchors (s): 131.1 behind the scenes | 136.7 not executed | 138.7 query plan | 145.8 Hash Semi-Join | 148.8 builds | 154.2 work_mem | 155.6 checks | 160.3 without need | 163.6 that's why
+// SC04 (130-170s): Expression Indexes — Performance Trap & Fix
+// Anchors (s): 131.1 trap | 136.0 LOWER(email) | 140.0 B-Tree | 145.0 Full Table Scan | 150.0 slow | 155.0 CREATE INDEX | 160.0 Expression Index | 165.0 0.0001s
 const S = START.s4;
 const t = (g: number) => sec(g - S);
-const BUCKETS = 8;
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const a = clamp(lin(f, t(131.1), 16));
-  const b = clamp(lin(f, t(136.7), 16));
-  const c = clamp(lin(f, t(145.8), 16));
-  const memP = clamp(lin(f, t(148.8), 18));
+  const trapP = clamp(lin(f, t(131.5), 14));
+  const slowP = clamp(lin(f, t(140), 16));
+  const fixP = clamp(lin(f, t(155), 16));
+  const seekP = clamp(lin(f, t(162), 18));
+
+  // Animated scan progress for the full table scan (slow)
+  const scanProg = clamp(lin(f, t(141), sec(18)));
+  // Animated index seek (fast — jumps directly to the leaf node)
+  const seekProg = clamp(lin(f, t(163), sec(2.5)));
+
+  // B-Tree index visualization on the right (3 levels: root → branch → leaves)
+  const treeP = clamp(lin(f, t(155), 14));
+
+  // Counter for the slow scan
+  const rowsScanned = Math.floor(scanProg * PERF.rowsScanned);
+  const scanMs = (scanProg * PERF.fullScanMs).toFixed(1);
+  const seekMs = (PERF.indexSeekMs).toFixed(3);
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="كواليس المحرك | Query Optimizer Internals" from={sec(2)} to={sec(40)} color={C.blue} />
+      <TopBadge text="كواليس الأداء | Expression Index Optimization" from={sec(2)} to={sec(40)} color={C.amber} />
 
-      <div dir="ltr" style={{position: 'absolute', left: 80, top: 176, width: 1760, display: 'flex', alignItems: 'center', gap: 22}}>
-        <div style={{opacity: a}}><Chip color={C.blue} style={{fontSize: 28}}>WHERE id IN (subquery)</Chip></div>
-        <div style={{opacity: b}}><Chip color={C.red} style={{fontSize: 28}}>✗ not run row-by-row</Chip></div>
-        <div style={{opacity: c, color: C.amber, fontFamily: MONO, fontSize: 36}}>──►</div>
-        <div style={{opacity: c, transform: `scale(${0.85 + 0.15 * c})`}}><Chip color={C.green} style={{fontSize: 28}}>Hash Semi-Join</Chip></div>
+      {/* Problem editor */}
+      <div style={{opacity: trapP}}>
+        <Editor
+          x={80}
+          y={180}
+          w={880}
+          h={170}
+          title="Performance Trap"
+          lines={['SELECT * FROM customers', "WHERE LOWER(email) = 'john.doe@manzooma.com';"]}
+          start={t(131.5)}
+          cps={1.0}
+          size={26}
+          accent={C.red}
+          hl={1}
+          hlColor={C.red}
+        />
       </div>
 
-      <Editor x={80} y={270} w={760} h={330} title="EXPLAIN" lines={['Hash Semi Join', '  Hash Cond: (c.id = o.customer_id)', '  -> Seq Scan on customers c', '  -> Hash', '       -> Seq Scan on orders o']} start={t(138.7)} cps={1.1} size={24} hl={f >= t(145.8) ? 0 : -1} hlColor={C.green} />
+      {/* Fix editor */}
+      <div style={{opacity: fixP, transform: `translateY(${(1 - fixP) * 24}px)`}}>
+        <Editor
+          x={980}
+          y={180}
+          w={860}
+          h={170}
+          title="Expression Index Fix"
+          lines={['CREATE INDEX idx_email_lower', 'ON customers (LOWER(email));']}
+          start={t(155.5)}
+          cps={0.9}
+          size={22}
+          accent={C.green}
+          hl={1}
+          hlColor={C.green}
+        />
+      </div>
 
-      <Kpi x={80} y={650} w={760} label="Nested loop · re-scan per row" ar="تكلفة مضاعفة" value="n × m" color={C.red} p={lin(f, t(160.3), 18)} />
-      <Kpi x={80} y={760} w={760} label="Hash Semi Join · one pass" ar="مرور واحد" value="n + m" color={C.green} p={lin(f, t(163.6), 18)} glow={clamp(lin(f, t(163.6), 18))} />
-
-      <Win x={880} y={270} w={960} h={630} title="work_mem (RAM)" accent={C.blue} opacity={memP}>
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 14, fontFamily: MONO, fontSize: 22, color: C.blue}}>hash table · built from the inner set</div>
-        {Array.from({length: BUCKETS}).map((_, k) => {
-          const idx = SET_IDS.findIndex((v) => v % BUCKETS === k);
-          const vis = idx >= 0 ? clamp(lin(f, t(149.2 + idx * 1.1), 14)) : 0;
-          const hitNow = idx >= 0 && CUSTOMERS.some((cu, i) => cu.id === SET_IDS[idx] && Math.abs(f - (t(155.6) + i * sec(0.9) + sec(0.65))) < 12);
-          return (
-            <div key={k} dir="ltr" style={{position: 'absolute', left: 30 + (k % 4) * 225, top: 62 + Math.floor(k / 4) * 120, width: 205, height: 98, borderRadius: 14, border: `3px solid ${hitNow ? C.green : vis > 0 ? C.blue : C.border}`, background: vis > 0 ? `${C.blue}22` : C.deep, boxShadow: hitNow ? `0 0 28px ${C.green}` : 'none', fontFamily: MONO}}>
-              <div style={{position: 'absolute', left: 10, top: 4, fontSize: 18, color: C.muted}}>#{k}</div>
-              <div style={{position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, fontWeight: 700, color: C.text, opacity: vis}}>{idx >= 0 ? SET_IDS[idx] : ''}</div>
-            </div>
-          );
-        })}
-        <div dir="ltr" style={{position: 'absolute', left: 30, top: 320, fontFamily: MONO, fontSize: 22, color: C.muted, opacity: clamp(lin(f, t(155.6), 12))}}>outer rows stream through → probe</div>
-        <div style={{position: 'absolute', left: 30, right: 30, top: 358, height: 6, borderRadius: 3, background: C.border, opacity: clamp(lin(f, t(155.6), 12))}} />
-        <div dir="ltr" style={{position: 'absolute', right: 30, top: 470, opacity: clamp(lin(f, t(160.3), 16))}}>
-          <Chip color={C.green} style={{fontSize: 26}}>✓ early exit on FIRST match</Chip>
+      {/* LEFT: Full Table Scan visualization */}
+      <Win x={80} y={360} w={880} h={540} title="WITHOUT Expression Index · Full Table Scan" accent={C.red} opacity={slowP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 14, fontFamily: MONO, fontSize: 20, color: C.red}}>
+          B-Tree index bypassed · scanning every row sequentially
         </div>
-        {CUSTOMERS.map((cu, i) => {
-          const st = t(155.6) + i * sec(0.9);
-          const p = lin(f, st, sec(1.3));
-          if (p <= 0 || p >= 1) return null;
-          const match = SET_IDS.includes(cu.id);
-          const past = p > 0.5;
-          const x = lerp(840, 40, p);
-          const color = !past ? C.text : match ? C.green : '#64748B';
-          const y = past && match ? 380 + (p - 0.5) * 120 : 340;
-          return (
-            <div key={cu.id} dir="ltr" style={{position: 'absolute', left: x, top: y, width: 90, height: 56, borderRadius: 12, border: `3px solid ${color}`, background: `${color}22`, color, fontFamily: MONO, fontWeight: 700, fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: past && !match ? 1 - (p - 0.5) * 1.4 : 1}}>{cu.id}</div>
-          );
-        })}
+        {/* table rows visualization */}
+        <div style={{position: 'absolute', left: 24, right: 24, top: 50, height: 360, display: 'flex', flexDirection: 'column', gap: 4}}>
+          {Array.from({length: 8}).map((_, i) => {
+            const rowScanned = i / 8 < scanProg;
+            const isCurrentRow = Math.abs(i / 8 - scanProg) < 0.12;
+            const bg = isCurrentRow ? C.red + '33' : rowScanned ? C.red + '14' : 'transparent';
+            const bd = isCurrentRow ? C.red : 'transparent';
+            return (
+              <div key={i} dir="ltr" style={{display: 'flex', gap: 12, alignItems: 'center', padding: '4px 10px', fontFamily: MONO, fontSize: 17, background: bg, border: '1px solid ' + bd, borderRadius: 6, opacity: rowScanned ? 1 : 0.5, height: 40}}>
+                <span style={{color: '#475569', width: 110, fontSize: 16}}>#{((i + 1) * 125000).toLocaleString()}</span>
+                <span style={{color: C.muted, flex: 1}}>user{i}@example.com</span>
+                <span style={{color: rowScanned ? C.red : '#475569', width: 80, textAlign: 'right'}}>{rowScanned ? 'scanned' : 'pending'}</span>
+              </div>
+            );
+          })}
+        </div>
+        {/* scan laser indicator — removed to avoid overlap with footer */}
+        {/* bottom status bar */}
+        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 14, height: 50, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 22, color: C.red, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>{rowsScanned.toLocaleString()} rows scanned</span>
+          <span>{scanMs}ms</span>
+        </div>
       </Win>
 
-      <Caption text="PostgreSQL Query Optimizer ──► Rewrites IN Subqueries to Hash Semi-Join" from={t(138.7)} to={t(153)} />
-      <Caption text="Early Exit Matching ──► Stops scanning inner table upon FIRST match in work_mem" from={t(156)} to={sec(39)} tone="ok" />
+      {/* RIGHT: Expression Index Seek visualization with B-Tree */}
+      <Win x={980} y={360} w={860} h={540} title="WITH Expression Index · Index Only Scan" accent={C.green} opacity={seekP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 14, fontFamily: MONO, fontSize: 22, color: C.green}}>
+          Index seek · jumps directly to leaf node
+        </div>
+
+        {/* B-Tree visualization */}
+        <svg width={860} height={420} style={{position: 'absolute', left: 0, top: 50}}>
+          {/* Level 1: root */}
+          <BTreeNodeSvg x={400} y={20} w={80} h={40} label="root" color={C.green} p={treeP} />
+          {/* Level 2: branches */}
+          <BTreeNodeSvg x={180} y={120} w={80} h={40} label="≤ m" color={C.blue} p={treeP * clamp(lin(f, t(157), 10))} glow={seekProg > 0.3 ? 1 : 0} />
+          <BTreeNodeSvg x={620} y={120} w={80} h={40} label="> m" color={C.blue} p={treeP * clamp(lin(f, t(158), 10))} />
+          {/* Level 3: leaves */}
+          <BTreeNodeSvg x={120} y={240} w={90} h={44} label="a-f" color={C.muted} p={treeP * clamp(lin(f, t(159), 10))} />
+          <BTreeNodeSvg x={230} y={240} w={90} h={44} label="g-m" color={C.muted} p={treeP * clamp(lin(f, t(159.5), 10))} />
+          <BTreeNodeSvg x={340} y={240} w={90} h={44} label="n-s" color={C.muted} p={treeP * clamp(lin(f, t(160), 10))} />
+          <BTreeNodeSvg x={450} y={240} w={90} h={44} label="t-z" color={C.amber} p={treeP * clamp(lin(f, t(160.5), 10))} glow={seekProg > 0.6 ? 1 : 0} highlight={seekProg > 0.6} />
+          <BTreeNodeSvg x={560} y={240} w={90} h={44} label="other" color={C.muted} p={treeP * clamp(lin(f, t(161), 10))} />
+          <BTreeNodeSvg x={670} y={240} w={90} h={44} label="num" color={C.muted} p={treeP * clamp(lin(f, t(161.5), 10))} />
+          {/* Connecting lines */}
+          <line x1={440} y1={60} x2={220} y2={120} stroke={C.border} strokeWidth={2} opacity={treeP} />
+          <line x1={440} y1={60} x2={660} y2={120} stroke={C.border} strokeWidth={2} opacity={treeP} />
+          <line x1={220} y1={160} x2={165} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
+          <line x1={220} y1={160} x2={275} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
+          <line x1={660} y1={160} x2={385} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
+          <line x1={660} y1={160} x2={495} y2={240} stroke={C.amber} strokeWidth={3} opacity={treeP * seekProg} />
+          <line x1={660} y1={160} x2={605} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
+          <line x1={660} y1={160} x2={715} y2={240} stroke={C.border} strokeWidth={2} opacity={treeP} />
+
+          {/* Seek path animation — laser jumping from root to leaf */}
+          {seekProg > 0 && seekProg < 1 ? (
+            <g>
+              {seekProg < 0.4 ? (
+                <circle cx={440} cy={40} r={8} fill={C.green} opacity={1 - seekProg / 0.4} />
+              ) : seekProg < 0.7 ? (
+                <circle cx={660} cy={140} r={8} fill={C.green} opacity={1 - (seekProg - 0.4) / 0.3} />
+              ) : (
+                <circle cx={495} cy={262} r={8} fill={C.green} opacity={1 - (seekProg - 0.7) / 0.3} />
+              )}
+            </g>
+          ) : null}
+
+          {/* Result leaf */}
+          {seekProg >= 1 ? (
+            <g>
+              <rect x={445} y={300} width={100} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} />
+              <text x={495} y={330} fill={C.green} fontSize={20} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ found</text>
+            </g>
+          ) : null}
+        </svg>
+
+        {/* bottom status bar */}
+        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700, opacity: seekP}}>
+          <span>{seekProg >= 1 ? '1 row · index seek' : 'seeking...'}</span>
+          <span>{seekMs}ms</span>
+        </div>
+      </Win>
+
+      <Caption text="WHERE LOWER(col) ──► Invalidates Normal B-Tree Index (Full Scan)" from={t(140)} to={t(155)} tone="danger" />
+      <Caption text="CREATE INDEX idx ON table (LOWER(col)) ──► Enables Expression Index Seek" from={t(157)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };
+
+// SVG-based B-Tree node (uses SVG primitives for cleaner rendering inside svg)
+const BTreeNodeSvg: React.FC<{x: number; y: number; w: number; h: number; label: string; color: string; p: number; glow?: number; highlight?: boolean}> = ({x, y, w, h, label, color, p, glow = 0, highlight = false}) => (
+  <g opacity={Math.max(0, Math.min(1, p))} transform={`translate(${x}, ${y})`}>
+    {glow > 0 ? <rect x={-6} y={-6} width={w + 12} height={h + 12} fill="none" stroke={color} strokeWidth={2} rx={12} opacity={glow * 0.4} /> : null}
+    <rect x={0} y={0} width={w} height={h} fill={`${color}22`} stroke={highlight ? C.amber : color} strokeWidth={highlight ? 3 : 2} rx={8} />
+    <text x={w / 2} y={h / 2 + 7} fill={color} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">{label}</text>
+  </g>
+);

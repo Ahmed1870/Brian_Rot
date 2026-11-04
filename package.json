@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-22-set-subqueries",
+  "name": "manzooma-sql-lesson-26-text-regex",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 22: Set filtering with subqueries (IN, NOT IN, ANY, ALL) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 26: Text patterns, case normalization, and regex (UPPER, LOWER, INITCAP, LIKE, ILIKE, ~, ~*, REGEXP_MATCH, Expression Indexes) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L22-Set-Subqueries out/sql-l22-set-subqueries.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L26-Text-Regex out/sql-l26-text-regex.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

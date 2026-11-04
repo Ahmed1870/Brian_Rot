@@ -1,78 +1,164 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Cell, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {CUSTOMERS, SET_IDS} from '../data';
+import {Caption, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
+import {CASE_RESULTS, CHAOTIC_EMAILS} from '../data';
 
-// SC01 (0-40s): IN with a dynamic array produced by a subquery.
-// Anchors (s): 1.1 welcome | 8.7 time has come | 13.0 full array | 18.1 IN takes the array | 21.2 checks existence | 26.8 based on it | 35.6 fetch
+// SC01 (0-40s): Case Normalization — LOWER, UPPER, INITCAP
+// Anchors (s): 1.0 welcome | 5.5 case sensitivity problem | 9.0 search fails | 14.0 LOWER | 19.0 UPPER | 24.0 INITCAP | 30.0 unified | 35.0 reliable
 const S = START.s1;
 const t = (g: number) => sec(g - S);
-const ROW0 = 50;
-const RH = 62;
-const SCAN_FROM = t(18.1);
-const SCAN_LEN = sec(7.5);
+
+/** Render a string with per-character transformation + color sweep. */
+const TransformRow: React.FC<{
+  y: number;
+  mode: 'lower' | 'upper' | 'initcap';
+  color: string;
+  label: string;
+  start: number;
+  end: number;
+  active: boolean;
+}> = ({y, mode, color, label, start, end, active}) => {
+  const f = useCurrentFrame();
+  const gateP = clamp(lin(f, start, 12));
+  // Progress: 0..1 of how many chars have been processed
+  const processingDur = end - start;
+  const prog2 = clamp(lin(f, start + 12, processingDur - 12));
+  const charProgress = Math.floor(prog2 * CASE_RESULTS.raw.length);
+
+  const transform = (ch: string, idx: number): string => {
+    if (idx >= charProgress) return ch;
+    if (mode === 'lower') return ch.toLowerCase();
+    if (mode === 'upper') return ch.toUpperCase();
+    // initcap
+    const prev = idx > 0 ? CASE_RESULTS.raw[idx - 1] : ' ';
+    const isWordStart = /[^a-zA-Z0-9]/.test(prev) || idx === 0;
+    return isWordStart ? ch.toUpperCase() : ch.toLowerCase();
+  };
+
+  // Layout: raw text at x=120 (width ~520), gate at x=680, result at x=740
+  const GATE_X = 680;
+  const RAW_X = 120;
+  const RESULT_X = 740;
+
+  return (
+    <>
+      {/* Row label */}
+      <div dir="ltr" style={{position: 'absolute', left: 80, top: y - 30, fontFamily: MONO, fontSize: 20, fontWeight: 700, color, opacity: gateP}}>
+        {label}
+      </div>
+
+      {/* Raw text (left of gate) — always visible, chars get dimmed as they're processed */}
+      <div dir="ltr" style={{position: 'absolute', left: RAW_X, top: y, fontFamily: MONO, fontSize: 28, fontWeight: 700, letterSpacing: 1, whiteSpace: 'pre'}}>
+        {CASE_RESULTS.raw.split('').map((ch, i) => {
+          const processed = i < charProgress;
+          return (
+            <span key={i} style={{color: processed ? '#475569' : C.muted, opacity: processed ? 0.5 : 1}}>
+              {ch}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Gate (vertical laser line) */}
+      <div style={{position: 'absolute', left: GATE_X - 2, top: y - 6, width: 4, height: 44, background: color, opacity: gateP, boxShadow: `0 0 ${active ? 24 : 10}px ${color}`}} />
+      {/* Gate glow ring */}
+      <div style={{position: 'absolute', left: GATE_X - 14, top: y - 10, width: 28, height: 52, borderRadius: 14, border: `2px solid ${color}`, opacity: gateP * (active ? 0.8 : 0.3), background: `${color}11`}} />
+
+      {/* Arrow */}
+      <div dir="ltr" style={{position: 'absolute', left: GATE_X + 20, top: y + 2, fontFamily: MONO, fontSize: 24, color, opacity: gateP}}>
+        ──►
+      </div>
+
+      {/* Result text (right of gate) — chars appear as they're processed */}
+      <div dir="ltr" style={{position: 'absolute', left: RESULT_X, top: y, fontFamily: MONO, fontSize: 28, fontWeight: 700, letterSpacing: 1, whiteSpace: 'pre'}}>
+        {CASE_RESULTS.raw.split('').map((ch, i) => {
+          const processed = i < charProgress;
+          if (!processed) return <span key={i} style={{color: '#334155', opacity: 0.3}}>{transform(ch, i) === ' ' ? ' ' : '·'}</span>;
+          return (
+            <span key={i} style={{color, textShadow: `0 0 8px ${color}88`}}>
+              {transform(ch, i)}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Status indicator */}
+      <div dir="ltr" style={{position: 'absolute', left: GATE_X - 50, top: y + 44, width: 100, textAlign: 'center', fontFamily: MONO, fontSize: 16, color: active ? color : '#475569', opacity: gateP}}>
+        {active ? '◆ active' : prog2 >= 1 ? '◆ done ✓' : '◆ idle'}
+      </div>
+    </>
+  );
+};
 
 export const Scene1: React.FC = () => {
   const f = useCurrentFrame();
-  const scan = lin(f, SCAN_FROM, SCAN_LEN);
-  const tableP = clamp(lin(f, t(13.5), 20));
-  const scanning = f >= SCAN_FROM && scan < 1;
-  const laserY = 236 + ROW0 + scan * CUSTOMERS.length * RH;
-  const hits = CUSTOMERS.filter((c) => SET_IDS.includes(c.id));
-  const reportP = pop(f, t(26.8));
+
+  // Show chaotic emails cycling
+  const emailIdx = Math.floor(Math.max(0, (f - t(2))) / 90) % CHAOTIC_EMAILS.length;
+  const email = CHAOTIC_EMAILS[Math.max(0, emailIdx)];
+
+  // Lower gate active 6-13s, upper 13-20s, initcap 20-30s
+  const lowerActive = f >= t(6) && f < t(13.5);
+  const upperActive = f >= t(14) && f < t(20.5);
+  const initcapActive = f >= t(21) && f < t(30);
+
+  const tableP = clamp(lin(f, t(30), 16));
+  const sealP = pop(f, t(35));
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="left">
-      <TopBadge text="الفلترة بالمجموعات | Set Membership Filtering (IN Operator)" from={sec(2)} to={sec(18)} />
+      <TopBadge text="تنسيق حالة الأحرف | String Case Normalization" from={sec(2)} to={sec(18)} />
 
-      <Editor x={80} y={180} w={800} h={290} title="Query Editor" lines={['SELECT name FROM customers', 'WHERE customer_id IN (', '  SELECT customer_id FROM orders', '  WHERE total_amount > 5000', ');']} start={t(8.7)} cps={0.9} size={28} hl={f > t(18.1) ? 1 : -1} hlColor={C.blue} />
-
-      {/* the dynamic array produced by the subquery */}
-      <div style={{position: 'absolute', left: 80, top: 500, width: 800, height: 170, borderRadius: 22, border: `2px dashed ${C.blue}`, background: `${C.blue}0d`, opacity: clamp(lin(f, t(13.0), 16))}}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 22, color: C.blue}}>subquery result → dynamic 1D array</div>
-        {SET_IDS.map((v, i) => (
-          <Cell key={v} x={34 + i * 188} y={64} w={160} text={String(v)} p={pop(f, t(13.2 + i * 0.35))} />
-        ))}
-      </div>
-
-      {/* customers table */}
-      <Win x={960} y={180} w={880} h={620} title="customers" accent={C.border} opacity={tableP}>
-        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 30px', fontFamily: MONO, fontSize: 24, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-          <span style={{width: 180}}>customer_id</span>
-          <span>name</span>
+      {/* chaotic email display top-left */}
+      <div style={{position: 'absolute', left: 80, top: 175, opacity: clamp(lin(f, t(1), 12))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 8}}>◆ raw input · chaotic case</div>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.red, padding: '10px 18px', border: `2px dashed ${C.red}`, borderRadius: 12, background: `${C.red}0d`, minWidth: 460, display: 'inline-block'}}>
+          {email}
         </div>
-        {CUSTOMERS.map((c, i) => {
-          const inSet = SET_IDS.includes(c.id);
-          const hitAt = SCAN_FROM + ((i + 0.5) / CUSTOMERS.length) * SCAN_LEN;
-          const passed = f >= hitAt;
-          const g = passed && inSet ? clamp(lin(f, hitAt, 10)) : 0;
-          const bad = passed && !inSet ? clamp(lin(f, hitAt, 10)) : 0;
-          return (
-            <div key={c.id} dir="ltr" style={{position: 'absolute', left: 14, right: 14, top: ROW0 + i * RH + 4, height: RH - 8, borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: MONO, fontSize: 30, background: g > 0 ? `${C.green}33` : 'transparent', border: `2px solid ${g > 0 ? C.green : 'transparent'}`, color: bad > 0 ? '#64748B' : C.text}}>
-              <span style={{width: 166, fontWeight: 700, color: g > 0 ? C.green : bad > 0 ? '#64748B' : C.blue}}>{c.id}</span>
-              <span style={{flex: 1}}>{c.name}</span>
-              {g > 0.5 ? <span style={{color: C.green, fontWeight: 700}}>∈ IN ✓</span> : null}
-            </div>
-          );
-        })}
-        {scanning ? null : null}
-      </Win>
-      {scanning ? (
-        <div style={{position: 'absolute', left: 970, width: 860, top: laserY, height: 4, background: C.blue, boxShadow: `0 0 24px 6px ${C.blue}aa`, borderRadius: 2}} />
-      ) : null}
-
-      {/* report */}
-      <div style={{position: 'absolute', left: 80, top: 820, width: 1760, height: 100, opacity: clamp(reportP), transform: `translateY(${(1 - clamp(reportP)) * 30}px)`, borderRadius: 22, background: C.card, border: `2px solid ${C.green}`, display: 'flex', alignItems: 'center', gap: 26, padding: '0 36px'}}>
-        <Check p={reportP} size={64} />
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 30, color: C.green, fontWeight: 700, width: 360}}>Report · {hits.length} customers</div>
-        {hits.map((c, i) => (
-          <div key={c.id} style={{opacity: clamp(pop(f, t(27.4 + i * 0.5))), transform: `scale(${0.8 + 0.2 * clamp(pop(f, t(27.4 + i * 0.5)))})`}}>
-            <Chip color={C.green} style={{fontSize: 34, padding: '10px 28px'}}>{c.id} · {c.name}</Chip>
-          </div>
-        ))}
       </div>
-      <Caption text="WHERE customer_id IN (Subquery) ──► Dynamic Array Membership Matching" from={sec(22)} to={sec(38)} />
+
+      {/* problem callout top-right */}
+      <div style={{position: 'absolute', right: 80, top: 175, width: 560, opacity: clamp(lin(f, t(5.5), 16))}}>
+        <div style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 8}}>◆ problem</div>
+        <div style={{padding: '12px 18px', border: `2px solid ${C.red}`, borderRadius: 12, background: `${C.red}0d`}}>
+          <Mix style={{fontSize: 24, color: C.text, lineHeight: 1.4, display: 'block'}}>
+            البحث المباشر يفشل حين تختلف حالة الأحرف
+          </Mix>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.red, fontWeight: 700, marginTop: 6}}>
+            → Case Sensitivity Trap
+          </div>
+        </div>
+      </div>
+
+      {/* 3 case-normalization rows */}
+      <TransformRow y={340} mode="lower" color={C.blue} label="LOWER()" start={t(6)} end={t(13)} active={lowerActive} />
+      <TransformRow y={500} mode="upper" color={C.amber} label="UPPER()" start={t(14)} end={t(20)} active={upperActive} />
+      <TransformRow y={660} mode="initcap" color={C.green} label="INITCAP()" start={t(21)} end={t(30)} active={initcapActive} />
+
+      {/* Unified result table at the bottom */}
+      <Win x={80} y={770} w={1760} h={150} title="normalized output · reliable search base" accent={C.green} opacity={tableP}>
+        <div dir="ltr" style={{position: 'absolute', left: 28, right: 28, top: 12, height: 32, display: 'flex', gap: 28, alignItems: 'center', fontFamily: MONO, fontSize: 20, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+          <span style={{width: 180}}>function</span>
+          <span style={{flex: 1}}>result</span>
+          <span style={{width: 280}}>use case</span>
+        </div>
+        <div style={{position: 'absolute', left: 28, right: 28, top: 50, bottom: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-around'}}>
+          {[
+            {fn: 'LOWER()', res: CASE_RESULTS.lower, uc: 'email matching', color: C.blue, p: pop(f, t(31))},
+            {fn: 'UPPER()', res: CASE_RESULTS.upper, uc: 'constants / codes', color: C.amber, p: pop(f, t(32))},
+            {fn: 'INITCAP()', res: CASE_RESULTS.initcap, uc: 'display names', color: C.green, p: pop(f, t(33))},
+          ].map((r) => (
+            <div key={r.fn} dir="ltr" style={{display: 'flex', gap: 28, alignItems: 'center', opacity: clamp(r.p), transform: `translateX(${(1 - clamp(r.p)) * 30}px)`}}>
+              <div style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: r.color, width: 180}}>{r.fn}</div>
+              <div style={{fontFamily: MONO, fontSize: 22, color: r.color, flex: 1, fontWeight: 700}}>{r.res}</div>
+              <div style={{fontFamily: MONO, fontSize: 18, color: C.muted, width: 280}}>{r.uc}</div>
+            </div>
+          ))}
+        </div>
+      </Win>
+
+      <Caption text="LOWER() | UPPER() | INITCAP() ──► Normalizes Text for Reliable Search" from={t(22)} to={sec(38)} />
     </Stage>
   );
 };

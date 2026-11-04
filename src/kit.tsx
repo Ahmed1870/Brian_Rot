@@ -188,9 +188,18 @@ export const Check: React.FC<{size?: number; color?: string; p: number}> = ({siz
   </svg>
 );
 
+/** Warning triangle. */
+export const Warn: React.FC<{size?: number; color?: string}> = ({size = 64, color = C.red}) => (
+  <svg width={size} height={size * 0.92} viewBox="0 0 70 64">
+    <path d="M35 4 L66 58 H4 Z" fill="none" stroke={color} strokeWidth={6} strokeLinejoin="round" />
+    <line x1={35} y1={24} x2={35} y2={40} stroke={color} strokeWidth={6} strokeLinecap="round" />
+    <circle cx={35} cy={50} r={3.5} fill={color} />
+  </svg>
+);
+
 /* ---------------------------------------------------------------- SQL helpers */
-const KW = /(\b(?:INSERT|INTO|VALUES|UPDATE|SET|WHERE|DELETE|FROM|TRUNCATE|TABLE|RETURNING|SELECT|DEFAULT|ORDER|BY|DESC|LIMIT|CASE|WHEN|THEN|ELSE|END|AS|AND|GROUP|FILTER|COUNT|SUM|NULL|LEFT|JOIN|INNER|ON|IN|NOT|IS|ANY|ALL|SOME|AVG|EXISTS)\b|'[^']*'|\b\d+(?:\.\d+)?\b)/;
-const KWONLY = /^(INSERT|INTO|VALUES|UPDATE|SET|WHERE|DELETE|FROM|TRUNCATE|TABLE|RETURNING|SELECT|DEFAULT|ORDER|BY|DESC|LIMIT|CASE|WHEN|THEN|ELSE|END|AS|AND|GROUP|FILTER|COUNT|SUM|NULL|LEFT|JOIN|INNER|ON|IN|NOT|IS|ANY|ALL|SOME|AVG|EXISTS)$/;
+const KW = /(\b(?:SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|LOWER|UPPER|INITCAP|REGEXP_MATCH|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SEQUENCE|SCAN|USING|FILTER)\b|'[^']*'|\b\d+(?:\.\d+)?\b|~\*?)/;
+const KWONLY = /^(SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|LOWER|UPPER|INITCAP|REGEXP_MATCH|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SEQUENCE|SCAN|USING|FILTER)$/;
 
 /** One SQL line with simple syntax colouring. */
 export const Sql: React.FC<{text: string; strike?: boolean; dim?: boolean}> = ({text, strike, dim}) => (
@@ -203,6 +212,7 @@ export const Sql: React.FC<{text: string; strike?: boolean; dim?: boolean}> = ({
         w = 700;
       } else if (p.startsWith("'")) color = C.amber;
       else if (/^\d/.test(p)) color = C.green;
+      else if (p === '~' || p === '~*') color = C.amber;
       return (
         <span key={i} style={{color, fontWeight: w}}>
           {p}
@@ -256,32 +266,6 @@ export const Editor: React.FC<{
   );
 };
 
-/* ---------------------------------------------------------------- Lesson 15 additions */
-
-/** Cubic bezier point (used for data bubbles flying along curved paths). */
-export const bez = (p: number, a: number, b: number, c: number, d: number) => {
-  const u = 1 - p;
-  return u * u * u * a + 3 * u * u * p * b + 3 * u * p * p * c + p * p * p * d;
-};
-
-/** Disk / table-storage icon (pure SVG). */
-export const Disk: React.FC<{x: number; y: number; w?: number; h?: number; color?: string; label?: string; glow?: number}> = ({x, y, w = 130, h = 150, color = C.muted, label, glow = 0}) => (
-  <div style={{position: 'absolute', left: x, top: y, width: w, textAlign: 'center'}}>
-    <svg width={w} height={h} viewBox="0 0 100 120" style={{filter: glow > 0.02 ? `drop-shadow(0 0 ${14 * glow}px ${color})` : 'none'}}>
-      <path d="M8 22 V92 C8 106 92 106 92 92 V22" fill={C.deep} stroke={color} strokeWidth={4} />
-      <ellipse cx={50} cy={22} rx={42} ry={14} fill={C.card} stroke={color} strokeWidth={4} />
-      <path d="M8 50 C8 64 92 64 92 50" fill="none" stroke={color} strokeWidth={3} opacity={0.6} />
-      <path d="M8 72 C8 86 92 86 92 72" fill="none" stroke={color} strokeWidth={3} opacity={0.6} />
-      <circle cx={78} cy={92} r={3.5} fill={color} />
-    </svg>
-    {label ? (
-      <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color, marginTop: 4}}>
-        {label}
-      </div>
-    ) : null}
-  </div>
-);
-
 /** KPI result card: mono label + Arabic label + big value. */
 export const Kpi: React.FC<{x: number; y: number; w?: number; h?: number; label: string; ar: string; value: string; color: string; p?: number; glow?: number}> = ({x, y, w = 500, h = 84, label, ar, value, color, p = 1, glow = 0}) => (
   <div
@@ -316,21 +300,81 @@ export const Draw: React.FC<{d: string; p: number; color: string; width?: number
   <path d={d} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" opacity={opacity} {...(dash ? {strokeDasharray: dash} : {pathLength: 1, strokeDasharray: 1, strokeDashoffset: 1 - clamp(p)})} />
 );
 
-/** Warning triangle. */
-export const Warn: React.FC<{size?: number; color?: string}> = ({size = 64, color = C.red}) => (
-  <svg width={size} height={size * 0.92} viewBox="0 0 70 64">
-    <path d="M35 4 L66 58 H4 Z" fill="none" stroke={color} strokeWidth={6} strokeLinejoin="round" />
-    <line x1={35} y1={24} x2={35} y2={40} stroke={color} strokeWidth={6} strokeLinecap="round" />
-    <circle cx={35} cy={50} r={3.5} fill={color} />
-  </svg>
-);
+/* ---------------------------------------------------------------- Lesson 26 specific helpers */
 
-/* ---------------------------------------------------------------- Lesson 22 additions */
 export const lin = (f: number, start: number, dur: number) => clamp((f - start) / dur);
 
-/** Small value cell (array element / hash bucket). */
-export const Cell: React.FC<{x: number; y: number; w?: number; h?: number; text: string; color?: string; fill?: string; p?: number; size?: number}> = ({x, y, w = 110, h = 74, text, color = C.blue, fill, p = 1, size = 34}) => (
-  <div dir="ltr" style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 14, border: `3px solid ${color}`, background: fill ?? `${color}1f`, color: C.text, fontFamily: MONO, fontWeight: 700, fontSize: size, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: clamp(p), transform: `scale(${0.7 + 0.3 * clamp(p)})`}}>
-    {text}
+/**
+ * Render a string with per-character coloring. Each char gets a color based on
+ * whether it should currently be in lowercase/uppercase/title state.
+ * Used to visualize the case-normalization gate effect on a flowing string.
+ */
+export const CaseString: React.FC<{
+  text: string;
+  // null = raw, 'lower' | 'upper' | 'initcap' = transform applied
+  mode: 'raw' | 'lower' | 'upper' | 'initcap';
+  // for the animated gate: which character index has been "processed"
+  progress: number; // 0..text.length
+  color: string;
+  baseColor?: string;
+  size?: number;
+  x: number;
+  y: number;
+}> = ({text, mode, progress, color, baseColor = C.muted, size = 32, x, y}) => {
+  const transform = (ch: string, idx: number): string => {
+    if (idx >= progress) return ch; // not yet processed
+    if (mode === 'lower') return ch.toLowerCase();
+    if (mode === 'upper') return ch.toUpperCase();
+    if (mode === 'initcap') {
+      // first letter of each word segment capitalized, rest lower
+      const prev = idx > 0 ? text[idx - 1] : ' ';
+      const isWordStart = /[^a-zA-Z]/.test(prev) || idx === 0;
+      return isWordStart ? ch.toUpperCase() : ch.toLowerCase();
+    }
+    return ch;
+  };
+  return (
+    <div dir="ltr" style={{position: 'absolute', left: x, top: y, fontFamily: MONO, fontSize: size, fontWeight: 700, letterSpacing: 1, whiteSpace: 'pre'}}>
+      {text.split('').map((ch, i) => {
+        const processed = i < progress;
+        return (
+          <span key={i} style={{color: processed ? color : baseColor, transition: 'none', textShadow: processed ? `0 0 8px ${color}88` : 'none'}}>
+            {transform(ch, i)}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
+/** A vertical "laser gate" — a glowing vertical bar that the text passes through. */
+export const Gate: React.FC<{x: number; y: number; h: number; color: string; label: string; p: number; active: boolean}> = ({x, y, h, color, label, p, active}) => (
+  <>
+    <div style={{position: 'absolute', left: x - 3, top: y, width: 6, height: h, background: color, opacity: clamp(p) * (active ? 1 : 0.5), boxShadow: `0 0 ${active ? 28 : 14}px ${color}`}} />
+    <div style={{position: 'absolute', left: x - 80, top: y - 38, width: 160, textAlign: 'center', opacity: clamp(p)}}>
+      <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color}}>{label}</div>
+    </div>
+    <div style={{position: 'absolute', left: x - 80, top: y + h + 8, width: 160, textAlign: 'center', opacity: clamp(p) * (active ? 1 : 0.4)}}>
+      <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>{active ? '◆ active' : '◆ idle'}</div>
+    </div>
+  </>
+);
+
+/** Email string card used in the regex mesh filter (Scene 3). */
+export const EmailChip: React.FC<{x: number; y: number; w: number; addr: string; valid: boolean; p: number; rejected?: boolean; passed?: boolean}> = ({x, y, w, addr, valid, p, rejected, passed}) => {
+  const color = valid ? C.green : C.red;
+  const bg = rejected ? `${C.red}1a` : passed ? `${C.green}1a` : C.deep;
+  return (
+    <div dir="ltr" style={{position: 'absolute', left: x, top: y, width: w, height: 56, borderRadius: 12, border: `2px solid ${color}`, background: bg, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 22, color: C.text, opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 14}px)`, boxShadow: rejected ? `0 0 18px ${C.red}88` : passed ? `0 0 18px ${C.green}88` : 'none'}}>
+      <span style={{fontWeight: 700, color}}>{valid ? '✓' : '✗'}</span>
+      <span style={{marginLeft: 12, flex: 1}}>{addr}</span>
+    </div>
+  );
+};
+
+/** Vertical B-Tree index node (used in Scene 4). */
+export const BTreeNode: React.FC<{x: number; y: number; w: number; h: number; label: string; color: string; glow?: number; p?: number}> = ({x, y, w, h, label, color, glow = 0, p = 1}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 10, border: `2px solid ${color}`, background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 18, fontWeight: 700, color, opacity: clamp(p), boxShadow: glow > 0.01 ? `0 0 ${20 * glow}px ${color}` : 'none', transform: `scale(${0.85 + 0.15 * clamp(p)})`}}>
+    {label}
   </div>
 );

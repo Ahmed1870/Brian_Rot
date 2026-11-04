@@ -1,93 +1,117 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Cell, Check, Chip, Editor, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
-import {PRODUCTS, PROMO} from '../data';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
+import {NAMES} from '../data';
 
-// SC02 (40-85s): NOT IN + NULL trap, then the IS NOT NULL fix.
-// Anchors (s): 41.1 here we reach | 50.4 subquery | 58.3 fails | 61.5 engineering reason | 67.0 <> | 68.8 since | 72.6 whole condition | 75.1 protect | 81.7 IS NOT NULL
+// SC02 (40-85s): LIKE vs ILIKE — Wildcards and Case Sensitivity
+// Anchors (s): 41.1 wildcards | 45.0 LIKE | 52.0 ILIKE | 60.0 % | 65.0 _ | 70.0 case-insensitive | 78.0 easy find
 const S = START.s2;
 const t = (g: number) => sec(g - S);
 
 export const Scene2: React.FC = () => {
   const f = useCurrentFrame();
-  const fix = f >= t(81.7);
-  const fixP = clamp(lin(f, t(81.7), 18));
-  const lock = pop(f, t(58.3));
-  const rows: {l: string; v: string; c: string; at: number}[] = [
-    {l: 'product_id <> 10', v: 'TRUE', c: C.green, at: 61.5},
-    {l: 'AND product_id <> 20', v: 'TRUE', c: C.green, at: 64.5},
-    {l: 'AND product_id <> NULL', v: 'UNKNOWN', c: C.red, at: 68.8},
-  ];
+  // Left panel: LIKE 'a%' (case-sensitive) — only 'ahmed' matches
+  // Right panel: ILIKE 'a%' (case-insensitive) — both 'ahmed' and 'Ahmed' match
+  const leftP = clamp(lin(f, t(41.5), 14));
+  const rightP = clamp(lin(f, t(52), 14));
+  const wildcardP = clamp(lin(f, t(60), 14));
+
+  // Scan animation: a laser passes through the rows
+  const leftScan = clamp(lin(f, t(46), sec(5)));
+  const rightScan = clamp(lin(f, t(53), sec(5)));
+
+  const ROW_H = 56;
+  const ROW0 = 70;
 
   return (
     <Stage dur={1350} inFx="left" outFx="left">
-      <TopBadge text="فخ القيم المفقودة | NOT IN & the NULL Trap" from={sec(2)} to={sec(40)} color={C.red} />
+      <TopBadge text="المطابقة بالأنماط | LIKE vs ILIKE Wildcards" from={sec(2)} to={sec(40)} color={C.amber} />
 
-      <Editor x={80} y={180} w={800} h={260} title="Query Editor" lines={['SELECT name FROM products', 'WHERE product_id NOT IN (', '  SELECT product_id FROM promo_items', ');']} start={t(41.1)} cps={1.0} size={28} accent={f > t(58.3) && !fix ? C.red : C.border} hl={f > t(50.4) ? 1 : -1} hlColor={C.red} />
-
-      <div style={{position: 'absolute', left: 80, top: 470, width: 800, height: 150, borderRadius: 22, border: `2px dashed ${C.blue}`, background: `${C.blue}0d`, opacity: clamp(lin(f, t(50.4), 16))}}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 10, fontFamily: MONO, fontSize: 22, color: C.blue}}>promo_items.product_id → [10, 20, NULL]</div>
-        {PROMO.map((v, i) => (
-          <Cell key={i} x={34 + i * 240} y={58} w={200} text={v === null ? 'NULL' : String(v)} color={v === null ? C.red : C.blue} p={pop(f, t(51.5 + i * 0.5))} />
-        ))}
-      </div>
-
-      {/* safety fix editor */}
-      <div style={{opacity: clamp(lin(f, t(75.1), 18))}}>
-        <Editor x={80} y={650} w={800} h={200} title="Safety Fix" lines={['SELECT product_id FROM promo_items', 'WHERE product_id IS NOT NULL']} start={t(77.5)} cps={0.9} size={28} accent={fix ? C.green : C.amber} hl={fix ? 1 : -1} hlColor={C.green} />
-      </div>
-
-      {/* evaluation panel */}
-      <Win x={960} y={180} w={880} h={680} title="evaluation · Keyboard (product_id = 30)" accent={fix ? C.green : C.border}>
-        <div dir="ltr" style={{position: 'absolute', left: 36, top: 22, right: 36}}>
-          {rows.map((r, i) => {
-            const p = clamp(lin(f, t(r.at), 14));
-            const struck = fix && r.v === 'UNKNOWN';
+      {/* LEFT: LIKE 'a%' — case-sensitive */}
+      <div style={{opacity: leftP, transform: `translateX(${(1 - leftP) * -30}px)`}}>
+        <Editor x={80} y={180} w={860} h={150} title="PostgreSQL · Case-Sensitive" lines={["WHERE name LIKE 'a%'"]} start={t(42)} cps={1.0} size={28} accent={C.red} />
+        <Win x={80} y={350} w={860} h={540} title="LIKE 'a%' · matches lowercase only" accent={C.red}>
+          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 30px', fontFamily: MONO, fontSize: 22, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+            <span style={{width: 80}}>id</span>
+            <span style={{flex: 1}}>name</span>
+            <span style={{width: 180, textAlign: 'right'}}>match</span>
+          </div>
+          {NAMES.map((n, i) => {
+            const scanRow = Math.floor(leftScan * NAMES.length);
+            const scanned = i <= scanRow;
+            const isMatch = n.name === 'ahmed'; // case-sensitive: only 'ahmed' (lowercase)
+            const showMatch = scanned && isMatch;
+            const showReject = scanned && !isMatch && n.name.toLowerCase() === 'ahmed'; // 'Ahmed' would be a case-mismatch
+            const showMiss = scanned && !isMatch && n.name.toLowerCase() !== 'ahmed';
             return (
-              <div key={i} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 62, opacity: p * (struck ? 0.35 : 1), transform: `translateX(${(1 - p) * 30}px)`, fontFamily: MONO, fontSize: 32, textDecoration: struck ? 'line-through' : 'none'}}>
-                <span style={{color: C.text}}>{r.l}</span>
-                <span style={{color: r.c, fontWeight: 700}}>{r.v}</span>
+              <div key={n.id} dir="ltr" style={{position: 'absolute', left: 14, right: 14, top: ROW0 + i * ROW_H + 4, height: ROW_H - 8, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: MONO, fontSize: 26, background: showMatch ? `${C.red}33` : 'transparent', border: `2px solid ${showMatch ? C.red : 'transparent'}`, color: showMiss ? '#64748B' : C.text, opacity: scanned ? 1 : 0.4}}>
+                <span style={{width: 64, fontWeight: 700, color: C.blue}}>{n.id}</span>
+                <span style={{flex: 1}}>{n.name}</span>
+                <span style={{width: 180, textAlign: 'right', color: showMatch ? C.green : showReject ? C.red : '#475569', fontWeight: 700}}>
+                  {showMatch ? '✓ match' : showReject ? '✗ case mismatch' : showMiss ? '— no' : ''}
+                </span>
               </div>
             );
           })}
-          <div style={{height: 3, background: C.border, margin: '6px 0', opacity: clamp(lin(f, t(72.6), 10))}} />
-          <div style={{display: 'flex', justifyContent: 'space-between', height: 64, alignItems: 'center', opacity: clamp(lin(f, t(72.6), 14)), fontFamily: MONO, fontSize: 30}}>
-            <span style={{color: C.muted}}>{fix ? 'TRUE AND TRUE' : 'TRUE AND TRUE AND UNKNOWN'}</span>
-            <span style={{color: fix ? C.green : C.red, fontWeight: 700}}>{fix ? '= TRUE ✓' : '= UNKNOWN ✗'}</span>
+          {/* scan laser */}
+          {leftScan < 1 ? (
+            <div style={{position: 'absolute', left: 0, right: 0, top: ROW0 + leftScan * NAMES.length * ROW_H, height: 3, background: C.red, boxShadow: `0 0 20px ${C.red}`, opacity: 0.9}} />
+          ) : null}
+          <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 24, display: 'flex', gap: 12, alignItems: 'center', opacity: clamp(pop(f, t(58)))}}>
+            <Warn size={44} />
+            <div style={{fontFamily: MONO, fontSize: 26, color: C.red, fontWeight: 700}}>Result: 1 row · misses 'Ahmed'</div>
           </div>
-        </div>
+        </Win>
+      </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 36, right: 36, top: 330, display: 'flex', gap: 10}}>
-          {PRODUCTS.map((p, i) => {
-            const inPromo = PROMO.includes(p.id);
-            const show = clamp(lin(f, t(58.3), 14));
-            const keep = fix && !inPromo;
-            const color = keep ? C.green : fix && inPromo ? C.muted : C.red;
+      {/* RIGHT: ILIKE 'a%' — case-insensitive */}
+      <div style={{opacity: rightP, transform: `translateX(${(1 - rightP) * 30}px)`}}>
+        <Editor x={980} y={180} w={860} h={150} title="PostgreSQL · Case-Insensitive" lines={["WHERE name ILIKE 'a%'"]} start={t(52.5)} cps={1.0} size={28} accent={C.green} />
+        <Win x={980} y={350} w={860} h={540} title="ILIKE 'a%' · matches any case" accent={C.green}>
+          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 30px', fontFamily: MONO, fontSize: 22, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+            <span style={{width: 80}}>id</span>
+            <span style={{flex: 1}}>name</span>
+            <span style={{width: 180, textAlign: 'right'}}>match</span>
+          </div>
+          {NAMES.map((n, i) => {
+            const scanRow = Math.floor(rightScan * NAMES.length);
+            const scanned = i <= scanRow;
+            const isMatch = n.name.toLowerCase().startsWith('a'); // case-insensitive: both 'ahmed' and 'Ahmed' match
+            const showMatch = scanned && isMatch;
+            const showMiss = scanned && !isMatch;
             return (
-              <div key={p.id} style={{flex: 1, height: 96, borderRadius: 14, border: `3px solid ${show > 0.1 ? color : C.border}`, background: keep ? `${C.green}22` : C.deep, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, color: C.text, opacity: fix && inPromo ? 0.4 : 1}}>
-                <div style={{fontSize: 28, fontWeight: 700}}>{p.id}</div>
-                <div style={{fontSize: 20, color: C.muted}}>{p.name}</div>
+              <div key={n.id} dir="ltr" style={{position: 'absolute', left: 14, right: 14, top: ROW0 + i * ROW_H + 4, height: ROW_H - 8, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: MONO, fontSize: 26, background: showMatch ? `${C.green}33` : 'transparent', border: `2px solid ${showMatch ? C.green : 'transparent'}`, color: showMiss ? '#64748B' : C.text, opacity: scanned ? 1 : 0.4}}>
+                <span style={{width: 64, fontWeight: 700, color: C.blue}}>{n.id}</span>
+                <span style={{flex: 1}}>{n.name}</span>
+                <span style={{width: 180, textAlign: 'right', color: showMatch ? C.green : showMiss ? '#475569' : '#475569', fontWeight: 700}}>{showMatch ? '✓ match' : showMiss ? '— no' : ''}</span>
               </div>
             );
           })}
-        </div>
-
-        <div style={{position: 'absolute', left: 36, right: 36, top: 440, height: 110, borderRadius: 20, border: `3px solid ${fix ? C.green : C.red}`, background: fix ? `${C.green}1a` : `${C.red}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, opacity: clamp(lock)}}>
-          {fix ? <Check p={fixP} size={72} /> : <Warn size={72} />}
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 40, fontWeight: 700, color: fix ? C.green : C.red}}>
-            {fix ? 'Result: 3 rows returned ✓' : 'Result: 0 rows returned ✗'}
+          {rightScan < 1 ? (
+            <div style={{position: 'absolute', left: 0, right: 0, top: ROW0 + rightScan * NAMES.length * ROW_H, height: 3, background: C.green, boxShadow: `0 0 20px ${C.green}`, opacity: 0.9}} />
+          ) : null}
+          <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 24, display: 'flex', gap: 12, alignItems: 'center', opacity: clamp(pop(f, t(66)))}}>
+            <Check p={pop(f, t(66))} size={44} />
+            <div style={{fontFamily: MONO, fontSize: 24, color: C.green, fontWeight: 700}}>Result: 2 rows · both 'ahmed' & 'Ahmed'</div>
           </div>
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 36, right: 36, top: 568, display: 'flex', gap: 14, justifyContent: 'center', opacity: fixP}}>
-          {['Keyboard', 'Monitor', 'Webcam'].map((n) => (
-            <Chip key={n} color={C.green} style={{fontSize: 28}}>{n}</Chip>
-          ))}
-        </div>
-      </Win>
+        </Win>
+      </div>
 
-      <Caption text="NOT IN ([10, 20, NULL]) ──► Evaluates to UNKNOWN (0 Rows Returned!)" from={t(58.3)} to={t(74.5)} tone="danger" />
-      <Caption text="Safety Fix: Add WHERE column IS NOT NULL in Subquery" from={t(76)} to={sec(44)} tone="ok" />
+      {/* Wildcard legend at bottom */}
+      <div style={{position: 'absolute', left: 80, top: 892, width: 1760, opacity: wildcardP, display: 'flex', gap: 24, justifyContent: 'center'}}>
+        <Chip color={C.amber} style={{fontSize: 26}}>
+          <span style={{fontSize: 32, fontWeight: 700}}>%</span> &nbsp;multiple chars
+        </Chip>
+        <Chip color={C.amber} style={{fontSize: 26}}>
+          <span style={{fontSize: 32, fontWeight: 700}}>_</span> &nbsp;single char
+        </Chip>
+        <Chip color={C.red} style={{fontSize: 26}}>LIKE = case-sensitive</Chip>
+        <Chip color={C.green} style={{fontSize: 26}}>ILIKE = case-insensitive</Chip>
+      </div>
+
+      <Caption text="LIKE 'a%' ──► Case-Sensitive Matching (% = Multiple, _ = Single)" from={t(42)} to={t(60)} tone="danger" />
+      <Caption text="ILIKE 'a%' ──► PostgreSQL Case-Insensitive Pattern Matching" from={t(62)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };
