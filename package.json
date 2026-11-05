@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-45-materialized-views",
+  "name": "manzooma-sql-lesson-46-matviews-acceleration",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 45: Materialized Views & REFRESH Strategies (CREATE MATERIALIZED VIEW, REFRESH vs CONCURRENTLY, UNIQUE index, pg_class, work_mem diff, annual sales dashboard) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 46: MatViews Acceleration Strategies (Pre-Aggregation, pg_cron, Hybrid UNION ALL, Partial Indexes, Query Cost Reduction, maintenance_work_mem, Regional Sales Dashboard) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L45-Materialized-Views out/sql-l45-materialized-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L46-MatViews-Acceleration out/sql-l46-matviews-acceleration.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

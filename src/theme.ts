@@ -10,9 +10,9 @@ export const MONO = `${mono.fontFamily}, Consolas, 'Courier New', monospace`;
 export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const TOTAL_FRAMES = 7200; // 240s * 30fps
-export const LESSON = 45;
-export const COMP_ID = 'SQL-L45-Materialized-Views';
+export const TOTAL_FRAMES = 7200;
+export const LESSON = 46;
+export const COMP_ID = 'SQL-L46-MatViews-Acceleration';
 
 export const C = {
   bg: '#0F172A',
@@ -21,11 +21,11 @@ export const C = {
   border: '#334155',
   muted: '#94A3B8',
   text: '#F8FAFC',
-  blue: '#38BDF8', // physical MatView block / work_mem diff engine
-  green: '#10B981', // physical storage / non-blocking refresh / high-speed benchmark / seal
-  amber: '#F59E0B', // pg_class catalog node
-  red: '#EF4444', // AccessExclusiveLock / pre-indexing benchmark
-  purple: '#A855F7', // UNIQUE Index requirement shield
+  blue: '#38BDF8',
+  green: '#10B981',
+  amber: '#F59E0B',
+  red: '#EF4444',
+  purple: '#A855F7',
 };
 
 export const SCENES = {

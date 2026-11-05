@@ -1,30 +1,26 @@
-// manzooma_store_db — Lesson 45 dataset
+// manzooma_store_db — Lesson 46 dataset
 
-/** Annual sales summary data for materialized view demos. */
-export const ANNUAL_SALES: {store_id: number; sales_year: string; total_revenue: number}[] = [
-  {store_id: 1, sales_year: '2023', total_revenue: 1250000},
-  {store_id: 2, sales_year: '2023', total_revenue: 980000},
-  {store_id: 3, sales_year: '2023', total_revenue: 1620000},
-  {store_id: 4, sales_year: '2023', total_revenue: 740000},
-  {store_id: 5, sales_year: '2023', total_revenue: 2110000},
-  {store_id: 1, sales_year: '2024', total_revenue: 1480000},
-  {store_id: 2, sales_year: '2024', total_revenue: 1120000},
-  {store_id: 3, sales_year: '2024', total_revenue: 1950000},
+/** Regional sales data for monthly MatView dashboard. */
+export const REGIONAL_SALES: {region_id: number; region_name: string; month: string; revenue: number}[] = [
+  {region_id: 1, region_name: 'Cairo', month: '2024-01', revenue: 450000},
+  {region_id: 2, region_name: 'Alexandria', month: '2024-01', revenue: 320000},
+  {region_id: 3, region_name: 'Giza', month: '2024-01', revenue: 580000},
+  {region_id: 1, region_name: 'Cairo', month: '2024-02', revenue: 520000},
+  {region_id: 2, region_name: 'Alexandria', month: '2024-02', revenue: 380000},
+  {region_id: 3, region_name: 'Giza', month: '2024-02', revenue: 610000},
+  {region_id: 1, region_name: 'Cairo', month: '2024-03', revenue: 610000},
+  {region_id: 2, region_name: 'Alexandria', month: '2024-03', revenue: 420000},
 ];
 
-/** Benchmark timing data (Scene 3). */
-export const BENCHMARK = {
-  beforeMs: 252000, // 4.2 minutes in ms
-  afterMs: 2, // 0.002 seconds in ms
-  beforeLabel: '4.2 Minutes',
-  afterLabel: '0.002 Seconds',
+/** Benchmark cost data (Scene 4). */
+export const COST_BENCHMARK = {
+  beforeCost: 45210,
+  afterCost: 8.42,
 };
 
-/** Store names for Scene 5 dashboard. */
-export const STORE_NAMES: {id: number; name: string; region: string}[] = [
-  {id: 1, name: 'Cairo Downtown', region: 'Cairo'},
-  {id: 2, name: 'Alexandria Bay', region: 'Alexandria'},
-  {id: 3, name: 'Giza Plaza', region: 'Giza'},
-  {id: 4, name: 'Luxor Temple', region: 'Luxor'},
-  {id: 5, name: 'Aswan Nile', region: 'Aswan'},
+/** Pipeline layers (Scene 1). */
+export const PIPELINE_LAYERS = [
+  {layer: 1, label: 'Raw Tables', desc: '10M+ rows · star schema JOINs', color: '#EF4444'},
+  {layer: 2, label: 'Pre-Aggregation', desc: 'SUM · GROUP BY · indexed', color: '#38BDF8'},
+  {layer: 3, label: 'MatView Snapshot', desc: 'instant read · 0 JOINs', color: '#10B981'},
 ];
