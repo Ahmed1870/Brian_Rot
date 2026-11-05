@@ -18,8 +18,6 @@ export const typed = (text: string, frame: number, start: number, cps = 1.4) =>
 
 export const lin = (f: number, start: number, dur: number) => clamp((f - start) / dur);
 
-/* ---------------------------------------------------------------- global layers */
-
 export const Backdrop: React.FC = () => {
   const f = useCurrentFrame();
   const o = (f * 0.2) % 48;
@@ -59,8 +57,6 @@ export const Chrome: React.FC = () => {
   );
 };
 
-/* ---------------------------------------------------------------- scene stage + transitions */
-
 export type InFx = 'none' | 'zoom' | 'left' | 'morph' | 'up' | 'fade';
 export type OutFx = 'none' | 'zoom' | 'left' | 'morph' | 'up' | 'down' | 'fade' | 'black';
 
@@ -86,8 +82,6 @@ export const Stage: React.FC<{dur: number; inFx?: InFx; outFx?: OutFx; children:
     <AbsoluteFill style={{opacity: pi * (1 - po), transform: `translate(${x}px, ${y}px) scale(${s})`, fontFamily: FONT}}>{children}</AbsoluteFill>
   );
 };
-
-/* ---------------------------------------------------------------- UI building blocks */
 
 export const Mix: React.FC<{children: React.ReactNode; style?: React.CSSProperties}> = ({children, style}) => (
   <span dir="auto" style={{unicodeBidi: 'plaintext', fontFamily: FONT, ...style}}>{children}</span>
@@ -117,7 +111,7 @@ export const Caption: React.FC<{text: string; from: number; to: number; tone?: '
   const blink = Math.floor(f / 12) % 2 === 0 ? 1 : 0;
   return (
     <div style={{position: 'absolute', left: 0, right: 0, top: 940, display: 'flex', justifyContent: 'center', opacity: o}}>
-      <div dir="ltr" style={{fontFamily: MONO, fontSize: 30, color: C.text, background: C.card, border: `2px solid ${edge}`, borderRadius: 16, padding: '16px 34px', whiteSpace: 'pre', minHeight: 44, boxShadow: tone === 'normal' ? 'none' : `0 0 0 6px ${edge}22`}}>
+      <div dir="ltr" style={{fontFamily: MONO, fontSize: 28, color: C.text, background: C.card, border: `2px solid ${edge}`, borderRadius: 16, padding: '16px 34px', whiteSpace: 'pre', minHeight: 44, boxShadow: tone === 'normal' ? 'none' : `0 0 0 6px ${edge}22`}}>
         {parts.map((p, i) => (
           <span key={i} style={{color: /^──/.test(p) ? C.amber : C.text}}>{p}</span>
         ))}
@@ -161,9 +155,8 @@ export const Warn: React.FC<{size?: number; color?: string}> = ({size = 64, colo
   </svg>
 );
 
-/* ---------------------------------------------------------------- SQL helpers */
-const KW = /(\b(?:SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST|PERCENT_RANK|CUME_DIST|PERCENTILE_CONT|PERCENTILE_DISC|WITHIN|WITH|CTE|DESC|ASC)\b|'[^']*'|\b\d+(?:\.\d+)?\b)/;
-const KWONLY = /^(SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST|PERCENT_RANK|CUME_DIST|PERCENTILE_CONT|PERCENTILE_DISC|WITHIN|WITH|CTE|DESC|ASC)$/;
+const KW = /(\b(?:SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST|PERCENT_RANK|CUME_DIST|PERCENTILE_CONT|PERCENTILE_DISC|WITHIN|WITH|CTE|DESC|ASC|GROUPS|VIEW)\b|'[^']*'|\b\d+(?:\.\d+)?\b)/;
+const KWONLY = /^(SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST|PERCENT_RANK|CUME_DIST|PERCENTILE_CONT|PERCENTILE_DISC|WITHIN|WITH|CTE|DESC|ASC|GROUPS|VIEW)$/;
 
 export const Sql: React.FC<{text: string; strike?: boolean; dim?: boolean}> = ({text, strike, dim}) => (
   <span style={{textDecoration: strike ? 'line-through' : 'none', opacity: dim ? 0.45 : 1}}>
@@ -208,9 +201,6 @@ export const Editor: React.FC<{
   );
 };
 
-/* ---------------------------------------------------------------- Lesson 41 specific helpers */
-
-/** Pipeline node card for Sort + WindowAgg visualization. */
 export const PipeNode: React.FC<{x: number; y: number; w: number; h: number; label: string; sublabel: string; color: string; p: number; glow?: boolean; children?: React.ReactNode}> = ({x, y, w, h, label, sublabel, color, p, glow = false, children}) => (
   <div style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 18, background: C.card, border: `3px solid ${color}`, boxShadow: glow ? `0 0 32px ${color}88` : '0 16px 40px rgba(2,6,23,0.5)', opacity: clamp(p), transform: `scale(${0.9 + 0.1 * clamp(p)})`, display: 'flex', flexDirection: 'column'}}>
     <div style={{padding: '12px 18px 0 18px'}}>

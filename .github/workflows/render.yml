@@ -1,4 +1,4 @@
-name: Render SQL Lesson 41 NTile Percentiles
+name: Render SQL Lesson 42 Window Framing
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 41 only
+      - name: Guard - this repo must contain lesson 42 only
         run: |
-          grep -q "SQL-L41-NTile-Percentiles" src/theme.ts
-          grep -q "SQL-L41-NTile-Percentiles" package.json
-          test -f public/voiceover_lesson_41.mp3
+          grep -q "SQL-L42-Window-Framing" src/theme.ts
+          grep -q "SQL-L42-Window-Framing" package.json
+          test -f public/voiceover_lesson_42.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L41-NTile-Percentiles out/sql-l41-ntile-percentiles.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l41-ntile-percentiles.mp4
+      - run: npx remotion render src/index.ts SQL-L42-Window-Framing out/sql-l42-window-framing.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l42-window-framing.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l41-ntile-percentiles
-          path: out/sql-l41-ntile-percentiles.mp4
+          name: sql-l42-window-framing
+          path: out/sql-l42-window-framing.mp4
           if-no-files-found: error

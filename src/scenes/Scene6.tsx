@@ -3,12 +3,12 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (210-240s): Manzooma Academy outro. Ends with a fade to black.
-// Anchors (s): 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 ROWS BETWEEN, RANGE BETWEEN
+// SC06 (210-240s): Manzooma Academy outro — Module 10 completed
+// Anchors: 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 CREATE VIEW
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['NTILE() ✓', 'PERCENT_RANK() ✓', 'CUME_DIST() ✓', 'PERCENTILE_CONT() ✓', 'PERCENTILE_DISC() ✓'];
+const SKILLS = ['ROWS BETWEEN ✓', 'RANGE BETWEEN ✓', 'INTERVAL framing ✓', 'UNBOUNDED scope ✓', 'work_mem tuning ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
@@ -19,7 +19,7 @@ export const Scene6: React.FC = () => {
   const modDone = prog(f, t(213.5), 20);
   const res = prog(f, t(215), 24);
   const next = prog(f, t(220), 28);
-  const code = typed("SELECT SUM(amount) OVER(\n  ORDER BY date\n  ROWS BETWEEN 6 PRECEDING\n    AND CURRENT ROW\n) AS running_total\nFROM sales;", f, t(225), 0.7).split('\n');
+  const code = typed("CREATE VIEW vip_customers AS\nSELECT customer_id, name\nFROM customers\nWHERE total_spent > 10000;", f, t(225), 0.7).split('\n');
   const pct = Math.round(fill * 100);
 
   return (
@@ -45,7 +45,7 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 30, fontWeight: 700, color: C.green}}>
-              Lesson 41 Completed: <span style={{color: C.text}}>Statistical Segmentation &amp; Percentiles Mastered</span>
+              Lesson 42 Completed: <span style={{color: C.text}}>Window Framing &amp; Module 10 Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
@@ -55,7 +55,7 @@ export const Scene6: React.FC = () => {
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 10 · Window Functions — {modDone > 0.5 ? 'Statistical Segmentation & Percentiles Mastered ✓' : 'in progress'}
+            Module 10 · Window Functions — {modDone > 0.5 ? 'Module 10 Fully Mastered ✓' : 'in progress'}
           </div>
         </div>
 
@@ -78,13 +78,13 @@ export const Scene6: React.FC = () => {
 
         <div style={{position: 'absolute', left: 90, right: 90, top: 560, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 42</Mix>
-            <Mix style={{fontSize: 34, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>تصميم الأطر الزمنية والحدود — ROWS BETWEEN و RANGE BETWEEN</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 43</Mix>
+            <Mix style={{fontSize: 34, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>إنشاء وإدارة المناظير العادية — CREATE VIEW وحماية منطق الأعمال</Mix>
           </div>
           <div dir="ltr" style={{width: 600, height: 230, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 16, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 14, marginBottom: 8}}>-- Lesson 42</div>
+            <div style={{color: '#64748B', fontSize: 14, marginBottom: 8}}>-- Lesson 43</div>
             {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 24}}>
+              <div key={i} style={{whiteSpace: 'pre', minHeight: 26}}>
                 <Sql text={l} />
                 {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
               </div>
