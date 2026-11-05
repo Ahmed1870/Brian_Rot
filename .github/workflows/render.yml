@@ -1,4 +1,4 @@
-name: Render SQL Lesson 44 Updatable Views
+name: Render SQL Lesson 45 Materialized Views
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 44 only
+      - name: Guard - this repo must contain lesson 45 only
         run: |
-          grep -q "SQL-L44-Updatable-Views" src/theme.ts
-          grep -q "SQL-L44-Updatable-Views" package.json
-          test -f public/voiceover_lesson_44.mp3
+          grep -q "SQL-L45-Materialized-Views" src/theme.ts
+          grep -q "SQL-L45-Materialized-Views" package.json
+          test -f public/voiceover_lesson_45.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L44-Updatable-Views out/sql-l44-updatable-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l44-updatable-views.mp4
+      - run: npx remotion render src/index.ts SQL-L45-Materialized-Views out/sql-l45-materialized-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l45-materialized-views.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l44-updatable-views
-          path: out/sql-l44-updatable-views.mp4
+          name: sql-l45-materialized-views
+          path: out/sql-l45-materialized-views.mp4
           if-no-files-found: error

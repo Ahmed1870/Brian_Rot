@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-44-updatable-views",
+  "name": "manzooma-sql-lesson-45-materialized-views",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 44: Updatable Views & WITH CHECK OPTION (DML pass-through, INSTEAD OF triggers, LOCAL vs CASCADED, Rewrite Rule Engine, inventory pricing dashboard) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 45: Materialized Views & REFRESH Strategies (CREATE MATERIALIZED VIEW, REFRESH vs CONCURRENTLY, UNIQUE index, pg_class, work_mem diff, annual sales dashboard) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L44-Updatable-Views out/sql-l44-updatable-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L45-Materialized-Views out/sql-l45-materialized-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
