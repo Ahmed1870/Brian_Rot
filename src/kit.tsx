@@ -7,21 +7,19 @@ export const sec = (s: number) => Math.round(s * FPS);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 
-/** Eased 0..1 progress from `start` (frames) lasting `dur` frames. */
 export const prog = (frame: number, start: number, dur: number) =>
   interpolate(frame, [start, start + dur], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: ease});
 
-/** Springy 0..~1 pop-in starting at `start`. */
 export const pop = (frame: number, start: number) =>
   frame < start ? 0 : spring({frame: frame - start, fps: FPS, config: {damping: 13, stiffness: 150, mass: 0.7}});
 
-/** Typed text: how many characters are visible. */
 export const typed = (text: string, frame: number, start: number, cps = 1.4) =>
   text.slice(0, Math.floor(clamp((frame - start) * cps, 0, text.length)));
 
+export const lin = (f: number, start: number, dur: number) => clamp((f - start) / dur);
+
 /* ---------------------------------------------------------------- global layers */
 
-/** Dark slate backdrop with a slowly drifting dot grid. */
 export const Backdrop: React.FC = () => {
   const f = useCurrentFrame();
   const o = (f * 0.2) % 48;
@@ -40,7 +38,6 @@ export const Backdrop: React.FC = () => {
   );
 };
 
-/** Persistent chrome: course chip, scene dots, overall progress bar. */
 export const Chrome: React.FC = () => {
   const f = useCurrentFrame();
   const starts = Object.values(SCENES).map((s) => s.from);
@@ -69,16 +66,13 @@ export type OutFx = 'none' | 'zoom' | 'left' | 'morph' | 'up' | 'down' | 'fade' 
 
 const N = 18;
 
-/** Wraps a scene and applies its 2D enter / exit transition. */
 export const Stage: React.FC<{dur: number; inFx?: InFx; outFx?: OutFx; children: React.ReactNode}> = ({dur, inFx = 'fade', outFx = 'fade', children}) => {
   const f = useCurrentFrame();
   const pi = inFx === 'none' ? 1 : prog(f, 0, N);
   const outLen = outFx === 'black' ? 24 : N;
   const po = outFx === 'none' ? 0 : prog(f, dur - outLen, outLen);
   const a = 1 - pi;
-  let x = 0;
-  let y = 0;
-  let s = 1;
+  let x = 0, y = 0, s = 1;
   if (inFx === 'zoom') s *= 0.92 + 0.08 * pi;
   if (inFx === 'left') x += 160 * a;
   if (inFx === 'morph') s *= 1.05 - 0.05 * pi;
@@ -95,12 +89,10 @@ export const Stage: React.FC<{dur: number; inFx?: InFx; outFx?: OutFx; children:
 
 /* ---------------------------------------------------------------- UI building blocks */
 
-/** Bidi-safe text: Arabic and Latin mix in one line. */
 export const Mix: React.FC<{children: React.ReactNode; style?: React.CSSProperties}> = ({children, style}) => (
   <span dir="auto" style={{unicodeBidi: 'plaintext', fontFamily: FONT, ...style}}>{children}</span>
 );
 
-/** Top badge (pops in, fades out). */
 export const TopBadge: React.FC<{text: string; from: number; to: number; color?: string}> = ({text, from, to, color = C.blue}) => {
   const f = useCurrentFrame();
   if (f < from || f > to + 12) return null;
@@ -109,13 +101,12 @@ export const TopBadge: React.FC<{text: string; from: number; to: number; color?:
   return (
     <div style={{position: 'absolute', left: 0, right: 0, top: 70, display: 'flex', justifyContent: 'center', opacity: o}}>
       <div style={{transform: `scale(${0.85 + 0.15 * p})`, background: C.card, border: `2px solid ${color}`, borderRadius: 999, padding: '14px 40px', boxShadow: `0 0 0 6px ${color}22`}}>
-        <Mix style={{fontSize: 40, fontWeight: 700, color: C.text}}>{text}</Mix>
+        <Mix style={{fontSize: 38, fontWeight: 700, color: C.text}}>{text}</Mix>
       </div>
     </div>
   );
 };
 
-/** Bottom on-screen typography line: types in, then fades out. Arrow segments are amber. */
 export const Caption: React.FC<{text: string; from: number; to: number; tone?: 'normal' | 'danger' | 'ok'}> = ({text, from, to, tone = 'normal'}) => {
   const edge = tone === 'danger' ? C.red : tone === 'ok' ? C.green : C.border;
   const f = useCurrentFrame();
@@ -126,7 +117,7 @@ export const Caption: React.FC<{text: string; from: number; to: number; tone?: '
   const blink = Math.floor(f / 12) % 2 === 0 ? 1 : 0;
   return (
     <div style={{position: 'absolute', left: 0, right: 0, top: 940, display: 'flex', justifyContent: 'center', opacity: o}}>
-      <div dir="ltr" style={{fontFamily: MONO, fontSize: 32, color: C.text, background: C.card, border: `2px solid ${edge}`, borderRadius: 16, padding: '16px 34px', whiteSpace: 'pre', minHeight: 44, boxShadow: tone === 'normal' ? 'none' : `0 0 0 6px ${edge}22`}}>
+      <div dir="ltr" style={{fontFamily: MONO, fontSize: 30, color: C.text, background: C.card, border: `2px solid ${edge}`, borderRadius: 16, padding: '16px 34px', whiteSpace: 'pre', minHeight: 44, boxShadow: tone === 'normal' ? 'none' : `0 0 0 6px ${edge}22`}}>
         {parts.map((p, i) => (
           <span key={i} style={{color: /^──/.test(p) ? C.amber : C.text}}>{p}</span>
         ))}
@@ -136,51 +127,25 @@ export const Caption: React.FC<{text: string; from: number; to: number; tone?: '
   );
 };
 
-/** Window chrome (title bar + content area that starts below the bar). */
 export const Win: React.FC<{
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  title: string;
-  accent?: string;
-  opacity?: number;
-  scale?: number;
-  children?: React.ReactNode;
+  x: number; y: number; w: number; h: number; title: string;
+  accent?: string; opacity?: number; scale?: number; children?: React.ReactNode;
 }> = ({x, y, w, h, title, accent = C.border, opacity = 1, scale = 1, children}) => (
-  <div
-    style={{
-      position: 'absolute',
-      left: x,
-      top: y,
-      width: w,
-      height: h,
-      borderRadius: 22,
-      background: C.card,
-      border: `2px solid ${accent}`,
-      boxShadow: '0 26px 70px rgba(2,6,23,0.55)',
-      overflow: 'hidden',
-      opacity,
-      transform: `scale(${scale})`,
-      transformOrigin: '50% 50%',
-    }}
-  >
-    <div style={{height: 56, background: C.deep, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 22px', gap: 10}}>
-      <div style={{width: 14, height: 14, borderRadius: 7, background: C.red}} />
-      <div style={{width: 14, height: 14, borderRadius: 7, background: C.amber}} />
-      <div style={{width: 14, height: 14, borderRadius: 7, background: C.green}} />
-      <div dir="ltr" style={{marginLeft: 16, fontFamily: MONO, fontSize: 21, color: C.muted}}>{title}</div>
+  <div style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 22, background: C.card, border: `2px solid ${accent}`, boxShadow: '0 26px 70px rgba(2,6,23,0.55)', overflow: 'hidden', opacity, transform: `scale(${scale})`, transformOrigin: '50% 50%'}}>
+    <div style={{height: 52, background: C.deep, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 22px', gap: 10}}>
+      <div style={{width: 13, height: 13, borderRadius: 7, background: C.red}} />
+      <div style={{width: 13, height: 13, borderRadius: 7, background: C.amber}} />
+      <div style={{width: 13, height: 13, borderRadius: 7, background: C.green}} />
+      <div dir="ltr" style={{marginLeft: 16, fontFamily: MONO, fontSize: 20, color: C.muted}}>{title}</div>
     </div>
-    <div style={{position: 'absolute', left: 0, right: 0, top: 56, bottom: 0}}>{children}</div>
+    <div style={{position: 'absolute', left: 0, right: 0, top: 52, bottom: 0}}>{children}</div>
   </div>
 );
 
-/** Small rounded chip. */
 export const Chip: React.FC<{children: React.ReactNode; color?: string; style?: React.CSSProperties}> = ({children, color = C.blue, style}) => (
   <div style={{display: 'inline-flex', alignItems: 'center', gap: 8, border: `2px solid ${color}`, color, borderRadius: 999, padding: '6px 18px', fontFamily: MONO, fontSize: 24, fontWeight: 700, background: `${color}18`, ...style}}>{children}</div>
 );
 
-/** Reusable check mark that pops in. */
 export const Check: React.FC<{size?: number; color?: string; p: number}> = ({size = 44, color = C.green, p}) => (
   <svg width={size} height={size} viewBox="0 0 44 44" style={{transform: `scale(${p})`, opacity: clamp(p)}}>
     <circle cx={22} cy={22} r={20} fill={`${color}22`} stroke={color} strokeWidth={3} />
@@ -188,7 +153,6 @@ export const Check: React.FC<{size?: number; color?: string; p: number}> = ({siz
   </svg>
 );
 
-/** Warning triangle. */
 export const Warn: React.FC<{size?: number; color?: string}> = ({size = 64, color = C.red}) => (
   <svg width={size} height={size * 0.92} viewBox="0 0 70 64">
     <path d="M35 4 L66 58 H4 Z" fill="none" stroke={color} strokeWidth={6} strokeLinejoin="round" />
@@ -198,47 +162,26 @@ export const Warn: React.FC<{size?: number; color?: string}> = ({size = 64, colo
 );
 
 /* ---------------------------------------------------------------- SQL helpers */
-const KW = /(\b(?:SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|LOWER|UPPER|INITCAP|REGEXP_MATCH|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SEQUENCE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST)\b|'[^']*'|\b\d+(?:\.\d+)?\b)/;
-const KWONLY = /^(SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|LOWER|UPPER|INITCAP|REGEXP_MATCH|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SEQUENCE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST)$/;
+const KW = /(\b(?:SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|LOWER|UPPER|INITCAP|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST)\b|'[^']*'|\b\d+(?:\.\d+)?\b)/;
+const KWONLY = /^(SELECT|FROM|WHERE|LIKE|ILIKE|IN|NOT|AND|OR|IS|NULL|AS|CREATE|INDEX|ON|TABLE|JOIN|INNER|LEFT|GROUP|BY|ORDER|HAVING|LIMIT|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN|LOWER|UPPER|INITCAP|DISTINCT|VALUES|INSERT|INTO|UPDATE|SET|DELETE|RETURNING|EXPLAIN|ANALYZE|SCAN|USING|FILTER|OVER|PARTITION|RANGE|ROWS|BETWEEN|UNBOUNDED|PRECEDING|FOLLOWING|CURRENT|ROW|ROUND|DATE_TRUNC|EXTRACT|INTERVAL|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NTILE|RANK|DENSE_RANK|ROW_NUMBER|COALESCE|CAST)$/;
 
-/** One SQL line with simple syntax colouring. */
 export const Sql: React.FC<{text: string; strike?: boolean; dim?: boolean}> = ({text, strike, dim}) => (
   <span style={{textDecoration: strike ? 'line-through' : 'none', opacity: dim ? 0.45 : 1}}>
     {text.split(KW).map((p, i) => {
-      let color: string = C.text;
-      let w = 400;
-      if (KWONLY.test(p)) {
-        color = C.blue;
-        w = 700;
-      } else if (p.startsWith("'")) color = C.amber;
+      let color: string = C.text, w = 400;
+      if (KWONLY.test(p)) { color = C.blue; w = 700; }
+      else if (p.startsWith("'")) color = C.amber;
       else if (/^\d/.test(p)) color = C.green;
-      return (
-        <span key={i} style={{color, fontWeight: w}}>
-          {p}
-        </span>
-      );
+      return <span key={i} style={{color, fontWeight: w}}>{p}</span>;
     })}
   </span>
 );
 
-/** Code editor window: types the lines one after another. */
 export const Editor: React.FC<{
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  title?: string;
-  lines: string[];
-  start: number;
-  cps?: number;
-  size?: number;
-  accent?: string;
-  opacity?: number;
-  hl?: number;
-  hlColor?: string;
-  strikeLine?: number;
-  dim?: boolean;
-}> = ({x, y, w, h, title = 'Query Editor', lines, start, cps = 1.2, size = 26, accent = C.border, opacity = 1, hl = -1, hlColor = C.blue, strikeLine = -1, dim = false}) => {
+  x: number; y: number; w: number; h: number; title?: string;
+  lines: string[]; start: number; cps?: number; size?: number;
+  accent?: string; opacity?: number; hl?: number; hlColor?: string;
+}> = ({x, y, w, h, title = 'Query Editor', lines, start, cps = 1.2, size = 24, accent = C.border, opacity = 1, hl = -1, hlColor = C.blue}) => {
   const f = useCurrentFrame();
   const full = lines.join('\n');
   const vis = typed(full, f, start, cps).split('\n');
@@ -246,15 +189,15 @@ export const Editor: React.FC<{
   const blink = Math.floor(f / 12) % 2 === 0;
   return (
     <Win x={x} y={y} w={w} h={h} title={title} accent={accent} opacity={opacity}>
-      <div dir="ltr" style={{position: 'absolute', inset: 0, background: C.deep, padding: '18px 22px', fontFamily: MONO, fontSize: size, opacity: dim ? 0.55 : 1}}>
+      <div dir="ltr" style={{position: 'absolute', inset: 0, background: C.deep, padding: '16px 20px', fontFamily: MONO, fontSize: size}}>
         {lines.map((l, i) => {
           const v = vis[i] ?? '';
           const isLast = i === vis.length - 1;
           return (
-            <div key={i} style={{display: 'flex', minHeight: size * 1.5, alignItems: 'center', background: hl === i ? `${hlColor}22` : 'transparent', borderRadius: 8}}>
-              <span style={{color: '#475569', width: 40, flexShrink: 0}}>{i + 1}</span>
+            <div key={i} style={{display: 'flex', minHeight: size * 1.45, alignItems: 'center', background: hl === i ? `${hlColor}22` : 'transparent', borderRadius: 8}}>
+              <span style={{color: '#475569', width: 36, flexShrink: 0}}>{i + 1}</span>
               <span style={{whiteSpace: 'pre'}}>
-                <Sql text={v} strike={strikeLine === i} />
+                <Sql text={v} />
                 {isLast && !done && blink ? <span style={{color: C.green}}>▌</span> : null}
               </span>
             </div>
@@ -265,81 +208,25 @@ export const Editor: React.FC<{
   );
 };
 
-/** KPI result card: mono label + Arabic label + big value. */
 export const Kpi: React.FC<{x: number; y: number; w?: number; h?: number; label: string; ar: string; value: string; color: string; p?: number; glow?: number}> = ({x, y, w = 500, h = 84, label, ar, value, color, p = 1, glow = 0}) => (
-  <div
-    style={{
-      position: 'absolute',
-      left: x,
-      top: y,
-      width: w,
-      height: h,
-      borderRadius: 18,
-      background: C.card,
-      border: `2px solid ${glow > 0.01 ? color : C.border}`,
-      boxShadow: glow > 0.01 ? `0 0 ${30 * glow}px ${color}66` : 'none',
-      opacity: clamp(p),
-      transform: `translateX(${(1 - clamp(p)) * 40}px)`,
-      display: 'flex',
-      alignItems: 'center',
-      overflow: 'hidden',
-    }}
-  >
+  <div style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 18, background: C.card, border: `2px solid ${glow > 0.01 ? color : C.border}`, boxShadow: glow > 0.01 ? `0 0 ${30 * glow}px ${color}66` : 'none', opacity: clamp(p), transform: `translateX(${(1 - clamp(p)) * 40}px)`, display: 'flex', alignItems: 'center', overflow: 'hidden'}}>
     <div style={{width: 10, alignSelf: 'stretch', background: color}} />
     <div dir="ltr" style={{flex: 1, padding: '0 18px'}}>
-      <div style={{fontFamily: MONO, fontSize: 21, color: C.muted}}>{label}</div>
-      <Mix style={{fontSize: 20, color, display: 'block'}}>{ar}</Mix>
+      <div style={{fontFamily: MONO, fontSize: 20, color: C.muted}}>{label}</div>
+      <Mix style={{fontSize: 18, color, display: 'block'}}>{ar}</Mix>
     </div>
-    <div dir="ltr" style={{fontFamily: MONO, fontSize: 44, fontWeight: 700, color: C.text, padding: '0 24px'}}>{value}</div>
+    <div dir="ltr" style={{fontFamily: MONO, fontSize: 40, fontWeight: 700, color: C.text, padding: '0 24px'}}>{value}</div>
   </div>
 );
 
-/* ---------------------------------------------------------------- Lesson 39 specific helpers */
+/* ---------------------------------------------------------------- Lesson 40 specific helpers */
 
-export const lin = (f: number, start: number, dur: number) => clamp((f - start) / dur);
-
-/** Animated draw-on line (pathLength trick). */
-export const Draw: React.FC<{d: string; p: number; color: string; width?: number; opacity?: number}> = ({d, p, color, width = 3, opacity = 1}) => (
-  <path d={d} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" opacity={opacity} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - clamp(p)} />
-);
-
-/** A data row card for the daily revenue table. */
-export const DataRow: React.FC<{
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  day: number;
-  date: string;
-  amount: number;
-  highlight?: boolean;
-  highlightColor?: string;
-  showExtra?: string;
-  extraColor?: string;
-  dim?: boolean;
-  scanned?: boolean;
-}> = ({x, y, w, h, day, date, amount, highlight = false, highlightColor = C.green, showExtra, extraColor = C.green, dim = false, scanned}) => (
-  <div dir="ltr" style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 22, background: highlight ? `${highlightColor}22` : 'transparent', border: `1px solid ${highlight ? highlightColor : 'transparent'}`, color: dim ? '#64748B' : C.text, opacity: dim ? 0.6 : 1}}>
-    <span style={{width: 60, color: C.muted}}>#{day}</span>
-    <span style={{width: 160, color: C.blue}}>{date}</span>
-    <span style={{width: 120, color: C.text, fontWeight: 700, textAlign: 'right'}}>{amount.toLocaleString()}</span>
-    {showExtra !== undefined ? (
-      <span style={{flex: 1, textAlign: 'right', color: extraColor, fontWeight: 700, paddingRight: 8}}>{showExtra}</span>
-    ) : (
-      <span style={{flex: 1}} />
-    )}
-    {scanned !== undefined ? (
-      <span style={{width: 80, textAlign: 'right', color: scanned ? C.amber : '#475569', fontSize: 18}}>{scanned ? '✓ sorted' : 'pending'}</span>
-    ) : null}
-  </div>
-);
-
-/** Pipeline node card for the Sort + WindowAgg visualization. */
+/** Pipeline node card for the work_mem buffer visualization. */
 export const PipeNode: React.FC<{x: number; y: number; w: number; h: number; label: string; sublabel: string; color: string; p: number; glow?: boolean; children?: React.ReactNode}> = ({x, y, w, h, label, sublabel, color, p, glow = false, children}) => (
   <div style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 18, background: C.card, border: `3px solid ${color}`, boxShadow: glow ? `0 0 32px ${color}88` : '0 16px 40px rgba(2,6,23,0.5)', opacity: clamp(p), transform: `scale(${0.9 + 0.1 * clamp(p)})`, display: 'flex', flexDirection: 'column'}}>
-    <div style={{padding: '14px 20px 0 20px'}}>
-      <div dir="ltr" style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color}}>{label}</div>
-      <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginTop: 4}}>{sublabel}</div>
+    <div style={{padding: '12px 18px 0 18px'}}>
+      <div dir="ltr" style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color}}>{label}</div>
+      <div dir="ltr" style={{fontFamily: MONO, fontSize: 15, color: C.muted, marginTop: 3}}>{sublabel}</div>
     </div>
     <div style={{flex: 1, position: 'relative'}}>{children}</div>
   </div>

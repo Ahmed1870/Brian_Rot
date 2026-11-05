@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-39-running-totals",
+  "name": "manzooma-sql-lesson-40-offset-nav",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 39: Running Totals and Moving Averages (SUM OVER ORDER BY, RANGE vs ROWS, 7-day moving avg, Sort + WindowAgg pipeline, YTD dashboard) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 40: Offset & Navigation Window Functions (LAG, LEAD, FIRST_VALUE, LAST_VALUE, frame traps, work_mem buffering, MoM dashboard) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L39-Running-Totals out/sql-l39-running-totals.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L40-Offset-Nav out/sql-l40-offset-nav.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

@@ -1,127 +1,138 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
-import {DAILY_REVENUE, RUNNING_TOTALS} from '../data';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
+import {CUSTOMER_ORDERS} from '../data';
 
-// SC02 (40-85s): Implicit Frame — RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-// Anchors (s): 41.0 implicit | 45.0 RANGE | 52.0 UNBOUNDED PRECEDING | 60.0 CURRENT ROW | 68.0 stretches | 75.0 RANGE vs ROWS | 80.0 careful
+// SC02 (40-85s): LEAD() — Forward Lookahead with Default Fallback
+// Anchors (s): 41.0 LEAD | 45.0 forward | 52.0 next order | 60.0 default value | 68.0 NULL | 75.0 churn | 80.0 safe
 const S = START.s2;
 const t = (g: number) => sec(g - S);
 
-const ROW_H = 42;
-const ROW0 = 52;
+const ROW_H = 52;
+const ROW0 = 50;
 
 export const Scene2: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(41.5), 14));
-  const revealP = clamp(lin(f, t(45), 16));
-  // Window frame stretches down with the probe
-  const scanProg = clamp(lin(f, t(50), sec(28)));
-  const currentRow = Math.floor(scanProg * DAILY_REVENUE.length);
-  const warnP = clamp(pop(f, t(75)));
+  const tableP = clamp(lin(f, t(45), 14));
+  // LEAD arrow moves down: starts at t(48), reaches last row by t(72)
+  const scanProg = clamp(lin(f, t(48), sec(24)));
+  const currentRow = Math.floor(scanProg * (CUSTOMER_ORDERS.length - 1));
+  const shieldP = pop(f, t(60));
+  const sealP = pop(f, t(75));
 
   return (
     <Stage dur={1350} inFx="left" outFx="left">
-      <TopBadge text="الإطار الافتراضي | Implicit Frame: RANGE vs ROWS" from={sec(2)} to={sec(40)} color={C.purple} />
+      <TopBadge text="الاستشراف المستقبلي | LEAD() & Forward Lookahead" from={sec(2)} to={sec(40)} color={C.amber} />
 
-      {/* Editor on the left — reveals implicit frame */}
+      {/* Editor on the left */}
       <div style={{opacity: editorP}}>
         <Editor
           x={80}
           y={180}
-          w={820}
-          h={240}
-          title="PostgreSQL · Implicit Frame Reveal"
+          w={860}
+          h={250}
+          title="PostgreSQL · LEAD with Default Fallback"
           lines={[
-            'SUM(amount) OVER(',
-            '  ORDER BY order_date',
-            '  -- implicit:',
-            '  RANGE BETWEEN UNBOUNDED',
-            '    PRECEDING AND CURRENT ROW',
-            ')',
+            'SELECT customer_id, order_date,',
+            '       LEAD(order_date, 1, \'2099-12-31\')',
+            '         OVER(PARTITION BY customer_id',
+            '               ORDER BY order_date)',
+            '         AS next_order_date',
+            'FROM orders;',
           ]}
           start={t(41.5)}
-          cps={0.85}
-          size={20}
-          accent={C.purple}
-          hl={f >= t(45) ? 3 : -1}
-          hlColor={C.purple}
+          cps={0.75}
+          size={18}
+          accent={C.amber}
+          hl={f >= t(45) ? 1 : -1}
+          hlColor={C.amber}
         />
       </div>
 
-      {/* Frame explainer below editor */}
-      <div style={{position: 'absolute', left: 80, top: 470, width: 820, opacity: revealP}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 10}}>◆ frame boundary</div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px', border: `2px solid ${C.purple}`, borderRadius: 12, background: `${C.purple}0d`}}>
-            <span style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.purple, width: 220}}>UNBOUNDED PRECEDING</span>
-            <span style={{fontFamily: MONO, fontSize: 16, color: C.muted}}>starts from row 1 (absolute)</span>
-          </div>
-          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px', border: `2px solid ${C.green}`, borderRadius: 12, background: `${C.green}0d`}}>
-            <span style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.green, width: 220}}>CURRENT ROW</span>
-            <span style={{fontFamily: MONO, fontSize: 16, color: C.muted}}>up to the current row</span>
-          </div>
+      {/* Default shield explainer */}
+      <div style={{position: 'absolute', left: 80, top: 430, width: 860, opacity: clamp(lin(f, t(52), 14))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 10}}>◆ default fallback shield</div>
+        <div style={{display: 'flex', gap: 12, flexWrap: 'wrap'}}>
+          <Chip color={C.amber}>LEAD(offset=1)</Chip>
+          <Chip color={C.green}>default = '2099-12-31'</Chip>
+          <Chip color={C.red}>prevents NULL</Chip>
         </div>
       </div>
 
-      {/* RANGE warning at bottom of left column */}
-      <div style={{position: 'absolute', left: 80, top: 690, width: 820, opacity: clamp(warnP)}}>
-        <div style={{display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 16px', border: `2px solid ${C.amber}`, borderRadius: 12, background: `${C.amber}0d`}}>
-          <Warn size={40} color={C.amber} />
+      {/* Churn analysis callout */}
+      <div style={{position: 'absolute', left: 80, top: 530, opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', border: `2px solid ${C.green}`, borderRadius: 16, background: `${C.green}0d`}}>
+          <Check p={sealP} size={44} />
           <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.amber, fontWeight: 700}}>RANGE groups equal dates</div>
-            <Mix style={{fontSize: 16, color: C.muted}}>استخدم ROWS لتفادي تجميع التواريخ المتطابقة</Mix>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700}}>Churn window detected</div>
+            <Mix style={{fontSize: 18, color: C.muted}}>قياس الفارق الزمني للطلب القادم</Mix>
           </div>
         </div>
       </div>
 
-      {/* Table on the right with purple frame overlay */}
-      <Win x={940} y={180} w={900} h={720} title="window scope · expanding RANGE frame" accent={C.purple} opacity={revealP}>
-        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 20, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-          <span style={{width: 60}}>day</span>
-          <span style={{width: 160}}>order_date</span>
+      {/* Customer orders table on the right */}
+      <Win x={960} y={180} w={880} h={720} title="orders · LEAD next_order_date" accent={C.amber} opacity={tableP}>
+        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+          <span style={{width: 90}}>cust_id</span>
+          <span style={{width: 150}}>order_date</span>
           <span style={{width: 120, textAlign: 'right'}}>amount</span>
-          <span style={{flex: 1, textAlign: 'right', color: C.purple}}>running_total</span>
+          <span style={{flex: 1, textAlign: 'right', color: C.amber}}>next_order_date</span>
         </div>
-
-        {/* Purple frame overlay — stretches from row 1 to current row */}
-        {scanProg > 0 && scanProg < 1 ? (
-          <div style={{position: 'absolute', left: 8, right: 8, top: ROW0, height: scanProg * DAILY_REVENUE.length * ROW_H, borderRadius: 10, border: `3px solid ${C.purple}`, background: `${C.purple}14`, boxShadow: `0 0 24px ${C.purple}66`, pointerEvents: 'none'}} />
-        ) : null}
-
-        {DAILY_REVENUE.map((row, i) => {
-          const isInside = i < currentRow;
-          const isCurrent = i === currentRow - 1 && scanProg < 1;
-          const total = RUNNING_TOTALS[i];
+        {CUSTOMER_ORDERS.map((row, i) => {
+          const isCurrent = i === currentRow && scanProg < 1;
+          const isDone = i < currentRow;
+          const isLastInPartition = i === CUSTOMER_ORDERS.length - 1 || CUSTOMER_ORDERS[i + 1].customer_id !== row.customer_id;
+          const nextDate = isLastInPartition ? '2099-12-31' : CUSTOMER_ORDERS[i + 1].order_date;
+          const showShield = isLastInPartition && (isDone || isCurrent);
           return (
-            <div key={row.day} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: ROW0 + i * ROW_H + 4, height: ROW_H - 8, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 12px', fontFamily: MONO, fontSize: 22, color: C.text, opacity: isInside || isCurrent ? 1 : 0.4, zIndex: 2}}>
-              <span style={{width: 48, color: C.muted}}>#{row.day}</span>
-              <span style={{width: 148, color: C.blue}}>{row.date}</span>
-              <span style={{width: 110, color: C.text, fontWeight: 700, textAlign: 'right'}}>{row.amount.toLocaleString()}</span>
-              <span style={{flex: 1, textAlign: 'right', color: isInside || isCurrent ? C.purple : '#475569', fontWeight: 700, fontSize: 24}}>
-                {isInside || isCurrent ? total.toLocaleString() : '—'}
+            <div key={i} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: ROW0 + i * ROW_H + 3, height: ROW_H - 6, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 21, background: isCurrent ? `${C.amber}33` : isDone ? `${C.green}0e` : 'transparent', border: `2px solid ${isCurrent ? C.amber : showShield ? C.green : 'transparent'}`, color: C.text, opacity: isDone || isCurrent ? 1 : 0.4}}>
+              <span style={{width: 80, color: C.blue, fontWeight: 700}}>{row.customer_id}</span>
+              <span style={{width: 140, color: C.text}}>{row.order_date}</span>
+              <span style={{width: 110, color: C.text, fontWeight: 700, textAlign: 'right'}}>${row.amount}</span>
+              <span style={{flex: 1, textAlign: 'right', fontWeight: 700, color: showShield ? C.green : (isDone || isCurrent) ? C.amber : '#475569'}}>
+                {(isDone || isCurrent) ? (
+                  <>
+                    {nextDate}
+                    {showShield ? <span style={{color: C.green, marginLeft: 8, fontSize: 18}}>🛡 default</span> : null}
+                  </>
+                ) : '—'}
               </span>
             </div>
           );
         })}
 
-        {/* Current row indicator */}
-        {scanProg < 1 && scanProg > 0 ? (
-          <div style={{position: 'absolute', right: 18, top: ROW0 + scanProg * DAILY_REVENUE.length * ROW_H - 14, fontFamily: MONO, fontSize: 18, color: C.purple, fontWeight: 700, opacity: 0.9}}>
-            ◄ CURRENT ROW
-          </div>
+        {/* LEAD arrow — forward lookahead from current row to next */}
+        {scanProg > 0 && scanProg < 1 && currentRow < CUSTOMER_ORDERS.length - 1 ? (
+          <svg width={880} height={720} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+            <line
+              x1={350}
+              y1={ROW0 + currentRow * ROW_H + ROW_H / 2}
+              x2={350}
+              y2={ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2}
+              stroke={C.amber}
+              strokeWidth={3}
+              strokeDasharray="6 4"
+              opacity={0.9}
+            />
+            <polygon
+              points={`344,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2 - 8} 356,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2 - 8} 350,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2}`}
+              fill={C.amber}
+            />
+            <text x={370} y={ROW0 + (currentRow + 0.5) * ROW_H + ROW_H / 2 + 5} fill={C.amber} fontSize={16} fontFamily={MONO} fontWeight={700}>LEAD offset=1</text>
+          </svg>
         ) : null}
 
         {/* Bottom summary */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 44, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 20, color: C.purple, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>window expands ↓ each row</span>
-          <span>{currentRow}/{DAILY_REVENUE.length} rows in frame</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 44, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 20, color: C.amber, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>LEAD(order_date, 1, '2099-12-31')</span>
+          <span>{currentRow}/{CUSTOMER_ORDERS.length - 1} rows processed</span>
         </div>
       </Win>
 
-      <Caption text="Implicit Frame: RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW" from={t(42)} to={t(60)} />
-      <Caption text="Window Scope ──► Accumulates All Previous Rows Up To Current Row" from={t(62)} to={sec(44)} tone="ok" />
+      <Caption text="LEAD(order_date, 1, '2099-12-31') OVER(ORDER BY order_date)" from={t(42)} to={t(60)} />
+      <Caption text="Forward Lookahead ──► Measures Time to Next Order & Churn Windows" from={t(62)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };

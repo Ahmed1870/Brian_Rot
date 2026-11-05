@@ -1,4 +1,4 @@
-name: Render SQL Lesson 39 Running Totals
+name: Render SQL Lesson 40 Offset Nav
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 39 only
+      - name: Guard - this repo must contain lesson 40 only
         run: |
-          grep -q "SQL-L39-Running-Totals" src/theme.ts
-          grep -q "SQL-L39-Running-Totals" package.json
-          test -f public/voiceover_lesson_39.mp3
+          grep -q "SQL-L40-Offset-Nav" src/theme.ts
+          grep -q "SQL-L40-Offset-Nav" package.json
+          test -f public/voiceover_lesson_40.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L39-Running-Totals out/sql-l39-running-totals.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l39-running-totals.mp4
+      - run: npx remotion render src/index.ts SQL-L40-Offset-Nav out/sql-l40-offset-nav.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l40-offset-nav.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l39-running-totals
-          path: out/sql-l39-running-totals.mp4
+          name: sql-l40-offset-nav
+          path: out/sql-l40-offset-nav.mp4
           if-no-files-found: error
