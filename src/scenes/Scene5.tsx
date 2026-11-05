@@ -1,151 +1,53 @@
-import React from "react";
-import { AbsoluteFill } from "remotion";
-import { AR, MONO } from "../theme";
-import { Banner, CodeLine, Window } from "../components/common";
-import { C, eb, eo, prog, typed, useT, win } from "../lib";
+import React from 'react';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {Caption, Check, Chip, Editor, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
+import {BRANCHES, B_TOTAL, QS, Q_TOTAL, SALES} from '../data';
 
-const LINES: [string, number, number][] = [
-  ["SELECT product_id,", 180.4, 181.6],
-  ["       COALESCE(product_name, 'Uncategorized') AS clean_name,", 181.8, 184.4],
-  ["       ROUND(revenue / NULLIF(units_sold, 0), 2) AS avg_unit_price,", 184.4, 187.3],
-  ["       GREATEST(discounted_price, min_allowed_price) AS final_price", 187.5, 190.0],
-  ["FROM product_financials;", 190.0, 191.0],
-];
-// product_id, clean_name, avg_unit_price, final_price
-const REP: { id: string; name: string; nameFix: boolean; avg: string; avgNull: boolean; fin: string; floor: boolean }[] = [
-  { id: "P-101", name: "Laptop Pro", nameFix: false, avg: "1,250.00", avgNull: false, fin: "1,100", floor: true },
-  { id: "P-102", name: "Uncategorized", nameFix: true, avg: "45.50", avgNull: false, fin: "62", floor: false },
-  { id: "P-103", name: "Keyboard", nameFix: false, avg: "NULL", avgNull: true, fin: "35", floor: true },
-  { id: "P-104", name: "Monitor Z", nameFix: false, avg: "360.00", avgNull: false, fin: "380", floor: false },
-];
-const COLS = [
-  { k: "product_id", w: 110 },
-  { k: "clean_name", w: 190 },
-  { k: "avg_unit_price", w: 190 },
-  { k: "final_price", w: 150 },
-];
-const HL = [
-  { row: 2, a: 188.5, b: 192.2, c: C.green },
-  { row: 1, a: 194.3, b: 197.0, c: C.blue },
-  { row: 3, a: 197.3, b: 200.6, c: C.amber },
-];
+// SC05 (170-209s): quarterly sales matrix per branch with FILTER.
+// Anchors (s): 171.2 enterprise | 179.8 quarterly distribution | 186.7 FILTER with SUM | 192.9 decision makers | 201.2 expansion + logistics
+const S = START.s5;
+const t = (g: number) => sec(g - S);
 
 export const Scene5: React.FC = () => {
-  const t = useT();
-  const typing = t > 180.4 && t < 191.1;
-  const caret = LINES.findIndex(([, a, b]) => t >= a && t < b);
-  const intro = win(t, 175.8, 180.4, 0.5);
-  const stamp = eb(t, 204.0, 204.6);
-
+  const f = useCurrentFrame();
+  const seal = clamp(pop(f, t(192.9)));
+  const hl = clamp(lin(f, t(186.7), 14));
+  const rows = [...BRANCHES.map((b, i) => ({name: b, vals: SALES[i], total: B_TOTAL[i]})), {name: 'TOTAL', vals: Q_TOTAL, total: B_TOTAL.reduce((a, b) => a + b, 0)}];
   return (
-    <AbsoluteFill>
-      {intro > 0 && (
-        <div style={{ position: "absolute", left: 160, top: 300, width: 1600, textAlign: "center", opacity: intro }}>
-          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 64, color: C.text, direction: "rtl", transform: `translateY(${(1 - eo(t, 175.8, 176.9)) * 40}px)` }}>
-            التطبيقات <span style={{ color: C.green }}>المالية</span> والمؤسسية
-          </div>
-          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.blue, marginTop: 16 }}>manzooma_store_db · protected financial report</div>
-        </div>
-      )}
+    <Stage dur={1170} inFx="morph" outFx="fade">
+      <TopBadge text="التوزيع الرباعي | Quarterly Executive Matrix" from={sec(1)} to={sec(36)} color={C.amber} />
 
-      {t > 179.8 && (
-        <div style={{ opacity: eo(t, 179.8, 180.5), transform: `translateX(${(1 - eo(t, 179.8, 180.7)) * -100}px)` }}>
-          <Window x={70} y={150} w={1000} h={400} title="executive_pricing_report.sql" glow={typing ? 1 : 0}>
-            {HL.map((h) => {
-              const o = win(t, h.a, h.b, 0.3);
-              return o > 0 ? <div key={h.row} style={{ position: "absolute", left: 10, top: 12 + h.row * 34, width: 970, height: 34, borderRadius: 8, background: `${h.c}22`, border: `2px solid ${h.c}`, opacity: o }} /> : null;
-            })}
-            {LINES.map(([txt, a, b], i) => {
-              const s = typed(txt, t, a, b);
-              return s.length > 0 ? (
-                <div key={i} style={{ position: "absolute", left: 22, top: 16 + i * 34 }}>
-                  <CodeLine text={s} fs={20} caret={caret === i} />
-                </div>
-              ) : null;
-            })}
-          </Window>
-        </div>
-      )}
+      <Editor x={80} y={170} w={1120} h={310} title="Query Editor" lines={['SELECT branch_name,', '  SUM(amount) FILTER (WHERE EXTRACT(QUARTER FROM sale_date) = 1) AS Q1_sales,', '  SUM(amount) FILTER (WHERE EXTRACT(QUARTER FROM sale_date) = 2) AS Q2_sales,', '  SUM(amount) FILTER (WHERE EXTRACT(QUARTER FROM sale_date) = 3) AS Q3_sales,', '  SUM(amount) FILTER (WHERE EXTRACT(QUARTER FROM sale_date) = 4) AS Q4_sales', 'FROM branch_sales GROUP BY branch_name;']} start={t(171.2)} cps={1.4} size={21} hl={f >= t(186.7) ? 1 : -1} hlColor={C.green} />
 
-      {/* function chain */}
-      {[
-        { a: 182.2, s: "COALESCE", c: C.blue },
-        { a: 183.0, s: "NULLIF", c: C.green },
-        { a: 183.6, s: "GREATEST", c: C.amber },
-      ].map((f, i) => {
-        const e = eb(t, f.a, f.a + 0.5);
-        return e > 0 ? (
-          <React.Fragment key={f.s}>
-            <div style={{ position: "absolute", left: 70 + i * 360, top: 600, width: 300, height: 76, opacity: Math.min(1, e * 1.5), transform: `scale(${0.8 + 0.2 * Math.min(1, e)})`, borderRadius: 18, background: `${f.c}18`, border: `3px solid ${f.c}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 30, lineHeight: "70px", color: f.c }}>
-              {f.s}
+      <div dir="ltr" style={{position: 'absolute', left: 1260, top: 190, display: 'flex', alignItems: 'center', gap: 14, opacity: seal, transform: `scale(${0.85 + 0.15 * seal}) rotate(-3deg)`, background: C.card, border: `3px solid ${C.green}`, borderRadius: 18, padding: '10px 26px', fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.green}}>
+        <Check p={seal} size={42} /> MATRIX APPROVED
+      </div>
+      <div style={{position: 'absolute', left: 1260, top: 300, opacity: clamp(pop(f, t(201.2)))}}><Chip color={C.amber} style={{fontSize: 24}}>supports expansion plans</Chip></div>
+      <div style={{position: 'absolute', left: 1260, top: 366, opacity: clamp(pop(f, t(203.0)))}}><Chip color={C.blue} style={{fontSize: 24}}>logistics &amp; inventory efficiency</Chip></div>
+
+      <Win x={80} y={510} w={1760} h={380} title="quarterly_sales_report · one row per branch" accent={C.green}>
+        <div dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: 0, height: 50, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 26, fontWeight: 700}}>
+          <span style={{width: 300, color: C.muted}}>branch_name</span>
+          {QS.map((q) => <span key={q} style={{width: 270, textAlign: 'center', color: hl > 0.3 ? C.green : C.muted}}>{q}_sales</span>)}
+          <span style={{flex: 1, textAlign: 'right', color: C.muted}}>total</span>
+        </div>
+        {rows.map((r, ri) => {
+          const last = ri === rows.length - 1;
+          return (
+            <div key={r.name} dir="ltr" style={{position: 'absolute', left: 30, right: 30, top: 54 + ri * 64, height: 58, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 30, fontWeight: 700, borderTop: last ? `2px solid ${C.border}` : 'none'}}>
+              <span style={{width: 300, color: last ? C.amber : C.text}}>{r.name}</span>
+              {r.vals.map((v, qi) => {
+                const p = clamp(lin(f, t(179.8 + ri * 1.0 + qi * 0.25), 12));
+                return <span key={qi} style={{width: 270, textAlign: 'center', color: last ? C.amber : C.text, opacity: p, transform: `translateX(${(1 - p) * 40}px)`}}>{v}K</span>;
+              })}
+              <span style={{flex: 1, textAlign: 'right', color: C.green, opacity: clamp(lin(f, t(179.8 + ri * 1.0 + 1.1), 12))}}>{r.total}K</span>
             </div>
-            {i < 2 && <div style={{ position: "absolute", left: 70 + i * 360 + 308, top: 612, fontFamily: MONO, fontWeight: 700, fontSize: 36, color: C.dim, opacity: Math.min(1, e) }}>+</div>}
-          </React.Fragment>
-        ) : null;
-      })}
-      {t > 192.0 && (
-        <Arabic3 t={t} />
-      )}
-
-      {/* report */}
-      {t > 191.0 && (
-        <div style={{ opacity: eo(t, 191.0, 191.8), transform: `translateX(${(1 - eo(t, 191.0, 192.0)) * 120}px)` }}>
-          <Window x={1110} y={150} w={740} h={560} title="executive_pricing_report" color={C.green} glow={t > 200 ? 1 : 0}>
-            <div style={{ position: "absolute", left: 18, top: 14, display: "flex", gap: 8 }}>
-              {COLS.map((c) => (
-                <div key={c.k} style={{ width: c.w, fontFamily: MONO, fontWeight: 700, fontSize: 16, color: C.blue, borderBottom: `2px solid ${C.blue}66`, paddingBottom: 6 }}>
-                  {c.k}
-                </div>
-              ))}
-            </div>
-            {REP.map((r, i) => {
-              const a = 192.2 + i * 0.6;
-              const e = eb(t, a, a + 0.5);
-              const showFix = r.nameFix && t > 194.3;
-              const showNull = r.avgNull && t > 190.4;
-              const showFloor = r.floor && t > 197.3;
-              return (
-                <div key={r.id} style={{ position: "absolute", left: 12, top: 56 + i * 112, width: 712, height: 100, opacity: Math.min(1, e * 1.5), transform: `translateX(${(1 - Math.min(1, e)) * 80}px)`, borderRadius: 14, background: "#1B2740", border: `2px solid ${C.line}` }}>
-                  <div style={{ position: "absolute", left: 8, top: 10, display: "flex", gap: 8, fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.text }}>
-                    <span style={{ width: 110 }}>{r.id}</span>
-                    <span style={{ width: 190, color: showFix ? C.blue : C.text }}>{r.name}</span>
-                    <span style={{ width: 190, color: r.avgNull ? C.green : "#7DD3FC" }}>{r.avg}</span>
-                    <span style={{ width: 150, color: showFloor ? C.amber : "#6EE7B7" }}>{r.fin}</span>
-                  </div>
-                  <div style={{ position: "absolute", left: 8, top: 56, display: "flex", gap: 8, fontFamily: MONO, fontWeight: 700, fontSize: 14 }}>
-                    <span style={{ width: 110 }} />
-                    <span style={{ width: 190, color: C.blue, opacity: showFix ? 1 : 0 }}>◂ COALESCE default</span>
-                    <span style={{ width: 190, color: C.green, opacity: showNull ? 1 : 0 }}>◂ NULLIF: no crash</span>
-                    <span style={{ width: 150, color: C.amber, opacity: showFloor ? 1 : 0 }}>◂ GREATEST floor</span>
-                  </div>
-                </div>
-              );
-            })}
-          </Window>
-        </div>
-      )}
-
-      {/* integrity seal */}
-      {stamp > 0 && (
-        <div style={{ position: "absolute", left: 1470, top: 600, width: 340, height: 100, borderRadius: 14, border: `6px solid ${C.green}`, color: C.green, fontFamily: MONO, fontWeight: 700, fontSize: 25, textAlign: "center", lineHeight: "44px", paddingTop: 4, background: "#0B1222E0", transform: `rotate(-8deg) scale(${1.6 - 0.6 * stamp})`, opacity: Math.min(1, stamp * 1.5) * (1 - prog(t, 214.8, 215.4)) }}>
-          FINANCIAL INTEGRITY
-          <br />
-          VERIFIED ✓
-        </div>
-      )}
-
-      <Banner x={70} y={900} w={1780} a={178.4} b={200.8} color={C.blue} fs={25}>
-        Enterprise Financial Shielding ──► COALESCE + NULLIF + GREATEST Pipeline
-      </Banner>
-      <Banner x={70} y={900} w={1780} a={201.2} b={216.2} color={C.green} fs={25}>
-        Zero Mismatch &amp; Robust Reporting ──► Guaranteed Business Logic Security
-      </Banner>
-    </AbsoluteFill>
+          );
+        })}
+      </Win>
+      <Caption text="Enterprise Matrix ──► Quarterly Sales Breakdown (Q1-Q4) per Branch" from={t(174)} to={t(190)} />
+      <Caption text="Executive Reporting ──► High-Density Comparison Matrix in Single Rows" from={t(193)} to={sec(38.5)} tone="ok" />
+    </Stage>
   );
 };
-
-const Arabic3: React.FC<{ t: number }> = ({ t }) => (
-  <div style={{ position: "absolute", left: 70, top: 720, width: 1000, textAlign: "right", fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.text, direction: "rtl", opacity: Math.min(prog(t, 192.0, 192.8), 1 - prog(t, 215.0, 215.6)), lineHeight: 1.5 }}>
-    {t < 197.3 ? "ضمان عدم القسمة على صفر + قيم نمطية نظيفة" : "سعر أدنى حامي = مفيش بيع أقل من كلفة التوريد"}
-  </div>
-);

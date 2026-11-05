@@ -1,40 +1,28 @@
-name: Render Lesson 28 — COALESCE, NULLIF, GREATEST & LEAST
-
+name: Render SQL Lesson 30 Pivot Filter Crosstab
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-
+      - name: Guard - this repo must contain lesson 30 only
+        run: |
+          grep -q "SQL-L30-Pivot-Filter-Crosstab" src/theme.ts
+          grep -q "SQL-L30-Pivot-Filter-Crosstab" package.json
+          test -f public/voiceover_lesson_30.mp3
+          test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Chromium system libraries
-        run: |
-          sudo apt-get update -y || true
-          sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libcups2 libpango-1.0-0 libcairo2 || true
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Typecheck
-        run: npx tsc --noEmit
-
-      - name: Generate sound design
-        run: npm run generate-audio
-
-      - name: Render SQL-L28-ConditionalFunctions
-        run: npx remotion render src/index.ts SQL-L28-ConditionalFunctions out/sql-l28-conditional-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --concurrency=100% --timeout=180000
-
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L30-Pivot-Filter-Crosstab out/sql-l30-pivot-filter-crosstab.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l30-pivot-filter-crosstab.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l28-conditional-functions
-          path: out/sql-l28-conditional-functions.mp4
-          retention-days: 14
+          name: sql-l30-pivot-filter-crosstab
+          path: out/sql-l30-pivot-filter-crosstab.mp4
+          if-no-files-found: error

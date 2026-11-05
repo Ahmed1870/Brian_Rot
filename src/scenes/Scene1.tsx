@@ -1,145 +1,95 @@
-import React from "react";
-import { AbsoluteFill } from "remotion";
-import { AR, MONO } from "../theme";
-import { Arabic, Banner, CodeLine, Window } from "../components/common";
-import { C, eb, eio, eo, lerp, prog, typed, useT, win } from "../lib";
+import React from 'react';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {Caption, Chip, Sql, Stage, TopBadge, Win, clamp, lerp, lin, pop, sec} from '../kit';
+import {BRANCHES, LONG, QS} from '../data';
 
-// [customer, phone, mobile]
-const ROWS: [string, string | null, string | null][] = [
-  ["Ali", null, "0101234567"],
-  ["Sara", "0122334455", "0109876543"],
-  ["Omar", null, null],
-  ["Mona", null, "0111222333"],
-  ["Hany", null, null],
-];
-const TX = 70, TY = 190;
-const COLX = [90, 300, 560, 820];
-const COLW = [200, 250, 250, 230];
-const RY = (i: number) => TY + 120 + i * 66;
-const S0 = 27.0, STEP = 1.15;
-const landOf = (r: [string, string | null, string | null]) => (r[1] ? 0 : r[2] ? 1 : 2);
-const cellC = (c: number) => COLX[c] + COLW[c] / 2;
+// SC01 (0-40s): pivoting - a long vertical table rotates into a horizontal matrix.
+// Anchors (s): 1.2 welcome | 6.5 after CASE WHEN | 16.8 Pivot Tables | 19.7 Pivoting | 24.2 adjacent columns | 26.7 conditional aggregation | 31.6 FILTER | 34.9 cleaner
+const S = START.s1;
+const t = (g: number) => sec(g - S);
+const RH = 46;
+const LY = 180 + 56 + 52;
+const MX = 900;
+const mcx = (c: number) => MX + 20 + 220 + c * 170 + 85;
+const mcy = (r: number) => 180 + 56 + 52 + r * 88 + 44;
 
 export const Scene1: React.FC = () => {
-  const t = useT();
-  const valueOf = (r: [string, string | null, string | null]) => (r[1] ? r[1] : r[2] ? r[2] : "N/A");
+  const f = useCurrentFrame();
+  const left = clamp(lin(f, t(1.5), 16));
+  const mat = clamp(lin(f, t(16.8), 18));
+  const hdr = clamp(lin(f, t(24.2), 14));
+  const spin = f > t(16.8) && f < t(30) ? (f - t(16.8)) * 6 : 0;
+  const flights: React.ReactNode[] = [];
 
   return (
-    <AbsoluteFill>
-      {/* top badge 2s–18s */}
-      <div style={{ position: "absolute", left: 70, top: 116, width: 1000, height: 58, opacity: win(t, 2.0, 18.0, 0.6), transform: `translateY(${(1 - prog(t, 2.0, 2.7)) * -24}px)`, display: "flex", alignItems: "center", justifyContent: "center", gap: 14, borderRadius: 999, border: `2px solid ${C.blue}88`, background: "#0B1B33" }}>
-        <span style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl" }}>التحكم في القيم المفقودة</span>
-        <span style={{ color: C.blue, fontSize: 26 }}>|</span>
-        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.blue }}>Handling Missing Values (COALESCE)</span>
-      </div>
+    <Stage dur={1200} inFx="zoom" outFx="left">
+      <TopBadge text="التجميع الشرطي المتقدم | Advanced Conditional Aggregation & Pivoting" from={sec(2)} to={sec(18)} color={C.blue} />
 
-      {/* table */}
-      <div style={{ position: "absolute", left: TX - (1 - eo(t, 1.0, 2.0)) * 500, top: TY, width: 1000, height: 460, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }}>
-        <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.blue }}>customers</div>
-      </div>
-      {["customer", "phone", "mobile", "contact"].map((h, c) => (
-        <div key={h} style={{ position: "absolute", left: COLX[c], top: TY + 74, width: COLW[c], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 19, color: c === 3 ? C.green : C.dim, opacity: eo(t, 1.6, 2.4) }}>
-          {h}
+      <Win x={80} y={180} w={620} h={684} title="branch_sales · vertical" opacity={left}>
+        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: 52, display: 'flex', alignItems: 'center', padding: '0 26px', fontFamily: MONO, fontSize: 22, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+          <span style={{width: 200}}>branch</span><span style={{width: 130}}>quarter</span><span>amount</span>
         </div>
-      ))}
-      {ROWS.map((r, i) => {
-        const a = eb(t, 2.0 + i * 0.22, 2.7 + i * 0.22);
-        const pulse = t > 14.9 && t < 19.0 ? 0.5 + 0.5 * Math.sin(t * 7) : 0;
-        const s = S0 + i * STEP;
-        const land = landOf(r);
-        const done = t > s + 0.3 * (land + 1) + 0.15;
-        const cells = [r[0], r[1], r[2]];
-        return (
-          <div key={r[0]} style={{ position: "absolute", left: 0, top: 0, opacity: Math.min(1, a * 1.5) }}>
-            <div style={{ position: "absolute", left: 80, top: RY(i) - 4, width: 980, height: 56, borderRadius: 12, background: "#1B2740", border: `1.5px solid ${C.line}` }} />
-            {cells.map((v, c) => {
-              const isNull = v === null;
-              return (
-                <div key={c} style={{ position: "absolute", left: COLX[c], top: RY(i), width: COLW[c], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "48px", color: isNull ? C.red : C.text, opacity: isNull ? 0.7 + 0.3 * pulse : 1 }}>
-                  {isNull ? "NULL" : v}
-                </div>
-              );
-            })}
-            <div style={{ position: "absolute", left: COLX[3], top: RY(i) + 2, width: COLW[3], height: 44, borderRadius: 10, background: done ? `${valueOf(r) === "N/A" ? C.amber : C.green}28` : "transparent", border: `2px ${done ? "solid" : "dashed"} ${done ? (valueOf(r) === "N/A" ? C.amber : C.green) : C.line}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 21, lineHeight: "40px", color: valueOf(r) === "N/A" ? C.amber : "#6EE7B7" }}>
-              {done ? valueOf(r) : ""}
+        {LONG.map((r, i) => {
+          const st = t(19.7 + i * 0.3);
+          const sent = f >= st + 28;
+          const p = clamp(lin(f, t(2 + i * 0.2), 10));
+          return (
+            <div key={i} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: 56 + i * RH, height: RH - 4, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 24, opacity: p * (sent ? 0.3 : 1), background: f >= st && !sent ? `${C.blue}33` : 'transparent', color: C.text}}>
+              <span style={{width: 200}}>{r.branch}</span><span style={{width: 130, color: C.green}}>{r.q}</span><span>{r.amount}K</span>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </Win>
 
-      {/* scanning beam */}
-      {ROWS.map((r, i) => {
-        const s = S0 + i * STEP;
-        const land = landOf(r);
-        const dt = t - s;
-        if (dt < 0 || dt > 0.3 * (land + 1) + 0.6) return null;
-        const pts = [120, cellC(1), cellC(2), COLX[3] + 40];
-        const seg = Math.min(land, Math.floor(dt / 0.3));
-        const x = lerp(pts[seg], pts[seg + 1], eio(t, s + seg * 0.3, s + seg * 0.3 + 0.3));
-        const fin = dt >= 0.3 * (land + 1);
+      {/* pivot engine */}
+      <div style={{position: 'absolute', left: 724, top: 380, width: 150, height: 150, opacity: mat}}>
+        <svg width={150} height={150} viewBox="0 0 150 150" style={{transform: `rotate(${spin}deg)`, filter: `drop-shadow(0 0 14px ${C.blue})`}}>
+          <circle cx={75} cy={75} r={62} fill={`${C.blue}18`} stroke={C.blue} strokeWidth={5} />
+          <path d="M75 25 A50 50 0 0 1 125 75" fill="none" stroke={C.blue} strokeWidth={8} strokeLinecap="round" />
+          <polygon points="125,55 140,80 112,80" fill={C.blue} />
+          <path d="M75 125 A50 50 0 0 1 25 75" fill="none" stroke={C.green} strokeWidth={8} strokeLinecap="round" />
+          <polygon points="25,95 10,70 38,70" fill={C.green} />
+        </svg>
+        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, bottom: -34, textAlign: 'center', fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.blue}}>PIVOT 90°</div>
+      </div>
+
+      {/* horizontal matrix */}
+      <Win x={MX} y={180} w={940} h={460} title="pivot · horizontal matrix" accent={hdr > 0.5 ? C.green : C.border} opacity={mat}>
+        <div dir="ltr" style={{position: 'absolute', left: 20, right: 20, top: 0, height: 52, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 26, fontWeight: 700}}>
+          <span style={{width: 220, color: C.muted}}>branch</span>
+          {QS.map((q) => (
+            <span key={q} style={{width: 170, textAlign: 'center', color: hdr > 0.3 ? C.green : C.muted, textShadow: hdr > 0.3 ? `0 0 16px ${C.green}` : 'none'}}>{q}</span>
+          ))}
+        </div>
+        {BRANCHES.map((b, bi) => (
+          <div key={b} dir="ltr" style={{position: 'absolute', left: 20, top: 52 + bi * 88, height: 80, width: 220, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 30, fontWeight: 700, color: C.text}}>{b}</div>
+        ))}
+        {LONG.map((r, i) => {
+          const p = lin(f, t(19.7 + i * 0.3), 28);
+          if (p < 1) return null;
+          return (
+            <div key={i} dir="ltr" style={{position: 'absolute', left: 20 + 220 + r.qi * 170 + 8, top: 52 + r.bi * 88 + 8, width: 154, height: 64, borderRadius: 12, border: `3px solid ${C.green}`, background: `${C.green}1c`, color: C.text, fontFamily: MONO, fontSize: 30, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 16px ${C.green}55`}}>{r.amount}K</div>
+          );
+        })}
+      </Win>
+      {LONG.map((r, i) => {
+        const p = lin(f, t(19.7 + i * 0.3), 28);
+        if (p <= 0 || p >= 1) return null;
+        const e = p * p * (3 - 2 * p);
         return (
-          <div key={r[0]}>
-            <div style={{ position: "absolute", left: 90, top: RY(i) + 21, width: Math.max(0, x - 90), height: 5, background: `linear-gradient(90deg, transparent, ${C.blue})`, opacity: 0.7 }} />
-            <div style={{ position: "absolute", left: x - 11, top: RY(i) + 14, width: 22, height: 22, borderRadius: 11, background: fin ? C.green : C.blue, border: "2px solid #fff", boxShadow: `0 0 14px ${fin ? C.green : C.blue}` }} />
-          </div>
+          <div key={i} dir="ltr" style={{position: 'absolute', left: lerp(520, mcx(r.qi), e) - 60, top: lerp(LY + i * RH + 21, mcy(r.bi), e) - 22, width: 120, height: 44, borderRadius: 22, background: C.blue, color: C.bg, fontFamily: MONO, fontWeight: 700, fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 18px ${C.blue}`}}>{r.amount}K</div>
         );
       })}
+      {flights}
 
-      {/* code window */}
-      {t > 24.6 && (
-        <div style={{ opacity: eo(t, 24.6, 25.2), transform: `translateX(${(1 - eo(t, 24.6, 25.3)) * 100}px)` }}>
-          <Window x={1130} y={190} w={720} h={250} title="contact_list.sql" glow={t < 30 ? 1 : 0}>
-            {[typed("SELECT customer,", t, 25.0, 25.8), typed("  COALESCE(phone, mobile, 'N/A') AS contact", t, 25.8, 29.2), typed("FROM customers;", t, 29.2, 30.0)].map((s, i) =>
-              s.length > 0 ? (
-                <div key={i} style={{ position: "absolute", left: 22, top: 18 + i * 40 }}>
-                  <CodeLine text={s} fs={21} caret={t < 30.1 && t > 25 && (i === 0 ? t < 25.8 : i === 1 ? t >= 25.8 && t < 29.2 : t >= 29.2)} />
-                </div>
-              ) : null,
-            )}
-          </Window>
-        </div>
-      )}
-      {win(t, 30.0, 33.6, 0.4) > 0 && (
-        <Arabic x={1130} y={470} w={720} fs={32} color={C.text} o={win(t, 30.0, 33.6, 0.4)}>
-          بتمشي من <span style={{ color: C.blue, fontFamily: MONO }}>اليسار لليمين</span> وترجع أول قيمة مش NULL
-        </Arabic>
-      )}
-
-      {/* real-world problem */}
-      {win(t, 9.7, 19.4, 0.5) > 0 && (
-        <div style={{ position: "absolute", left: 1130, top: 200, width: 720, opacity: win(t, 9.7, 19.4, 0.5) }}>
-          {[
-            { a: 14.9, s: "قيم مفقودة NULL", c: C.amber },
-            { a: 16.3, s: "قسمة صفرية ÷ 0", c: C.red },
-            { a: 17.5, s: "انهيار الاستعلام ✕", c: C.red },
-          ].map((p, i) => {
-            const e = eb(t, p.a, p.a + 0.5);
-            return (
-              <div key={i} style={{ marginBottom: 20, height: 80, opacity: Math.min(1, e * 1.5), transform: `translateX(${(1 - Math.min(1, e)) * 120}px)`, borderRadius: 18, background: `${p.c}16`, border: `3px solid ${p.c}`, fontFamily: AR, fontWeight: 900, fontSize: 36, lineHeight: "74px", color: C.text, textAlign: "center", direction: "rtl" }}>
-                {p.s}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* defaults examples */}
-      {win(t, 36.0, 44.8, 0.5) > 0 && (
-        <div style={{ position: "absolute", left: 1130, top: 520, width: 720, opacity: win(t, 36.0, 44.8, 0.5) }}>
-          <div style={{ height: 86, borderRadius: 18, background: `${C.amber}16`, border: `3px solid ${C.amber}`, textAlign: "center", opacity: prog(t, 39.4, 40.0), marginBottom: 18 }}>
-            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.amber, marginTop: 8 }}>phone NULL ➔ 'N/A'</div>
-            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 24, color: C.text, direction: "rtl" }}>غير متوفر</div>
-          </div>
-          <div style={{ height: 86, borderRadius: 18, background: `${C.green}16`, border: `3px solid ${C.green}`, textAlign: "center", opacity: prog(t, 42.8, 43.4) }}>
-            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.green, marginTop: 8 }}>COALESCE(discount, 0)</div>
-            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 24, color: C.text, direction: "rtl" }}>الخصم المفقود ➔ صفر بدون تعطل</div>
-          </div>
-        </div>
-      )}
-
-      <Banner x={70} y={900} w={1780} a={22.0} b={44.8} color={C.blue} fs={26}>
-        COALESCE(phone, mobile, 'N/A') ──► Returns First Non-NULL Value
-      </Banner>
-    </AbsoluteFill>
+      {/* FILTER teaser */}
+      <div dir="ltr" style={{boxSizing: 'border-box', position: 'absolute', left: 900, top: 690, width: 940, height: 170, borderRadius: 22, background: C.card, border: `3px solid ${C.green}`, padding: '18px 30px', opacity: clamp(lin(f, t(31.6), 16)), transform: `translateY(${(1 - clamp(lin(f, t(31.6), 16))) * 24}px)`, fontFamily: MONO}}>
+        <div style={{fontSize: 24, color: C.green, fontWeight: 700}}>FILTER (WHERE ...)</div>
+        <div style={{fontSize: 30, marginTop: 14}}><Sql text="SUM(amount) FILTER (WHERE quarter = 1)" /></div>
+        <div style={{marginTop: 12, opacity: clamp(lin(f, t(34.9), 12))}}><Chip color={C.green} style={{fontSize: 22}}>✓ cleaner &amp; easier to read</Chip></div>
+      </div>
+      <Caption text="Row-to-Column Pivot ──► Transforms Vertical Data to Horizontal Matrix" from={sec(22)} to={sec(38)} />
+    </Stage>
   );
 };

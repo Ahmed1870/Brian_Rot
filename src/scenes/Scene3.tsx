@@ -1,145 +1,92 @@
-import React from "react";
-import { AbsoluteFill } from "remotion";
-import { AR, MONO } from "../theme";
-import { Banner } from "../components/common";
-import { C, eb, eio, eo, fmt, prog, useT, win } from "../lib";
+import React from 'react';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {Caption, Chip, Editor, Stage, TopBadge, Win, clamp, lerp, lin, pop, sec} from '../kit';
+import {XTAB} from '../data';
 
-const PURPLE = "#A855F7";
-const DATA: [string, number, number, number][] = [
-  ["Laptop", 1500, 1350, 1100],
-  ["Phone", 900, 950, 700],
-  ["Monitor", 400, 380, 420],
-];
-const CX = [95, 300, 490, 680, 880, 1040];
-const CW = [190, 180, 180, 190, 150, 150];
-const TY = 190, HY = 262;
-const RY = (i: number) => 320 + i * 86;
-const maxIdx = (r: number[]) => r.indexOf(Math.max(...r)) ; // within [retail, promo, wholesale]
-const minIdx = (r: number[]) => r.indexOf(Math.min(...r));
+// SC03 (85-130s): tablefunc + crosstab().
+// Anchors (s): 86.2 when reports need | 94.2 tablefunc | 100.4 crosstab takes a query | 103.9 row/column/value | 107.6 passes into engine | 115.3 golden option | 123.2 no manual lines
+const S = START.s3;
+const t = (g: number) => sec(g - S);
+const SRC = XTAB.flatMap((r) => [
+  {b: r.branch, c: 'electronics', v: r.elec},
+  {b: r.branch, c: 'clothing', v: r.cloth},
+]);
 
 export const Scene3: React.FC = () => {
-  const t = useT();
-  const tableIn = eo(t, 87.0, 88.4);
-  const vals = DATA.map((d) => [d[1], d[2], d[3]]);
-
-  const SWEEPS: { row: number; a: number; d: number }[] = [
-    { row: 0, a: 90.4, d: 1.6 },
-    { row: 0, a: 92.6, d: 1.6 },
-    ...[0, 1, 2].map((i) => ({ row: i, a: 104.9 + i * 1.2, d: 0.9 })),
-    ...[0, 1, 2].map((i) => ({ row: i, a: 114.6 + i * 0.8, d: 0.7 })),
-  ];
-
-  const gShown = (i: number) => t > 105.8 + i * 1.2;
-  const lShown = (i: number) => t > 115.3 + i * 0.8;
-
+  const f = useCurrentFrame();
+  const hot = (g: number) => clamp(lin(f, t(g), 10));
+  const out = clamp(lin(f, t(110.5), 20));
+  const ext = clamp(pop(f, t(94.2)));
   return (
-    <AbsoluteFill>
-      {/* table card */}
-      <div style={{ position: "absolute", left: 70 - (1 - tableIn) * 400, top: TY, width: 1130, height: 520, opacity: tableIn, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }}>
-        <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.blue }}>product_prices</div>
+    <Stage dur={1350} inFx="up" outFx="down">
+      <TopBadge text="الجداول التقاطعية | Cross-tabulation with crosstab" from={sec(1)} to={sec(40)} color={C.purple} />
+
+      <Editor x={80} y={170} w={1010} h={310} title="Query Editor" lines={['CREATE EXTENSION tablefunc;', 'SELECT * FROM crosstab(', "  'SELECT branch, category, SUM(amount)", "   FROM sales GROUP BY 1, 2 ORDER BY 1, 2'", ') AS ct(branch TEXT, electronics NUMERIC, clothing NUMERIC);']} start={t(90)} cps={1.0} size={23} hl={f > t(100.4) ? 1 : f > t(94.2) ? 0 : -1} hlColor={C.purple} />
+      <div style={{position: 'absolute', left: 1150, top: 200, opacity: ext, transform: `scale(${0.85 + 0.15 * ext})`}}>
+        <Chip color={C.purple} style={{fontSize: 30, padding: '10px 28px'}}>tablefunc ✓ enabled</Chip>
       </div>
-      {["product", "retail_price", "promo_price", "wholesale_price", "GREATEST", "LEAST"].map((h, c) => {
-        const o = c < 4 ? tableIn : c === 4 ? prog(t, 95.0, 95.6) : prog(t, 95.9, 96.5);
-        const col = c === 4 ? C.amber : c === 5 ? C.blue : c === 1 && t > 100.2 && t < 104.5 ? C.blue : C.dim;
-        return (
-          <div key={h} style={{ position: "absolute", left: CX[c], top: HY, width: CW[c], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: c >= 3 ? 16 : 17, color: col, opacity: o }}>
-            {h}
-          </div>
-        );
-      })}
-      {DATA.map((d, i) => {
-        const e = eb(t, 87.8 + i * 0.25, 88.5 + i * 0.25);
-        const mx = maxIdx(vals[i]);
-        const mn = minIdx(vals[i]);
-        const gHit = gShown(i);
-        const lHit = lShown(i);
-        return (
-          <div key={d[0]} style={{ position: "absolute", left: 0, top: 0, opacity: Math.min(1, e * 1.5) }}>
-            <div style={{ position: "absolute", left: 85, top: RY(i), width: 1100, height: 70, borderRadius: 14, background: "#1B2740", border: `1.5px solid ${C.line}` }} />
-            <div style={{ position: "absolute", left: CX[0], top: RY(i), width: CW[0], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "70px", color: C.text }}>{d[0]}</div>
-            {[1, 2, 3].map((k) => {
-              const isMax = gHit && k - 1 === mx;
-              const isMin = lHit && k - 1 === mn;
-              const bc = isMax ? C.amber : isMin ? C.blue : "transparent";
-              return (
-                <div key={k} style={{ position: "absolute", left: CX[k] + 10, top: RY(i) + 8, width: CW[k] - 20, height: 54, borderRadius: 10, border: `3px solid ${bc}`, background: isMax ? `${C.amber}22` : isMin ? `${C.blue}22` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.text }}>
-                  {fmt(d[k] as number)}
-                </div>
-              );
-            })}
-            <div style={{ position: "absolute", left: CX[4] + 10, top: RY(i) + 8, width: 130, height: 54, borderRadius: 10, border: `3px ${gHit ? "solid" : "dashed"} ${gHit ? C.amber : C.line}`, background: gHit ? `${C.amber}28` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.amber, opacity: t > 95.0 ? 1 : 0 }}>
-              {gHit ? fmt(vals[i][mx]) : ""}
+      <div style={{position: 'absolute', left: 1150, top: 290, opacity: clamp(pop(f, t(100.4)))}}>
+        <Chip color={C.blue} style={{fontSize: 26}}>crosstab(source_sql)</Chip>
+      </div>
+      <div style={{position: 'absolute', left: 1150, top: 370, opacity: clamp(pop(f, t(115.3)))}}>
+        <Chip color={C.purple} style={{fontSize: 26}}>★ the golden option</Chip>
+      </div>
+
+      {/* source: 3 columns */}
+      <Win x={80} y={510} w={620} h={400} title="source query · 3 columns" opacity={clamp(lin(f, t(100.4), 14))}>
+        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: 50, display: 'flex', alignItems: 'center', padding: '0 24px', fontFamily: MONO, fontSize: 22, fontWeight: 700}}>
+          <span style={{width: 170, color: hot(103.9) > 0.3 ? C.blue : C.muted}}>row name</span>
+          <span style={{width: 210, color: hot(105.2) > 0.3 ? C.amber : C.muted}}>column name</span>
+          <span style={{color: hot(106.4) > 0.3 ? C.green : C.muted}}>value</span>
+        </div>
+        {SRC.map((r, i) => {
+          const sent = f >= t(107.6 + i * 0.4) + 20;
+          return (
+            <div key={i} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: 54 + i * 48, height: 44, display: 'flex', alignItems: 'center', padding: '0 12px', fontFamily: MONO, fontSize: 23, opacity: sent ? 0.3 : 1, color: C.text}}>
+              <span style={{width: 170}}>{r.b}</span><span style={{width: 210}}>{r.c}</span><span>{r.v}</span>
             </div>
-            <div style={{ position: "absolute", left: CX[5] + 10, top: RY(i) + 8, width: 130, height: 54, borderRadius: 10, border: `3px ${lHit ? "solid" : "dashed"} ${lHit ? C.blue : C.line}`, background: lHit ? `${C.blue}28` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.blue, opacity: t > 95.9 ? 1 : 0 }}>
-              {lHit ? fmt(vals[i][mn]) : ""}
+          );
+        })}
+      </Win>
+
+      {/* crosstab engine */}
+      <div style={{position: 'absolute', left: 735, top: 600, width: 220, height: 240}}>
+        <svg width={220} height={240} viewBox="0 0 220 240" style={{filter: `drop-shadow(0 0 ${14 + 10 * Math.sin(f * 0.2)}px ${C.purple})`}}>
+          <path d="M20 40 V190 C20 222 200 222 200 190 V40" fill={`${C.purple}22`} stroke={C.purple} strokeWidth={6} />
+          <ellipse cx={110} cy={40} rx={90} ry={26} fill={C.card} stroke={C.purple} strokeWidth={6} />
+          <text x={110} y={140} textAnchor="middle" fill={C.text} fontFamily={MONO} fontSize={26} fontWeight={700}>crosstab</text>
+          <text x={110} y={172} textAnchor="middle" fill={C.purple} fontFamily={MONO} fontSize={20}>pivot engine</text>
+        </svg>
+      </div>
+      {SRC.map((r, i) => {
+        const p = lin(f, t(107.6 + i * 0.4), 20);
+        if (p <= 0 || p >= 1) return null;
+        const e = p * p * (3 - 2 * p);
+        return (
+          <div key={i} dir="ltr" style={{position: 'absolute', left: lerp(560, 810, e) - 40, top: lerp(560 + i * 48, 700, e) - 18, width: 80, height: 36, borderRadius: 18, background: C.purple, color: C.text, fontFamily: MONO, fontWeight: 700, fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{r.v}</div>
+        );
+      })}
+
+      {/* output matrix */}
+      <Win x={1000} y={510} w={840} h={400} title="pivot matrix · crosstab output" accent={C.purple} opacity={out}>
+        <div dir="ltr" style={{position: 'absolute', left: 20, right: 20, top: 0, height: 52, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 26, fontWeight: 700}}>
+          <span style={{width: 250, color: C.muted}}>branch</span><span style={{width: 270, color: C.purple}}>electronics</span><span style={{color: C.purple}}>clothing</span>
+        </div>
+        {XTAB.map((r, i) => {
+          const p = clamp(pop(f, t(111.2 + i * 0.7)));
+          return (
+            <div key={r.branch} dir="ltr" style={{position: 'absolute', left: 20, right: 20, top: 62 + i * 90, height: 76, display: 'flex', alignItems: 'center', fontFamily: MONO, fontSize: 34, fontWeight: 700, color: C.text, opacity: p, transform: `scale(${0.92 + 0.08 * p})`}}>
+              <span style={{width: 250}}>{r.branch}</span>
+              <span style={{width: 250, textAlign: 'center', border: `3px solid ${C.purple}`, borderRadius: 12, background: `${C.purple}22`, boxShadow: `0 0 18px ${C.purple}66`, marginRight: 20}}>{r.elec}</span>
+              <span style={{width: 250, textAlign: 'center', border: `3px solid ${C.purple}`, borderRadius: 12, background: `${C.purple}22`, boxShadow: `0 0 18px ${C.purple}66`}}>{r.cloth}</span>
             </div>
-          </div>
-        );
-      })}
-
-      {/* horizontal purple sweeps */}
-      {SWEEPS.map((sw, k) => {
-        if (t < sw.a || t > sw.a + sw.d + 0.35) return null;
-        const w = 560 * eio(t, sw.a, sw.a + sw.d);
-        return (
-          <div key={k} style={{ position: "absolute", left: 295, top: RY(sw.row) + 31, width: w, height: 8, borderRadius: 4, background: PURPLE, opacity: 0.95 }}>
-            <div style={{ position: "absolute", right: -14, top: -11, width: 30, height: 30, borderRadius: 15, background: PURPLE, border: "3px solid #fff" }} />
-          </div>
-        );
-      })}
-      {win(t, 90.0, 95.0, 0.4) > 0 && (
-        <Arabic2 t={t} />
-      )}
-
-      {/* vertical MAX / MIN */}
-      {t > 100.2 && t < 104.6 && (
-        <>
-          <div style={{ position: "absolute", left: CX[1] + CW[1] / 2 - 3, top: 290, width: 6, height: 290 * eio(t, 100.2, 101.8), background: C.blue, opacity: win(t, 100.2, 104.6, 0.3) }} />
-          <div style={{ position: "absolute", left: CX[1] + CW[1] / 2 - 14, top: 566, fontFamily: MONO, fontWeight: 700, fontSize: 28, color: C.blue, opacity: win(t, 101.6, 104.6, 0.3) }}>▼</div>
-        </>
-      )}
-      {[
-        { a: 100.4, l: "MAX(retail_price) = 1,500", c: C.blue, x: 95 },
-        { a: 100.8, l: "MIN(retail_price) = 400", c: C.dim, x: 560 },
-      ].map((m) => {
-        const o = win(t, m.a, 104.6, 0.3);
-        return o > 0 ? (
-          <div key={m.l} style={{ position: "absolute", left: m.x, top: 620, width: 430, height: 56, borderRadius: 14, border: `2.5px solid ${m.c}`, background: `${m.c}18`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "52px", color: C.text, opacity: o }}>
-            {m.l}
-          </div>
-        ) : null;
-      })}
-
-      {/* right panel: comparison cards, then use-cases */}
-      {[
-        { a: 99.5, y: 190, c: C.blue, k: "MAX() / MIN()", ar: "عمود واحد ↓ رأسي عبر كل الأسطر", end: 117.2 },
-        { a: 104.7, y: 370, c: PURPLE, k: "GREATEST() / LEAST()", ar: "عدة أعمدة → أفقي داخل السطر الواحد", end: 117.2 },
-        { a: 120.5, y: 190, c: C.amber, k: "SEASONAL PRICES", ar: "مقارنة أسعار المواسم المختلفة", end: 134.4 },
-        { a: 124.0, y: 370, c: PURPLE, k: "SHIPPING & DISCOUNTS", ar: "حدّ أدنى وأقصى لرسوم الشحن والخصومات", end: 134.4 },
-        { a: 129.6, y: 550, c: C.green, k: "PROFIT MARGIN ✓", ar: "تمنع الخسائر وتحمي هامش الربح", end: 134.4 },
-      ].map((cd) => {
-        const o = win(t, cd.a, cd.end, 0.45);
-        if (o <= 0) return null;
-        return (
-          <div key={cd.k} style={{ position: "absolute", left: 1240, top: cd.y, width: 610, height: 158, opacity: o, transform: `translateX(${(1 - eo(t, cd.a, cd.a + 0.6)) * 120}px)`, borderRadius: 20, background: `${cd.c}16`, border: `3px solid ${cd.c}`, padding: "14px 24px" }}>
-            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 25, color: cd.c }}>{cd.k}</div>
-            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl", textAlign: "right", marginTop: 10, lineHeight: 1.35 }}>{cd.ar}</div>
-          </div>
-        );
-      })}
-
-      <Banner x={70} y={900} w={1780} a={90.0} b={109.8} color={PURPLE} fs={25}>
-        GREATEST(c1, c2, c3) ──► Horizontal Row-Level Comparison (Vs Vertical MAX)
-      </Banner>
-      <Banner x={70} y={900} w={1780} a={110.2} b={134.2} color={C.blue} fs={26}>
-        LEAST(c1, c2, c3) ──► Extracts Minimum Bound Across Row Columns
-      </Banner>
-    </AbsoluteFill>
+          );
+        })}
+      </Win>
+      <div style={{position: 'absolute', right: 80, top: 922, opacity: 0}} />
+      <Caption text="CREATE EXTENSION tablefunc; ──► Enables Advanced Cross-tabulation" from={t(92)} to={t(104)} />
+      <Caption text="crosstab(source_sql) ──► Automatic Multi-Dimensional Matrix Pivoting" from={t(108)} to={sec(44)} tone="ok" />
+    </Stage>
   );
 };
-
-const Arabic2: React.FC<{ t: number }> = ({ t }) => (
-  <div style={{ position: "absolute", left: 300, top: 600, width: 600, textAlign: "center", fontFamily: AR, fontWeight: 900, fontSize: 36, color: PURPLE, direction: "rtl", opacity: win(t, 90.0, 95.0, 0.4) }}>
-    ↔ داخل نفس السطر
-  </div>
-);
