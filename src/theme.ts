@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200; // 240s * 30fps
-export const LESSON = 30;
-export const COMP_ID = 'SQL-L30-Pivot-Filter-Crosstab';
+export const LESSON = 36;
+export const COMP_ID = 'SQL-L36-Recursive-CTE';
 
 export const C = {
   bg: '#0F172A',
@@ -29,7 +29,7 @@ export const C = {
   bronze: '#CD7F32', // Bronze tier
 };
 
-// Scene boundaries sit in the real voiceover gaps (38.6-41.4 / 83.6-86.2 / 128.6-131.2 / 168.6-171.2 / 207.6-210.2)
+// Scene boundaries sit in the real voiceover gaps (38.8-41.3 / 83.7-86.2 / 128.6-131.3 / 168.6-171.2 / 207.7-210.2)
 export const SCENES = {
   s1: {from: 0, dur: 1200},
   s2: {from: 1200, dur: 1350},

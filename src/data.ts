@@ -1,17 +1,16 @@
-// manzooma_store_db - small datasets reused by the scenes so the numbers always agree (values in thousands)
-export const BRANCHES = ['Cairo', 'Alex', 'Giza'];
-export const QS = ['Q1', 'Q2', 'Q3', 'Q4'];
-export const SALES: number[][] = [
-  [120, 150, 180, 210],
-  [90, 110, 95, 140],
-  [70, 85, 100, 125],
+// manzooma_store_db.employees - one small org chart reused by every scene so the numbers always agree
+export type Emp = {id: number; name: string; role: string; lvl: number; mgr: number | null; x: number};
+export const EMPS: Emp[] = [
+  {id: 1, name: 'Mona', role: 'CEO', lvl: 0, mgr: null, x: 1060},
+  {id: 2, name: 'Ahmed', role: 'CTO', lvl: 1, mgr: 1, x: 660},
+  {id: 3, name: 'Sara', role: 'CFO', lvl: 1, mgr: 1, x: 1460},
+  {id: 4, name: 'Omar', role: 'Dev', lvl: 2, mgr: 2, x: 460},
+  {id: 5, name: 'Hany', role: 'Dev', lvl: 2, mgr: 2, x: 860},
+  {id: 6, name: 'Laila', role: 'Acct', lvl: 2, mgr: 3, x: 1460},
+  {id: 7, name: 'Karim', role: 'Jr', lvl: 3, mgr: 4, x: 460},
+  {id: 8, name: 'Dina', role: 'Jr', lvl: 3, mgr: 5, x: 860},
 ];
-/** vertical (long) form: one row per branch + quarter */
-export const LONG = BRANCHES.flatMap((b, bi) => QS.map((q, qi) => ({branch: b, q, qi, bi, amount: SALES[bi][qi]})));
-export const Q_TOTAL = QS.map((_, qi) => SALES.reduce((a, r) => a + r[qi], 0));
-export const B_TOTAL = SALES.map((r) => r.reduce((a, b) => a + b, 0));
-export const XTAB = [
-  {branch: 'Cairo', elec: 500, cloth: 300},
-  {branch: 'Alex', elec: 380, cloth: 260},
-  {branch: 'Giza', elec: 420, cloth: 190},
-];
+export const byId = (id: number) => EMPS.find((e) => e.id === id)!;
+export const pathOf = (e: Emp): string[] => (e.mgr === null ? [e.name] : [...pathOf(byId(e.mgr)), e.name]);
+/** rows per recursion level: [1], [2,3], [4,5,6], [7,8] */
+export const LEVELS = [0, 1, 2, 3].map((l) => EMPS.filter((e) => e.lvl === l));

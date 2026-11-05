@@ -4,11 +4,11 @@ import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
 // SC06 (209-240s): Manzooma Academy outro. Ends with a fade to black.
-// Anchors (s): 210.2 great | 217.1 unit finished | 219.7 download scripts | 223.0 link | 225.5 get ready | 228.2 next lesson | 230.5 window functions
+// Anchors (s): 210.2 great | 216.6 unit finished | 217.9 download scripts | 222.6 link | 224.6 get ready | 227.9 next lesson | 230.1 temp tables
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['Pivot ✓', 'FILTER (WHERE) ✓', 'crosstab() ✓', 'Single-Pass ✓'];
+const SKILLS = ['WITH RECURSIVE ✓', 'Anchor + UNION ALL ✓', 'Termination ✓', 'Recursive Union ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
@@ -16,10 +16,10 @@ export const Scene6: React.FC = () => {
   const head = prog(f, t(210.4), 24);
   const badge = pop(f, t(210.8));
   const fill = prog(f, t(211.6), sec(4.8));
-  const modDone = prog(f, t(217.1), 20);
-  const res = prog(f, t(219.7), 24);
-  const next = prog(f, t(225.5), 28);
-  const code = typed("SELECT branch, amount,\n  SUM(amount) OVER (\n    PARTITION BY branch)\nFROM sales;", f, t(228.2), 0.55).split('\n');
+  const modDone = prog(f, t(216.6), 20);
+  const res = prog(f, t(218.0), 24);
+  const next = prog(f, t(224.6), 28);
+  const code = typed("CREATE TEMP TABLE tmp AS\n  SELECT * FROM orders;\nCREATE VIEW v AS\n  SELECT * FROM tmp;", f, t(227.9), 0.55).split('\n');
   const pct = Math.round(fill * 100);
 
   return (
@@ -45,7 +45,7 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 32, fontWeight: 700, color: C.green}}>
-              Lesson 30 Completed: <span style={{color: C.text}}>Advanced Pivoting &amp; Module 8 Mastered</span>
+              Lesson 36 Completed: <span style={{color: C.text}}>RECURSIVE CTEs &amp; Module 10 Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
@@ -55,7 +55,7 @@ export const Scene6: React.FC = () => {
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 8 · Advanced Conditional Analysis — {modDone > 0.5 ? 'Completed 100% ✓' : 'in progress'}
+            Module 10 · Subqueries &amp; CTEs — {modDone > 0.5 ? 'Completed 100% ✓' : 'in progress'}
           </div>
         </div>
 
@@ -78,11 +78,11 @@ export const Scene6: React.FC = () => {
 
         <div style={{position: 'absolute', left: 90, right: 90, top: 535, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 31 · الوحدة التاسعة</Mix>
-            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>مقدمة الدوال النافذية Window Functions والتوزيع بـ OVER(PARTITION BY)</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 37 · الوحدة الحادية عشرة</Mix>
+            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>الجداول المؤقتة وعروض البيانات TEMPORARY TABLES &amp; VIEWS</Mix>
           </div>
           <div dir="ltr" style={{width: 560, height: 210, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '20px 26px', fontFamily: MONO, fontSize: 24, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 31</div>
+            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 37</div>
             {code.map((l, i) => (
               <div key={i} style={{whiteSpace: 'pre', minHeight: 36}}>
                 <Sql text={l} />
