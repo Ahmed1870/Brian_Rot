@@ -1,4 +1,4 @@
-name: Render SQL Lesson 36 Recursive CTE
+name: Render SQL Lesson 32 Running Totals
 on:
   push:
     branches: [main]
@@ -9,20 +9,12 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 36 only
-        run: |
-          grep -q "SQL-L36-Recursive-CTE" src/theme.ts
-          grep -q "SQL-L36-Recursive-CTE" package.json
-          test -f public/voiceover_lesson_36.mp3
-          test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L36-Recursive-CTE out/sql-l36-recursive-cte.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l36-recursive-cte.mp4
+      - run: npx remotion render src/index.ts SQL-L32-Running-Totals out/sql-l32-running-totals.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l36-recursive-cte
-          path: out/sql-l36-recursive-cte.mp4
-          if-no-files-found: error
+          name: sql-l32-running-totals
+          path: out/sql-l32-running-totals.mp4

@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Easing, interpolate, spring, useCurrentFrame} from 'remotion';
-import {C, FONT, FPS, LESSON, MONO, SCENES, TOTAL_FRAMES} from './theme';
+import {C, FONT, FPS, MONO, SCENES, TOTAL_FRAMES} from './theme';
 
 export const ease = Easing.bezier(0.16, 1, 0.3, 1);
 export const sec = (s: number) => Math.round(s * FPS);
@@ -48,7 +48,7 @@ export const Chrome: React.FC = () => {
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: 56, top: 26, fontFamily: MONO, fontSize: 22, color: C.muted, letterSpacing: 0.5}}>
-        <span style={{color: C.blue}}>SQL</span> From Zero to Professional · <span style={{color: C.text}}>Lesson {LESSON}</span>
+        <span style={{color: C.blue}}>SQL</span> From Zero to Professional · <span style={{color: C.text}}>Lesson 32</span>
       </div>
       <div style={{position: 'absolute', right: 56, top: 32, display: 'flex', gap: 10}}>
         {starts.map((_, i) => (
@@ -116,8 +116,7 @@ export const TopBadge: React.FC<{text: string; from: number; to: number; color?:
 };
 
 /** Bottom on-screen typography line: types in, then fades out. Arrow segments are amber. */
-export const Caption: React.FC<{text: string; from: number; to: number; tone?: 'normal' | 'danger' | 'ok'}> = ({text, from, to, tone = 'normal'}) => {
-  const edge = tone === 'danger' ? C.red : tone === 'ok' ? C.green : C.border;
+export const Caption: React.FC<{text: string; from: number; to: number}> = ({text, from, to}) => {
   const f = useCurrentFrame();
   if (f < from || f > to + 12) return null;
   const shown = typed(text, f, from, 1.6);
@@ -126,7 +125,7 @@ export const Caption: React.FC<{text: string; from: number; to: number; tone?: '
   const blink = Math.floor(f / 12) % 2 === 0 ? 1 : 0;
   return (
     <div style={{position: 'absolute', left: 0, right: 0, top: 940, display: 'flex', justifyContent: 'center', opacity: o}}>
-      <div dir="ltr" style={{fontFamily: MONO, fontSize: 34, color: C.text, background: C.card, border: `2px solid ${edge}`, borderRadius: 16, padding: '16px 34px', whiteSpace: 'pre', minHeight: 44, boxShadow: tone === 'normal' ? 'none' : `0 0 0 6px ${edge}22`}}>
+      <div dir="ltr" style={{fontFamily: MONO, fontSize: 34, color: C.text, background: C.card, border: `2px solid ${C.border}`, borderRadius: 16, padding: '16px 34px', whiteSpace: 'pre', minHeight: 44}}>
         {parts.map((p, i) => (
           <span key={i} style={{color: /^──/.test(p) ? C.amber : C.text}}>{p}</span>
         ))}
@@ -189,8 +188,8 @@ export const Check: React.FC<{size?: number; color?: string; p: number}> = ({siz
 );
 
 /* ---------------------------------------------------------------- SQL helpers */
-const KW = /(\b(?:INSERT|INTO|VALUES|UPDATE|SET|WHERE|DELETE|FROM|TRUNCATE|TABLE|RETURNING|SELECT|DEFAULT|ORDER|BY|DESC|LIMIT|CASE|WHEN|THEN|ELSE|END|AS|AND|GROUP|FILTER|COUNT|SUM|NULL|LEFT|JOIN|INNER|ON|IN|NOT|IS|ANY|ALL|SOME|AVG|EXISTS)\b|'[^']*'|\b\d+(?:\.\d+)?\b)/;
-const KWONLY = /^(INSERT|INTO|VALUES|UPDATE|SET|WHERE|DELETE|FROM|TRUNCATE|TABLE|RETURNING|SELECT|DEFAULT|ORDER|BY|DESC|LIMIT|CASE|WHEN|THEN|ELSE|END|AS|AND|GROUP|FILTER|COUNT|SUM|NULL|LEFT|JOIN|INNER|ON|IN|NOT|IS|ANY|ALL|SOME|AVG|EXISTS)$/;
+const KW = /(\b(?:INSERT|INTO|VALUES|UPDATE|SET|WHERE|DELETE|FROM|TRUNCATE|TABLE|RETURNING|SELECT|DEFAULT|ORDER|BY|DESC|LIMIT|ASC|NULLS|FIRST|LAST|OFFSET|LEFT|RIGHT|JOIN|ON|IS|NULL|GROUP|COUNT|AS|AND|INNER|FULL|OUTER|CROSS|DISTINCT|AVG|MAX|MIN|SUM|OVER|PARTITION|RANGE|BETWEEN|UNBOUNDED|PRECEDING|CURRENT|ROW)\b|'[^']*'|\b\d+(?:\.\d+)?\b)/;
+const KWONLY = /^(INSERT|INTO|VALUES|UPDATE|SET|WHERE|DELETE|FROM|TRUNCATE|TABLE|RETURNING|SELECT|DEFAULT|ORDER|BY|DESC|LIMIT|ASC|NULLS|FIRST|LAST|OFFSET|LEFT|RIGHT|JOIN|ON|IS|NULL|GROUP|COUNT|AS|AND|INNER|FULL|OUTER|CROSS|DISTINCT|AVG|MAX|MIN|SUM|OVER|PARTITION|RANGE|BETWEEN|UNBOUNDED|PRECEDING|CURRENT|ROW)$/;
 
 /** One SQL line with simple syntax colouring. */
 export const Sql: React.FC<{text: string; strike?: boolean; dim?: boolean}> = ({text, strike, dim}) => (
@@ -226,10 +225,9 @@ export const Editor: React.FC<{
   accent?: string;
   opacity?: number;
   hl?: number;
-  hlColor?: string;
   strikeLine?: number;
   dim?: boolean;
-}> = ({x, y, w, h, title = 'Query Editor', lines, start, cps = 1.2, size = 28, accent = C.border, opacity = 1, hl = -1, hlColor = C.blue, strikeLine = -1, dim = false}) => {
+}> = ({x, y, w, h, title = 'Query Editor', lines, start, cps = 1.2, size = 28, accent = C.border, opacity = 1, hl = -1, strikeLine = -1, dim = false}) => {
   const f = useCurrentFrame();
   const full = lines.join('\n');
   const vis = typed(full, f, start, cps).split('\n');
@@ -242,7 +240,7 @@ export const Editor: React.FC<{
           const v = vis[i] ?? '';
           const isLast = i === vis.length - 1;
           return (
-            <div key={i} style={{display: 'flex', minHeight: size * 1.6, alignItems: 'center', background: hl === i ? `${hlColor}22` : 'transparent', borderRadius: 8}}>
+            <div key={i} style={{display: 'flex', minHeight: size * 1.6, alignItems: 'center', background: hl === i ? `${C.blue}22` : 'transparent', borderRadius: 8}}>
               <span style={{color: '#475569', width: 40, flexShrink: 0}}>{i + 1}</span>
               <span style={{whiteSpace: 'pre'}}>
                 <Sql text={v} strike={strikeLine === i} />
@@ -255,82 +253,3 @@ export const Editor: React.FC<{
     </Win>
   );
 };
-
-/* ---------------------------------------------------------------- Lesson 15 additions */
-
-/** Cubic bezier point (used for data bubbles flying along curved paths). */
-export const bez = (p: number, a: number, b: number, c: number, d: number) => {
-  const u = 1 - p;
-  return u * u * u * a + 3 * u * u * p * b + 3 * u * p * p * c + p * p * p * d;
-};
-
-/** Disk / table-storage icon (pure SVG). */
-export const Disk: React.FC<{x: number; y: number; w?: number; h?: number; color?: string; label?: string; glow?: number}> = ({x, y, w = 130, h = 150, color = C.muted, label, glow = 0}) => (
-  <div style={{position: 'absolute', left: x, top: y, width: w, textAlign: 'center'}}>
-    <svg width={w} height={h} viewBox="0 0 100 120" style={{filter: glow > 0.02 ? `drop-shadow(0 0 ${14 * glow}px ${color})` : 'none'}}>
-      <path d="M8 22 V92 C8 106 92 106 92 92 V22" fill={C.deep} stroke={color} strokeWidth={4} />
-      <ellipse cx={50} cy={22} rx={42} ry={14} fill={C.card} stroke={color} strokeWidth={4} />
-      <path d="M8 50 C8 64 92 64 92 50" fill="none" stroke={color} strokeWidth={3} opacity={0.6} />
-      <path d="M8 72 C8 86 92 86 92 72" fill="none" stroke={color} strokeWidth={3} opacity={0.6} />
-      <circle cx={78} cy={92} r={3.5} fill={color} />
-    </svg>
-    {label ? (
-      <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color, marginTop: 4}}>
-        {label}
-      </div>
-    ) : null}
-  </div>
-);
-
-/** KPI result card: mono label + Arabic label + big value. */
-export const Kpi: React.FC<{x: number; y: number; w?: number; h?: number; label: string; ar: string; value: string; color: string; p?: number; glow?: number}> = ({x, y, w = 500, h = 84, label, ar, value, color, p = 1, glow = 0}) => (
-  <div
-    style={{
-      position: 'absolute',
-      left: x,
-      top: y,
-      width: w,
-      height: h,
-      borderRadius: 18,
-      background: C.card,
-      border: `2px solid ${glow > 0.01 ? color : C.border}`,
-      boxShadow: glow > 0.01 ? `0 0 ${30 * glow}px ${color}66` : 'none',
-      opacity: clamp(p),
-      transform: `translateX(${(1 - clamp(p)) * 40}px)`,
-      display: 'flex',
-      alignItems: 'center',
-      overflow: 'hidden',
-    }}
-  >
-    <div style={{width: 10, alignSelf: 'stretch', background: color}} />
-    <div dir="ltr" style={{flex: 1, padding: '0 18px'}}>
-      <div style={{fontFamily: MONO, fontSize: 21, color: C.muted}}>{label}</div>
-      <Mix style={{fontSize: 20, color, display: 'block'}}>{ar}</Mix>
-    </div>
-    <div dir="ltr" style={{fontFamily: MONO, fontSize: 44, fontWeight: 700, color: C.text, padding: '0 24px'}}>{value}</div>
-  </div>
-);
-
-/** Animated draw-on line (pathLength trick). */
-export const Draw: React.FC<{d: string; p: number; color: string; width?: number; opacity?: number; dash?: string}> = ({d, p, color, width = 3, opacity = 1, dash}) => (
-  <path d={d} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" opacity={opacity} {...(dash ? {strokeDasharray: dash} : {pathLength: 1, strokeDasharray: 1, strokeDashoffset: 1 - clamp(p)})} />
-);
-
-/** Warning triangle. */
-export const Warn: React.FC<{size?: number; color?: string}> = ({size = 64, color = C.red}) => (
-  <svg width={size} height={size * 0.92} viewBox="0 0 70 64">
-    <path d="M35 4 L66 58 H4 Z" fill="none" stroke={color} strokeWidth={6} strokeLinejoin="round" />
-    <line x1={35} y1={24} x2={35} y2={40} stroke={color} strokeWidth={6} strokeLinecap="round" />
-    <circle cx={35} cy={50} r={3.5} fill={color} />
-  </svg>
-);
-
-/* ---------------------------------------------------------------- Lesson 22 additions */
-export const lin = (f: number, start: number, dur: number) => clamp((f - start) / dur);
-
-/** Small value cell (array element / hash bucket). */
-export const Cell: React.FC<{x: number; y: number; w?: number; h?: number; text: string; color?: string; fill?: string; p?: number; size?: number}> = ({x, y, w = 110, h = 74, text, color = C.blue, fill, p = 1, size = 34}) => (
-  <div dir="ltr" style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 14, border: `3px solid ${color}`, background: fill ?? `${color}1f`, color: C.text, fontFamily: MONO, fontWeight: 700, fontSize: size, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: clamp(p), transform: `scale(${0.7 + 0.3 * clamp(p)})`}}>
-    {text}
-  </div>
-);

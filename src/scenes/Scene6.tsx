@@ -1,29 +1,26 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
+import {C, FONT, MONO} from '../theme';
+import {Check, Chip, Mix, Stage, clamp, pop, prog, sec, typed} from '../kit';
+import {Sql} from '../kit';
 
-// SC06 (209-240s): Manzooma Academy outro. Ends with a fade to black.
-// Anchors (s): 210.2 great | 216.6 unit finished | 217.9 download scripts | 222.6 link | 224.6 get ready | 227.9 next lesson | 230.1 temp tables
-const S = START.s6;
+// SC06 (frames 6300-7200, global 210-240s): Manzooma Academy outro. Ends with a fade to black.
+const S = 210.0;
 const t = (g: number) => sec(g - S);
-
-const SKILLS = ['WITH RECURSIVE ✓', 'Anchor + UNION ALL ✓', 'Termination ✓', 'Recursive Union ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
   const card = prog(f, 0, 30);
-  const head = prog(f, t(210.4), 24);
-  const badge = pop(f, t(210.8));
-  const fill = prog(f, t(211.6), sec(4.8));
-  const modDone = prog(f, t(216.6), 20);
-  const res = prog(f, t(218.0), 24);
-  const next = prog(f, t(224.6), 28);
-  const code = typed("CREATE TEMP TABLE tmp AS\n  SELECT * FROM orders;\nCREATE VIEW v AS\n  SELECT * FROM tmp;", f, t(227.9), 0.55).split('\n');
+  const head = prog(f, t(210.3), 24);
+  const badge = pop(f, t(211.1));
+  const fill = prog(f, t(211.5), sec(6.5));
+  const res = prog(f, t(219.1), 24);
+  const next = prog(f, t(224.2), 28);
+  const code = typed('ROW_NUMBER() OVER()', f, t(226.0), 0.5);
   const pct = Math.round(fill * 100);
 
   return (
-    <Stage dur={930} inFx="fade" outFx="black">
+    <Stage dur={900} inFx="fade" outFx="black">
       <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
         <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
           <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
@@ -41,54 +38,37 @@ export const Scene6: React.FC = () => {
           </div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 170}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 190}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 32, fontWeight: 700, color: C.green}}>
-              Lesson 36 Completed: <span style={{color: C.text}}>RECURSIVE CTEs &amp; Module 10 Mastered</span>
-            </div>
+            <div style={{fontFamily: MONO, fontSize: 38, fontWeight: 700, color: C.green}}>Lesson 32 Completed: <span style={{color: C.text}}>Running Totals & ORDER BY Mastered</span></div>
           </div>
-          <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
+          <div style={{marginTop: 34, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
               <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 10 · Subqueries &amp; CTEs — {modDone > 0.5 ? 'Completed 100% ✓' : 'in progress'}
-          </div>
+          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: C.muted}}>Module 9 · Window Functions — Running Totals Mastered</div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 16}}>
-          {SKILLS.map((s, i) => {
-            const p = pop(f, t(212.8 + i * 0.9));
-            return (
-              <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
-                <Chip color={C.blue} style={{fontSize: 22}}>{s}</Chip>
-              </div>
-            );
-          })}
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 440, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 400, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
           <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
             <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
           </Chip>
         </div>
 
-        <div style={{position: 'absolute', left: 90, right: 90, top: 535, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
+        <div style={{position: 'absolute', left: 90, right: 90, top: 500, height: 300, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 37 · الوحدة الحادية عشرة</Mix>
-            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>الجداول المؤقتة وعروض البيانات TEMPORARY TABLES &amp; VIEWS</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 33</Mix>
+            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>دوال الترتيب والتصنيف ROW_NUMBER, RANK, DENSE_RANK, NTILE</Mix>
           </div>
-          <div dir="ltr" style={{width: 560, height: 210, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '20px 26px', fontFamily: MONO, fontSize: 24, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 37</div>
-            {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 36}}>
-                <Sql text={l} />
-                {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
-              </div>
-            ))}
+          <div dir="ltr" style={{width: 560, height: 170, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '26px 28px', fontFamily: MONO, fontSize: 28, color: C.text}}>
+            <div style={{color: '#64748B', fontSize: 20, marginBottom: 16}}>-- Lesson 33</div>
+            <div>
+              <Sql text={code} />
+              <span style={{color: C.green}}>▌</span>
+            </div>
           </div>
         </div>
       </div>
