@@ -5,82 +5,60 @@ import {B} from '../layout';
 import {cairo, mono} from '../fonts';
 import {Caption, Card, Defs, Scene, Tag, Title, ease, fs, prog} from '../common';
 
-const SALES = [120, 135, 128, 150, 165, 158];
-const MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'];
-const RY = 110, RP = 90, RH = 76;
-const X = {m: 30, s: 240, p: 520, g: 820};
-const T = (i: number) => 181 + i * 55;
+const ROWS = [
+  {n: 'لابتوب', s: 4200}, {n: 'شاشة', s: 3100}, {n: 'سماعة', s: 3100}, {n: 'كيبورد', s: 2200}, {n: 'ماوس', s: 900},
+];
+const RY = 120, RP = 100;
 
 export const Scene01: React.FC = () => {
   const f = useCurrentFrame();
   const Bd = B.s1.board, D = B.s1.side;
-  const cy = (i: number) => Bd.y + RY + i * RP + RH / 2;
-  const cell = (x: number, w: number, i: number, txt: string, color: string, border: string, bg: string, o = 1, fontMono = true) => (
-    <div style={{position: 'absolute', left: x, top: RY + i * RP, width: w, height: RH, borderRadius: 14, border: `3px solid ${border}`, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: fontMono ? mono : cairo, fontWeight: 700, fontSize: 32, color, opacity: o, direction: 'ltr'}}>{txt}</div>
-  );
+  const probe = prog(f, 181, 540); // laser probe goes down the list
+  const stampOf = (i: number) => probe * 5 > i + 0.3;
+  const win = prog(f, 541, 600);
 
   return (
     <Scene dur={S.s1.dur} accent={C.blue}>
-      <Title ar="دوال الإزاحة والتحليل الزمني" en="Offset & Value Window Functions" chip="SC 01 · LAG" accent={C.blue} />
+      <Title ar="الترتيب والتصنيف داخل النوافذ" en="Window Ranking Functions" chip="SC 01 · ROW_NUMBER" accent={C.blue} />
 
       <Card box={Bd} accent={C.line} at={4}>
-        <div style={{position: 'absolute', left: 28, top: 20, direction: 'ltr'}}><Tag color={C.blue}>MONTHLY SALES ($K)</Tag></div>
-        <div style={{position: 'absolute', left: 0, top: 68, direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 22, color: C.dim}}>
-          <span style={{position: 'absolute', left: X.m + 8, whiteSpace: 'nowrap'}}>month</span>
-          <span style={{position: 'absolute', left: X.s + 8}}>sales</span>
-          <span style={{position: 'absolute', left: X.p + 8, color: C.blue, whiteSpace: 'nowrap'}}>LAG(sales,1,0)</span>
-          <span style={{position: 'absolute', left: X.g + 8, color: C.green, whiteSpace: 'nowrap'}}>MoM growth</span>
+        <div style={{position: 'absolute', left: 28, top: 22, direction: 'ltr'}}><Tag color={C.blue}>TOP PRODUCTS · BY REVENUE</Tag></div>
+        <div style={{position: 'absolute', left: 28, right: 28, top: 70, display: 'flex', direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 22, color: C.dim}}>
+          <span style={{width: 150}}>row_number</span><span style={{width: 300}}>product</span><span>revenue</span>
         </div>
-        {SALES.map((s, i) => {
-          const on = f >= T(i);
-          const act = f >= T(i) && f < T(i) + 55;
-          const prev = i === 0 ? 0 : SALES[i - 1];
-          const gr = i === 0 ? null : ((s - prev) / prev) * 100;
-          const o = prog(f, 20 + i * 8, 50 + i * 8);
+        {ROWS.map((r, i) => {
+          const st = stampOf(i);
+          const first = i === 0 && win > 0;
           return (
-            <React.Fragment key={i}>
-              {cell(X.m, 180, i, MON[i], C.text, act ? C.blue : C.line, C.panel2, o, false)}
-              {cell(X.s, 220, i, '$' + s, C.text, act ? C.blue : C.line, C.panel2, o)}
-              {cell(X.p, 260, i, '$' + prev, i === 0 ? C.amber : C.blue, on ? (i === 0 ? C.amber : C.blue) : C.line, on ? (i === 0 ? 'rgba(245,158,11,0.14)' : 'rgba(56,189,248,0.14)') : C.panel2, on ? 1 : 0.3)}
-              {cell(X.g, 330, i, gr === null ? 'n/a' : `${gr >= 0 ? '+' : ''}${gr.toFixed(1)}%`, gr === null ? C.dim : gr >= 0 ? C.green : C.red, on && f >= T(i) + 25 ? (gr === null ? C.line : gr >= 0 ? C.green : C.red) : C.line, on && f >= T(i) + 25 ? 'rgba(16,185,129,0.10)' : C.panel2, on && f >= T(i) + 25 ? 1 : 0.3)}
-            </React.Fragment>
+            <div key={i} style={{position: 'absolute', left: 20, right: 20, top: RY + i * RP, height: RP - 14, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 20, padding: '0 20px', direction: 'ltr', background: first ? 'rgba(16,185,129,0.14)' : C.panel2, border: `3px solid ${first ? C.green : st ? C.blue : C.line}`, opacity: prog(f, 20 + i * 10, 50 + i * 10)}}>
+              <div style={{width: 110, height: 62, borderRadius: 14, background: st ? (first ? C.green : C.blue) : 'transparent', border: `3px dashed ${st ? 'transparent' : C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: mono, fontWeight: 700, fontSize: 40, color: C.bg, transform: `scale(${st ? 1 : 0.9})`}}>{st ? i + 1 : ''}</div>
+              <span style={{width: 300, fontFamily: cairo, fontWeight: 900, fontSize: 34, color: C.text, direction: 'rtl', textAlign: 'left', marginLeft: 20}}>{r.n}</span>
+              <div style={{flex: 1, height: 22, borderRadius: 11, background: 'rgba(100,116,139,0.3)'}}><div style={{width: `${(r.s / 4200) * 100}%`, height: '100%', borderRadius: 11, background: C.row}} /></div>
+              <span style={{width: 120, textAlign: 'right', fontFamily: mono, fontWeight: 700, fontSize: 30, color: C.text}}>${r.s.toLocaleString('en-US')}</span>
+            </div>
           );
         })}
       </Card>
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <Defs />
-        {SALES.map((_, i) => {
-          if (i === 0) return null;
-          const t = prog(f, T(i), T(i) + 30);
-          if (t <= 0 || f > T(i) + 70) return null;
-          const x1 = Bd.x + X.s + 220, x2 = Bd.x + X.p;
-          return (
-            <g key={i} filter="url(#glow)">
-              <line x1={x1} y1={cy(i - 1)} x2={x1 + (x2 - x1) * t} y2={cy(i - 1) + (cy(i) - cy(i - 1)) * t} stroke={C.blue} strokeWidth={6} strokeLinecap="round" />
-              <circle cx={x1 + (x2 - x1) * t} cy={cy(i - 1) + (cy(i) - cy(i - 1)) * t} r={9} fill={C.text} />
-            </g>
-          );
-        })}
+        {probe > 0 && probe < 1 && <rect x={Bd.x + 14} y={Bd.y + RY + probe * 5 * RP - 8} width={Bd.w - 28} height={7} rx={4} fill={C.blue} filter="url(#glow)" />}
       </svg>
 
       <Card box={D} accent={C.blue} at={150}>
         <div style={{position: 'absolute', left: 28, right: 28, top: 26, direction: 'ltr', fontFamily: mono, fontWeight: 700, color: C.text, lineHeight: 1.5}}>
-          {[['SELECT', ' month, sales,'], ['  LAG', '(sales, 1, 0)'], ['  OVER(ORDER BY month)', ''], ['FROM', ' monthly_sales;']].map(([k, v], i) => (
-            <div key={i} style={{whiteSpace: 'pre', fontSize: fs('  OVER(ORDER BY month)', 504, 28, mono), opacity: prog(f, 160 + i * 12, 190 + i * 12)}}><span style={{color: i === 1 ? C.blue : C.pink}}>{k}</span>{v}</div>
+          {[['SELECT', ' product, revenue,'], ['  ROW_NUMBER()', ''], ['  OVER(ORDER BY revenue DESC)', ''], ['  AS rn', ''], ['FROM', ' product_sales;']].map(([k, v], i) => (
+            <div key={i} style={{whiteSpace: 'pre', fontSize: fs('  OVER(ORDER BY revenue DESC)', 504, 26, mono), opacity: prog(f, 160 + i * 12, 190 + i * 12)}}><span style={{color: i === 1 ? C.blue : C.pink}}>{k}</span>{v}</div>
           ))}
         </div>
-        <div style={{position: 'absolute', left: 28, right: 28, top: 250, direction: 'rtl', opacity: prog(f, 300, 360)}}>
-          <div style={{fontFamily: cairo, fontWeight: 900, fontSize: 30, color: C.blue}}>offset = 1 ← خطوة واحدة للخلف</div>
-          <div style={{fontFamily: cairo, fontWeight: 900, fontSize: 30, color: C.amber, marginTop: 8}}>default = 0 ← مفيش NULL في أول صف</div>
+        <div style={{position: 'absolute', left: 28, right: 28, top: 270, direction: 'rtl', opacity: prog(f, 560, 620)}}>
+          <div style={{fontFamily: cairo, fontWeight: 900, fontSize: 32, color: C.green}}>رقم فريد لكل صف: 1، 2، 3، 4، 5</div>
+          <div style={{marginTop: 14, fontFamily: cairo, fontWeight: 700, fontSize: 28, color: C.text, lineHeight: 1.5}}>حتى لو الشاشة والسماعة نفس الإيراد (3,100)، كل واحد ليه رقم مختلف</div>
         </div>
-        <div style={{position: 'absolute', left: 28, right: 28, bottom: 28, direction: 'rtl', opacity: prog(f, 560, 620)}}>
-          <div style={{fontFamily: mono, fontWeight: 700, fontSize: 24, color: C.text, direction: 'ltr', textAlign: 'center'}}>(sales − prev) ÷ prev × 100</div>
-          <div style={{fontFamily: cairo, fontWeight: 900, fontSize: 32, color: C.green, textAlign: 'center', marginTop: 8}}>نسبة النمو الشهري MoM ✓</div>
-        </div>
+        <div style={{position: 'absolute', left: 28, bottom: 28, direction: 'ltr', opacity: prog(f, 600, 650)}}><span style={{fontFamily: mono, fontWeight: 700, fontSize: 26, color: C.bg, background: C.green, borderRadius: 999, padding: '6px 22px'}}>UNIQUE ✓</span></div>
       </Card>
 
-      <Caption from={60} to={540} ltr={false} color={C.blue}>دوال الإزاحة والتحليل الزمني | Offset & Value Window Functions</Caption>
-      <Caption from={660} to={1140} color={C.green}>LAG(sales, 1, 0) OVER(ORDER BY month) ──► Fetches Previous Row Value</Caption>
+      <Caption from={60} to={540} ltr={false} color={C.blue}>الترتيب والتصنيف داخل النوافذ | Window Ranking Functions</Caption>
+      <Caption from={660} to={1140} color={C.green}>ROW_NUMBER() OVER(ORDER BY revenue DESC) ──► Assigns Unique Sequential Integers</Caption>
     </Scene>
   );
 };

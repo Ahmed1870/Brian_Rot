@@ -23,15 +23,14 @@ export const VOICE_START = 0;
 
 export type Cue = {frame: number; file: string; vol?: number};
 export const CUES: Cue[] = [
-  {frame: 540, file: 'shift', vol: 0.5},
-  {frame: 540, file: 'click', vol: 0.6},
+  {frame: 540, file: 'click', vol: 0.8},
   {frame: 1350, file: 'typing', vol: 0.5},
-  {frame: 2100, file: 'whoosh', vol: 0.5},
-  {frame: 2700, file: 'alert', vol: 0.5},
-  {frame: 3450, file: 'success', vol: 0.5},
-  {frame: 4050, file: 'whoosh', vol: 0.4},
-  {frame: 4650, file: 'click', vol: 0.6},
-  {frame: 4650, file: 'ping', vol: 0.5},
+  {frame: 2100, file: 'alert', vol: 0.5},
+  {frame: 2700, file: 'whoosh', vol: 0.5},
+  {frame: 3450, file: 'click', vol: 0.7},
+  {frame: 3450, file: 'success', vol: 0.4},
+  {frame: 4050, file: 'tick', vol: 0.6},
+  {frame: 4650, file: 'click', vol: 0.7},
   {frame: 5250, file: 'typing', vol: 0.5},
   {frame: 5850, file: 'success', vol: 0.5},
   {frame: 5850, file: 'ping', vol: 0.5},

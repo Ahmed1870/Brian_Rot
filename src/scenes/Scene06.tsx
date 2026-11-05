@@ -5,7 +5,7 @@ import {B} from '../layout';
 import {cairo, mono} from '../fonts';
 import {Card, Scene, Tag, ease, fs, prog} from '../common';
 
-const skills = ['LAG والمقارنة بالفترة السابقة', 'LEAD والنظر للأمام', 'القيمة الافتراضية بدل NULL', 'FIRST_VALUE وفخ LAST_VALUE', 'WindowAgg بدون Disk I/O'];
+const skills = ['ROW_NUMBER والترقيم الفريد', 'RANK مقابل DENSE_RANK', 'PARTITION BY والترتيب المستقل', 'Sort Node و WindowAgg', 'Top-N والتخلص من التكرار'];
 
 export const Scene06: React.FC = () => {
   const f = useCurrentFrame();
@@ -21,27 +21,27 @@ export const Scene06: React.FC = () => {
         <div style={{padding: '40px 52px', display: 'flex', flexDirection: 'column', gap: 0}}>
           <div style={{fontWeight: 900, fontSize: 64, color: C.text, direction: 'rtl', lineHeight: 1.2}}>منظومة أكاديمي</div>
           <div style={{fontFamily: mono, fontWeight: 700, fontSize: fs('Manzooma SQL Masterclass', 900, 34, mono), color: C.blue, direction: 'ltr', marginTop: 6}}>Manzooma SQL Masterclass</div>
-          <div style={{fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl', marginTop: 12}}>الوحدة التاسعة اكتملت 100% — الدوال النافذية</div>
+          <div style={{fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl', marginTop: 12}}>الوحدة العاشرة — الدوال التحليلية والنافذية</div>
 
           <div style={{marginTop: 36, display: 'flex', alignItems: 'center', gap: 24, direction: 'ltr', opacity: prog(f, 140, 180)}}>
             <svg width={84} height={84} viewBox="0 0 84 84" style={{flexShrink: 0}}>
               <circle cx={42} cy={42} r={37} fill="rgba(16,185,129,0.15)" stroke={C.green} strokeWidth={6} />
               <polyline points="23,43 37,57 62,28" fill="none" stroke={C.green} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={70} strokeDashoffset={70 * (1 - check)} />
             </svg>
-            <div style={{fontFamily: mono, fontWeight: 700, color: C.green, lineHeight: 1.3, fontSize: fs('Offset Functions & Module 9 Mastered', 760, 34, mono)}}>
-              Lesson 34 Completed:<br />Offset Functions &amp; Module 9 Mastered
+            <div style={{fontFamily: mono, fontWeight: 700, color: C.green, lineHeight: 1.3, fontSize: fs('Window Ranking Functions Mastered', 760, 34, mono)}}>
+              Lesson 38 Completed:<br />Window Ranking Functions Mastered
             </div>
           </div>
 
           <div style={{marginTop: 34, direction: 'rtl', opacity: prog(f, 130, 170)}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <span style={{fontWeight: 900, fontSize: 30, color: C.text}}>إنجاز الدرس 34</span>
+              <span style={{fontWeight: 900, fontSize: 30, color: C.text}}>إنجاز الدرس 38</span>
               <span style={{fontFamily: mono, fontWeight: 700, fontSize: 32, color: C.green}}>{Math.round(fill * 100)}%</span>
             </div>
             <div style={{height: 26, background: 'rgba(100,116,139,0.35)', borderRadius: 13, marginTop: 12, direction: 'ltr', overflow: 'hidden'}}>
               <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 13}} />
             </div>
-            <div style={{marginTop: 12, display: 'inline-block', fontFamily: mono, fontSize: 22, fontWeight: 700, color: C.blue, border: `2px solid ${C.blue}`, borderRadius: 999, padding: '4px 18px'}}>Module 9 Window Functions Completed</div>
+            <div style={{marginTop: 12, display: 'inline-block', fontFamily: mono, fontSize: 22, fontWeight: 700, color: C.blue, border: `2px solid ${C.blue}`, borderRadius: 999, padding: '4px 18px'}}>Window Ranking Functions Mastered</div>
           </div>
 
           <div style={{marginTop: 30, fontWeight: 900, fontSize: 28, color: C.dim, direction: 'rtl'}}>المهارات المكتسبة</div>
@@ -60,16 +60,16 @@ export const Scene06: React.FC = () => {
       <Card box={B.s6.next} accent={C.blue} at={300}>
         <div style={{padding: '34px 44px'}}>
           <div style={{fontWeight: 900, fontSize: 28, color: C.blue, direction: 'rtl'}}>الدرس القادم</div>
-          <div style={{fontFamily: mono, fontWeight: 700, fontSize: 30, color: C.dim, direction: 'ltr', marginTop: 4}}>Lesson 35</div>
-          <div style={{fontWeight: 900, fontSize: 42, color: C.text, direction: 'rtl', marginTop: 10, lineHeight: 1.25}}>الاستعلامات الفرعية والتعبير WITH</div>
-          <div style={{fontFamily: mono, fontWeight: 700, fontSize: fs('Subqueries & CTEs (WITH)', 670, 30, mono), color: C.blue, direction: 'ltr', marginTop: 6}}>Subqueries &amp; CTEs (WITH)</div>
+          <div style={{fontFamily: mono, fontWeight: 700, fontSize: 30, color: C.dim, direction: 'ltr', marginTop: 4}}>Lesson 39</div>
+          <div style={{fontWeight: 900, fontSize: 42, color: C.text, direction: 'rtl', marginTop: 10, lineHeight: 1.25}}>التجميع التراكمي والمحاسبي</div>
+          <div style={{fontFamily: mono, fontWeight: 700, fontSize: fs('Running Totals & Moving Averages', 670, 30, mono), color: C.blue, direction: 'ltr', marginTop: 6}}>Running Totals &amp; Moving Averages</div>
           <svg width={672} height={120} viewBox="0 0 672 120" style={{marginTop: 20}}>
             <line x1={336} y1={26} x2={236} y2={86} stroke={C.dim} strokeWidth={4} />
             <line x1={336} y1={26} x2={436} y2={86} stroke={C.dim} strokeWidth={4} />
             <circle cx={336} cy={26} r={20} fill="rgba(56,189,248,0.3)" stroke={C.blue} strokeWidth={4} />
             <circle cx={236} cy={86} r={20} fill="none" stroke={C.dim} strokeWidth={4} />
             <circle cx={436} cy={86} r={20} fill="none" stroke={C.dim} strokeWidth={4} />
-            <text x={500} y={30} fontFamily={mono} fontSize={22} fontWeight={700} fill={C.dim}>WITH …</text>
+            <text x={500} y={30} fontFamily={mono} fontSize={22} fontWeight={700} fill={C.dim}>SUM OVER</text>
           </svg>
         </div>
       </Card>
@@ -78,7 +78,7 @@ export const Scene06: React.FC = () => {
       <Card box={B.s6.res} accent={C.amber} at={360}>
         <div style={{padding: '34px 44px'}}>
           <div style={{fontWeight: 900, fontSize: 34, color: C.amber, direction: 'rtl'}}>الشيتات والتمارين</div>
-          <div style={{fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl', marginTop: 10, lineHeight: 1.5}}>سكريبتات دوال الإزاحة والتحليل الزمني المعتمدة + شيت التمارين التطبيقية على منصتنا التعليمية</div>
+          <div style={{fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl', marginTop: 10, lineHeight: 1.5}}>سكريبتات دوال الترتيب والتصنيف المعتمدة + شيت التمارين التطبيقية على منصتنا التعليمية</div>
           <div style={{marginTop: 28, borderTop: `2px solid ${C.line}`, paddingTop: 24, direction: 'ltr', fontFamily: mono, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', fontSize: fs(url, 670, 34, mono)}}>{url}</div>
           <div style={{marginTop: 14}}><Tag color={C.green}>LINK ON SCREEN ✓</Tag></div>
         </div>

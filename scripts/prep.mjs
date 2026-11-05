@@ -1,6 +1,6 @@
 // Safety gate for CI: the render must be for THIS lesson, with narration, or it fails loudly.
 import fs from 'node:fs';
-const LESSON = '34', COMP = 'Ahmed-SQL-L34';
+const LESSON = '38', COMP = 'Ahmed-SQL-L38';
 const root = new URL('../', import.meta.url);
 const fail = (m) => { console.error('✗ ' + m); process.exit(1); };
 

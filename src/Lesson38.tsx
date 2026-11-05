@@ -10,11 +10,11 @@ import {Scene04} from './scenes/Scene04';
 import {Scene05} from './scenes/Scene05';
 import {Scene06} from './scenes/Scene06';
 
-export const Lesson34: React.FC = () => (
+export const Lesson38: React.FC = () => (
   <AbsoluteFill style={{fontFamily: cairo, backgroundColor: '#0F172A'}}>
     {HAS_VOICEOVER && (
       <Sequence from={VOICE_START}>
-        <Audio src={staticFile('voiceover_lesson_34.mp3')} volume={1} />
+        <Audio src={staticFile('voiceover_lesson_38.mp3')} volume={1} />
       </Sequence>
     )}
     <Sequence from={0} durationInFrames={6300}>

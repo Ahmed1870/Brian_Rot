@@ -3,60 +3,69 @@ import {useCurrentFrame} from 'remotion';
 import {C, S} from '../theme';
 import {B} from '../layout';
 import {cairo, mono} from '../fonts';
-import {Caption, Card, Scene, Tag, Title, ease, prog} from '../common';
+import {Caption, Card, Scene, Tag, Title, ease, fs, prog} from '../common';
 
-const ROWS = [{d: '01-05', a: 100}, {d: '01-12', a: 200}, {d: '01-20', a: 300}, {d: '02-03', a: 250}, {d: '02-18', a: 400}];
-const RY = 270, RP = 66, RH = 56;
+type Seg = [string, string];
+const CODE: Seg[][] = [
+  [['SELECT', C.pink], [' product_name, category_id, revenue,', C.text]],
+  [['       ', C.text], ['ROW_NUMBER()', C.green], [' OVER(', C.text], ['PARTITION BY', C.pink], [' category_id ', C.text], ['ORDER BY', C.pink], [' revenue ', C.text], ['DESC', C.pink], [') ', C.text], ['AS', C.pink], [' item_rank', C.text]],
+  [['FROM', C.pink], [' product_sales;', C.text]],
+];
+const CATS = [
+  {id: 1, col: C.blue, t0: 450, items: [['لابتوب', 4800], ['شاشة', 3100], ['ماوس', 1200], ['كيبورد', 900]]},
+  {id: 2, col: C.amber, t0: 700, items: [['جاكيت', 2200], ['حذاء', 1900], ['تيشيرت', 1500], ['شنطة', 800]]},
+];
+const RY = 78, RP = 80, RH = 66;
 
-const Case: React.FC<{box: typeof B.s3.trap; fix: boolean; t0: number}> = ({box, fix, t0}) => {
+const Part: React.FC<{box: typeof B.s3.cat1; c: typeof CATS[number]}> = ({box, c}) => {
   const f = useCurrentFrame();
-  const col = fix ? C.green : C.red;
-  const expand = ease(prog(f, t0 + 80, t0 + 220));
-  const step = prog(f, t0 + 40, t0 + 40 + 5 * 40) * 5; // "current row" scans down for the trap card
-  const lines = fix
-    ? [['LAST_VALUE', '(amount)'], ['  OVER(ORDER BY order_date', ''], ['  ROWS BETWEEN UNBOUNDED PRECEDING', ''], ['  AND UNBOUNDED FOLLOWING)', '']]
-    : [['LAST_VALUE', '(amount)'], ['  OVER(ORDER BY order_date)', '']];
+  const stamped = c.items.filter((_, i) => f >= c.t0 + 30 + i * 50).length; // counter value
+  const pulse = c.id === 2 && f >= c.t0 - 10 && f < c.t0 + 40 ? 1 - Math.abs(f - c.t0 - 10) / 30 : 0;
   return (
-    <Card box={box} accent={col} at={t0 === 0 ? 6 : t0}>
-      <div style={{position: 'absolute', left: 28, top: 20, direction: 'ltr'}}><Tag color={col}>{fix ? 'EXPLICIT FRAME' : 'DEFAULT FRAME · TRAP'}</Tag></div>
-      <div style={{position: 'absolute', left: 28, right: 28, top: 60, direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 26, color: C.text, lineHeight: 1.45, whiteSpace: 'pre'}}>
-        {lines.map((l, i) => (<div key={i}><span style={{color: i === 0 ? col : C.pink}}>{l[0]}</span>{l[1]}</div>))}
+    <Card box={box} accent={c.col} at={c.t0 - 30}>
+      <div style={{position: 'absolute', left: 28, top: 18, direction: 'ltr'}}><Tag color={c.col}>category_id = {c.id}</Tag></div>
+      <div style={{position: 'absolute', right: 24, top: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 10, fontFamily: mono, fontWeight: 700, fontSize: 24, color: C.dim, transform: `scale(${1 + 0.25 * pulse})`}}>
+        counter <span style={{minWidth: 54, textAlign: 'center', background: pulse > 0 ? C.green : C.panel2, color: pulse > 0 ? C.bg : C.green, border: `3px solid ${C.green}`, borderRadius: 12, padding: '2px 10px', fontSize: 30}}>{stamped}</span>
       </div>
-      <div style={{position: 'absolute', left: 28, right: 28, top: 232, display: 'flex', direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 20, color: C.dim}}>
-        <span style={{width: 180}}>date</span><span style={{width: 180}}>amount</span><span style={{color: col}}>last_value</span>
-      </div>
-      {/* purple frame shading */}
-      {fix ? (
-        <div style={{position: 'absolute', left: 14, top: RY - 6, width: 14, height: (5 * RP) * expand, borderRadius: 7, background: C.purple, opacity: 0.9}} />
-      ) : (
-        <div style={{position: 'absolute', left: 14, top: RY - 6, width: 14, height: Math.min(5, step + 0.5) * RP, borderRadius: 7, background: C.purple, opacity: prog(f, t0 + 40, t0 + 70) * 0.9}} />
-      )}
-      {ROWS.map((r, i) => {
-        const cur = !fix && Math.floor(step) === i && step < 5;
-        const val = fix ? (expand > 0.8 ? 400 : '…') : (step >= i ? r.a : '…');
-        const bad = !fix && step >= i && r.a !== 400;
-        const good = fix && expand > 0.8;
+      {c.items.map((it, i) => {
+        const st = ease(prog(f, c.t0 + 30 + i * 50, c.t0 + 70 + i * 50));
         return (
-          <div key={i} style={{position: 'absolute', left: 36, right: 28, top: RY + i * RP, height: RH, borderRadius: 14, display: 'flex', alignItems: 'center', direction: 'ltr', padding: '0 16px', background: cur ? 'rgba(168,85,247,0.18)' : C.panel2, border: `3px solid ${cur ? C.purple : bad ? C.red : good ? C.green : C.line}`, opacity: prog(f, t0 + 10 + i * 8, t0 + 40 + i * 8)}}>
-            <span style={{width: 180, fontFamily: mono, fontWeight: 700, fontSize: 26, color: C.text}}>{r.d}</span>
-            <span style={{width: 180, fontFamily: mono, fontWeight: 700, fontSize: 26, color: C.text}}>{r.a}</span>
-            <span style={{fontFamily: mono, fontWeight: 700, fontSize: 30, color: bad ? C.red : good ? C.green : C.dim}}>{val}</span>
+          <div key={i} style={{position: 'absolute', left: 20, right: 20, top: RY + i * RP, height: RH, borderRadius: 14, border: `3px solid ${c.col}`, background: C.panel2, display: 'flex', alignItems: 'center', gap: 18, padding: '0 18px', direction: 'ltr', opacity: prog(f, c.t0 + i * 10, c.t0 + 30 + i * 10)}}>
+            <div style={{width: 80, height: 48, borderRadius: 12, background: C.green, color: C.bg, fontFamily: mono, fontWeight: 700, fontSize: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: st, transform: `scale(${0.7 + 0.3 * st})`}}>{i + 1}</div>
+            <span style={{flex: 1, fontFamily: cairo, fontWeight: 900, fontSize: 30, color: C.text, direction: 'rtl', textAlign: 'left', marginLeft: 20}}>{it[0]}</span>
+            <span style={{fontFamily: mono, fontWeight: 700, fontSize: 26, color: C.text}}>${(it[1] as number).toLocaleString('en-US')}</span>
           </div>
         );
       })}
-      <div style={{position: 'absolute', left: 28, right: 28, bottom: 24, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 28, color: col, opacity: prog(f, t0 + (fix ? 260 : 240), t0 + (fix ? 320 : 300))}}>
-        {fix ? 'النافذة كلها من البداية للنهاية: 400 في كل الصفوف ✓' : 'الإطار بيقف عند CURRENT ROW: القيمة غلط!'}
+      <div style={{position: 'absolute', left: 20, right: 20, bottom: 14, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 26, color: c.col, opacity: prog(f, c.t0 + (c.id === 1 ? 230 : 240), c.t0 + (c.id === 1 ? 280 : 290))}}>
+        {c.id === 1 ? 'ترقيم القسم الأول: 1 → 4' : 'العداد رجع لـ 1: ترقيم مستقل بالكامل'}
       </div>
     </Card>
   );
 };
 
-export const Scene03: React.FC = () => (
-  <Scene dur={S.s3.dur} accent={C.red}>
-    <Title ar="القيمة الأولى والأخيرة" en="FIRST_VALUE & LAST_VALUE Framing" chip="SC 03 · FRAME" accent={C.red} />
-    <Case box={B.s3.trap} fix={false} t0={0} />
-    <Case box={B.s3.fix} fix t0={450} />
-    <Caption from={90} to={630} color={C.red}>LAST_VALUE() Danger Trap ──► Default Frame Stops at CURRENT ROW</Caption>
-    <Caption from={750} to={1230} color={C.green}>Explicit Frame: ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</Caption>
-  </Scene>
-);
+export const Scene03: React.FC = () => {
+  const f = useCurrentFrame();
+  const K = B.s3.code;
+  const size = fs('       ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY revenue DESC) AS item_rank', K.w - 70, 34, mono);
+  const total = CODE.reduce((a, l) => a + l.reduce((b, s) => b + s[0].length, 0), 0);
+  let shown = Math.floor(prog(f, 20, 300) * total);
+  const badge = ease(prog(f, 900, 960));
+  return (
+    <Scene dur={S.s3.dur} accent={C.amber}>
+      <Title ar="الترتيب الفئوي المستقل" en="PARTITION BY + ORDER BY" chip="SC 03 · PARTITION" accent={C.amber} />
+      <Card box={K} accent={C.line} at={6}>
+        {CODE.map((l, i) => (
+          <div key={i} style={{position: 'absolute', left: 36, top: 18 + i * 56, height: 56, whiteSpace: 'pre', fontFamily: mono, fontWeight: 700, fontSize: size, direction: 'ltr'}}>
+            {l.map((s, j) => { const take = Math.max(0, Math.min(s[0].length, shown)); shown -= s[0].length; return <span key={j} style={{color: s[1]}}>{s[0].slice(0, take)}</span>; })}
+          </div>
+        ))}
+        <div style={{position: 'absolute', right: 30, top: 0, height: 56, display: 'flex', alignItems: 'center', opacity: badge, fontFamily: cairo, fontWeight: 900, fontSize: 28, color: C.green, direction: 'rtl'}} />
+      </Card>
+      {CATS.map((c) => <Part key={c.id} box={c.id === 1 ? B.s3.cat1 : B.s3.cat2} c={c} />)}
+      <div style={{position: 'absolute', left: 60, top: 404, width: 1800, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 24, color: C.green, opacity: badge, height: 24, lineHeight: '24px'}}>كل قسم له ترقيم مستقل ✓</div>
+      <Caption from={90} to={630} color={C.amber}>ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY revenue DESC)</Caption>
+      <Caption from={750} to={1230} color={C.green}>Partition Reset ──► Zeroes Out Counter for Independent Category Ranking</Caption>
+    </Scene>
+  );
+};

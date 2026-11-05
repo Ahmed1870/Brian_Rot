@@ -3,88 +3,80 @@ import {useCurrentFrame} from 'remotion';
 import {C, S} from '../theme';
 import {B} from '../layout';
 import {cairo, mono} from '../fonts';
-import {Caption, Card, Defs, Scene, Tag, Title, ease, prog} from '../common';
+import {Caption, Card, Defs, Scene, Tag, Title, ease, lerp, prog} from '../common';
 
-const VAL = [120, 135, 128, 150, 165, 158, 180, 195];
-const MON = ['ينا', 'فبر', 'مار', 'أبر', 'ماي', 'يون', 'يول', 'أغس'];
-const CW = 200, GAP = 20;
+const DATA = [{n: 'كيبورد', v: 1200}, {n: 'لابتوب', v: 3400}, {n: 'ماوس', v: 900}, {n: 'شاشة', v: 2600}, {n: 'سماعة', v: 1800}, {n: 'شاحن', v: 500}];
+const SORTED = [...DATA].sort((a, b) => b.v - a.v);
+const RY = 120, RP = 80;
+const slotOf = (n: string) => SORTED.findIndex((x) => x.n === n);
+
+const Row: React.FC<{x: number; y: number; w: number; name: string; val: number; color: string; rank?: number; o?: number}> = ({x, y, w, name, val, color, rank, o = 1}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: w, height: RP - 14, borderRadius: 14, border: `3px solid ${color}`, background: C.panel2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', direction: 'ltr', opacity: o}}>
+    {rank !== undefined && <span style={{width: 50, height: 44, borderRadius: 10, background: color, color: C.bg, fontFamily: mono, fontWeight: 700, fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{rank}</span>}
+    <span style={{fontFamily: cairo, fontWeight: 900, fontSize: 28, color: C.text, flex: 1, textAlign: 'center', direction: 'rtl'}}>{name}</span>
+    <span style={{fontFamily: mono, fontWeight: 700, fontSize: 24, color: C.text}}>${val}</span>
+  </div>
+);
 
 export const Scene04: React.FC = () => {
   const f = useCurrentFrame();
-  const Bf = B.s4.buffer, Io = B.s4.io, Sp = B.s4.speed;
-  const x0 = Bf.x + 30;
-  const cx = (i: number) => x0 + i * (CW + GAP) + CW / 2;
-  const cur = 1 + prog(f, 450, 450 + 5 * 60) * 5; // current row pointer (float index)
-  const live = f >= 450;
-  const cellY = Bf.y + 150;
-
-  const tri = (x: number, y: number, up: boolean, color: string) => (
-    <polygon points={up ? `${x},${y} ${x - 18},${y + 30} ${x + 18},${y + 30}` : `${x},${y + 30} ${x - 18},${y} ${x + 18},${y}`} fill={color} />
+  const I = B.s4.input, So = B.s4.sort, W = B.s4.win, O = B.s4.out;
+  const sortP = ease(prog(f, 120, 380));
+  const stamp = (i: number) => prog(f, 460 + i * 60, 500 + i * 60);
+  const sweep = prog(f, 450, 450 + 6 * 60);
+  const mem = ease(prog(f, 100, 360));
+  const wActive = f >= 450;
+  const card = (box: typeof I, color: string, tag: string, at: number, active: boolean, children: React.ReactNode, note?: string) => (
+    <Card box={box} accent={active ? color : C.line} at={at}>
+      <div style={{position: 'absolute', left: 24, top: 22, direction: 'ltr'}}><Tag color={color}>{tag}</Tag></div>
+      {children}
+      {note && <div style={{position: 'absolute', left: 24, right: 24, bottom: 22, textAlign: 'center', direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 26, color}}>{note}</div>}
+    </Card>
   );
 
   return (
-    <Scene dur={S.s4.dur} accent={C.blue}>
-      <Title ar="القراءة المباشرة من الذاكرة" en="In-Memory Offset Buffering" chip="SC 04 · ENGINE" accent={C.blue} />
+    <Scene dur={S.s4.dur} accent={C.amber}>
+      <Title ar="كواليس تنفيذ دوال الترتيب" en="PostgreSQL 16 · Sort ➔ WindowAgg" chip="SC 04 · ENGINE" accent={C.amber} />
 
-      <Card box={Bf} accent={C.blue} at={6}>
-        <div style={{position: 'absolute', left: 28, top: 20, direction: 'ltr'}}><Tag color={C.blue}>WINDOWAGG · work_mem · ORDERED BUFFER</Tag></div>
-        <div style={{position: 'absolute', left: 0, right: 0, bottom: 20, textAlign: 'center', direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 30, color: C.green, opacity: prog(f, 560, 620)}}>pointer jump: 0.0001 s</div>
-      </Card>
+      {card(I, C.dim, 'INPUT · UNSORTED', 6, true, DATA.map((d, i) => <Row key={i} x={20} y={RY + i * RP} w={I.w - 40} name={d.n} val={d.v} color={C.line} o={prog(f, 20 + i * 10, 50 + i * 10)} />))}
+
+      {card(So, C.amber, 'SORT NODE · work_mem', 24, f >= 100 && f < 450, (
+        <>
+          {DATA.map((d, i) => <Row key={i} x={20} y={lerp(RY + i * RP, RY + slotOf(d.n) * RP, sortP)} w={So.w - 40} name={d.n} val={d.v} color={sortP > 0.95 ? C.amber : C.line} o={prog(f, 100 + i * 8, 130 + i * 8)} />)}
+          <div style={{position: 'absolute', left: 24, right: 24, bottom: 76, direction: 'ltr', opacity: prog(f, 100, 140)}}>
+            <div style={{height: 16, background: 'rgba(100,116,139,0.35)', borderRadius: 8, overflow: 'hidden'}}><div style={{width: `${mem * 100}%`, height: '100%', background: C.amber}} /></div>
+          </div>
+        </>
+      ), 'فرز في الذاكرة')}
+
+      {card(W, C.blue, 'WINDOWAGG NODE', 40, wActive && sweep < 1, (
+        <>
+          {SORTED.map((d, i) => <Row key={i} x={20} y={RY + i * RP} w={W.w - 40} name={d.n} val={d.v} color={stamp(i) > 0.5 ? C.blue : C.line} rank={stamp(i) > 0.5 ? i + 1 : undefined} o={prog(f, 440 + i * 4, 470 + i * 4)} />)}
+        </>
+      ), 'مسح واحد (Single Pass)')}
+
+      {card(O, C.green, 'OUTPUT · RANKED', 56, f > 450 + 6 * 60, (
+        <>
+          {SORTED.map((d, i) => <Row key={i} x={20} y={RY + i * RP} w={O.w - 40} name={d.n} val={d.v} color={C.green} rank={i + 1} o={stamp(i)} />)}
+        </>
+      ), 'الرتب جاهزة بالذاكرة')}
 
       <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
         <Defs />
-        {VAL.map((v, i) => {
-          const o = prog(f, 40 + i * 30, 70 + i * 30);
-          const isCur = live && Math.abs(cur - i) < 0.5;
-          const isLag = live && Math.abs(cur - 1 - i) < 0.5;
-          const isLead = live && Math.abs(cur + 1 - i) < 0.5;
-          const col = isCur ? C.green : isLag ? C.blue : isLead ? C.amber : C.line;
+        {[I.x + I.w, So.x + So.w, W.x + W.w].map((x, i) => {
+          const on = prog(f, i === 0 ? 100 : i === 1 ? 420 : 440 + 6 * 60, i === 0 ? 140 : i === 1 ? 460 : 840 + 40);
           return (
-            <g key={i} opacity={o}>
-              <rect x={cx(i) - CW / 2} y={cellY} width={CW} height={120} rx={18} fill={isCur ? 'rgba(16,185,129,0.18)' : C.bg2} stroke={col} strokeWidth={isCur || isLag || isLead ? 6 : 3} filter={isCur || isLag || isLead ? 'url(#glow)' : undefined} />
-              <text x={cx(i)} y={cellY + 44} textAnchor="middle" fontFamily={cairo} fontSize={26} fontWeight={700} fill={C.dim}>{MON[i]}</text>
-              <text x={cx(i)} y={cellY + 94} textAnchor="middle" fontFamily={mono} fontSize={40} fontWeight={700} fill={C.text}>${v}</text>
+            <g key={i} opacity={on}>
+              <line x1={x + 4} y1={540} x2={x + 36} y2={540} stroke={[C.amber, C.blue, C.green][i]} strokeWidth={6} strokeLinecap="round" />
+              <polygon points={`${x + 40},540 ${x + 26},530 ${x + 26},550`} fill={[C.amber, C.blue, C.green][i]} />
             </g>
           );
         })}
-        {live && (
-          <g>
-            {/* CURRENT above, LAG / LEAD below (never over the numbers) */}
-            <text x={x0 + cur * (CW + GAP) + CW / 2} y={Bf.y + 106} textAnchor="middle" fontFamily={mono} fontSize={24} fontWeight={700} fill={C.green}>CURRENT</text>
-            {tri(x0 + cur * (CW + GAP) + CW / 2, Bf.y + 112, false, C.green)}
-            {tri(x0 + (cur - 1) * (CW + GAP) + CW / 2, cellY + 134, true, C.blue)}
-            <text x={x0 + (cur - 1) * (CW + GAP) + CW / 2} y={cellY + 190} textAnchor="middle" fontFamily={mono} fontSize={28} fontWeight={700} fill={C.blue}>LAG</text>
-            {tri(x0 + (cur + 1) * (CW + GAP) + CW / 2, cellY + 134, true, C.amber)}
-            <text x={x0 + (cur + 1) * (CW + GAP) + CW / 2} y={cellY + 190} textAnchor="middle" fontFamily={mono} fontSize={28} fontWeight={700} fill={C.amber}>LEAD</text>
-          </g>
-        )}
+        {sweep > 0 && sweep < 1 && <rect x={W.x + 10} y={W.y + RY + sweep * 6 * RP - 6} width={W.w - 20} height={6} rx={3} fill={C.blue} filter="url(#glow)" />}
       </svg>
 
-      {/* zero disk I/O */}
-      <Card box={Io} accent={C.green} at={450}>
-        <div style={{position: 'absolute', left: 30, top: 20, direction: 'ltr'}}><Tag color={C.green}>ZERO DISK I/O</Tag></div>
-        <svg width={Io.w} height={Io.h} style={{position: 'absolute', inset: 0}}>
-          <g transform="translate(60 80)" opacity={prog(f, 480, 520)}>
-            <ellipse cx={50} cy={20} rx={44} ry={14} fill={C.panel2} stroke={C.dim} strokeWidth={4} />
-            <path d="M 6 20 V 80 A 44 14 0 0 0 94 80 V 20" fill={C.panel2} stroke={C.dim} strokeWidth={4} />
-            <line x1={4} y1={100} x2={96} y2={0} stroke={C.red} strokeWidth={9} strokeLinecap="round" />
-          </g>
-        </svg>
-        <div style={{position: 'absolute', left: 190, top: 76, direction: 'ltr', fontFamily: mono, fontWeight: 700, fontSize: 54, color: C.green, opacity: prog(f, 500, 540)}}>disk reads: 0</div>
-        <div style={{position: 'absolute', left: 190, right: 30, top: 150, direction: 'rtl', fontFamily: cairo, fontWeight: 900, fontSize: 28, color: C.text, opacity: prog(f, 540, 600)}}>المؤشرات بتتحرك داخل work_mem من غير ما نلمس القرص</div>
-      </Card>
-      <Card box={Sp} accent={C.blue} at={560}>
-        <div style={{position: 'absolute', left: 30, top: 20, direction: 'ltr'}}><Tag color={C.blue}>SINGLE PASS</Tag></div>
-        <div style={{position: 'absolute', left: 30, right: 30, top: 72, direction: 'ltr', opacity: prog(f, 600, 640)}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: mono, fontWeight: 700, fontSize: 26}}><span style={{color: C.green}}>LAG / LEAD pointer</span><span style={{color: C.green}}>0.0001 s</span></div>
-          <div style={{height: 22, borderRadius: 11, background: 'rgba(100,116,139,0.3)', marginTop: 8}}><div style={{width: `${4 * ease(prog(f, 620, 700))}%`, height: '100%', borderRadius: 11, background: C.green}} /></div>
-          <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: mono, fontWeight: 700, fontSize: 26, marginTop: 22}}><span style={{color: C.dim}}>re-scan the table</span><span style={{color: C.red}}>✗ not used</span></div>
-          <div style={{height: 22, borderRadius: 11, background: 'rgba(100,116,139,0.3)', marginTop: 8}}><div style={{width: `${100 * ease(prog(f, 640, 760))}%`, height: '100%', borderRadius: 11, background: C.red, opacity: 0.45}} /></div>
-        </div>
-      </Card>
-
-      <Caption from={60} to={540} color={C.blue}>PostgreSQL Execution Engine ──► In-Memory Offset Buffering in work_mem</Caption>
-      <Caption from={660} to={1080} color={C.green}>Zero Disk I/O ──► High-Speed Pointer Access for LAG & LEAD Functions</Caption>
+      <Caption from={60} to={540} color={C.amber}>PostgreSQL Execution Pipeline: Sort Node ➔ WindowAgg Node</Caption>
+      <Caption from={660} to={1080} color={C.green}>In-Memory Ranking ──► Single-Pass Evaluation in work_mem</Caption>
     </Scene>
   );
 };

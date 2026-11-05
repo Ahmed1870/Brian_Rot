@@ -1,3 +1,3 @@
-# Ahmed x Manzooma - SQL Lesson 34: LAG, LEAD, FIRST_VALUE, LAST_VALUE
-Remotion 16:9 (1920x1080 @30fps, 7200 frames = 4:00). Narration: public/voiceover_lesson_34.mp3 (starts at frame 0).
-Render: `npm run render` -> out/ahmed_sql_lesson34.mp4 (CI artifact: ahmed_sql_lesson34). prep.mjs fails the build if anything belongs to another lesson.
+# Ahmed x Manzooma - SQL Lesson 38: Window Ranking Functions
+Remotion 16:9 (1920x1080 @30fps, 7200 frames = 4:00). Narration: public/voiceover_lesson_38.mp3 (starts at frame 0).
+Render: `npm run render` -> out/ahmed_sql_lesson38.mp4 (CI artifact: ahmed_sql_lesson38). prep.mjs fails the build if anything belongs to another lesson.
