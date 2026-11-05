@@ -3,12 +3,12 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (210-240s): Manzooma Academy outro — Module 10 completed
-// Anchors: 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 CREATE VIEW
+// SC06 (210-240s): Manzooma Academy outro — Module 11 at 50%
+// Anchors: 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 MATERIALIZED VIEWS
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['ROWS BETWEEN ✓', 'RANGE BETWEEN ✓', 'INTERVAL framing ✓', 'UNBOUNDED scope ✓', 'work_mem tuning ✓'];
+const SKILLS = ['Updatable Views ✓', 'DML Pass-Through ✓', 'INSTEAD OF Triggers ✓', 'WITH CHECK OPTION ✓', 'Rewrite Engine ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
@@ -19,8 +19,8 @@ export const Scene6: React.FC = () => {
   const modDone = prog(f, t(213.5), 20);
   const res = prog(f, t(215), 24);
   const next = prog(f, t(220), 28);
-  const code = typed("CREATE VIEW vip_customers AS\nSELECT customer_id, name\nFROM customers\nWHERE total_spent > 10000;", f, t(225), 0.7).split('\n');
-  const pct = Math.round(fill * 100);
+  const code = typed("CREATE MATERIALIZED VIEW mv_sales_summary AS\nSELECT region, SUM(total) AS total_sales\nFROM orders GROUP BY region;\n\nREFRESH MATERIALIZED VIEW mv_sales_summary;", f, t(225), 0.65).split('\n');
+  const pct = Math.round(fill * 50); // 50% of Module 11
 
   return (
     <Stage dur={900} inFx="fade" outFx="black">
@@ -44,18 +44,18 @@ export const Scene6: React.FC = () => {
         <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 170}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 30, fontWeight: 700, color: C.green}}>
-              Lesson 42 Completed: <span style={{color: C.text}}>Window Framing &amp; Module 10 Mastered</span>
+            <div style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.green}}>
+              Lesson 44 Completed: <span style={{color: C.text}}>Updatable Views &amp; CHECK OPTION Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
+              <div style={{width: `${fill * 50}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 10 · Window Functions — {modDone > 0.5 ? 'Module 10 Fully Mastered ✓' : 'in progress'}
+            Module 11 · Views &amp; Materialized Views — {modDone > 0.5 ? 'Updatable Views & CHECK OPTION Mastered ✓' : 'in progress'}
           </div>
         </div>
 
@@ -64,27 +64,27 @@ export const Scene6: React.FC = () => {
             const p = pop(f, t(214 + i * 0.5));
             return (
               <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
-                <Chip color={C.blue} style={{fontSize: 22}}>{s}</Chip>
+                <Chip color={C.blue} style={{fontSize: 20}}>{s}</Chip>
               </div>
             );
           })}
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 470, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 460, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
           <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
             <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
           </Chip>
         </div>
 
-        <div style={{position: 'absolute', left: 90, right: 90, top: 560, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
+        <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 43</Mix>
-            <Mix style={{fontSize: 34, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>إنشاء وإدارة المناظير العادية — CREATE VIEW وحماية منطق الأعمال</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 45</Mix>
+            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>المناظير المادية وإعادة الإنعاش — MATERIALIZED VIEWS و REFRESH</Mix>
           </div>
-          <div dir="ltr" style={{width: 600, height: 230, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 16, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 14, marginBottom: 8}}>-- Lesson 43</div>
+          <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 15, color: C.text}}>
+            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 45</div>
             {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 26}}>
+              <div key={i} style={{whiteSpace: 'pre', minHeight: 22}}>
                 <Sql text={l} />
                 {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
               </div>

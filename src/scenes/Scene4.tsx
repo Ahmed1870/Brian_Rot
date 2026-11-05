@@ -1,32 +1,26 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, PipeNode, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
+import {Caption, Check, Chip, Editor, Mix, PipeNode, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
 
-// SC04 (130-170s): PostgreSQL 16 Engine — WindowAgg Node & Memory Performance
-// Anchors: 131.0 engine | 136.0 WindowAgg | 140.0 ROWS fast | 145.0 RANGE peer | 150.0 work_mem | 155.0 disk spill | 160.0 tune | 165.0 efficient
+// SC04 (130-170s): PostgreSQL 16 Rewrite Rule Engine
+// Anchors: 131.0 engine | 136.0 rewrite | 140.0 WHERE | 145.0 base table | 150.0 execution plan | 155.0 zero overhead | 160.0 in-memory | 165.0 fast
 const S = START.s4;
 const t = (g: number) => sec(g - S);
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
   const engineP = clamp(lin(f, t(131.5), 16));
-  const rowsP = clamp(lin(f, t(136), 16));
-  const rangeP = clamp(lin(f, t(145), 16));
-  const spillP = pop(f, t(155));
+  const rewriteP = clamp(lin(f, t(136), 16));
+  const outputP = clamp(lin(f, t(145), 16));
+  const sealP = pop(f, t(155));
 
-  // Memory usage animation
-  const memUsage = clamp(lin(f, t(137), sec(18)));
-  const isSpilling = memUsage > 0.85;
-
-  // ROWS pointer animation — fast jumps
-  const rowsPtrProg = clamp(lin(f, t(138), sec(14)));
-  // RANGE peer scanning — slower horizontal sweep
-  const rangeScanProg = clamp(lin(f, t(146), sec(14)));
+  // Rewrite transformation animation
+  const rewriteProg = clamp(lin(f, t(137), sec(14)));
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="كواليس المحرك | WindowAgg Node & Memory Performance" from={sec(2)} to={sec(40)} color={C.amber} />
+      <TopBadge text="كواليس المحرك | Rewrite Rule Engine" from={sec(2)} to={sec(40)} color={C.amber} />
 
       {/* EXPLAIN editor at top */}
       <div style={{opacity: engineP}}>
@@ -34,120 +28,103 @@ export const Scene4: React.FC = () => {
           x={80}
           y={180}
           w={1760}
-          h={120}
-          title="EXPLAIN ANALYZE · WindowAgg Performance"
+          h={150}
+          title="EXPLAIN · View DML Rewrite"
           lines={[
-            'WindowAgg  (cost=42.50..42.80 rows=100 width=24)',
-            '  ->  Sort  Sort Key: order_date  Sort Method: quicksort  Memory: 25kB',
+            'UPDATE v_active_products SET price = 150 WHERE product_id = 101;',
+            '-- Rewrite Rule Engine transforms this into:',
+            'UPDATE products SET price = 150 WHERE product_id = 101 AND status = \'active\';',
           ]}
           start={t(131.5)}
-          cps={0.95}
-          size={18}
+          cps={0.7}
+          size={16}
           accent={C.amber}
-          hl={0}
+          hl={1}
           hlColor={C.amber}
         />
       </div>
 
-      {/* ROWS path — left (fast pointer) */}
-      <PipeNode x={80} y={320} w={860} h={440} label="ROWS Path" sublabel="fast pointer offsets in work_mem" color={C.blue} p={rowsP} glow={f >= t(136) && f < t(145)}>
-        <div dir="ltr" style={{position: 'absolute', left: 20, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-          ⚡ direct pointer jumps · no peer scanning
+      {/* Input: View DML (blue) */}
+      <div style={{position: 'absolute', left: 80, top: 320, width: 380, opacity: engineP}}>
+        <div style={{padding: '16px 18px', border: `2px solid ${C.blue}`, borderRadius: 14, background: `${C.blue}0d`}}>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.blue, fontWeight: 700, marginBottom: 8}}>1. Input · View DML</div>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.text, lineHeight: 1.5}}>
+            UPDATE v_active_products<br/>
+            SET price = 150<br/>
+            WHERE product_id = 101;
+          </div>
         </div>
+      </div>
 
-        {/* Pointer slots visualization */}
-        <div style={{position: 'absolute', left: 20, right: 20, top: 50, display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-          {Array.from({length: 8}).map((_, i) => {
-            const isCurrent = Math.floor(rowsPtrProg * 8) === i;
-            const isDone = i < Math.floor(rowsPtrProg * 8);
-            return (
-              <div key={i} dir="ltr" style={{width: 88, height: 70, borderRadius: 10, border: `2px solid ${isCurrent ? C.blue : isDone ? C.green : C.border}`, background: isCurrent ? `${C.blue}22` : isDone ? `${C.green}14` : C.deep, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 16, color: C.text, opacity: isDone || isCurrent ? 1 : 0.3, boxShadow: isCurrent ? `0 0 16px ${C.blue}` : 'none'}}>
-                <div style={{color: '#475569', fontSize: 12}}>slot {i + 1}</div>
-                <div style={{color: isCurrent ? C.blue : isDone ? C.green : C.muted, fontWeight: 700}}>${(i + 1) * 200}</div>
-                {isCurrent ? <div style={{color: C.blue, fontSize: 11, fontWeight: 700}}>◄ here</div> : null}
-              </div>
-            );
-          })}
+      {/* Arrow to engine */}
+      <div style={{position: 'absolute', left: 480, top: 380, opacity: engineP}}>
+        <svg width={80} height={30}>
+          <line x1={0} y1={15} x2={65} y2={15} stroke={C.muted} strokeWidth={3} strokeDasharray="5 3" />
+          <polygon points="60,9 60,21 72,15" fill={C.muted} />
+        </svg>
+      </div>
+
+      {/* Rewrite Rule Engine node (amber) */}
+      <PipeNode x={580} y={350} w={560} h={230} label="Rewrite Rule Engine" sublabel="merges view WHERE + base table target" color={C.amber} p={rewriteP} glow={f >= t(136)}>
+        <div style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 16, color: C.amber}}>
+          transforming query...
         </div>
-
-        {/* Fast pointer arrow */}
-        {rowsPtrProg > 0 && rowsPtrProg < 1 ? (
-          <svg width={820} height={100} style={{position: 'absolute', left: 20, top: 140, pointerEvents: 'none'}}>
-            <line x1={44 + (Math.floor(rowsPtrProg * 8) - 1) * 96} y1={20} x2={44 + Math.floor(rowsPtrProg * 8) * 96} y2={20} stroke={C.blue} strokeWidth={3} strokeDasharray="5 3" />
-            <polygon points={`${44 + Math.floor(rowsPtrProg * 8) * 96 - 8},14 ${44 + Math.floor(rowsPtrProg * 8) * 96 - 8},26 ${44 + Math.floor(rowsPtrProg * 8) * 96 + 2},20`} fill={C.blue} />
-            <text x={44 + (Math.floor(rowsPtrProg * 8) - 0.5) * 96} y={12} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚡ jump</text>
-          </svg>
-        ) : null}
-
-        {/* Performance badge */}
-        <div style={{position: 'absolute', left: 20, right: 20, bottom: 60, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`}}>
-          <Check p={1} size={32} color={C.green} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>fast · O(1) pointer access</div>
+        {/* Progress indicator */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 50, height: 24, borderRadius: 12, background: C.deep, border: `2px solid ${C.border}`, overflow: 'hidden'}}>
+          <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: `${rewriteProg * 100}%`, background: `linear-gradient(90deg, ${C.amber}, ${C.green})`, borderRadius: 12}} />
         </div>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 20, right: 20, bottom: 14, display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 16, color: C.blue, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border}}>
-          <span>pointer offset mode</span>
-          <span>{Math.round(rowsPtrProg * 100)}% done</span>
+        <div dir="ltr" style={{position: 'absolute', right: 18, top: 80, fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700}}>
+          {Math.round(rewriteProg * 100)}% rewritten
         </div>
-      </PipeNode>
-
-      {/* RANGE path — right (peer scanning) */}
-      <PipeNode x={980} y={320} w={860} h={440} label="RANGE Path" sublabel="peer value scanning · slower" color={C.amber} p={rangeP} glow={f >= t(145)}>
-        <div dir="ltr" style={{position: 'absolute', left: 20, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
-          🔍 scans peer groups for duplicate values
-        </div>
-
-        {/* Peer group visualization */}
-        <div style={{position: 'absolute', left: 20, right: 20, top: 50, display: 'flex', flexDirection: 'column', gap: 10}}>
+        {/* Steps */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 90, display: 'flex', flexDirection: 'column', gap: 6}}>
           {[
-            {label: 'group A (3 peers)', count: 3, color: C.amber},
-            {label: 'group B (2 peers)', count: 2, color: C.amber},
-            {label: 'group C (1 peer)', count: 1, color: C.amber},
-          ].map((group, gi) => {
-            const isScanning = rangeScanProg > gi / 3 && rangeScanProg < (gi + 1) / 3;
-            const isDone = rangeScanProg >= (gi + 1) / 3;
-            return (
-              <div key={gi} dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', border: `2px solid ${isScanning ? C.amber : isDone ? C.green : C.border}`, borderRadius: 10, background: isScanning ? `${C.amber}22` : isDone ? `${C.green}14` : 'transparent', opacity: isDone || isScanning ? 1 : 0.4}}>
-                <span style={{fontFamily: MONO, fontSize: 16, color: C.muted, width: 140}}>{group.label}</span>
-                <div style={{display: 'flex', gap: 4}}>
-                  {Array.from({length: group.count}).map((_, i) => (
-                    <div key={i} style={{width: 40, height: 36, borderRadius: 6, border: `2px solid ${isScanning ? C.amber : isDone ? C.green : C.border}`, background: isScanning ? `${C.amber}22` : isDone ? `${C.green}14` : C.deep, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 14, color: isDone ? C.green : C.amber}}>${(gi + 1) * 100 + i * 50}</div>
-                  ))}
-                </div>
-                <span style={{flex: 1, textAlign: 'right', fontFamily: MONO, fontSize: 14, color: isDone ? C.green : isScanning ? C.amber : '#475569', fontWeight: 700}}>
-                  {isDone ? '✓ scanned' : isScanning ? 'scanning...' : 'pending'}
-                </span>
-              </div>
-            );
-          })}
+            {step: 'parse view definition', done: rewriteProg > 0.2},
+            {step: 'merge WHERE conditions', done: rewriteProg > 0.5},
+            {step: 'rewrite to base table', done: rewriteProg > 0.8},
+          ].map((s, i) => (
+            <div key={i} dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 10, fontFamily: MONO, fontSize: 14, color: s.done ? C.green : C.muted}}>
+              <span style={{color: s.done ? C.green : '#475569'}}>{s.done ? '✓' : '○'}</span>
+              <span>{s.step}</span>
+            </div>
+          ))}
         </div>
-
-        {/* Memory bar */}
-        <div style={{position: 'absolute', left: 20, right: 20, bottom: 60}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.muted, marginBottom: 4}}>work_mem usage</div>
-          <div style={{height: 22, borderRadius: 11, background: C.deep, border: `2px solid ${C.border}`, overflow: 'hidden', position: 'relative'}}>
-            <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: `${memUsage * 100}%`, background: isSpilling ? `linear-gradient(90deg, ${C.amber}, ${C.red})` : `linear-gradient(90deg, ${C.green}, ${C.amber})`, borderRadius: 11}} />
-            <div dir="ltr" style={{position: 'absolute', right: 8, top: 2, fontFamily: MONO, fontSize: 12, color: C.text, fontWeight: 700}}>{Math.round(memUsage * 100)}%</div>
-          </div>
-        </div>
-
-        {/* Disk spill warning */}
-        {isSpilling ? (
-          <div style={{position: 'absolute', left: 20, right: 20, bottom: 14, display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', border: `2px solid ${C.red}`, borderRadius: 8, background: `${C.red}14`}}>
-            <Warn size={28} color={C.red} />
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700}}>Disk Spill! External Merge</div>
-          </div>
-        ) : (
-          <div dir="ltr" style={{position: 'absolute', left: 20, right: 20, bottom: 14, display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 16, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border}}>
-            <span>peer scanning mode</span>
-            <span>{Math.round(rangeScanProg * 100)}% done</span>
-          </div>
-        )}
       </PipeNode>
 
-      <Caption text="Engine Performance: ROWS Fast Pointer Offset vs RANGE Peer Value Scanning" from={t(136)} to={t(150)} />
-      <Caption text="Memory Management ──► Keep Window Buffers in work_mem to Prevent Disk Spill" from={t(152)} to={sec(44)} tone="danger" />
+      {/* Arrow to output */}
+      <div style={{position: 'absolute', left: 1160, top: 380, opacity: outputP}}>
+        <svg width={80} height={30}>
+          <line x1={0} y1={15} x2={65} y2={15} stroke={C.green} strokeWidth={3} strokeDasharray="5 3" />
+          <polygon points="60,9 60,21 72,15" fill={C.green} />
+        </svg>
+      </div>
+
+      {/* Output: Base Table DML (green) */}
+      <div style={{position: 'absolute', left: 1260, top: 320, width: 580, opacity: outputP}}>
+        <div style={{padding: '16px 18px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, boxShadow: `0 0 20px ${C.green}44`}}>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700, marginBottom: 8}}>3. Output · Base Table DML</div>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.text, lineHeight: 1.5}}>
+            UPDATE products SET price = 150<br/>
+            WHERE product_id = 101<br/>
+            AND status = 'active';
+          </div>
+        </div>
+      </div>
+
+      {/* Performance badges */}
+      <div style={{position: 'absolute', left: 80, top: 560, width: 1760, opacity: clamp(sealP), display: 'flex', justifyContent: 'center', gap: 20}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, padding: '14px 22px', border: `2px solid ${C.green}`, borderRadius: 16, background: `${C.green}0d`}}>
+          <Check p={sealP} size={40} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700}}>Zero Memory Overhead</div>
+        </div>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, padding: '14px 22px', border: `2px solid ${C.blue}`, borderRadius: 16, background: `${C.blue}0d`}}>
+          <div style={{fontFamily: MONO, fontSize: 28, color: C.blue, fontWeight: 700}}>⚡</div>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.blue, fontWeight: 700}}>In-Memory Transformation</div>
+        </div>
+      </div>
+
+      <Caption text="PostgreSQL Rewrite Engine ──► Rewrites View DML to Base Table DML" from={t(136)} to={t(150)} />
+      <Caption text="Zero Memory Overhead ──► In-Memory Query Transformation" from={t(152)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };

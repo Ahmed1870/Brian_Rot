@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200; // 240s * 30fps
-export const LESSON = 42;
-export const COMP_ID = 'SQL-L42-Window-Framing';
+export const LESSON = 44;
+export const COMP_ID = 'SQL-L44-Updatable-Views';
 
 export const C = {
   bg: '#0F172A',
@@ -21,11 +21,11 @@ export const C = {
   border: '#334155',
   muted: '#94A3B8',
   text: '#F8FAFC',
-  blue: '#38BDF8', // ROWS physical frame / WindowAgg pointer
-  green: '#10B981', // evaluated frame pass / full unbounded / smoothed trend
-  amber: '#F59E0B', // RANGE peer expansion / memory warning
-  red: '#EF4444', // Disk Spill alert
-  purple: '#A855F7', // INTERVAL time-series frame boundary
+  blue: '#38BDF8', // view gateway / base table pass-through
+  green: '#10B981', // auto-updatable / CHECK OPTION valid / quality seal
+  amber: '#F59E0B', // INSTEAD OF trigger / Rewrite Rule Engine
+  red: '#EF4444', // CHECK OPTION violation error
+  purple: '#A855F7', // security barrier shield
 };
 
 export const SCENES = {

@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-42-window-framing",
+  "name": "manzooma-sql-lesson-44-updatable-views",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 42: Window Framing Boundaries (ROWS BETWEEN, RANGE BETWEEN, INTERVAL, UNBOUNDED, WindowAgg, work_mem Disk Spill, 5-day smoothed trend) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 44: Updatable Views & WITH CHECK OPTION (DML pass-through, INSTEAD OF triggers, LOCAL vs CASCADED, Rewrite Rule Engine, inventory pricing dashboard) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L42-Window-Framing out/sql-l42-window-framing.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L44-Updatable-Views out/sql-l44-updatable-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
