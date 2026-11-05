@@ -1,138 +1,97 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {CUSTOMER_ORDERS} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {appear, pop} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {back, eo, prog, pulse} from '../lib/anim';
 
-// SC02 (40-85s): LEAD() — Forward Lookahead with Default Fallback
-// Anchors (s): 41.0 LEAD | 45.0 forward | 52.0 next order | 60.0 default value | 68.0 NULL | 75.0 churn | 80.0 safe
-const S = START.s2;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc02;
+const PUR = '#A855F7';
+const T0 = S.typeT;
+const CODE: CodeLine[] = [
+  {text: 'SELECT order_id,', at: T0}, {text: '       EXTRACT(YEAR FROM order_date) AS order_year,', at: T0 + 0.9},
+  {text: '       EXTRACT(DOW FROM order_date) AS day_of_week,', at: T0 + 2.8}, {text: '       EXTRACT(HOUR FROM order_date) AS order_hour', at: T0 + 4.6}, {text: 'FROM orders;', at: T0 + 6.4},
+];
+const TS = '2026-11-06 15:30:00';
+const CW = 32.4, TX0 = 60 + (940 - TS.length * CW) / 2, TY = 610;
+const BOX = [
+  {l: 'order_year', v: '2026', sub: 'YEAR', x0: 2, x1: 3}, {l: 'day_of_week', v: '5', sub: 'DOW · الجمعة', x0: 8, x1: 9}, {l: 'order_hour', v: '15', sub: 'HOUR · ساعة الذروة', x0: 11, x1: 12},
+];
+const BY = [215, 395, 575];
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const VAL = [42, 55, 61, 58, 72, 96, 64];
+const bz = (u: number, a: number, b: number, c: number, d: number) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
 
-const ROW_H = 52;
-const ROW0 = 50;
-
-export const Scene2: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(41.5), 14));
-  const tableP = clamp(lin(f, t(45), 14));
-  // LEAD arrow moves down: starts at t(48), reaches last row by t(72)
-  const scanProg = clamp(lin(f, t(48), sec(24)));
-  const currentRow = Math.floor(scanProg * (CUSTOMER_ORDERS.length - 1));
-  const shieldP = pop(f, t(60));
-  const sealP = pop(f, t(75));
-
+export const Scene2: React.FC<{t: number}> = ({t}) => {
+  const enter = appear(t, 38.6, 39.6);
+  const warm = 0.5 + 0.5 * pulse(t, 1.2);
+  const barsP = eo(prog(t, S.bars, S.bars + 2));
   return (
-    <Stage dur={1350} inFx="left" outFx="left">
-      <TopBadge text="الاستشراف المستقبلي | LEAD() & Forward Lookahead" from={sec(2)} to={sec(40)} color={C.amber} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="EXTRACT(DOW FROM order_date)" body="──► Extracts Numerical Date Components" color={PUR} size={27} /></div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Seasonality Analytics" body="──► Analyzes Peak Hours, Weekdays & Yearly Trends" color={D.cat} size={27} /></div>
+      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={940} h={310} title="extract.sql" fontSize={23} lineH={44} accent={PUR} /></div>
 
-      {/* Editor on the left */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={180}
-          w={860}
-          h={250}
-          title="PostgreSQL · LEAD with Default Fallback"
-          lines={[
-            'SELECT customer_id, order_date,',
-            '       LEAD(order_date, 1, \'2099-12-31\')',
-            '         OVER(PARTITION BY customer_id',
-            '               ORDER BY order_date)',
-            '         AS next_order_date',
-            'FROM orders;',
-          ]}
-          start={t(41.5)}
-          cps={0.75}
-          size={18}
-          accent={C.amber}
-          hl={f >= t(45) ? 1 : -1}
-          hlColor={C.amber}
-        />
+      {/* timestamp cell */}
+      <div style={{position: 'absolute', left: 60, top: 535, width: 940, height: 150, borderRadius: 22, background: '#0B1222', border: `2px solid ${D.key}88`, opacity: appear(t, S.typeT + 3, S.typeT + 4)}}>
+        <div style={{position: 'absolute', left: 24, top: 10, fontFamily: FONT_MONO, fontSize: 19, color: C.mute}}>order_date · TIMESTAMPTZ</div>
+      </div>
+      <div style={{position: 'absolute', left: TX0, top: TY - 38, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 54, letterSpacing: 0, whiteSpace: 'pre', opacity: appear(t, S.typeT + 3, S.typeT + 4)}}>
+        {TS.split('').map((ch, i) => {
+          const seg = BOX.find((b) => i >= b.x0 && i <= b.x1 && true) || BOX.find((b, k) => (k === 0 && i <= 3) || (k === 1 && i >= 8 && i <= 9) || (k === 2 && i >= 11 && i <= 12));
+          const hit = (i <= 3) || (i >= 8 && i <= 9) || (i >= 11 && i <= 12);
+          const g = hit ? Math.sin(prog(t, S.probe, S.probe + 4) * Math.PI) : 0;
+          return <span key={i} style={{color: hit && t > S.probe ? PUR : C.text, textShadow: g > 0 ? `0 0 ${20 * g}px ${PUR}` : undefined}}>{ch}</span>;
+        })}
       </div>
 
-      {/* Default shield explainer */}
-      <div style={{position: 'absolute', left: 80, top: 430, width: 860, opacity: clamp(lin(f, t(52), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 10}}>◆ default fallback shield</div>
-        <div style={{display: 'flex', gap: 12, flexWrap: 'wrap'}}>
-          <Chip color={C.amber}>LEAD(offset=1)</Chip>
-          <Chip color={C.green}>default = '2099-12-31'</Chip>
-          <Chip color={C.red}>prevents NULL</Chip>
-        </div>
-      </div>
-
-      {/* Churn analysis callout */}
-      <div style={{position: 'absolute', left: 80, top: 530, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', border: `2px solid ${C.green}`, borderRadius: 16, background: `${C.green}0d`}}>
-          <Check p={sealP} size={44} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700}}>Churn window detected</div>
-            <Mix style={{fontSize: 18, color: C.muted}}>قياس الفارق الزمني للطلب القادم</Mix>
-          </div>
-        </div>
-      </div>
-
-      {/* Customer orders table on the right */}
-      <Win x={960} y={180} w={880} h={720} title="orders · LEAD next_order_date" accent={C.amber} opacity={tableP}>
-        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-          <span style={{width: 90}}>cust_id</span>
-          <span style={{width: 150}}>order_date</span>
-          <span style={{width: 120, textAlign: 'right'}}>amount</span>
-          <span style={{flex: 1, textAlign: 'right', color: C.amber}}>next_order_date</span>
-        </div>
-        {CUSTOMER_ORDERS.map((row, i) => {
-          const isCurrent = i === currentRow && scanProg < 1;
-          const isDone = i < currentRow;
-          const isLastInPartition = i === CUSTOMER_ORDERS.length - 1 || CUSTOMER_ORDERS[i + 1].customer_id !== row.customer_id;
-          const nextDate = isLastInPartition ? '2099-12-31' : CUSTOMER_ORDERS[i + 1].order_date;
-          const showShield = isLastInPartition && (isDone || isCurrent);
+      {/* purple extraction probes */}
+      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        {BOX.map((b, k) => {
+          const st = S.probe + k * 1.3;
+          const p = eo(prog(t, st, st + 1.2));
+          if (p <= 0) return null;
+          const sx = TX0 + ((b.x0 + b.x1 + 1) / 2) * CW, sy = TY - 40, ex = 1060, ey = BY[k] + 65;
           return (
-            <div key={i} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: ROW0 + i * ROW_H + 3, height: ROW_H - 6, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 21, background: isCurrent ? `${C.amber}33` : isDone ? `${C.green}0e` : 'transparent', border: `2px solid ${isCurrent ? C.amber : showShield ? C.green : 'transparent'}`, color: C.text, opacity: isDone || isCurrent ? 1 : 0.4}}>
-              <span style={{width: 80, color: C.blue, fontWeight: 700}}>{row.customer_id}</span>
-              <span style={{width: 140, color: C.text}}>{row.order_date}</span>
-              <span style={{width: 110, color: C.text, fontWeight: 700, textAlign: 'right'}}>${row.amount}</span>
-              <span style={{flex: 1, textAlign: 'right', fontWeight: 700, color: showShield ? C.green : (isDone || isCurrent) ? C.amber : '#475569'}}>
-                {(isDone || isCurrent) ? (
-                  <>
-                    {nextDate}
-                    {showShield ? <span style={{color: C.green, marginLeft: 8, fontSize: 18}}>🛡 default</span> : null}
-                  </>
-                ) : '—'}
-              </span>
-            </div>
+            <g key={k}>
+              <path d={`M${sx} ${sy} C ${sx} ${sy - 120} ${ex - 160} ${ey} ${ex} ${ey}`} fill="none" stroke={PUR} strokeWidth="5" strokeDasharray="10 10" strokeDashoffset={-t * 80} opacity={0.5} pathLength={1} style={{strokeDasharray: `${p} 1`}} />
+              <circle cx={bz(p, sx, sx, ex - 160, ex)} cy={bz(p, sy, sy - 120, ey, ey)} r="11" fill={PUR} style={{filter: `drop-shadow(0 0 12px ${PUR})`}} />
+            </g>
           );
         })}
+      </svg>
 
-        {/* LEAD arrow — forward lookahead from current row to next */}
-        {scanProg > 0 && scanProg < 1 && currentRow < CUSTOMER_ORDERS.length - 1 ? (
-          <svg width={880} height={720} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-            <line
-              x1={350}
-              y1={ROW0 + currentRow * ROW_H + ROW_H / 2}
-              x2={350}
-              y2={ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2}
-              stroke={C.amber}
-              strokeWidth={3}
-              strokeDasharray="6 4"
-              opacity={0.9}
-            />
-            <polygon
-              points={`344,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2 - 8} 356,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2 - 8} 350,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2}`}
-              fill={C.amber}
-            />
-            <text x={370} y={ROW0 + (currentRow + 0.5) * ROW_H + ROW_H / 2 + 5} fill={C.amber} fontSize={16} fontFamily={MONO} fontWeight={700}>LEAD offset=1</text>
-          </svg>
-        ) : null}
+      {/* metric boxes */}
+      {BOX.map((b, k) => {
+        const st = S.probe + k * 1.3 + 1.1;
+        const p = back(prog(t, st, st + 0.7));
+        return (
+          <div key={b.l} style={{position: 'absolute', left: 1060, top: BY[k], width: 800, height: 130, borderRadius: 22, background: `${D.cat}1A`, border: `2.5px solid ${D.cat}`, opacity: Math.min(1, p * 2 + 0.15), transform: `scale(${0.94 + 0.06 * p})`, display: 'flex', alignItems: 'center', gap: 28, padding: '0 34px', boxShadow: p > 0.8 ? `0 0 ${22 + 14 * warm}px ${D.cat}55` : undefined}}>
+            <div style={{flex: 1}}><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, color: C.text}}>{b.l}</div><div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 24, color: D.cat, direction: 'rtl', textAlign: 'left'}}>{b.sub}</div></div>
+            <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 80, color: D.cat, opacity: p > 0.5 ? 1 : 0}}>{b.v}</div>
+          </div>
+        );
+      })}
 
-        {/* Bottom summary */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 44, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 20, color: C.amber, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>LEAD(order_date, 1, '2099-12-31')</span>
-          <span>{currentRow}/{CUSTOMER_ORDERS.length - 1} rows processed</span>
+      {/* weekday seasonality */}
+      {t >= S.bars ? (
+        <div style={{position: 'absolute', left: 60, top: 725, width: 1800, height: 260, borderRadius: 22, background: 'rgba(30,41,59,0.8)', border: '2px solid rgba(255,255,255,0.12)', opacity: appear(t, S.bars, S.bars + 0.8)}}>
+          <div style={{position: 'absolute', left: 28, top: 16, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: C.dim}}>orders by DOW</div>
+          {DAYS.map((d, i) => {
+            const h = (VAL[i] / 96) * 150 * barsP;
+            const fri = i === 5;
+            return (
+              <div key={d} style={{position: 'absolute', left: 340 + i * 190, top: 70, width: 110, height: 170}}>
+                <div style={{position: 'absolute', bottom: 28, left: 0, width: 110, height: h, borderRadius: 10, background: fri ? D.cat : '#475569', boxShadow: fri ? `0 0 ${20 + 14 * warm}px ${D.cat}` : undefined}} />
+                <div style={{position: 'absolute', bottom: 0, width: 110, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 700, fontSize: 21, color: fri ? D.cat : C.mute}}>{i} {d}</div>
+              </div>
+            );
+          })}
         </div>
-      </Win>
-
-      <Caption text="LEAD(order_date, 1, '2099-12-31') OVER(ORDER BY order_date)" from={t(42)} to={t(60)} />
-      <Caption text="Forward Lookahead ──► Measures Time to Next Order & Churn Windows" from={t(62)} to={sec(44)} tone="ok" />
-    </Stage>
+      ) : null}
+    </div>
   );
 };

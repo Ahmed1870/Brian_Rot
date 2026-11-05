@@ -1,22 +1,23 @@
 {
-  "name": "manzooma-sql-lesson-40-offset-nav",
+  "name": "manzooma-lesson-27",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 40: Offset & Navigation Window Functions (LAG, LEAD, FIRST_VALUE, LAST_VALUE, frame traps, work_mem buffering, MoM dashboard) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma - SQL From Zero to Professional - Lesson 27 - Temporal Processing (Remotion, 2D)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L40-Offset-Nav out/sql-l40-offset-nav.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "start": "remotion studio src/index.ts",
+    "generate-audio": "node scripts/generate-audio.cjs",
+    "render": "remotion render src/index.ts Monzoma-SQL-L27 out/Lesson27_Temporal-Date-Functions.mp4",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
     "@remotion/google-fonts": "^4.0.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
+    "@types/react": "^18.3.0",
     "typescript": "^5.4.0"
   }
 }

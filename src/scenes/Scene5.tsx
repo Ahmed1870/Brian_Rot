@@ -1,133 +1,68 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {ENTERPRISE_COHORT, CUSTOMER_ORDERS} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {appear} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {back, eo, prog, pulse} from '../lib/anim';
 
-// SC05 (170-210s): Enterprise MoM Revenue Growth & Customer Journey Dashboard
-// Anchors (s): 171.0 enterprise | 175.0 MoM | 180.0 LAG | 185.0 FIRST_VALUE | 192.0 LTV | 200.0 cohort | 205.0 executive
-const S = START.s5;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc05;
+const CODE: CodeLine[] = [
+  "SELECT DATE_TRUNC('month', order_date) AS sales_month,", '       COUNT(order_id) AS total_orders,', '       SUM(total_amount) AS monthly_revenue', 'FROM orders',
+  "WHERE order_date >= NOW() - INTERVAL '6 months'", 'GROUP BY sales_month ORDER BY sales_month DESC;',
+].map((text, i) => ({text, at: S.typeT + i * 2.2, dt: 0.03}));
+const M = [{l: 'Jun', v: 118}, {l: 'Jul', v: 132}, {l: 'Aug', v: 127}, {l: 'Sep', v: 151}, {l: 'Oct', v: 168}, {l: 'Nov', v: 190}];
+const CX = 1040, CY = 190, CHW = 820, CHH = 660, BASE = 700, SC = 2.1;
 
-export const Scene5: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(171.5), 14));
-  const dashboardP = clamp(lin(f, t(185), 16));
-  const sealP = pop(f, t(200));
-
-  // MoM chart progressive growth
-  const growProg = clamp(lin(f, t(186), sec(18)));
-  const visibleRows = Math.max(1, Math.floor(growProg * ENTERPRISE_COHORT.length));
-
-  // Chart layout
-  const CHART_X = 80;
-  const CHART_Y = 50;
-  const CHART_W = 1560;
-  const CHART_H = 220;
-  const maxSales = Math.max(...ENTERPRISE_COHORT.map((r) => r.sales));
-
-  const xFor = (i: number) => CHART_X + (i / (ENTERPRISE_COHORT.length - 1)) * CHART_W;
-  const yFor = (v: number) => CHART_Y + CHART_H - (v / maxSales) * CHART_H;
-
+export const Scene5: React.FC<{t: number}> = ({t}) => {
+  const enter = appear(t, 174.2, 175.2);
+  const warm = 0.5 + 0.5 * pulse(t, 1.2);
+  const stamp = prog(t, S.seal, S.seal + 0.55);
+  const stampP = stamp <= 0 ? 0 : stamp < 1 ? 1.8 - 0.8 * eo(stamp) : 1;
+  const grow = (i: number) => eo(prog(t, S.rise + i * 0.9, S.rise + i * 0.9 + 1.0));
+  const pts = M.map((m, i) => `${CX + 90 + i * 118 + 36},${BASE - m.v * SC * grow(i)}`).join(' ');
+  const win = prog(t, S.tag2[0], S.tag2[0] + 1.2);
   return (
-    <Stage dur={1200} inFx="morph" outFx="fade">
-      <TopBadge text="التطبيق المؤسسي | MoM Growth & Customer Journey" from={sec(1)} to={sec(38)} color={C.green} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="Enterprise Temporal Analytics" body="──► Monthly Cohorts & MoM Revenue Trends" color={D.code} size={27} /></div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Dynamic Windowing" body="──► NOW() - INTERVAL '6 months' Rolling Window" color={D.key} size={27} /></div>
+      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={940} h={400} title="monthly_cohorts.sql" fontSize={23} lineH={48} /></div>
+      <div style={{position: 'absolute', left: 60, top: 630, width: 940, height: 230, borderRadius: 22, padding: '22px 30px', boxSizing: 'border-box', background: `${D.key}14`, border: `2px solid ${D.key}88`, opacity: appear(t, S.tag2[0], S.tag2[0] + 1)}}>
+        <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: D.key}}>NOW() − INTERVAL '6 months'</div>
+        <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 30, color: C.text, direction: 'rtl', marginTop: 10}}>نافذة زمنية متحركة: آخر ستة أشهر فقط، وتتحدث تلقائيًا مع الوقت الحالي</div>
+        <div style={{height: 18, borderRadius: 9, background: 'rgba(255,255,255,0.08)', marginTop: 22}}><div style={{width: `${100 * win}%`, height: 18, borderRadius: 9, background: D.key}} /></div>
+      </div>
 
-      <Editor
-        x={80}
-        y={170}
-        w={880}
-        h={260}
-        title="Enterprise Query · manzooma_store_db"
-        lines={[
-          'SELECT customer_id, order_date, amount,',
-          '  LAG(amount, 1, 0) OVER(',
-          '    PARTITION BY customer_id ORDER BY order_date)',
-          '    AS prev_amount,',
-          '  FIRST_VALUE(amount) OVER(',
-          '    PARTITION BY customer_id ORDER BY order_date',
-          '    ROWS BETWEEN UNBOUNDED PRECEDING',
-          '      AND UNBOUNDED FOLLOWING)',
-          '    AS first_purchase_amount',
-          'FROM customer_orders;',
-        ]}
-        start={t(171.5)}
-        cps={0.65}
-        size={16}
-        hl={f >= t(180) ? 1 : -1}
-        hlColor={f >= t(180) ? C.blue : C.green}
-      />
-
-      {/* Report panel right of editor */}
-      <Win x={1000} y={170} w={840} h={260} title="executive report · mom_growth_dashboard" accent={C.green} opacity={clamp(lin(f, t(192), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          MoM Revenue Growth & LTV
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 48, right: 24, display: 'flex', gap: 12, flexWrap: 'wrap'}}>
-          <Chip color={C.blue}>LAG prev_amount</Chip>
-          <Chip color={C.amber}>FIRST_VALUE</Chip>
-          <Chip color={C.green}>MoM %</Chip>
-          <Chip color={C.purple}>LTV tracking</Chip>
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <div style={{fontFamily: MONO, fontSize: 20, color: C.text, fontWeight: 700}}>
-            cohort retention ✓
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 10, opacity: clamp(sealP), transform: `scale(${0.85 + 0.15 * clamp(sealP)})`}}>
-            <Check p={sealP} size={40} color={C.green} />
-            <div style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Seal ✓</div>
+      {/* monthly revenue chart */}
+      <div style={{position: 'absolute', left: CX, top: CY, width: CHW, height: CHH, borderRadius: 26, background: 'linear-gradient(160deg,#22304A,#1B2740)', border: `2.5px solid ${D.cat}`, boxShadow: `0 28px 70px rgba(0,0,0,0.5), 0 0 ${24 + 20 * warm * (t > S.seal ? 1 : 0)}px ${D.cat}66`, opacity: appear(t, 175, 176)}}>
+        <div style={{position: 'absolute', left: 30, top: 20, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: C.text}}>monthly_revenue <span style={{color: C.mute, fontSize: 20}}>(EGP K)</span></div>
+      </div>
+      {M.map((m, i) => {
+        const g = grow(i);
+        const prev = i ? M[i - 1].v : 0;
+        const mom = i ? ((m.v / prev - 1) * 100) : 0;
+        const x = CX + 90 + i * 118;
+        return (
+          <React.Fragment key={m.l}>
+            <div style={{position: 'absolute', left: x, top: BASE - m.v * SC * g, width: 72, height: m.v * SC * g, borderRadius: '12px 12px 0 0', background: `linear-gradient(180deg, ${D.cat}, ${D.cat}66)`, boxShadow: `0 0 18px ${D.cat}66`}} />
+            <div style={{position: 'absolute', left: x - 14, top: BASE + 10, width: 100, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 700, fontSize: 22, color: C.dim}}>{m.l}</div>
+            {g > 0.8 ? <div style={{position: 'absolute', left: x - 24, top: BASE - m.v * SC * g - 62, width: 120, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 21, color: mom >= 0 ? D.cat : D.err, opacity: Math.min(1, (g - 0.8) * 5)}}>{i ? `${mom >= 0 ? '+' : ''}${mom.toFixed(1)}%` : ''}<br /><span style={{color: C.text, fontSize: 24}}>{m.v}</span></div> : null}
+          </React.Fragment>
+        );
+      })}
+      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        <polyline points={pts} fill="none" stroke={C.text} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" opacity="0.8" strokeDasharray="10 10" />
+      </svg>
+      {stampP > 0 ? (
+        <div style={{position: 'absolute', left: 1380, top: 760, opacity: Math.min(1, stamp * 4), transform: `rotate(-8deg) scale(${stampP})`}}>
+          <div style={{padding: '12px 28px', borderRadius: 18, border: `5px double ${D.cat}`, background: 'rgba(11,18,34,0.92)', boxShadow: `0 0 ${30 + 20 * warm}px ${D.cat}`, textAlign: 'center'}}>
+            <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 40, color: D.cat}}>MoM VERIFIED ✓</div>
+            <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 22, color: C.text, direction: 'rtl'}}>اعتماد التقرير الزمني</div>
           </div>
         </div>
-      </Win>
-
-      {/* MoM bar chart dashboard at the bottom */}
-      <Win x={80} y={450} w={1760} h={430} title="MoM revenue growth % · enterprise dashboard" accent={C.green} opacity={dashboardP}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          month-over-month growth · manzooma_store_db
-        </div>
-        <svg width={1760} height={370} style={{position: 'absolute', left: 0, top: 40}}>
-          {/* Axes */}
-          <line x1={CHART_X} y1={CHART_Y + CHART_H} x2={CHART_X + CHART_W} y2={CHART_Y + CHART_H} stroke={C.border} strokeWidth={2} />
-          <line x1={CHART_X} y1={CHART_Y} x2={CHART_X} y2={CHART_Y + CHART_H} stroke={C.border} strokeWidth={2} />
-          {/* Zero line for growth % */}
-          <line x1={CHART_X} y1={CHART_Y + CHART_H / 2} x2={CHART_X + CHART_W} y2={CHART_Y + CHART_H / 2} stroke={C.muted} strokeWidth={1} strokeDasharray="4 4" opacity={0.4} />
-          <text x={CHART_X - 10} y={CHART_Y + CHART_H / 2 + 5} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="end">0%</text>
-
-          {/* Bars — MoM growth % */}
-          {ENTERPRISE_COHORT.slice(0, visibleRows).map((row, i) => {
-            const growth = row.mom_pct;
-            if (growth === null) return null;
-            const barH = Math.abs(growth) * 4;
-            const barW = 140;
-            const barX = xFor(i) - barW / 2;
-            const isPositive = growth >= 0;
-            const barY = isPositive ? CHART_Y + CHART_H / 2 - barH : CHART_Y + CHART_H / 2;
-            const color = isPositive ? C.green : C.red;
-            return (
-              <g key={row.month}>
-                <rect x={barX} y={barY} width={barW} height={barH} fill={`${color}cc`} stroke={color} strokeWidth={2} rx={6} style={{filter: `drop-shadow(0 0 6px ${color}88)`}} />
-                <text x={xFor(i)} y={isPositive ? barY - 8 : barY + barH + 18} fill={color} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">{growth > 0 ? '+' : ''}{growth}%</text>
-                <text x={xFor(i)} y={CHART_Y + CHART_H + 22} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">{row.month}</text>
-              </g>
-            );
-          })}
-
-          {/* First month label */}
-          {visibleRows > 0 ? (
-            <text x={xFor(0)} y={CHART_Y + CHART_H + 22} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">{ENTERPRISE_COHORT[0].month}</text>
-          ) : null}
-        </svg>
-
-        {/* Bottom KPIs */}
-        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 12, height: 50, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 22, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.green}}>+{ENTERPRISE_COHORT.filter(r => r.mom_pct !== null && r.mom_pct > 0).length} growth months</span>
-          <span style={{color: C.red}}>{ENTERPRISE_COHORT.filter(r => r.mom_pct !== null && r.mom_pct < 0).length} decline months</span>
-          <span style={{color: C.amber}}>{visibleRows}/{ENTERPRISE_COHORT.length} months</span>
-        </div>
-      </Win>
-
-      <Caption text="Enterprise Analytics ──► MoM Revenue Growth % & Customer Journey Metrics" from={t(175)} to={t(195)} />
-      <Caption text="Cohort Retention ──► Benchmarks Initial Purchase vs Subsequent Orders" from={t(197)} to={sec(38.5)} tone="ok" />
-    </Stage>
+      ) : null}
+    </div>
   );
 };

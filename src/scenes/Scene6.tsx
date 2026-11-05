@@ -1,97 +1,150 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
+import TL from '../timeline.json';
+import {C, K, FONT_AR, FONT_MONO} from '../theme';
+import {Bg, Glass} from '../components/Glass';
+import {Bi, Pill, appear, pop} from '../components/Text';
+import {LOGO_PATHS, LOGO_VIEW} from '../logoData';
+import {eo, hash, mix, prog, pulse} from '../lib/anim';
 
-// SC06 (210-240s): Manzooma Academy outro. Ends with a fade to black.
-// Anchors (s): 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 NTILE, Percentiles
-const S = START.s6;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc06;
+const LW = 150;
+const LH = (LW * LOGO_VIEW.h) / LOGO_VIEW.w;
+const SKILLS = ['DATE_TRUNC', 'EXTRACT', 'INTERVAL', 'AGE'];
 
-const SKILLS = ['LAG() ✓', 'LEAD() ✓', 'FIRST_VALUE() ✓', 'LAST_VALUE() ✓', 'Frame Control ✓'];
+const Check: React.FC<{c?: string; s?: number}> = ({c = K.num, s = 34}) => (
+  <svg width={s} height={s} viewBox="0 0 34 34" fill="none" stroke={c} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18 L14 26 L29 8" /></svg>
+);
 
-export const Scene6: React.FC = () => {
-  const f = useCurrentFrame();
-  const card = prog(f, 0, 30);
-  const head = prog(f, t(211), 24);
-  const badge = pop(f, t(211.6));
-  const fill = prog(f, t(212.2), sec(4.8));
-  const modDone = prog(f, t(213.5), 20);
-  const res = prog(f, t(215), 24);
-  const next = prog(f, t(220), 28);
-  const code = typed("SELECT\n  NTILE(4) OVER(ORDER BY sales) AS quartile,\n  PERCENT_RANK() OVER(ORDER BY sales) AS pct_rank,\n  CUME_DIST() OVER(ORDER BY sales) AS cume_dist\nFROM monthly_sales;", f, t(225), 0.7).split('\n');
-  const pct = Math.round(fill * 100);
+export const Scene6: React.FC<{t: number}> = ({t}) => {
+  const ring = eo(prog(t, S.progress[0], S.progress[1]));
+  const done = t >= S.progress[1] - 0.4;
+  const badgeP = pop(t, S.badge, S.badge + 0.8);
+  const nextP = pop(t, S.next, S.next + 0.9);
+  const sheetsP = pop(t, S.sheets, S.sheets + 0.9);
+  const cardP = pop(t, S.header + 1.2, S.header + 2.2);
+  const R = 92;
+  const circ = 2 * Math.PI * R;
+  const np = Math.sin(prog(t, S.nextPulse, S.nextPulse + 2.2) * Math.PI);
+  const lp = Math.sin(prog(t, S.linkPulse, S.linkPulse + 2.2) * Math.PI);
+  const sweep = mix(-300, 1900, ((t - S.sheets - 1) * 0.25) % 1);
 
   return (
-    <Stage dur={900} inFx="fade" outFx="black">
-      <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
-        <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
-          <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
-            <svg width={70} height={70} viewBox="0 0 70 70">
-              <line x1={14} y1={52} x2={35} y2={16} stroke={C.blue} strokeWidth={5} />
-              <line x1={35} y1={16} x2={56} y2={52} stroke={C.green} strokeWidth={5} />
-              <line x1={14} y1={52} x2={56} y2={52} stroke={C.amber} strokeWidth={5} />
-              <circle cx={14} cy={52} r={9} fill={C.blue} />
-              <circle cx={35} cy={16} r={9} fill={C.text} />
-              <circle cx={56} cy={52} r={9} fill={C.green} />
-            </svg>
-            <Mix style={{fontSize: 62, fontWeight: 700, color: C.text}}>منظومة أكاديمي</Mix>
-            <span style={{fontFamily: MONO, fontSize: 40, color: C.muted}}>|</span>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 40, fontWeight: 700, color: C.blue}}>Manzooma SQL Masterclass</span>
-          </div>
-        </div>
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 170}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
-            <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 30, fontWeight: 700, color: C.green}}>
-              Lesson 40 Completed: <span style={{color: C.text}}>Offset &amp; Navigation Functions Mastered</span>
-            </div>
-          </div>
-          <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
-            <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
-            </div>
-            <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
-          </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 10 · Window Functions — {modDone > 0.5 ? 'Offset & Navigation Functions Mastered ✓' : 'in progress'}
-          </div>
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 14, flexWrap: 'wrap', maxWidth: 1540}}>
-          {SKILLS.map((s, i) => {
-            const p = pop(f, t(214 + i * 0.5));
-            return (
-              <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
-                <Chip color={C.blue} style={{fontSize: 22}}>{s}</Chip>
-              </div>
-            );
-          })}
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 470, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
-          <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
-            <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
-          </Chip>
-        </div>
-
-        <div style={{position: 'absolute', left: 90, right: 90, top: 560, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
-          <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 41</Mix>
-            <Mix style={{fontSize: 34, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>التقسيم الإحصائي والتوزيع المئوي — NTILE و Percentiles</Mix>
-          </div>
-          <div dir="ltr" style={{width: 600, height: 230, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 16, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 14, marginBottom: 8}}>-- Lesson 41</div>
-            {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 24}}>
-                <Sql text={l} />
-                {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
-              </div>
+      {/* header */}
+      <div style={{position: 'absolute', left: 100, top: 54, width: 1720, display: 'flex', alignItems: 'center', gap: 28, opacity: appear(t, S.header, S.header + 0.6)}}>
+        <svg width={LW} height={LH} viewBox={`${LOGO_VIEW.x} ${LOGO_VIEW.y} ${LOGO_VIEW.w} ${LOGO_VIEW.h}`} style={{filter: 'drop-shadow(0 0 14px rgba(56,189,248,0.4))'}}>
+          <g transform="translate(0,600) scale(0.1,-0.1)" fill="#F8FAFC">
+            {LOGO_PATHS.map((p, i) => (
+              <path key={i} d={p.d} opacity={eo(prog(t, S.header + 0.1 + hash(i) * 0.8, S.header + 0.9 + hash(i) * 0.8))} />
             ))}
-          </div>
-        </div>
+          </g>
+        </svg>
+        <Bi ar="منظومة أكاديمي" en="Manzooma SQL Masterclass" size={58} t={t} start={S.header + 0.2} weight={900} gap={26} />
       </div>
-    </Stage>
+
+      {/* completed lesson card */}
+      <div style={{position: 'absolute', left: 100, top: 214, width: 900, height: 420, opacity: Math.min(1, cardP * 1.5), transform: `translateY(${(1 - cardP) * 60}px)`}}>
+        <Glass w={900} h={420} t={t} tint={K.num} glow={24} style={{border: `2px solid ${K.num}66`}}>
+          <div style={{padding: '28px 40px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 36}}>
+              <div style={{position: 'relative', width: 210, height: 210}}>
+                <svg width="210" height="210" viewBox="0 0 210 210" style={{transform: 'rotate(-90deg)'}}>
+                  <circle cx="105" cy="105" r={R} fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="18" />
+                  <circle cx="105" cy="105" r={R} fill="none" stroke={K.num} strokeWidth="18" strokeLinecap="round" strokeDasharray={`${circ * ring} ${circ}`} />
+                </svg>
+                <div style={{position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
+                  <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 66, color: C.text, lineHeight: 1}}>27</span>
+                  <span style={{fontFamily: FONT_MONO, fontSize: 20, color: K.num}}>{Math.round(ring * 100)}%</span>
+                </div>
+              </div>
+              <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start'}}>
+                <div style={{opacity: Math.min(1, badgeP * 1.5), transform: `scale(${0.8 + 0.2 * badgeP})`, transformOrigin: '0 50%'}}>
+                  <div style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 26px', borderRadius: 26, background: `${K.num}22`, border: `2px solid ${K.num}`, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, lineHeight: 1.25, color: C.text, maxWidth: '100%', boxSizing: 'border-box', boxShadow: `0 0 ${24 + 12 * pulse(t, 1.6)}px ${K.num}66`}}>
+                    <Check s={30} />
+                    <span>Lesson 27 Completed: Temporal Processing Mastered</span>
+                  </div>
+                </div>
+                <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 26, color: C.dim, direction: 'rtl'}}>الوحدة السابعة — معالجة البيانات النصية والزمنية</div>
+                <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
+                  {SKILLS.map((s, i) => (
+                    <div key={s} style={{opacity: appear(t, S.progress[1] + i * 0.35, S.progress[1] + 0.6 + i * 0.35), transform: `translateY(${(1 - appear(t, S.progress[1] + i * 0.35, S.progress[1] + 0.6 + i * 0.35)) * 16}px)`}}>
+                      <Pill mono size={21} bg={`${K.txt}1A`} color={C.text} border={`${K.txt}77`}>{s}</Pill>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* lesson track */}
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 34, gap: 0}}>
+              {[25, 26, 27, 28].map((n, i) => {
+                const complete = n < 27 || (n === 27 && done);
+                const isNext = n === 28;
+                const popP = n === 27 ? pop(t, S.progress[1] - 0.4, S.progress[1] + 0.4) : 1;
+                return (
+                  <React.Fragment key={n}>
+                    {i > 0 ? <div style={{width: 96, height: 6, borderRadius: 3, background: n <= 27 ? K.num : 'rgba(255,255,255,0.12)', opacity: n === 27 ? 0.3 + 0.7 * ring : 1}} /> : null}
+                    <div style={{width: 76, height: 76, borderRadius: 38, background: complete ? K.num : 'transparent', border: `4px ${isNext ? 'dashed' : 'solid'} ${complete ? K.num : isNext ? K.bool : 'rgba(255,255,255,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, color: complete ? C.bg : isNext ? K.bool : C.dim, transform: `scale(${n === 27 ? 0.8 + 0.2 * popP : 1 + (isNext ? 0.06 * pulse(t, 1.4) : 0)})`, boxShadow: isNext ? `0 0 ${12 + 14 * pulse(t, 1.4)}px ${K.bool}66` : undefined}}>
+                      {complete ? <Check c={C.bg} s={36} /> : String(n)}
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        </Glass>
+      </div>
+
+      {/* next lesson card */}
+      <div style={{position: 'absolute', left: 1040, top: 214, width: 780, height: 420, opacity: Math.min(1, nextP * 1.5), transform: `translateY(${(1 - nextP) * 70}px) scale(${1 + 0.02 * np})`}}>
+        <Glass w={780} h={420} t={t + 2} tint={K.bool} glow={24 + 30 * np} style={{border: `2px solid ${K.bool}${np > 0.2 ? 'CC' : '66'}`}}>
+          <div style={{padding: '30px 40px', display: 'flex', gap: 30, alignItems: 'center', height: '100%', boxSizing: 'border-box'}}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0}}>
+              {[{l: 'COALESCE', c: K.num, g: '∅'}, {l: 'NULLIF', c: K.bool, g: '≠'}, {l: 'GREATEST', c: K.txt, g: '⇧'}].map((o, i) => {
+                const op = appear(t, S.next + 0.4 + i * 0.3, S.next + 1 + i * 0.3);
+                return (
+                  <div key={o.l} style={{display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderRadius: 14, background: `${o.c}22`, border: `2px solid ${o.c}`, opacity: op, transform: `translateX(${(1 - op) * -40}px)`, minWidth: 190}}>
+                    <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: o.c, width: 30, textAlign: 'center'}}>{o.g}</span>
+                    <span style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: C.text}}>{o.l}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 10, direction: 'rtl'}}>
+              <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: K.bool, letterSpacing: 3, direction: 'ltr', textAlign: 'right'}}>LESSON 28</div>
+              <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 34, color: K.bool}}>الدرس القادم:</div>
+              <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 38, lineHeight: 1.3, color: C.text}}>التحكم في القيم المفقودة والشرطية</div>
+              <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 25, color: C.text, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap'}}>COALESCE, NULLIF, GREATEST</div>
+              <div style={{fontFamily: FONT_MONO, fontSize: 19, color: C.dim, direction: 'ltr', textAlign: 'right'}}>Lesson 28: COALESCE, NULLIF &amp; GREATEST/LEAST</div>
+            </div>
+          </div>
+        </Glass>
+      </div>
+
+      {/* sheets + exercises */}
+      <div style={{position: 'absolute', left: 100, top: 676, width: 1720, height: 300, opacity: Math.min(1, sheetsP * 1.5), transform: `translateY(${(1 - sheetsP) * 70}px)`}}>
+        <Glass w={1720} h={300} t={t + 4} tint={K.txt} glow={22} sheen={false} style={{border: `2px solid ${K.txt}66`}}>
+          <div style={{position: 'absolute', top: -60, bottom: -60, left: sweep - 100, width: 160, transform: 'rotate(16deg)', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent)'}} />
+          <div style={{padding: '34px 50px', display: 'flex', alignItems: 'center', gap: 44, height: '100%', boxSizing: 'border-box', direction: 'rtl'}}>
+            <div style={{display: 'flex', gap: 20}}>
+              {[{l: 'DATE', c: K.txt}, {l: 'التمارين', c: K.num}, {l: 'الحلول', c: K.bool}].map((s, i) => (
+                <div key={i} style={{width: 150, height: 190, borderRadius: 20, background: `${s.c}1F`, border: `2.5px solid ${s.c}`, padding: 16, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, transform: `rotate(${(i - 1) * 5}deg) translateY(${Math.sin(t * 1.4 + i) * 6}px)`}}>
+                  {[0.9, 0.7, 0.85, 0.55, 0.8].map((w, k) => (
+                    <div key={k} style={{height: 9, width: `${w * 100}%`, borderRadius: 5, background: s.c, opacity: 0.7}} />
+                  ))}
+                  <div style={{marginTop: 'auto', fontFamily: FONT_AR, fontWeight: 800, fontSize: 26, color: s.c, textAlign: 'center'}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 14}}>
+              <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 40, color: C.text}}>الشيتات والتمارين:</div>
+              <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 52, color: K.txt, direction: 'ltr', textAlign: 'right', textShadow: `0 0 ${28 + 30 * lp}px ${K.txt}${lp > 0.2 ? 'CC' : '66'}`, whiteSpace: 'nowrap'}}>solutions.gomaaintelligence.me</div>
+              <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 28, color: C.dim, direction: 'rtl'}}>سكريبتات المعالجة الزمنية المعتمدة وأوراق العمل</div>
+            </div>
+          </div>
+        </Glass>
+      </div>
+    </div>
   );
 };

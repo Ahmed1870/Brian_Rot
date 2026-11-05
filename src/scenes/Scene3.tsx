@@ -1,142 +1,78 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
-import {DAILY_AMOUNTS} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Code, CodeLine} from '../components/Code';
+import {appear, pop} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {back, eo, prog, pulse} from '../lib/anim';
 
-// SC03 (85-130s): FIRST_VALUE & LAST_VALUE — Frame Trap & Explicit Fix
-// Anchors (s): 86.0 FIRST_VALUE | 90.0 LAST_VALUE | 95.0 trap | 100.0 CURRENT ROW | 110.0 explicit frame | 118.0 full | 125.0 correct
-const S = START.s3;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc03;
+const CODE: CodeLine[] = [{text: "SELECT order_date + INTERVAL '14 days' AS warranty_end FROM orders;", at: S.typeT, dt: 0.05}];
+const X = (d: number) => 140 + (d - 1) * 84;
+const RY = 600;
+const CHIPS = [
+  {l: "+ INTERVAL '1 year'", c: D.key}, {l: "- INTERVAL '1 month'", c: D.err}, {l: "+ INTERVAL '3 hours'", c: D.code}, {l: "+ INTERVAL '30 seconds'", c: '#A855F7'},
+];
 
-const ROW_H = 50;
-const ROW0 = 50;
-
-export const Scene3: React.FC = () => {
-  const f = useCurrentFrame();
-  const leftP = clamp(lin(f, t(86.5), 14));
-  const trapP = clamp(lin(f, t(90), 14));
-  const fixP = clamp(lin(f, t(110), 16));
-  const sealP = pop(f, t(120));
-
-  // Scan progress for both panels
-  const trapScan = clamp(lin(f, t(92), sec(16)));
-  const fixScan = clamp(lin(f, t(112), sec(16)));
-
+export const Scene3: React.FC<{t: number}> = ({t}) => {
+  const enter = appear(t, 85.7, 86.7);
+  const warm = 0.5 + 0.5 * pulse(t, 1.2);
+  const arrowP = pop(t, S.arrow, S.arrow + 0.8);
+  const leap = eo(prog(t, S.leap, S.leap + 1.8));
+  const landed = t >= S.leap + 1.8;
+  const lock = back(prog(t, S.leap + 1.8, S.leap + 2.6));
+  const x0 = X(4), x1 = X(18);
+  const ax = x0 + (x1 - x0) * leap, ay = RY - 30 - Math.sin(leap * Math.PI) * 230;
   return (
-    <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="حدود النافذة | FIRST_VALUE & LAST_VALUE Frame Trap" from={sec(2)} to={sec(40)} color={C.purple} />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="order_date + INTERVAL '14 days'" body="──► Dynamic Date Math & SLA Deadlines" color={D.key} size={27} /></div>
+      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Interval Units" body="──► Add/Subtract Years, Months, Days, Hours & Seconds" color={D.cat} size={26} /></div>
+      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={1800} h={130} title="interval.sql" fontSize={30} lineH={56} accent={D.key} /></div>
 
-      {/* LEFT: The Trap — LAST_VALUE with default frame */}
-      <div style={{opacity: leftP, transform: `translateX(${(1 - leftP) * -30}px)`}}>
-        <Editor
-          x={80}
-          y={180}
-          w={860}
-          h={150}
-          title="THE TRAP · Default Frame"
-          lines={['LAST_VALUE(amount) OVER(ORDER BY date)']}
-          start={t(86.5)}
-          cps={0.9}
-          size={18}
-          accent={C.red}
-          hl={0}
-          hlColor={C.red}
-        />
-        <Win x={80} y={340} w={860} h={560} title="last_value · WRONG (trapped at CURRENT ROW)" accent={C.red} opacity={trapP}>
-          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-            <span style={{width: 60}}>day</span>
-            <span style={{width: 140}}>date</span>
-            <span style={{width: 100, textAlign: 'right'}}>amount</span>
-            <span style={{flex: 1, textAlign: 'right', color: C.red}}>last_value (WRONG)</span>
-          </div>
-
-          {/* Red frame overlay — stops at current row */}
-          {trapScan > 0 && trapScan < 1 ? (
-            <div style={{position: 'absolute', left: 8, right: 8, top: ROW0, height: trapScan * DAILY_AMOUNTS.length * ROW_H, borderRadius: 10, border: `3px solid ${C.red}`, background: `${C.red}10`, boxShadow: `0 0 20px ${C.red}55`, pointerEvents: 'none'}} />
-          ) : null}
-
-          {DAILY_AMOUNTS.map((row, i) => {
-            const currentRow = Math.floor(trapScan * DAILY_AMOUNTS.length);
-            const isCurrent = i === currentRow - 1 && trapScan < 1;
-            const isDone = i < currentRow;
-            const wrongLastValue = row.amount; // LAST_VALUE with default frame returns current row's value
-            return (
-              <div key={row.day} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: ROW0 + i * ROW_H + 3, height: ROW_H - 6, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 20, background: isCurrent ? `${C.red}33` : 'transparent', border: `2px solid ${isCurrent ? C.red : 'transparent'}`, color: C.text, opacity: isDone || isCurrent ? 1 : 0.4, zIndex: 2}}>
-                <span style={{width: 50, color: C.muted}}>#{row.day}</span>
-                <span style={{width: 150, color: C.blue}}>{row.date}</span>
-                <span style={{width: 90, color: C.text, fontWeight: 700, textAlign: 'right'}}>{row.amount}</span>
-                <span style={{flex: 1, textAlign: 'right', color: (isDone || isCurrent) ? C.red : '#475569', fontWeight: 700}}>
-                  {(isDone || isCurrent) ? wrongLastValue : '—'}
-                </span>
-              </div>
-            );
-          })}
-
-          {/* Warning footer */}
-          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 50, display: 'flex', alignItems: 'center', gap: 12, fontFamily: MONO, fontSize: 18, color: C.red, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-            <Warn size={36} color={C.red} />
-            <span>frame stops at CURRENT ROW → wrong value!</span>
-          </div>
-        </Win>
+      {/* calendar ruler */}
+      <div style={{position: 'absolute', left: 60, top: 400, width: 1800, height: 330, borderRadius: 24, background: 'rgba(30,41,59,0.7)', border: '2px solid rgba(255,255,255,0.1)', opacity: enter}}>
+        <div style={{position: 'absolute', left: 28, top: 14, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: C.dim}}>November 2026</div>
       </div>
-
-      {/* RIGHT: The Fix — Explicit ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING */}
-      <div style={{opacity: fixP, transform: `translateX(${(1 - fixP) * 30}px)`}}>
-        <Editor
-          x={980}
-          y={180}
-          w={860}
-          h={150}
-          title="THE FIX · Explicit Full Frame"
-          lines={['LAST_VALUE(amount) OVER(ORDER BY date', '  ROWS BETWEEN UNBOUNDED PRECEDING', '    AND UNBOUNDED FOLLOWING)']}
-          start={t(110.5)}
-          cps={0.7}
-          size={16}
-          accent={C.green}
-          hl={1}
-          hlColor={C.green}
-        />
-        <Win x={980} y={340} w={860} h={560} title="last_value · CORRECT (full frame)" accent={C.green} opacity={fixP}>
-          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-            <span style={{width: 60}}>day</span>
-            <span style={{width: 140}}>date</span>
-            <span style={{width: 100, textAlign: 'right'}}>amount</span>
-            <span style={{flex: 1, textAlign: 'right', color: C.green}}>last_value (CORRECT)</span>
+      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', opacity: enter}}>
+        <line x1={X(1) - 30} y1={RY} x2={X(21) + 30} y2={RY} stroke="#64748B" strokeWidth="5" strokeLinecap="round" />
+        {Array.from({length: 21}).map((_, i) => {
+          const d = i + 1;
+          const hot = d === 4 || d === 18;
+          const filled = d > 4 && d <= 4 + Math.round(14 * leap);
+          return (
+            <g key={d}>
+              <line x1={X(d)} y1={RY - (hot ? 30 : 16)} x2={X(d)} y2={RY + (hot ? 30 : 16)} stroke={d === 4 ? D.code : d === 18 && landed ? D.cat : filled ? D.key : '#64748B'} strokeWidth={hot ? 7 : 4} strokeLinecap="round" />
+              <text x={X(d)} y={RY + 62} textAnchor="middle" fontFamily={FONT_MONO} fontWeight={hot ? 800 : 500} fontSize={hot ? 28 : 21} fill={d === 4 ? D.code : d === 18 && landed ? D.cat : '#94A3B8'}>{d}</text>
+            </g>
+          );
+        })}
+        {arrowP > 0.01 ? <path d={`M${x0} ${RY - 40} Q ${(x0 + x1) / 2} ${RY - 330} ${x1} ${RY - 40}`} fill="none" stroke={D.key} strokeWidth="4" strokeDasharray="8 12" opacity="0.4" /> : null}
+      </svg>
+      <div style={{position: 'absolute', left: x0 - 150, top: RY - 150, width: 300, textAlign: 'center', opacity: appear(t, S.arrow - 1, S.arrow), fontFamily: FONT_MONO, fontWeight: 800, fontSize: 25, color: D.code}}>order_date<br />2026-11-04</div>
+      {arrowP > 0.01 ? (
+        <div style={{position: 'absolute', left: ax - 170, top: ay - 36, opacity: Math.min(1, arrowP * 1.5) * (landed ? 0.0 : 1), transform: `scale(${0.8 + 0.2 * arrowP})`}}>
+          <div style={{padding: '10px 24px', borderRadius: 16, background: D.key, color: C.bg, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, boxShadow: `0 0 34px ${D.key}`, whiteSpace: 'nowrap'}}>+ INTERVAL '14 days' ➜</div>
+        </div>
+      ) : null}
+      {landed ? (
+        <div style={{position: 'absolute', left: x1 - 190, top: RY - 220, width: 380, opacity: Math.min(1, lock * 2), transform: `scale(${0.7 + 0.3 * lock})`}}>
+          <div style={{padding: '12px 22px', borderRadius: 18, background: `${D.cat}26`, border: `2.5px solid ${D.cat}`, boxShadow: `0 0 ${28 + 16 * warm}px ${D.cat}`, display: 'flex', alignItems: 'center', gap: 16}}>
+            <svg width="40" height="44" viewBox="0 0 24 26" fill="none" stroke={D.cat} strokeWidth="2.6" strokeLinecap="round"><rect x="3" y="11" width="18" height="12" rx="3" fill={`${D.cat}44`} /><path d="M7 11V8a5 5 0 0 1 10 0v3" /></svg>
+            <div><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: C.text}}>warranty_end</div><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: D.cat}}>2026-11-18</div></div>
           </div>
+        </div>
+      ) : null}
 
-          {/* Purple full-frame overlay — covers entire table */}
-          {fixScan > 0 ? (
-            <div style={{position: 'absolute', left: 8, right: 8, top: ROW0, bottom: 60, borderRadius: 10, border: `3px solid ${C.purple}`, background: `${C.purple}10`, boxShadow: `0 0 24px ${C.purple}55`, pointerEvents: 'none'}} />
-          ) : null}
-
-          {DAILY_AMOUNTS.map((row, i) => {
-            const currentRow = Math.floor(fixScan * DAILY_AMOUNTS.length);
-            const isCurrent = i === currentRow - 1 && fixScan < 1;
-            const isDone = i < currentRow;
-            const correctLastValue = DAILY_AMOUNTS[DAILY_AMOUNTS.length - 1].amount; // 1850
-            return (
-              <div key={row.day} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: ROW0 + i * ROW_H + 3, height: ROW_H - 6, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 20, background: isCurrent ? `${C.green}22` : 'transparent', border: `2px solid ${isCurrent ? C.green : 'transparent'}`, color: C.text, opacity: isDone || isCurrent ? 1 : 0.4, zIndex: 2}}>
-                <span style={{width: 50, color: C.muted}}>#{row.day}</span>
-                <span style={{width: 150, color: C.blue}}>{row.date}</span>
-                <span style={{width: 90, color: C.text, fontWeight: 700, textAlign: 'right'}}>{row.amount}</span>
-                <span style={{flex: 1, textAlign: 'right', color: (isDone || isCurrent) ? C.green : '#475569', fontWeight: 700}}>
-                  {(isDone || isCurrent) ? correctLastValue : '—'}
-                </span>
-              </div>
-            );
-          })}
-
-          {/* Success footer */}
-          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 50, display: 'flex', alignItems: 'center', gap: 12, fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep, opacity: clamp(sealP)}}>
-            <Check p={sealP} size={36} color={C.green} />
-            <span>full frame → correct last value: {DAILY_AMOUNTS[DAILY_AMOUNTS.length - 1].amount} ✓</span>
-          </div>
-        </Win>
+      {/* interval units */}
+      <div style={{position: 'absolute', left: 60, top: 790, width: 1800, display: 'flex', gap: 22}}>
+        {CHIPS.map((c, i) => {
+          const p = back(prog(t, S.units + i * 1.2, S.units + 0.7 + i * 1.2));
+          return <div key={c.l} style={{flex: 1, padding: '16px 14px', borderRadius: 18, background: `${c.c}22`, border: `2.5px solid ${c.c}`, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 25, color: C.text, textAlign: 'center', opacity: Math.min(1, p * 2), transform: `translateY(${(1 - p) * 40}px)`, boxShadow: `0 0 22px ${c.c}44`, whiteSpace: 'nowrap'}}>{c.l}</div>;
+        })}
       </div>
-
-      <Caption text="LAST_VALUE() Danger Trap ──► Default Frame Stops at CURRENT ROW" from={t(90)} to={t(108)} tone="danger" />
-      <Caption text="Explicit Frame: ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING" from={t(112)} to={sec(44)} tone="ok" />
-    </Stage>
+      {t > S.units + 5 ? <div style={{position: 'absolute', left: 60, top: 900, width: 1800, textAlign: 'center', fontFamily: FONT_AR, fontWeight: 800, fontSize: 32, color: D.cat, direction: 'rtl', opacity: appear(t, S.units + 5, S.units + 6)}}>شروط ديناميكية تعمل تلقائيًا: NOW() - INTERVAL '1 month' بدون تحديث التواريخ يدويًا</div> : null}
+    </div>
   );
 };

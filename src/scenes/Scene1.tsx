@@ -1,133 +1,76 @@
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {MONTHLY_SALES, MOM_GROWTH} from '../data';
+import TL from '../timeline.json';
+import {C, D, FONT_AR, FONT_MONO} from '../theme';
+import {Bg} from '../components/Glass';
+import {Bi, appear, pop} from '../components/Text';
+import {Tag} from '../components/Tag';
+import {eio, eo, mix, prog, pulse, seg} from '../lib/anim';
 
-// SC01 (0-40s): LAG() — Backward Shift Vector
-// Anchors (s): 1.0 welcome | 5.0 LAG | 9.0 backward | 14.0 offset | 20.0 MoM | 28.0 growth | 35.0 self-join
-const S = START.s1;
-const t = (g: number) => sec(g - S);
+const S = TL.cues.sc01;
+const RAW = [
+  {t: '2026-03-15 14:20:45', m: 0}, {t: '2026-03-02 09:05:11', m: 0}, {t: '2026-04-08 11:15:02', m: 1},
+  {t: '2026-03-27 22:48:30', m: 0}, {t: '2026-04-19 17:42:09', m: 1}, {t: '2026-05-03 08:30:55', m: 2},
+];
+const BINS = [{l: '2026-03-01 00:00:00', y: 220}, {l: '2026-04-01 00:00:00', y: 410}, {l: '2026-05-01 00:00:00', y: 600}];
+const RY = (i: number) => 230 + i * 92;
 
-const ROW_H = 58;
-const ROW0 = 56;
-
-export const Scene1: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(2), 14));
-  const tableP = clamp(lin(f, t(4), 14));
-  // LAG arrow moves down row by row: starts at t(8), reaches last row by t(28)
-  const scanProg = clamp(lin(f, t(8), sec(20)));
-  const currentRow = Math.floor(scanProg * (MONTHLY_SALES.length - 1));
-  const sealP = pop(f, t(33));
-
+export const Scene1: React.FC<{t: number}> = ({t}) => {
+  const badgeP = pop(t, S.badge[0], S.badge[0] + 0.8) * (1 - seg(t, S.badge[1] - 0.4, S.badge[1]));
+  const warm = 0.5 + 0.5 * pulse(t, 1.2);
+  const slotCount = [0, 0, 0];
+  // piston: down while any chip is being pressed
+  let press = 0;
+  S.presses.forEach((T) => { press = Math.max(press, Math.sin(prog(t, T - 0.3, T + 0.4) * Math.PI)); });
   return (
-    <Stage dur={1200} inFx="zoom" outFx="left">
-      <TopBadge text="دوال الإزاحة والقياس الزمني | Offset & Navigation Window Functions" from={sec(2)} to={sec(18)} />
-
-      {/* SQL editor on the left */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={180}
-          w={820}
-          h={240}
-          title="Query Editor"
-          lines={[
-            'SELECT month, sales,',
-            '       LAG(sales, 1, 0) OVER(',
-            '         ORDER BY month',
-            '       ) AS prev_sales',
-            'FROM monthly_sales;',
-          ]}
-          start={t(2)}
-          cps={0.85}
-          size={20}
-          accent={C.blue}
-          hl={f >= t(5) ? 1 : -1}
-          hlColor={C.blue}
-        />
+    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
+      <Bg t={t} />
+      <div style={{position: 'absolute', left: 0, top: 92, width: 1920, display: 'flex', justifyContent: 'center', opacity: Math.min(1, badgeP * 1.5), transform: `translateY(${(1 - badgeP) * -60}px)`}}>
+        {badgeP > 0.01 ? <div style={{padding: '16px 50px', borderRadius: 999, background: 'rgba(30,41,59,0.95)', border: `2px solid ${D.code}`, boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${D.code}55`}}><Bi ar="المعالجة الزمنية المتقدمة" en="Advanced Temporal Processing" size={48} t={t} start={S.badge[0] + 0.15} /></div> : null}
       </div>
+      <div style={{position: 'absolute', left: 60, top: 96, height: 60}}><Tag t={t} range={S.tag} head="DATE_TRUNC('month', order_date)" body="──► Snaps Timestamps to Period Start" color={D.code} size={27} /></div>
 
-      {/* Concept callout */}
-      <div style={{position: 'absolute', left: 80, top: 410, width: 820, opacity: clamp(lin(f, t(9), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.muted, marginBottom: 10}}>◆ backward shift</div>
-        <div style={{display: 'flex', gap: 12, flexWrap: 'wrap'}}>
-          <Chip color={C.blue}>LAG(sales, 1, 0)</Chip>
-          <Chip color={C.green}>offset = 1</Chip>
-          <Chip color={C.amber}>no SELF JOIN needed</Chip>
-        </div>
+      {/* raw timeline */}
+      <div style={{position: 'absolute', left: 60, top: 190, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: D.err, opacity: appear(t, 1, 2)}}>order_date (raw timestamps)</div>
+      {RAW.map((r, i) => <div key={i} style={{position: 'absolute', left: 60, top: RY(i), width: 540, height: 66, borderRadius: 16, border: `2px dashed rgba(255,255,255,0.12)`, opacity: appear(t, 1.5 + i * 0.2, 2.2 + i * 0.2)}} />)}
+
+      {/* press station */}
+      <div style={{position: 'absolute', left: 690, top: 150, width: 320, opacity: appear(t, 3, 4)}}>
+        <div style={{width: 16, height: 300 + 60 * press, margin: '0 auto', background: `linear-gradient(90deg,#64748B,#CBD5E1,#64748B)`, borderRadius: 8}} />
+        <div style={{width: 320, height: 84, marginTop: -4, borderRadius: 18, background: `${D.code}33`, border: `3px solid ${D.code}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 20, color: D.code, boxShadow: `0 0 ${24 + 40 * press}px ${D.code}`, transform: `translateY(${0}px)`, position: 'relative', top: 0}}>DATE_TRUNC('month')</div>
       </div>
+      <div style={{position: 'absolute', left: 660, top: 640, width: 380, height: 16, borderRadius: 8, background: '#334155', opacity: appear(t, 3, 4)}} />
 
-      {/* Performance badge */}
-      <div style={{position: 'absolute', left: 80, top: 530, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', border: `2px solid ${C.green}`, borderRadius: 16, background: `${C.green}0d`}}>
-          <Check p={sealP} size={44} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700}}>MoM Growth % ready</div>
-            <Mix style={{fontSize: 18, color: C.muted}}>نسبة النمو الشهري في استعلام واحد</Mix>
+      {/* chips */}
+      {RAW.map((r, i) => {
+        const T = S.presses[i];
+        const u1 = eio(prog(t, T - 1.5, T - 0.35));
+        const u3 = eio(prog(t, T + 0.5, T + 1.6));
+        const pressed = t >= T;
+        const bin = BINS[r.m];
+        const slot = RAW.slice(0, i).filter((x) => x.m === r.m).length;
+        const tx = 1100 + slot * 250, ty = bin.y + 84;
+        const x = t < T + 0.5 ? mix(60, 690, u1) : mix(690, tx, u3);
+        const y = t < T + 0.5 ? mix(RY(i), 548, u1) : mix(548, ty, u3);
+        const w = t < T + 0.5 ? mix(540, 320, u1) : mix(320, 230, u3);
+        const sq = Math.sin(prog(t, T - 0.3, T + 0.4) * Math.PI);
+        const text = pressed ? r.t.slice(0, 8) + '01 00:00:00' : r.t;
+        const small = u3 > 0.5;
+        return (
+          <div key={i} style={{position: 'absolute', left: x, top: y, width: w, height: 66 - 14 * sq, borderRadius: 16, background: pressed ? `${D.cat}33` : `${D.err}22`, border: `2.5px solid ${pressed ? D.cat : D.err}`, boxShadow: pressed ? `0 0 ${18 + 22 * Math.max(0, 1 - (t - T) / 1.0)}px ${D.cat}` : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT_MONO, fontWeight: 700, fontSize: small ? 17 : 24, color: pressed ? D.cat : C.text, whiteSpace: 'nowrap', overflow: 'hidden', opacity: appear(t, 1.5 + i * 0.2, 2.2 + i * 0.2)}}>{text}</div>
+        );
+      })}
+
+      {/* monthly bins */}
+      {BINS.map((b, k) => {
+        const n = RAW.filter((r, i) => r.m === k && t >= S.presses[i] + 1.4).length;
+        const total = RAW.filter((r) => r.m === k).length;
+        return (
+          <div key={k} style={{position: 'absolute', left: 1080, top: b.y, width: 780, height: 160, borderRadius: 22, border: `2.5px solid ${n ? D.cat : 'rgba(255,255,255,0.14)'}`, background: n ? `${D.cat}14` : 'rgba(255,255,255,0.03)', opacity: appear(t, 3.5 + k * 0.3, 4.3 + k * 0.3), boxShadow: n ? `0 0 ${20 + 14 * warm}px ${D.cat}44` : undefined}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', padding: '14px 24px', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 25, color: n ? D.cat : C.mute}}><span>{b.l}</span><span>{n} / {total} orders</span></div>
           </div>
-        </div>
-      </div>
-
-      {/* Monthly sales table on the right */}
-      <Win x={940} y={180} w={900} h={720} title="monthly_sales · LAG demo" accent={C.blue} opacity={tableP}>
-        <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
-          <span style={{width: 120}}>month</span>
-          <span style={{width: 130, textAlign: 'right'}}>sales</span>
-          <span style={{width: 140, textAlign: 'right', color: C.blue}}>prev_sales</span>
-          <span style={{flex: 1, textAlign: 'right', color: C.green}}>mom_growth_pct</span>
-        </div>
-        {MONTHLY_SALES.map((row, i) => {
-          const isCurrent = i === currentRow + 1 && scanProg < 1 && i > 0;
-          const isDone = i <= currentRow + 1 && i > 0;
-          const prevSales = i === 0 ? null : MONTHLY_SALES[i - 1].sales;
-          const growth = MOM_GROWTH[i];
-          return (
-            <div key={row.month} dir="ltr" style={{position: 'absolute', left: 12, right: 12, top: ROW0 + i * ROW_H + 4, height: ROW_H - 8, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 22, background: isCurrent ? `${C.blue}33` : isDone ? `${C.green}0e` : 'transparent', border: `2px solid ${isCurrent ? C.blue : 'transparent'}`, color: C.text, opacity: isDone || isCurrent || i === 0 ? 1 : 0.4}}>
-              <span style={{width: 110, color: C.blue}}>{row.month}</span>
-              <span style={{width: 120, color: C.text, fontWeight: 700, textAlign: 'right'}}>{row.sales.toLocaleString()}</span>
-              <span style={{width: 130, textAlign: 'right', color: prevSales !== null && (isDone || isCurrent) ? C.blue : '#475569', fontWeight: 700}}>
-                {prevSales !== null && (isDone || isCurrent) ? prevSales.toLocaleString() : i === 0 ? '0 (default)' : '—'}
-              </span>
-              <span style={{flex: 1, textAlign: 'right', fontWeight: 700, fontSize: 22, color: growth !== null && (isDone || isCurrent) ? (growth >= 0 ? C.green : C.red) : '#475569'}}>
-                {growth !== null && (isDone || isCurrent) ? `${growth >= 0 ? '+' : ''}${growth}%` : i === 0 ? '— (first)' : '—'}
-              </span>
-            </div>
-          );
-        })}
-
-        {/* LAG arrow indicator — shows backward shift from prev row to current */}
-        {scanProg > 0 && scanProg < 1 && currentRow + 1 < MONTHLY_SALES.length ? (
-          <svg width={900} height={720} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-            {/* Arrow from prev row (up) to current row (down) */}
-            <line
-              x1={300}
-              y1={ROW0 + currentRow * ROW_H + ROW_H / 2}
-              x2={300}
-              y2={ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2}
-              stroke={C.blue}
-              strokeWidth={3}
-              strokeDasharray="6 4"
-              opacity={0.9}
-            />
-            {/* Arrowhead pointing down */}
-            <polygon
-              points={`294,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2 - 8} 306,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2 - 8} 300,${ROW0 + (currentRow + 1) * ROW_H + ROW_H / 2}`}
-              fill={C.blue}
-            />
-            <text x={320} y={ROW0 + (currentRow + 0.5) * ROW_H + ROW_H / 2 + 5} fill={C.blue} fontSize={16} fontFamily={MONO} fontWeight={700}>LAG offset=1</text>
-          </svg>
-        ) : null}
-
-        {/* Bottom summary */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 44, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 20, color: C.blue, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>LAG(sales, 1, 0)</span>
-          <span>{currentRow + 1}/{MONTHLY_SALES.length - 1} rows computed</span>
-        </div>
-      </Win>
-
-      <Caption text="LAG(sales, 1, 0) OVER(ORDER BY month) ──► Fetches Previous Row Value" from={t(22)} to={sec(38)} />
-    </Stage>
+        );
+      })}
+      {t > S.snap + 2 ? <div style={{position: 'absolute', left: 60, top: 810, width: 960, fontFamily: FONT_AR, fontWeight: 800, fontSize: 34, color: D.cat, direction: 'rtl', opacity: appear(t, S.snap + 2, S.snap + 3)}}>تصفير الساعات والدقائق والأيام → تجميع شهري نظيف مع بقاء النوع TIMESTAMPTZ</div> : null}
+    </div>
   );
 };
