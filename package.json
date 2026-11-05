@@ -1,24 +1,23 @@
 {
-  "name": "ahmed-manzooma-sql-l33",
+  "name": "manzooma-sql-lesson-28-conditional-functions",
   "version": "1.0.0",
   "private": true,
-  "description": "Ahmed x Manzooma - SQL Lesson 33: Ranking Functions (16:9, 4:00) - Remotion",
+  "description": "Manzooma SQL From Zero to Professional - Lesson 28: COALESCE, NULLIF, GREATEST, LEAST",
   "scripts": {
-    "sfx": "python3 scripts/generate_sfx.py",
-    "prep": "node scripts/prep.mjs", "check": "node scripts/check_layout.mjs",
-    "start": "node scripts/prep.mjs && remotion studio src/index.ts",
-    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L33 out/ahmed_sql_lesson33.mp4 --codec h264 --concurrency 2"
+    "generate-audio": "node scripts/generate-audio.cjs",
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "render": "npm run generate-audio && remotion render src/index.ts SQL-L28-ConditionalFunctions out/sql-l28-conditional-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.300",
-    "@remotion/google-fonts": "4.0.300",
-    "@remotion/layout-utils": "4.0.300",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "remotion": "4.0.300"
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "19.0.0",
-    "typescript": "5.8.2"
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
   }
 }
