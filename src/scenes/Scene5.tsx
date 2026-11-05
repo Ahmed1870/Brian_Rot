@@ -1,68 +1,149 @@
 import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine} from '../components/Code';
-import {appear} from '../components/Text';
-import {Tag} from '../components/Tag';
-import {back, eo, prog, pulse} from '../lib/anim';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
+import {CUSTOMER_SPENDING, NTILE_QUARTILES, REGION_SLA} from '../data';
 
-const S = TL.cues.sc05;
-const CODE: CodeLine[] = [
-  "SELECT DATE_TRUNC('month', order_date) AS sales_month,", '       COUNT(order_id) AS total_orders,', '       SUM(total_amount) AS monthly_revenue', 'FROM orders',
-  "WHERE order_date >= NOW() - INTERVAL '6 months'", 'GROUP BY sales_month ORDER BY sales_month DESC;',
-].map((text, i) => ({text, at: S.typeT + i * 2.2, dt: 0.03}));
-const M = [{l: 'Jun', v: 118}, {l: 'Jul', v: 132}, {l: 'Aug', v: 127}, {l: 'Sep', v: 151}, {l: 'Oct', v: 168}, {l: 'Nov', v: 190}];
-const CX = 1040, CY = 190, CHW = 820, CHH = 660, BASE = 700, SC = 2.1;
+// SC05 (170-210s): Enterprise Customer Quartiles & Logistics P95 SLA Dashboard
+// Anchors (s): 171.0 enterprise | 175.0 NTILE(4) CTE | 180.0 PERCENTILE_CONT(0.95) | 185.0 P95 SLA | 192.0 logistics | 200.0 dashboard | 205.0 executive
+const S = START.s5;
+const t = (g: number) => sec(g - S);
 
-export const Scene5: React.FC<{t: number}> = ({t}) => {
-  const enter = appear(t, 174.2, 175.2);
-  const warm = 0.5 + 0.5 * pulse(t, 1.2);
-  const stamp = prog(t, S.seal, S.seal + 0.55);
-  const stampP = stamp <= 0 ? 0 : stamp < 1 ? 1.8 - 0.8 * eo(stamp) : 1;
-  const grow = (i: number) => eo(prog(t, S.rise + i * 0.9, S.rise + i * 0.9 + 1.0));
-  const pts = M.map((m, i) => `${CX + 90 + i * 118 + 36},${BASE - m.v * SC * grow(i)}`).join(' ');
-  const win = prog(t, S.tag2[0], S.tag2[0] + 1.2);
+export const Scene5: React.FC = () => {
+  const f = useCurrentFrame();
+  const editorP = clamp(lin(f, t(171.5), 14));
+  const dashboardP = clamp(lin(f, t(185), 16));
+  const sealP = pop(f, t(200));
+
+  // Dashboard progressive reveal
+  const revealProg = clamp(lin(f, t(186), sec(18)));
+  const visibleQuartiles = Math.max(1, Math.floor(revealProg * 4));
+  const visibleRegions = Math.max(1, Math.floor(revealProg * REGION_SLA.length));
+
+  const qColors = [C.green, C.blue, C.amber, C.purple];
+  const qLabels = ['VIP', 'High', 'Mid', 'Low'];
+
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="Enterprise Temporal Analytics" body="──► Monthly Cohorts & MoM Revenue Trends" color={D.code} size={27} /></div>
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Dynamic Windowing" body="──► NOW() - INTERVAL '6 months' Rolling Window" color={D.key} size={27} /></div>
-      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={940} h={400} title="monthly_cohorts.sql" fontSize={23} lineH={48} /></div>
-      <div style={{position: 'absolute', left: 60, top: 630, width: 940, height: 230, borderRadius: 22, padding: '22px 30px', boxSizing: 'border-box', background: `${D.key}14`, border: `2px solid ${D.key}88`, opacity: appear(t, S.tag2[0], S.tag2[0] + 1)}}>
-        <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: D.key}}>NOW() − INTERVAL '6 months'</div>
-        <div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 30, color: C.text, direction: 'rtl', marginTop: 10}}>نافذة زمنية متحركة: آخر ستة أشهر فقط، وتتحدث تلقائيًا مع الوقت الحالي</div>
-        <div style={{height: 18, borderRadius: 9, background: 'rgba(255,255,255,0.08)', marginTop: 22}}><div style={{width: `${100 * win}%`, height: 18, borderRadius: 9, background: D.key}} /></div>
-      </div>
+    <Stage dur={1200} inFx="morph" outFx="fade">
+      <TopBadge text="التطبيق المؤسسي | RFM Quartiles & P95 SLA Dashboard" from={sec(1)} to={sec(38)} color={C.green} />
 
-      {/* monthly revenue chart */}
-      <div style={{position: 'absolute', left: CX, top: CY, width: CHW, height: CHH, borderRadius: 26, background: 'linear-gradient(160deg,#22304A,#1B2740)', border: `2.5px solid ${D.cat}`, boxShadow: `0 28px 70px rgba(0,0,0,0.5), 0 0 ${24 + 20 * warm * (t > S.seal ? 1 : 0)}px ${D.cat}66`, opacity: appear(t, 175, 176)}}>
-        <div style={{position: 'absolute', left: 30, top: 20, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 26, color: C.text}}>monthly_revenue <span style={{color: C.mute, fontSize: 20}}>(EGP K)</span></div>
-      </div>
-      {M.map((m, i) => {
-        const g = grow(i);
-        const prev = i ? M[i - 1].v : 0;
-        const mom = i ? ((m.v / prev - 1) * 100) : 0;
-        const x = CX + 90 + i * 118;
-        return (
-          <React.Fragment key={m.l}>
-            <div style={{position: 'absolute', left: x, top: BASE - m.v * SC * g, width: 72, height: m.v * SC * g, borderRadius: '12px 12px 0 0', background: `linear-gradient(180deg, ${D.cat}, ${D.cat}66)`, boxShadow: `0 0 18px ${D.cat}66`}} />
-            <div style={{position: 'absolute', left: x - 14, top: BASE + 10, width: 100, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 700, fontSize: 22, color: C.dim}}>{m.l}</div>
-            {g > 0.8 ? <div style={{position: 'absolute', left: x - 24, top: BASE - m.v * SC * g - 62, width: 120, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 800, fontSize: 21, color: mom >= 0 ? D.cat : D.err, opacity: Math.min(1, (g - 0.8) * 5)}}>{i ? `${mom >= 0 ? '+' : ''}${mom.toFixed(1)}%` : ''}<br /><span style={{color: C.text, fontSize: 24}}>{m.v}</span></div> : null}
-          </React.Fragment>
-        );
-      })}
-      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-        <polyline points={pts} fill="none" stroke={C.text} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" opacity="0.8" strokeDasharray="10 10" />
-      </svg>
-      {stampP > 0 ? (
-        <div style={{position: 'absolute', left: 1380, top: 760, opacity: Math.min(1, stamp * 4), transform: `rotate(-8deg) scale(${stampP})`}}>
-          <div style={{padding: '12px 28px', borderRadius: 18, border: `5px double ${D.cat}`, background: 'rgba(11,18,34,0.92)', boxShadow: `0 0 ${30 + 20 * warm}px ${D.cat}`, textAlign: 'center'}}>
-            <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 40, color: D.cat}}>MoM VERIFIED ✓</div>
-            <div style={{fontFamily: FONT_AR, fontWeight: 800, fontSize: 22, color: C.text, direction: 'rtl'}}>اعتماد التقرير الزمني</div>
+      <Editor
+        x={80}
+        y={170}
+        w={880}
+        h={300}
+        title="Enterprise CTE · manzooma_store_db"
+        lines={[
+          'WITH CustomerQuartiles AS (',
+          '  SELECT customer_id, total_spent,',
+          '         NTILE(4) OVER(ORDER BY total_spent DESC)',
+          '           AS quartile',
+          '  FROM customer_stats',
+          ')',
+          'SELECT region_id,',
+          '  PERCENTILE_CONT(0.95) WITHIN GROUP',
+          '    (ORDER BY delivery_hours) AS p95_sla',
+          'FROM delivery_logs GROUP BY region_id;',
+        ]}
+        start={t(171.5)}
+        cps={0.6}
+        size={15}
+        hl={f >= t(175) ? 2 : -1}
+        hlColor={f >= t(180) ? C.green : C.purple}
+      />
+
+      {/* Report panel right of editor */}
+      <Win x={1000} y={170} w={840} h={280} title="executive report · RFM + P95 SLA" accent={C.green} opacity={clamp(lin(f, t(192), 14))}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
+          VIP Cohorts & Delivery Percentiles
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 48, right: 24, display: 'flex', gap: 12, flexWrap: 'wrap'}}>
+          <Chip color={C.purple}>NTILE(4) quartiles</Chip>
+          <Chip color={C.green}>P95 SLA</Chip>
+          <Chip color={C.amber}>GROUP BY region</Chip>
+          <Chip color={C.blue}>CTE pipeline</Chip>
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <div style={{fontFamily: MONO, fontSize: 20, color: C.text, fontWeight: 700}}>
+            executive benchmarking ✓
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, opacity: clamp(sealP), transform: `scale(${0.85 + 0.15 * clamp(sealP)})`}}>
+            <Check p={sealP} size={40} color={C.green} />
+            <div style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Seal ✓</div>
           </div>
         </div>
-      ) : null}
-    </div>
+      </Win>
+
+      {/* Dashboard — customer quartiles (left) */}
+      <Win x={80} y={470} w={880} h={420} title="customer quartiles · NTILE(4)" accent={C.purple} opacity={dashboardP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.purple}}>
+          RFM customer tiering
+        </div>
+        <div style={{position: 'absolute', left: 18, right: 18, top: 50, display: 'flex', gap: 14}}>
+          {[0, 1, 2, 3].map((qi) => {
+            const visible = qi < visibleQuartiles;
+            const count = qi < 2 ? 3 : 2;
+            const totalSpent = CUSTOMER_SPENDING.filter((_, i) => NTILE_QUARTILES[i] === qi + 1).reduce((a, c) => a + c.total_spent, 0);
+            return (
+              <div key={qi} dir="ltr" style={{flex: 1, padding: '14px 12px', border: `2px solid ${qColors[qi]}`, borderRadius: 12, background: visible ? `${qColors[qi]}0d` : 'transparent', opacity: visible ? 1 : 0.3, transform: visible ? 'translateY(0)' : 'translateY(20px)'}}>
+                <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: qColors[qi], textAlign: 'center'}}>Q{qi + 1}</div>
+                <div style={{fontFamily: MONO, fontSize: 14, color: C.muted, textAlign: 'center', marginTop: 4}}>{qLabels[qi]}</div>
+                <div style={{fontFamily: MONO, fontSize: 16, color: C.text, textAlign: 'center', marginTop: 8, fontWeight: 700}}>{count} customers</div>
+                <div style={{fontFamily: MONO, fontSize: 14, color: C.muted, textAlign: 'center', marginTop: 4}}>${totalSpent.toLocaleString()}</div>
+              </div>
+            );
+          })}
+        </div>
+        {/* VIP highlight bar */}
+        {visibleQuartiles >= 1 ? (
+          <div style={{position: 'absolute', left: 18, right: 18, bottom: 60, padding: '12px 18px', border: `2px solid ${C.green}`, borderRadius: 12, background: `${C.green}0d`, opacity: clamp(pop(f, t(195)))}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.green, fontWeight: 700}}>Q1 VIP = top 25% spenders isolated ✓</div>
+          </div>
+        ) : null}
+        {/* Bottom summary */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 18, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>NTILE(4) OVER(ORDER BY total_spent DESC)</span>
+          <span>{visibleQuartiles}/4 quartiles</span>
+        </div>
+      </Win>
+
+      {/* Dashboard — P95 SLA per region (right) */}
+      <Win x={1000} y={470} w={840} h={420} title="logistics P95 SLA · PERCENTILE_CONT(0.95)" accent={C.green} opacity={dashboardP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
+          delivery hours P95 per region
+        </div>
+        <div style={{position: 'absolute', left: 18, right: 18, top: 50, bottom: 60}}>
+          {REGION_SLA.map((r, i) => {
+            const visible = i < visibleRegions;
+            const isOverSla = r.p95_sla > 5.0;
+            const color = isOverSla ? C.red : C.green;
+            const maxSla = Math.max(...REGION_SLA.map((s) => s.p95_sla));
+            const barW = (r.p95_sla / maxSla) * 100;
+            return (
+              <div key={r.region} dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 14, padding: '8px 0', opacity: visible ? 1 : 0.3, transform: visible ? 'translateX(0)' : 'translateX(20px)'}}>
+                <span style={{fontFamily: MONO, fontSize: 18, color: C.blue, width: 120}}>{r.region}</span>
+                <div style={{flex: 1, height: 24, borderRadius: 12, background: C.deep, border: `1px solid ${C.border}`, overflow: 'hidden', position: 'relative'}}>
+                  <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: visible ? `${barW}%` : '0%', background: color, borderRadius: 12, transition: 'none'}} />
+                </div>
+                <span style={{fontFamily: MONO, fontSize: 20, fontWeight: 700, color, width: 80, textAlign: 'right'}}>{r.p95_sla.toFixed(1)}h</span>
+                <span style={{fontFamily: MONO, fontSize: 14, color: C.muted, width: 80, textAlign: 'right'}}>{r.deliveries} del.</span>
+              </div>
+            );
+          })}
+        </div>
+        {/* SLA threshold indicator */}
+        <div style={{position: 'absolute', left: 18, right: 18, bottom: 60, padding: '10px 14px', border: `2px solid ${C.amber}`, borderRadius: 10, background: `${C.amber}0d`}}>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.amber, fontWeight: 700}}>SLA threshold: 5.0h · red = over limit</div>
+        </div>
+        {/* Bottom summary */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>PERCENTILE_CONT(0.95) WITHIN GROUP</span>
+          <span>{visibleRegions}/{REGION_SLA.length} regions</span>
+        </div>
+      </Win>
+
+      <Caption text="Enterprise Analytics ──► RFM Customer Quartiles & Logistics P95 SLA" from={t(175)} to={t(195)} />
+      <Caption text="Executive Benchmarking ──► Isolates VIP Cohorts & Service Delivery Percentiles" from={t(197)} to={sec(38.5)} tone="ok" />
+    </Stage>
   );
 };

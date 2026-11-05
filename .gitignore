@@ -1,4 +1,3 @@
 node_modules
 out
-public/gen
-*.log
+.DS_Store

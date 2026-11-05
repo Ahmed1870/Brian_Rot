@@ -1,97 +1,138 @@
 import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine} from '../components/Code';
-import {appear, pop} from '../components/Text';
-import {Tag} from '../components/Tag';
-import {back, eo, prog, pulse} from '../lib/anim';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
+import {RANK_RESULTS} from '../data';
 
-const S = TL.cues.sc02;
-const PUR = '#A855F7';
-const T0 = S.typeT;
-const CODE: CodeLine[] = [
-  {text: 'SELECT order_id,', at: T0}, {text: '       EXTRACT(YEAR FROM order_date) AS order_year,', at: T0 + 0.9},
-  {text: '       EXTRACT(DOW FROM order_date) AS day_of_week,', at: T0 + 2.8}, {text: '       EXTRACT(HOUR FROM order_date) AS order_hour', at: T0 + 4.6}, {text: 'FROM orders;', at: T0 + 6.4},
-];
-const TS = '2026-11-06 15:30:00';
-const CW = 32.4, TX0 = 60 + (940 - TS.length * CW) / 2, TY = 610;
-const BOX = [
-  {l: 'order_year', v: '2026', sub: 'YEAR', x0: 2, x1: 3}, {l: 'day_of_week', v: '5', sub: 'DOW · الجمعة', x0: 8, x1: 9}, {l: 'order_hour', v: '15', sub: 'HOUR · ساعة الذروة', x0: 11, x1: 12},
-];
-const BY = [215, 395, 575];
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const VAL = [42, 55, 61, 58, 72, 96, 64];
-const bz = (u: number, a: number, b: number, c: number, d: number) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
+// SC02 (40-85s): PERCENT_RANK() vs CUME_DIST()
+// Anchors (s): 41.0 relative | 45.0 PERCENT_RANK | 52.0 rank-1/total-1 | 60.0 CUME_DIST | 68.0 cumulative | 75.0 comparison | 80.0 precise
+const S = START.s2;
+const t = (g: number) => sec(g - S);
 
-export const Scene2: React.FC<{t: number}> = ({t}) => {
-  const enter = appear(t, 38.6, 39.6);
-  const warm = 0.5 + 0.5 * pulse(t, 1.2);
-  const barsP = eo(prog(t, S.bars, S.bars + 2));
+const ROW_H = 56;
+const ROW0 = 56;
+
+export const Scene2: React.FC = () => {
+  const f = useCurrentFrame();
+  const leftP = clamp(lin(f, t(41.5), 14));
+  const rightP = clamp(lin(f, t(52), 14));
+  // Scan progress for both panels
+  const scanProg = clamp(lin(f, t(48), sec(30)));
+  const currentRow = Math.floor(scanProg * RANK_RESULTS.length);
+
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="EXTRACT(DOW FROM order_date)" body="──► Extracts Numerical Date Components" color={PUR} size={27} /></div>
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Seasonality Analytics" body="──► Analyzes Peak Hours, Weekdays & Yearly Trends" color={D.cat} size={27} /></div>
-      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={940} h={310} title="extract.sql" fontSize={23} lineH={44} accent={PUR} /></div>
+    <Stage dur={1350} inFx="left" outFx="left">
+      <TopBadge text="الرتبة النسبية والتوزيع التراكمي | PERCENT_RANK vs CUME_DIST" from={sec(2)} to={sec(40)} color={C.blue} />
 
-      {/* timestamp cell */}
-      <div style={{position: 'absolute', left: 60, top: 535, width: 940, height: 150, borderRadius: 22, background: '#0B1222', border: `2px solid ${D.key}88`, opacity: appear(t, S.typeT + 3, S.typeT + 4)}}>
-        <div style={{position: 'absolute', left: 24, top: 10, fontFamily: FONT_MONO, fontSize: 19, color: C.mute}}>order_date · TIMESTAMPTZ</div>
-      </div>
-      <div style={{position: 'absolute', left: TX0, top: TY - 38, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 54, letterSpacing: 0, whiteSpace: 'pre', opacity: appear(t, S.typeT + 3, S.typeT + 4)}}>
-        {TS.split('').map((ch, i) => {
-          const seg = BOX.find((b) => i >= b.x0 && i <= b.x1 && true) || BOX.find((b, k) => (k === 0 && i <= 3) || (k === 1 && i >= 8 && i <= 9) || (k === 2 && i >= 11 && i <= 12));
-          const hit = (i <= 3) || (i >= 8 && i <= 9) || (i >= 11 && i <= 12);
-          const g = hit ? Math.sin(prog(t, S.probe, S.probe + 4) * Math.PI) : 0;
-          return <span key={i} style={{color: hit && t > S.probe ? PUR : C.text, textShadow: g > 0 ? `0 0 ${20 * g}px ${PUR}` : undefined}}>{ch}</span>;
-        })}
-      </div>
-
-      {/* purple extraction probes */}
-      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-        {BOX.map((b, k) => {
-          const st = S.probe + k * 1.3;
-          const p = eo(prog(t, st, st + 1.2));
-          if (p <= 0) return null;
-          const sx = TX0 + ((b.x0 + b.x1 + 1) / 2) * CW, sy = TY - 40, ex = 1060, ey = BY[k] + 65;
-          return (
-            <g key={k}>
-              <path d={`M${sx} ${sy} C ${sx} ${sy - 120} ${ex - 160} ${ey} ${ex} ${ey}`} fill="none" stroke={PUR} strokeWidth="5" strokeDasharray="10 10" strokeDashoffset={-t * 80} opacity={0.5} pathLength={1} style={{strokeDasharray: `${p} 1`}} />
-              <circle cx={bz(p, sx, sx, ex - 160, ex)} cy={bz(p, sy, sy - 120, ey, ey)} r="11" fill={PUR} style={{filter: `drop-shadow(0 0 12px ${PUR})`}} />
-            </g>
-          );
-        })}
-      </svg>
-
-      {/* metric boxes */}
-      {BOX.map((b, k) => {
-        const st = S.probe + k * 1.3 + 1.1;
-        const p = back(prog(t, st, st + 0.7));
-        return (
-          <div key={b.l} style={{position: 'absolute', left: 1060, top: BY[k], width: 800, height: 130, borderRadius: 22, background: `${D.cat}1A`, border: `2.5px solid ${D.cat}`, opacity: Math.min(1, p * 2 + 0.15), transform: `scale(${0.94 + 0.06 * p})`, display: 'flex', alignItems: 'center', gap: 28, padding: '0 34px', boxShadow: p > 0.8 ? `0 0 ${22 + 14 * warm}px ${D.cat}55` : undefined}}>
-            <div style={{flex: 1}}><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, color: C.text}}>{b.l}</div><div style={{fontFamily: FONT_AR, fontWeight: 700, fontSize: 24, color: D.cat, direction: 'rtl', textAlign: 'left'}}>{b.sub}</div></div>
-            <div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 80, color: D.cat, opacity: p > 0.5 ? 1 : 0}}>{b.v}</div>
+      {/* LEFT: PERCENT_RANK */}
+      <div style={{opacity: leftP, transform: `translateX(${(1 - leftP) * -30}px)`}}>
+        <Editor
+          x={80}
+          y={180}
+          w={860}
+          h={130}
+          title="PERCENT_RANK() · relative rank scale"
+          lines={['PERCENT_RANK() OVER(ORDER BY sales) AS pct_rank']}
+          start={t(41.5)}
+          cps={0.85}
+          size={18}
+          accent={C.blue}
+          hl={0}
+          hlColor={C.blue}
+        />
+        <Win x={80} y={330} w={860} h={570} title="PERCENT_RANK · (rank - 1) / (total_rows - 1)" accent={C.blue} opacity={leftP}>
+          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+            <span style={{width: 60}}>day</span>
+            <span style={{width: 100, textAlign: 'right'}}>sales</span>
+            <span style={{flex: 1, textAlign: 'right', color: C.blue}}>pct_rank (0.00 → 1.00)</span>
           </div>
-        );
-      })}
 
-      {/* weekday seasonality */}
-      {t >= S.bars ? (
-        <div style={{position: 'absolute', left: 60, top: 725, width: 1800, height: 260, borderRadius: 22, background: 'rgba(30,41,59,0.8)', border: '2px solid rgba(255,255,255,0.12)', opacity: appear(t, S.bars, S.bars + 0.8)}}>
-          <div style={{position: 'absolute', left: 28, top: 16, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: C.dim}}>orders by DOW</div>
-          {DAYS.map((d, i) => {
-            const h = (VAL[i] / 96) * 150 * barsP;
-            const fri = i === 5;
+          {/* Vertical scale bar on the right side of the table */}
+          <div style={{position: 'absolute', right: 14, top: ROW0 + 10, bottom: 60, width: 8, borderRadius: 4, background: C.deep, border: `1px solid ${C.border}`}}>
+            {scanProg > 0 ? (
+              <div style={{position: 'absolute', left: 0, right: 0, bottom: 0, height: `${scanProg * 100}%`, background: `linear-gradient(180deg, ${C.blue}, ${C.blue}44)`, borderRadius: 4, boxShadow: `0 0 12px ${C.blue}`}} />
+            ) : null}
+            {/* Scale labels */}
+            <div dir="ltr" style={{position: 'absolute', right: 14, top: -6, fontFamily: MONO, fontSize: 14, color: C.blue}}>1.00</div>
+            <div dir="ltr" style={{position: 'absolute', right: 14, bottom: -6, fontFamily: MONO, fontSize: 14, color: C.muted}}>0.00</div>
+          </div>
+
+          {RANK_RESULTS.map((row, i) => {
+            const isCurrent = i === currentRow && scanProg < 1;
+            const isDone = i < currentRow;
             return (
-              <div key={d} style={{position: 'absolute', left: 340 + i * 190, top: 70, width: 110, height: 170}}>
-                <div style={{position: 'absolute', bottom: 28, left: 0, width: 110, height: h, borderRadius: 10, background: fri ? D.cat : '#475569', boxShadow: fri ? `0 0 ${20 + 14 * warm}px ${D.cat}` : undefined}} />
-                <div style={{position: 'absolute', bottom: 0, width: 110, textAlign: 'center', fontFamily: FONT_MONO, fontWeight: 700, fontSize: 21, color: fri ? D.cat : C.mute}}>{i} {d}</div>
+              <div key={row.day} dir="ltr" style={{position: 'absolute', left: 12, right: 80, top: ROW0 + i * ROW_H + 3, height: ROW_H - 6, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 22, background: isCurrent ? `${C.blue}33` : 'transparent', border: `2px solid ${isCurrent ? C.blue : 'transparent'}`, color: C.text, opacity: isDone || isCurrent ? 1 : 0.4}}>
+                <span style={{width: 50, color: C.muted}}>d{row.day}</span>
+                <span style={{width: 90, color: C.text, fontWeight: 700, textAlign: 'right'}}>${row.sales}</span>
+                <span style={{flex: 1, textAlign: 'right', color: (isDone || isCurrent) ? C.blue : '#475569', fontWeight: 700, fontSize: 24}}>
+                  {(isDone || isCurrent) ? row.percentRank.toFixed(4) : '—'}
+                </span>
               </div>
             );
           })}
-        </div>
-      ) : null}
-    </div>
+
+          {/* Formula footer */}
+          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 18, color: C.blue, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
+            (rank - 1) / (total_rows - 1) · first row = 0.0000
+          </div>
+        </Win>
+      </div>
+
+      {/* RIGHT: CUME_DIST */}
+      <div style={{opacity: rightP, transform: `translateX(${(1 - rightP) * 30}px)`}}>
+        <Editor
+          x={980}
+          y={180}
+          w={860}
+          h={130}
+          title="CUME_DIST() · cumulative distribution"
+          lines={['CUME_DIST() OVER(ORDER BY sales) AS cume_dist']}
+          start={t(52.5)}
+          cps={0.85}
+          size={18}
+          accent={C.green}
+          hl={0}
+          hlColor={C.green}
+        />
+        <Win x={980} y={330} w={860} h={570} title="CUME_DIST · rows ≤ current / total_rows" accent={C.green} opacity={rightP}>
+          <div dir="ltr" style={{position: 'absolute', left: 0, right: 0, top: 0, height: ROW0, display: 'flex', alignItems: 'center', padding: '0 18px', fontFamily: MONO, fontSize: 19, color: C.muted, borderBottom: `1px solid ${C.border}`}}>
+            <span style={{width: 60}}>day</span>
+            <span style={{width: 100, textAlign: 'right'}}>sales</span>
+            <span style={{flex: 1, textAlign: 'right', color: C.green}}>cume_dist (0.00 → 1.00)</span>
+          </div>
+
+          {/* Vertical scale bar */}
+          <div style={{position: 'absolute', right: 14, top: ROW0 + 10, bottom: 60, width: 8, borderRadius: 4, background: C.deep, border: `1px solid ${C.border}`}}>
+            {scanProg > 0 ? (
+              <div style={{position: 'absolute', left: 0, right: 0, bottom: 0, height: `${scanProg * 100}%`, background: `linear-gradient(180deg, ${C.green}, ${C.green}44)`, borderRadius: 4, boxShadow: `0 0 12px ${C.green}`}} />
+            ) : null}
+            <div dir="ltr" style={{position: 'absolute', right: 14, top: -6, fontFamily: MONO, fontSize: 14, color: C.green}}>1.00</div>
+            <div dir="ltr" style={{position: 'absolute', right: 14, bottom: -6, fontFamily: MONO, fontSize: 14, color: C.muted}}>0.00</div>
+          </div>
+
+          {RANK_RESULTS.map((row, i) => {
+            const isCurrent = i === currentRow && scanProg < 1;
+            const isDone = i < currentRow;
+            return (
+              <div key={row.day} dir="ltr" style={{position: 'absolute', left: 12, right: 80, top: ROW0 + i * ROW_H + 3, height: ROW_H - 6, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 22, background: isCurrent ? `${C.green}33` : 'transparent', border: `2px solid ${isCurrent ? C.green : 'transparent'}`, color: C.text, opacity: isDone || isCurrent ? 1 : 0.4}}>
+                <span style={{width: 50, color: C.muted}}>d{row.day}</span>
+                <span style={{width: 90, color: C.text, fontWeight: 700, textAlign: 'right'}}>${row.sales}</span>
+                <span style={{flex: 1, textAlign: 'right', color: (isDone || isCurrent) ? C.green : '#475569', fontWeight: 700, fontSize: 24}}>
+                  {(isDone || isCurrent) ? row.cumeDist.toFixed(4) : '—'}
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Formula footer */}
+          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
+            rows ≤ current / total_rows · last row = 1.0000
+          </div>
+        </Win>
+      </div>
+
+      <Caption text="PERCENT_RANK() ──► Relative Rank Scale: (rank - 1) / (total_rows - 1)" from={t(42)} to={t(60)} />
+      <Caption text="CUME_DIST() ──► Cumulative Distribution: rows_with_val_less_equal / total_rows" from={t(62)} to={sec(44)} tone="ok" />
+    </Stage>
   );
 };

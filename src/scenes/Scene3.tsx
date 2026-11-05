@@ -1,78 +1,177 @@
 import React from 'react';
-import TL from '../timeline.json';
-import {C, D, FONT_AR, FONT_MONO} from '../theme';
-import {Bg} from '../components/Glass';
-import {Code, CodeLine} from '../components/Code';
-import {appear, pop} from '../components/Text';
-import {Tag} from '../components/Tag';
-import {back, eo, prog, pulse} from '../lib/anim';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
+import {DELIVERY_HOURS, PERCENTILE_RESULTS} from '../data';
 
-const S = TL.cues.sc03;
-const CODE: CodeLine[] = [{text: "SELECT order_date + INTERVAL '14 days' AS warranty_end FROM orders;", at: S.typeT, dt: 0.05}];
-const X = (d: number) => 140 + (d - 1) * 84;
-const RY = 600;
-const CHIPS = [
-  {l: "+ INTERVAL '1 year'", c: D.key}, {l: "- INTERVAL '1 month'", c: D.err}, {l: "+ INTERVAL '3 hours'", c: D.code}, {l: "+ INTERVAL '30 seconds'", c: '#A855F7'},
-];
+// SC03 (85-130s): PERCENTILE_CONT() vs PERCENTILE_DISC() — WITHIN GROUP, NO OVER()
+// Anchors (s): 86.0 percentile | 90.0 CONT | 95.0 interpolation | 100.0 DISC | 110.0 discrete | 118.0 WITHIN GROUP | 125.0 no OVER
+const S = START.s3;
+const t = (g: number) => sec(g - S);
 
-export const Scene3: React.FC<{t: number}> = ({t}) => {
-  const enter = appear(t, 85.7, 86.7);
-  const warm = 0.5 + 0.5 * pulse(t, 1.2);
-  const arrowP = pop(t, S.arrow, S.arrow + 0.8);
-  const leap = eo(prog(t, S.leap, S.leap + 1.8));
-  const landed = t >= S.leap + 1.8;
-  const lock = back(prog(t, S.leap + 1.8, S.leap + 2.6));
-  const x0 = X(4), x1 = X(18);
-  const ax = x0 + (x1 - x0) * leap, ay = RY - 30 - Math.sin(leap * Math.PI) * 230;
+export const Scene3: React.FC = () => {
+  const f = useCurrentFrame();
+  const editorP = clamp(lin(f, t(86.5), 14));
+  const chartP = clamp(lin(f, t(90), 16));
+  const contP = clamp(lin(f, t(92), 16));
+  const discP = clamp(lin(f, t(100), 16));
+  const alertP = pop(f, t(118));
+
+  // Chart layout
+  const CHART_X = 80;
+  const CHART_Y = 50;
+  const CHART_W = 980;
+  const CHART_H = 260;
+  const maxVal = Math.max(...DELIVERY_HOURS) * 1.1;
+  const sorted = [...DELIVERY_HOURS].sort((a, b) => a - b);
+
+  const xFor = (i: number) => CHART_X + (i / (sorted.length - 1)) * CHART_W;
+  const yFor = (v: number) => CHART_Y + CHART_H - (v / maxVal) * CHART_H;
+
+  // Interpolated point position for P=0.90
+  // P=0.90 means index = 0.90 * (n-1) = 0.90 * 9 = 8.1
+  const p90Index = 0.90 * (sorted.length - 1);
+  const p90LowerIdx = Math.floor(p90Index);
+  const p90UpperIdx = Math.ceil(p90Index);
+  const p90Frac = p90Index - p90LowerIdx;
+  const contVal = sorted[p90LowerIdx] + (sorted[p90UpperIdx] - sorted[p90LowerIdx]) * p90Frac;
+  const discVal = sorted[p90LowerIdx]; // first value where cumulative dist >= 0.90
+
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, overflow: 'hidden'}}>
-      <Bg t={t} />
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag1} head="order_date + INTERVAL '14 days'" body="──► Dynamic Date Math & SLA Deadlines" color={D.key} size={27} /></div>
-      <div style={{position: 'absolute', left: 60, top: 92, height: 60}}><Tag t={t} range={S.tag2} head="Interval Units" body="──► Add/Subtract Years, Months, Days, Hours & Seconds" color={D.cat} size={26} /></div>
-      <div style={{opacity: enter}}><Code lines={CODE} t={t} x={60} y={190} w={1800} h={130} title="interval.sql" fontSize={30} lineH={56} accent={D.key} /></div>
+    <Stage dur={1350} inFx="left" outFx="up">
+      <TopBadge text="الاستكمال الخطي والقيمة المنفصلة | PERCENTILE_CONT vs PERCENTILE_DISC" from={sec(2)} to={sec(40)} color={C.amber} />
 
-      {/* calendar ruler */}
-      <div style={{position: 'absolute', left: 60, top: 400, width: 1800, height: 330, borderRadius: 24, background: 'rgba(30,41,59,0.7)', border: '2px solid rgba(255,255,255,0.1)', opacity: enter}}>
-        <div style={{position: 'absolute', left: 28, top: 14, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 22, color: C.dim}}>November 2026</div>
+      {/* SQL editor — with WITHIN GROUP, NO OVER() */}
+      <div style={{opacity: editorP}}>
+        <Editor
+          x={80}
+          y={180}
+          w={1760}
+          h={170}
+          title="PostgreSQL · Ordered-Set Aggregates (WITHIN GROUP, NOT OVER)"
+          lines={[
+            'SELECT category_id,',
+            '  PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY delivery_hours) AS cont_p90,',
+            '  PERCENTILE_DISC(0.90) WITHIN GROUP (ORDER BY delivery_hours) AS disc_p90',
+            'FROM delivery_logs GROUP BY category_id;',
+          ]}
+          start={t(86.5)}
+          cps={0.7}
+          size={18}
+          accent={C.amber}
+          hl={f >= t(90) ? 1 : f >= t(100) ? 2 : -1}
+          hlColor={f >= t(100) ? C.green : C.amber}
+        />
       </div>
-      <svg width="1920" height="1080" style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', opacity: enter}}>
-        <line x1={X(1) - 30} y1={RY} x2={X(21) + 30} y2={RY} stroke="#64748B" strokeWidth="5" strokeLinecap="round" />
-        {Array.from({length: 21}).map((_, i) => {
-          const d = i + 1;
-          const hot = d === 4 || d === 18;
-          const filled = d > 4 && d <= 4 + Math.round(14 * leap);
-          return (
-            <g key={d}>
-              <line x1={X(d)} y1={RY - (hot ? 30 : 16)} x2={X(d)} y2={RY + (hot ? 30 : 16)} stroke={d === 4 ? D.code : d === 18 && landed ? D.cat : filled ? D.key : '#64748B'} strokeWidth={hot ? 7 : 4} strokeLinecap="round" />
-              <text x={X(d)} y={RY + 62} textAnchor="middle" fontFamily={FONT_MONO} fontWeight={hot ? 800 : 500} fontSize={hot ? 28 : 21} fill={d === 4 ? D.code : d === 18 && landed ? D.cat : '#94A3B8'}>{d}</text>
-            </g>
-          );
-        })}
-        {arrowP > 0.01 ? <path d={`M${x0} ${RY - 40} Q ${(x0 + x1) / 2} ${RY - 330} ${x1} ${RY - 40}`} fill="none" stroke={D.key} strokeWidth="4" strokeDasharray="8 12" opacity="0.4" /> : null}
-      </svg>
-      <div style={{position: 'absolute', left: x0 - 150, top: RY - 150, width: 300, textAlign: 'center', opacity: appear(t, S.arrow - 1, S.arrow), fontFamily: FONT_MONO, fontWeight: 800, fontSize: 25, color: D.code}}>order_date<br />2026-11-04</div>
-      {arrowP > 0.01 ? (
-        <div style={{position: 'absolute', left: ax - 170, top: ay - 36, opacity: Math.min(1, arrowP * 1.5) * (landed ? 0.0 : 1), transform: `scale(${0.8 + 0.2 * arrowP})`}}>
-          <div style={{padding: '10px 24px', borderRadius: 16, background: D.key, color: C.bg, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 28, boxShadow: `0 0 34px ${D.key}`, whiteSpace: 'nowrap'}}>+ INTERVAL '14 days' ➜</div>
-        </div>
-      ) : null}
-      {landed ? (
-        <div style={{position: 'absolute', left: x1 - 190, top: RY - 220, width: 380, opacity: Math.min(1, lock * 2), transform: `scale(${0.7 + 0.3 * lock})`}}>
-          <div style={{padding: '12px 22px', borderRadius: 18, background: `${D.cat}26`, border: `2.5px solid ${D.cat}`, boxShadow: `0 0 ${28 + 16 * warm}px ${D.cat}`, display: 'flex', alignItems: 'center', gap: 16}}>
-            <svg width="40" height="44" viewBox="0 0 24 26" fill="none" stroke={D.cat} strokeWidth="2.6" strokeLinecap="round"><rect x="3" y="11" width="18" height="12" rx="3" fill={`${D.cat}44`} /><path d="M7 11V8a5 5 0 0 1 10 0v3" /></svg>
-            <div><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 24, color: C.text}}>warranty_end</div><div style={{fontFamily: FONT_MONO, fontWeight: 800, fontSize: 30, color: D.cat}}>2026-11-18</div></div>
+
+      {/* NO OVER() alert */}
+      <div style={{position: 'absolute', left: 80, top: 370, width: 540, opacity: clamp(alertP)}}>
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', border: `2px solid ${C.red}`, borderRadius: 12, background: `${C.red}0d`}}>
+          <Warn size={36} color={C.red} />
+          <div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.red, fontWeight: 700}}>OVER() NOT supported</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.muted, marginTop: 4}}>Ordered-Set Aggregates use WITHIN GROUP + GROUP BY</div>
           </div>
         </div>
-      ) : null}
-
-      {/* interval units */}
-      <div style={{position: 'absolute', left: 60, top: 790, width: 1800, display: 'flex', gap: 22}}>
-        {CHIPS.map((c, i) => {
-          const p = back(prog(t, S.units + i * 1.2, S.units + 0.7 + i * 1.2));
-          return <div key={c.l} style={{flex: 1, padding: '16px 14px', borderRadius: 18, background: `${c.c}22`, border: `2.5px solid ${c.c}`, fontFamily: FONT_MONO, fontWeight: 800, fontSize: 25, color: C.text, textAlign: 'center', opacity: Math.min(1, p * 2), transform: `translateY(${(1 - p) * 40}px)`, boxShadow: `0 0 22px ${c.c}44`, whiteSpace: 'nowrap'}}>{c.l}</div>;
-        })}
       </div>
-      {t > S.units + 5 ? <div style={{position: 'absolute', left: 60, top: 900, width: 1800, textAlign: 'center', fontFamily: FONT_AR, fontWeight: 800, fontSize: 32, color: D.cat, direction: 'rtl', opacity: appear(t, S.units + 5, S.units + 6)}}>شروط ديناميكية تعمل تلقائيًا: NOW() - INTERVAL '1 month' بدون تحديث التواريخ يدويًا</div> : null}
-    </div>
+
+      {/* Function comparison chips */}
+      <div style={{position: 'absolute', left: 80, top: 470, width: 540, opacity: clamp(lin(f, t(95), 14))}}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px', border: `2px solid ${C.amber}`, borderRadius: 12, background: `${C.amber}0d`}}>
+            <span style={{fontFamily: MONO, fontSize: 16, fontWeight: 700, color: C.amber, width: 180}}>PERCENTILE_CONT</span>
+            <span style={{fontFamily: MONO, fontSize: 14, color: C.muted}}>linear interpolation → fractional</span>
+          </div>
+          <div dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px', border: `2px solid ${C.green}`, borderRadius: 12, background: `${C.green}0d`}}>
+            <span style={{fontFamily: MONO, fontSize: 16, fontWeight: 700, color: C.green, width: 180}}>PERCENTILE_DISC</span>
+            <span style={{fontFamily: MONO, fontSize: 14, color: C.muted}}>first discrete value ≥ percentile</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Statistical plot on the right — showing interpolation vs discrete */}
+      <Win x={660} y={370} w={1180} h={530} title="delivery_hours · P90 interpolation vs discrete snap" accent={C.amber} opacity={chartP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 20, color: C.amber}}>
+          sorted delivery_hours → P=0.90
+        </div>
+        <svg width={1180} height={470} style={{position: 'absolute', left: 0, top: 40}}>
+          {/* Axes */}
+          <line x1={CHART_X} y1={CHART_Y + CHART_H} x2={CHART_X + CHART_W} y2={CHART_Y + CHART_H} stroke={C.border} strokeWidth={2} />
+          <line x1={CHART_X} y1={CHART_Y} x2={CHART_X} y2={CHART_Y + CHART_H} stroke={C.border} strokeWidth={2} />
+
+          {/* Data points (sorted delivery hours) */}
+          {sorted.map((v, i) => (
+            <g key={i}>
+              <circle cx={xFor(i)} cy={yFor(v)} r={6} fill={C.blue} stroke={C.bg} strokeWidth={2} />
+              <text x={xFor(i)} y={yFor(v) - 14} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">{v.toFixed(1)}s</text>
+              <text x={xFor(i)} y={CHART_Y + CHART_H + 22} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">#{i + 1}</text>
+            </g>
+          ))}
+
+          {/* Connecting line */}
+          {sorted.length > 1 ? (
+            <polyline
+              points={sorted.map((v, i) => `${xFor(i)},${yFor(v)}`).join(' ')}
+              fill="none"
+              stroke={C.border}
+              strokeWidth={2}
+              opacity={0.5}
+            />
+          ) : null}
+
+          {/* PERCENTILE_CONT — interpolated point (amber) */}
+          {contP > 0 ? (
+            <g opacity={clamp(contP)}>
+              {/* Interpolation line between the two neighboring points */}
+              <line
+                x1={xFor(p90LowerIdx)}
+                y1={yFor(sorted[p90LowerIdx])}
+                x2={xFor(p90UpperIdx)}
+                y2={yFor(sorted[p90UpperIdx])}
+                stroke={C.amber}
+                strokeWidth={4}
+                strokeDasharray="6 4"
+                style={{filter: `drop-shadow(0 0 6px ${C.amber})`}}
+              />
+              {/* Interpolated point */}
+              <circle cx={xFor(p90Index)} cy={yFor(contVal)} r={12} fill={C.amber} stroke={C.bg} strokeWidth={3} style={{filter: `drop-shadow(0 0 12px ${C.amber})`}} />
+              <rect x={xFor(p90Index) - 90} y={yFor(contVal) - 40} width={180} height={26} fill={C.deep} stroke={C.amber} strokeWidth={1} rx={6} opacity={0.9} />
+              <text x={xFor(p90Index)} y={yFor(contVal) - 22} fill={C.amber} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">CONT P90 = {contVal.toFixed(2)}s</text>
+              <text x={xFor(p90Index)} y={yFor(contVal) + 28} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">interpolated</text>
+            </g>
+          ) : null}
+
+          {/* PERCENTILE_DISC — discrete snap point (green) */}
+          {discP > 0 ? (
+            <g opacity={clamp(discP)}>
+              {/* Arrow from interpolated point down to discrete value */}
+              <line
+                x1={xFor(p90Index)}
+                y1={yFor(contVal)}
+                x2={xFor(p90LowerIdx)}
+                y2={yFor(discVal)}
+                stroke={C.green}
+                strokeWidth={3}
+                strokeDasharray="4 3"
+              />
+              {/* Discrete point — highlighted existing data point */}
+              <circle cx={xFor(p90LowerIdx)} cy={yFor(discVal)} r={14} fill="none" stroke={C.green} strokeWidth={4} style={{filter: `drop-shadow(0 0 10px ${C.green})`}} />
+              <rect x={xFor(p90LowerIdx) - 90} y={yFor(discVal) + 20} width={180} height={26} fill={C.deep} stroke={C.green} strokeWidth={1} rx={6} opacity={0.9} />
+              <text x={xFor(p90LowerIdx)} y={yFor(discVal) + 38} fill={C.green} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">DISC P90 = {discVal.toFixed(2)}s</text>
+              <text x={xFor(p90LowerIdx)} y={yFor(discVal) + 56} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">first discrete value</text>
+            </g>
+          ) : null}
+        </svg>
+
+        {/* Bottom result comparison */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 50, display: 'flex', justifyContent: 'space-around', alignItems: 'center', fontFamily: MONO, fontSize: 22, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span style={{color: C.amber}}>CONT: {PERCENTILE_RESULTS.p90_cont}s</span>
+          <span style={{color: C.green}}>DISC: {PERCENTILE_RESULTS.p90_disc}s</span>
+        </div>
+      </Win>
+
+      <Caption text="PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY ...)" from={t(90)} to={t(108)} />
+      <Caption text="PERCENTILE_DISC(0.90) WITHIN GROUP (ORDER BY ...)" from={t(110)} to={sec(44)} tone="ok" />
+    </Stage>
   );
 };

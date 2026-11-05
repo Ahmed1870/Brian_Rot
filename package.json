@@ -1,23 +1,22 @@
 {
-  "name": "manzooma-lesson-27",
+  "name": "manzooma-sql-lesson-41-ntile-percentiles",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma - SQL From Zero to Professional - Lesson 27 - Temporal Processing (Remotion, 2D)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 41: Statistical Segmentation & Percentiles (NTILE, PERCENT_RANK, CUME_DIST, PERCENTILE_CONT, PERCENTILE_DISC, WITHIN GROUP, work_mem Disk Spill, P95 SLA) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "remotion render src/index.ts Monzoma-SQL-L27 out/Lesson27_Temporal-Date-Functions.mp4",
-    "typecheck": "tsc --noEmit"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts SQL-L41-NTile-Percentiles out/sql-l41-ntile-percentiles.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
     "@remotion/google-fonts": "^4.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.0",
+    "@types/react": "^18.3.3",
     "typescript": "^5.4.0"
   }
 }
