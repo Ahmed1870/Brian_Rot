@@ -1,26 +1,28 @@
-name: Render SQL Lesson 38 (Ahmed x Manzooma)
+name: Render SQL Lesson 39 Running Totals
 on:
   push:
     branches: [main]
   workflow_dispatch:
-concurrency:
-  group: render-main
-  cancel-in-progress: true
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Guard - this repo must contain lesson 39 only
+        run: |
+          grep -q "SQL-L39-Running-Totals" src/theme.ts
+          grep -q "SQL-L39-Running-Totals" package.json
+          test -f public/voiceover_lesson_39.mp3
+          test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run render
-      - name: Verify video exists
-        run: test -s out/ahmed_sql_lesson38.mp4 && ls -lh out/
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L39-Running-Totals out/sql-l39-running-totals.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l39-running-totals.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: ahmed_sql_lesson38
-          path: out/ahmed_sql_lesson38.mp4
+          name: sql-l39-running-totals
+          path: out/sql-l39-running-totals.mp4
           if-no-files-found: error
