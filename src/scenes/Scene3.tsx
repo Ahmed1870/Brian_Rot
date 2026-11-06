@@ -1,145 +1,189 @@
-import React from "react";
-import { AbsoluteFill } from "remotion";
-import { AR, MONO } from "../theme";
-import { Banner } from "../components/common";
-import { C, eb, eio, eo, fmt, prog, useT, win } from "../lib";
+import React from 'react';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {JOB_QUEUE_LINES, TABLE_LOCK_LEVELS} from '../data';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-const PURPLE = "#A855F7";
-const DATA: [string, number, number, number][] = [
-  ["Laptop", 1500, 1350, 1100],
-  ["Phone", 900, 950, 700],
-  ["Monitor", 400, 380, 420],
+// SC03 (85-130s): Table Locks & SKIP LOCKED
+// Anchors: 86.0 table locks | 90.0 8 levels | 95.0 LOCK TABLE | 100.0 SKIP LOCKED | 110.0 job queue | 118.0 leap | 125.0 seal
+const S = START.s3;
+const t = (g: number) => sec(g - S);
+
+// Job queue items — some locked by other TXs
+const JOBS = [
+  {id: 1, status: 'locked', color: C.red},
+  {id: 2, status: 'locked', color: C.red},
+  {id: 3, status: 'free', color: C.green},
+  {id: 4, status: 'locked', color: C.red},
+  {id: 5, status: 'free', color: C.green},
+  {id: 6, status: 'locked', color: C.red},
 ];
-const CX = [95, 300, 490, 680, 880, 1040];
-const CW = [190, 180, 180, 190, 150, 150];
-const TY = 190, HY = 262;
-const RY = (i: number) => 320 + i * 86;
-const maxIdx = (r: number[]) => r.indexOf(Math.max(...r)) ; // within [retail, promo, wholesale]
-const minIdx = (r: number[]) => r.indexOf(Math.min(...r));
 
 export const Scene3: React.FC = () => {
-  const t = useT();
-  const tableIn = eo(t, 87.0, 88.4);
-  const vals = DATA.map((d) => [d[1], d[2], d[3]]);
-
-  const SWEEPS: { row: number; a: number; d: number }[] = [
-    { row: 0, a: 90.4, d: 1.6 },
-    { row: 0, a: 92.6, d: 1.6 },
-    ...[0, 1, 2].map((i) => ({ row: i, a: 104.9 + i * 1.2, d: 0.9 })),
-    ...[0, 1, 2].map((i) => ({ row: i, a: 114.6 + i * 0.8, d: 0.7 })),
-  ];
-
-  const gShown = (i: number) => t > 105.8 + i * 1.2;
-  const lShown = (i: number) => t > 115.3 + i * 0.8;
+  const f = useCurrentFrame();
+  const tableP = clamp(lin(f, t(86.5), 14));
+  const lockTableP = pop(f, t(95));
+  const skipP = clamp(lin(f, t(100), 14));
+  const queueP = clamp(lin(f, t(110), 14));
+  // Leap animation: arrow moves from left to right, leaping over locked jobs
+  const leapProg = clamp(lin(f, t(118), sec(7)));
+  const leapX = lerp(20, 660, leapProg);
+  // Determine which job the arrow has reached
+  const leapJobIdx = Math.min(JOBS.length - 1, Math.floor(leapProg * JOBS.length));
+  const grabbedJob = JOBS.find((j, i) => j.status === 'free' && i >= leapJobIdx);
+  const sealP = pop(f, t(125));
 
   return (
-    <AbsoluteFill>
-      {/* table card */}
-      <div style={{ position: "absolute", left: 70 - (1 - tableIn) * 400, top: TY, width: 1130, height: 520, opacity: tableIn, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }}>
-        <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.blue }}>product_prices</div>
-      </div>
-      {["product", "retail_price", "promo_price", "wholesale_price", "GREATEST", "LEAST"].map((h, c) => {
-        const o = c < 4 ? tableIn : c === 4 ? prog(t, 95.0, 95.6) : prog(t, 95.9, 96.5);
-        const col = c === 4 ? C.amber : c === 5 ? C.blue : c === 1 && t > 100.2 && t < 104.5 ? C.blue : C.dim;
-        return (
-          <div key={h} style={{ position: "absolute", left: CX[c], top: HY, width: CW[c], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: c >= 3 ? 16 : 17, color: col, opacity: o }}>
-            {h}
-          </div>
-        );
-      })}
-      {DATA.map((d, i) => {
-        const e = eb(t, 87.8 + i * 0.25, 88.5 + i * 0.25);
-        const mx = maxIdx(vals[i]);
-        const mn = minIdx(vals[i]);
-        const gHit = gShown(i);
-        const lHit = lShown(i);
-        return (
-          <div key={d[0]} style={{ position: "absolute", left: 0, top: 0, opacity: Math.min(1, e * 1.5) }}>
-            <div style={{ position: "absolute", left: 85, top: RY(i), width: 1100, height: 70, borderRadius: 14, background: "#1B2740", border: `1.5px solid ${C.line}` }} />
-            <div style={{ position: "absolute", left: CX[0], top: RY(i), width: CW[0], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "70px", color: C.text }}>{d[0]}</div>
-            {[1, 2, 3].map((k) => {
-              const isMax = gHit && k - 1 === mx;
-              const isMin = lHit && k - 1 === mn;
-              const bc = isMax ? C.amber : isMin ? C.blue : "transparent";
-              return (
-                <div key={k} style={{ position: "absolute", left: CX[k] + 10, top: RY(i) + 8, width: CW[k] - 20, height: 54, borderRadius: 10, border: `3px solid ${bc}`, background: isMax ? `${C.amber}22` : isMin ? `${C.blue}22` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.text }}>
-                  {fmt(d[k] as number)}
+    <Stage dur={1350} inFx="left" outFx="up">
+      <TopBadge text="أقفال الجداول و SKIP LOCKED | Table Locks & SKIP LOCKED Job Queue" from={sec(2)} to={sec(40)} color={C.amber} />
+
+      {/* LEFT: 8 table lock levels list */}
+      <Win x={80} y={180} w={820} h={720} title="table lock levels ──► 8 strength levels (low → high)" accent={C.amber} opacity={tableP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
+          ACCESS SHARE → ACCESS EXCLUSIVE ──► escalating conflict
+        </div>
+
+        <div style={{position: 'absolute', right: 18, top: 14}}>
+          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>
+            <Check p={lockTableP} size={16} color={C.amber} /> LOCK TABLE IN MODE
+          </Chip>
+        </div>
+
+        {/* Lock levels list */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 60, bottom: 60, overflow: 'hidden'}}>
+          {TABLE_LOCK_LEVELS.map((lvl, i) => {
+            const ap = clamp(lin(f, t(86.5 + i * 0.6), 14));
+            return (
+              <div key={i} style={{display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', marginBottom: 6, border: `2px solid ${lvl.color}`, borderRadius: 10, background: `${lvl.color}0d`, opacity: clamp(ap), transform: `translateX(${(1 - clamp(ap)) * -30}px)`}}>
+                <div style={{width: 30, height: 30, borderRadius: 6, background: `${lvl.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 14, fontWeight: 700, color: lvl.color, border: `1px solid ${lvl.color}`}}>{i + 1}</div>
+                <div style={{flex: 1}}>
+                  <div dir="ltr" style={{fontFamily: MONO, fontSize: 15, fontWeight: 700, color: lvl.color}}>{lvl.level}</div>
+                  <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginTop: 1}}>{lvl.desc}</div>
                 </div>
-              );
-            })}
-            <div style={{ position: "absolute", left: CX[4] + 10, top: RY(i) + 8, width: 130, height: 54, borderRadius: 10, border: `3px ${gHit ? "solid" : "dashed"} ${gHit ? C.amber : C.line}`, background: gHit ? `${C.amber}28` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.amber, opacity: t > 95.0 ? 1 : 0 }}>
-              {gHit ? fmt(vals[i][mx]) : ""}
-            </div>
-            <div style={{ position: "absolute", left: CX[5] + 10, top: RY(i) + 8, width: 130, height: 54, borderRadius: 10, border: `3px ${lHit ? "solid" : "dashed"} ${lHit ? C.blue : C.line}`, background: lHit ? `${C.blue}28` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.blue, opacity: t > 95.9 ? 1 : 0 }}>
-              {lHit ? fmt(vals[i][mn]) : ""}
-            </div>
-          </div>
-        );
-      })}
+                <div style={{fontFamily: MONO, fontSize: 11, color: C.muted, textAlign: 'right'}}>
+                  <div>strength</div>
+                  <div style={{color: lvl.color, fontWeight: 700}}>{'█'.repeat(i + 1)}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-      {/* horizontal purple sweeps */}
-      {SWEEPS.map((sw, k) => {
-        if (t < sw.a || t > sw.a + sw.d + 0.35) return null;
-        const w = 560 * eio(t, sw.a, sw.a + sw.d);
-        return (
-          <div key={k} style={{ position: "absolute", left: 295, top: RY(sw.row) + 31, width: w, height: 8, borderRadius: 4, background: PURPLE, opacity: 0.95 }}>
-            <div style={{ position: "absolute", right: -14, top: -11, width: 30, height: 30, borderRadius: 15, background: PURPLE, border: "3px solid #fff" }} />
-          </div>
-        );
-      })}
-      {win(t, 90.0, 95.0, 0.4) > 0 && (
-        <Arabic2 t={t} />
-      )}
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>LOCK TABLE x IN SHARE MODE;</span>
+          <span>8 levels</span>
+        </div>
+      </Win>
 
-      {/* vertical MAX / MIN */}
-      {t > 100.2 && t < 104.6 && (
-        <>
-          <div style={{ position: "absolute", left: CX[1] + CW[1] / 2 - 3, top: 290, width: 6, height: 290 * eio(t, 100.2, 101.8), background: C.blue, opacity: win(t, 100.2, 104.6, 0.3) }} />
-          <div style={{ position: "absolute", left: CX[1] + CW[1] / 2 - 14, top: 566, fontFamily: MONO, fontWeight: 700, fontSize: 28, color: C.blue, opacity: win(t, 101.6, 104.6, 0.3) }}>▼</div>
-        </>
-      )}
-      {[
-        { a: 100.4, l: "MAX(retail_price) = 1,500", c: C.blue, x: 95 },
-        { a: 100.8, l: "MIN(retail_price) = 400", c: C.dim, x: 560 },
-      ].map((m) => {
-        const o = win(t, m.a, 104.6, 0.3);
-        return o > 0 ? (
-          <div key={m.l} style={{ position: "absolute", left: m.x, top: 620, width: 430, height: 56, borderRadius: 14, border: `2.5px solid ${m.c}`, background: `${m.c}18`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "52px", color: C.text, opacity: o }}>
-            {m.l}
-          </div>
-        ) : null;
-      })}
+      {/* RIGHT TOP: SKIP LOCKED code editor */}
+      <Editor
+        x={940}
+        y={180}
+        w={900}
+        h={220}
+        title="Query Editor · SKIP LOCKED job queue"
+        lines={JOB_QUEUE_LINES.concat(['-- grabs first free job', '-- skips locked (busy) rows'])}
+        start={t(86.5)}
+        cps={0.7}
+        size={15}
+        accent={C.green}
+        hl={1}
+        hlColor={C.green}
+      />
 
-      {/* right panel: comparison cards, then use-cases */}
-      {[
-        { a: 99.5, y: 190, c: C.blue, k: "MAX() / MIN()", ar: "عمود واحد ↓ رأسي عبر كل الأسطر", end: 117.2 },
-        { a: 104.7, y: 370, c: PURPLE, k: "GREATEST() / LEAST()", ar: "عدة أعمدة → أفقي داخل السطر الواحد", end: 117.2 },
-        { a: 120.5, y: 190, c: C.amber, k: "SEASONAL PRICES", ar: "مقارنة أسعار المواسم المختلفة", end: 134.4 },
-        { a: 124.0, y: 370, c: PURPLE, k: "SHIPPING & DISCOUNTS", ar: "حدّ أدنى وأقصى لرسوم الشحن والخصومات", end: 134.4 },
-        { a: 129.6, y: 550, c: C.green, k: "PROFIT MARGIN ✓", ar: "تمنع الخسائر وتحمي هامش الربح", end: 134.4 },
-      ].map((cd) => {
-        const o = win(t, cd.a, cd.end, 0.45);
-        if (o <= 0) return null;
-        return (
-          <div key={cd.k} style={{ position: "absolute", left: 1240, top: cd.y, width: 610, height: 158, opacity: o, transform: `translateX(${(1 - eo(t, cd.a, cd.a + 0.6)) * 120}px)`, borderRadius: 20, background: `${cd.c}16`, border: `3px solid ${cd.c}`, padding: "14px 24px" }}>
-            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 25, color: cd.c }}>{cd.k}</div>
-            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl", textAlign: "right", marginTop: 10, lineHeight: 1.35 }}>{cd.ar}</div>
-          </div>
-        );
-      })}
+      {/* RIGHT BOTTOM: Job queue with leap animation */}
+      <Win x={940} y={420} w={900} h={480} title="job_queue table ──► SKIP LOCKED leaps over locked rows" accent={C.green} opacity={queueP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
+          green arrow leaps over locked jobs ──► grabs first free row (job_id 3)
+        </div>
 
-      <Banner x={70} y={900} w={1780} a={90.0} b={109.8} color={PURPLE} fs={25}>
-        GREATEST(c1, c2, c3) ──► Horizontal Row-Level Comparison (Vs Vertical MAX)
-      </Banner>
-      <Banner x={70} y={900} w={1780} a={110.2} b={134.2} color={C.blue} fs={26}>
-        LEAST(c1, c2, c3) ──► Extracts Minimum Bound Across Row Columns
-      </Banner>
-    </AbsoluteFill>
+        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
+          <Chip color={C.red} style={{fontSize: 13, padding: '4px 12px'}}>🔒 locked (other TX)</Chip>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>✓ free</Chip>
+        </div>
+
+        {/* SVG job queue + leap animation */}
+        <svg width={860} height={360} style={{position: 'absolute', left: 20, top: 60}}>
+          {/* Job queue header */}
+          <rect x={20} y={20} width={820} height={36} fill={C.deep} stroke={C.border} strokeWidth={2} rx={6} />
+          <text x={60} y={44} fill={C.muted} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">job_id</text>
+          <text x={250} y={44} fill={C.muted} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">status</text>
+          <text x={450} y={44} fill={C.muted} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">payload</text>
+          <text x={700} y={44} fill={C.muted} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">row lock</text>
+
+          {/* Job queue rows */}
+          {JOBS.map((job, i) => {
+            const y = 64 + i * 42;
+            const isGrabbed = grabbedJob && grabbedJob.id === job.id && leapProg > 0.9;
+            const isPassed = i < leapJobIdx || (i === leapJobIdx && leapProg > 0.5);
+            return (
+              <g key={i}>
+                <rect
+                  x={20}
+                  y={y}
+                  width={820}
+                  height={38}
+                  fill={isGrabbed ? `${C.green}33` : job.status === 'locked' ? `${C.red}14` : `${C.green}11`}
+                  stroke={isGrabbed ? C.green : job.status === 'locked' ? C.red : C.border}
+                  strokeWidth={isGrabbed ? 3 : 1.5}
+                  rx={6}
+                  style={isGrabbed ? {filter: `drop-shadow(0 0 10px ${C.green})`} : undefined}
+                />
+                <text x={60} y={y + 24} fill={isGrabbed ? C.green : C.text} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">#{job.id}</text>
+                <text x={250} y={y + 24} fill={job.color} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">{job.status === 'locked' ? '🔒 locked' : '✓ free'}</text>
+                <text x={450} y={y + 24} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">{`email_send_${job.id}.json`}</text>
+                <text x={700} y={y + 24} fill={job.color} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{job.status === 'locked' ? '🔒 TX-' + (job.id + 100) : (isGrabbed ? '🔒 TX-me (grabbed)' : '— free —')}</text>
+              </g>
+            );
+          })}
+
+          {/* Green arrow leaping over locked jobs to grab first free */}
+          <g style={{opacity: clamp(pop(f, t(118)))}}>
+            {/* Arc path showing the leap */}
+            <path
+              d={`M ${20 + leapX} 250 Q ${20 + leapX} ${150 - Math.sin(leapProg * Math.PI) * 80} ${20 + leapX} 250`}
+              fill="none"
+              stroke={C.green}
+              strokeWidth={3}
+              strokeDasharray="6 4"
+              opacity={0.6}
+            />
+            {/* Arrow head position based on leapProg */}
+            <g transform={`translate(${20 + leapX}, 220)`}>
+              <circle cx={0} cy={0} r={16} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} />
+              <text x={0} y={5} fill={C.green} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">→</text>
+            </g>
+            {/* Label following arrow */}
+            <text x={20 + leapX} y={280} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">SKIP LOCKED</text>
+          </g>
+
+          {/* Result banner */}
+          {leapProg > 0.9 ? (
+            <g style={{opacity: clamp(pop(f, t(124)))}}>
+              <rect x={150} y={300} width={560} height={46} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
+              <text x={430} y={329} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Grabbed job_id = 3 (first free row) ──► other TXs skipped</text>
+            </g>
+          ) : null}
+        </svg>
+
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>SKIP LOCKED ──► no wait</span>
+          <span>{leapProg > 0.9 ? '✓ grabbed job_id 3' : 'leaping...'}</span>
+          <span>queue workers ✓</span>
+        </div>
+      </Win>
+
+      {/* Seal badge */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 920, display: 'flex', justifyContent: 'center', opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
+          <Check p={sealP} size={36} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Table Locks · SKIP LOCKED · Job Queue Concurrency ✓</div>
+        </div>
+      </div>
+
+      <Caption text="LOCK TABLE IN MODE ──► 8 Levels ──► FOR UPDATE SKIP LOCKED ──► Job Queue Leap" from={t(110)} to={sec(44)} tone="ok" />
+    </Stage>
   );
 };
-
-const Arabic2: React.FC<{ t: number }> = ({ t }) => (
-  <div style={{ position: "absolute", left: 300, top: 600, width: 600, textAlign: "center", fontFamily: AR, fontWeight: 900, fontSize: 36, color: PURPLE, direction: "rtl", opacity: win(t, 90.0, 95.0, 0.4) }}>
-    ↔ داخل نفس السطر
-  </div>
-);

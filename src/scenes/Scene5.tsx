@@ -1,151 +1,188 @@
-import React from "react";
-import { AbsoluteFill } from "remotion";
-import { AR, MONO } from "../theme";
-import { Banner, CodeLine, Window } from "../components/common";
-import { C, eb, eo, prog, typed, useT, win } from "../lib";
+import React from 'react';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {ENTERPRISE_LOCK_LINES} from '../data';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-const LINES: [string, number, number][] = [
-  ["SELECT product_id,", 180.4, 181.6],
-  ["       COALESCE(product_name, 'Uncategorized') AS clean_name,", 181.8, 184.4],
-  ["       ROUND(revenue / NULLIF(units_sold, 0), 2) AS avg_unit_price,", 184.4, 187.3],
-  ["       GREATEST(discounted_price, min_allowed_price) AS final_price", 187.5, 190.0],
-  ["FROM product_financials;", 190.0, 191.0],
-];
-// product_id, clean_name, avg_unit_price, final_price
-const REP: { id: string; name: string; nameFix: boolean; avg: string; avgNull: boolean; fin: string; floor: boolean }[] = [
-  { id: "P-101", name: "Laptop Pro", nameFix: false, avg: "1,250.00", avgNull: false, fin: "1,100", floor: true },
-  { id: "P-102", name: "Uncategorized", nameFix: true, avg: "45.50", avgNull: false, fin: "62", floor: false },
-  { id: "P-103", name: "Keyboard", nameFix: false, avg: "NULL", avgNull: true, fin: "35", floor: true },
-  { id: "P-104", name: "Monitor Z", nameFix: false, avg: "360.00", avgNull: false, fin: "380", floor: false },
-];
-const COLS = [
-  { k: "product_id", w: 110 },
-  { k: "clean_name", w: 190 },
-  { k: "avg_unit_price", w: 190 },
-  { k: "final_price", w: 150 },
-];
-const HL = [
-  { row: 2, a: 188.5, b: 192.2, c: C.green },
-  { row: 1, a: 194.3, b: 197.0, c: C.blue },
-  { row: 3, a: 197.3, b: 200.6, c: C.amber },
-];
+// SC05 (170-210s): Enterprise Inventory Concurrency — FOR UPDATE protects stock deduction
+// Anchors: 171.0 enterprise | 175.0 inventory | 180.0 FOR UPDATE | 185.0 stock | 192.0 commit | 200.0 module 13 seal | 205.0 complete
+const S = START.s5;
+const t = (g: number) => sec(g - S);
 
 export const Scene5: React.FC = () => {
-  const t = useT();
-  const typing = t > 180.4 && t < 191.1;
-  const caret = LINES.findIndex(([, a, b]) => t >= a && t < b);
-  const intro = win(t, 175.8, 180.4, 0.5);
-  const stamp = eb(t, 204.0, 204.6);
+  const f = useCurrentFrame();
+  const editorP = clamp(lin(f, t(171.5), 14));
+  const reportP = clamp(lin(f, t(175), 14));
+  const invP = clamp(lin(f, t(180), 14));
+  // Stock decrement animation (FOR UPDATE locks row, then UPDATE deducts)
+  const stockProg = clamp(lin(f, t(185), sec(8)));
+  // Commit animation
+  const commitProg = clamp(lin(f, t(192), sec(8)));
+  const sealP = pop(f, t(200));
+  const doneP = pop(f, t(205));
+
+  // Interpolated stock values
+  const stockBefore = 7;
+  const stockAfter = lerp(7, 6, stockProg);
+
+  // Concurrent TX attempting double-allocation (blocked)
+  const tx2BlockP = clamp(lin(f, t(190), sec(4)));
 
   return (
-    <AbsoluteFill>
-      {intro > 0 && (
-        <div style={{ position: "absolute", left: 160, top: 300, width: 1600, textAlign: "center", opacity: intro }}>
-          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 64, color: C.text, direction: "rtl", transform: `translateY(${(1 - eo(t, 175.8, 176.9)) * 40}px)` }}>
-            التطبيقات <span style={{ color: C.green }}>المالية</span> والمؤسسية
+    <Stage dur={1200} inFx="morph" outFx="fade">
+      <TopBadge text="تطبيق مؤسسي | Enterprise Inventory Concurrency — FOR UPDATE Stock Protection" from={sec(1)} to={sec(38)} color={C.green} />
+
+      {/* LEFT: Editor with enterprise inventory lock transaction */}
+      <Editor
+        x={80}
+        y={170}
+        w={880}
+        h={320}
+        title="Enterprise · Inventory lock transaction (manzooma_store_db)"
+        lines={ENTERPRISE_LOCK_LINES.concat([
+          '',
+          '-- FOR UPDATE locks product_id = 502',
+          '-- stock deduction atomic & serialized',
+        ])}
+        start={t(171.5)}
+        cps={0.55}
+        size={15}
+        accent={C.green}
+        hl={2}
+        hlColor={C.purple}
+      />
+
+      {/* RIGHT: Executive report panel */}
+      <Win x={1000} y={170} w={840} h={320} title="executive report · inventory concurrency" accent={C.green} opacity={reportP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
+          Inventory Lock · Module 13 Concurrency Capstone
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 46, right: 24, display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>FOR UPDATE</Chip>
+          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>stock -1</Chip>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>no double-alloc ✓</Chip>
+          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>MVCC reads</Chip>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>COMMIT ✓</Chip>
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 110, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep, fontFamily: MONO, fontSize: 13, color: C.text, lineHeight: 1.5}}>
+          <span style={{color: '#64748B'}}>transaction strategy:</span> BEGIN ──► SELECT ... FOR UPDATE locks the row ──► UPDATE stock_qty = stock_qty - 1 ──► COMMIT. Other concurrent TXs block until lock released ──► zero double-allocation.
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 200, display: 'flex', gap: 12}}>
+          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.amber}`, borderRadius: 10, background: `${C.amber}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700}}>Product 502</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>stock: {stockBefore} → {stockAfter}</div>
           </div>
-          <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.blue, marginTop: 16 }}>manzooma_store_db · protected financial report</div>
+          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.purple}`, borderRadius: 10, background: `${C.purple}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.purple, fontWeight: 700}}>FOR UPDATE</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>row locked ✓</div>
+          </div>
         </div>
-      )}
-
-      {t > 179.8 && (
-        <div style={{ opacity: eo(t, 179.8, 180.5), transform: `translateX(${(1 - eo(t, 179.8, 180.7)) * -100}px)` }}>
-          <Window x={70} y={150} w={1000} h={400} title="executive_pricing_report.sql" glow={typing ? 1 : 0}>
-            {HL.map((h) => {
-              const o = win(t, h.a, h.b, 0.3);
-              return o > 0 ? <div key={h.row} style={{ position: "absolute", left: 10, top: 12 + h.row * 34, width: 970, height: 34, borderRadius: 8, background: `${h.c}22`, border: `2px solid ${h.c}`, opacity: o }} /> : null;
-            })}
-            {LINES.map(([txt, a, b], i) => {
-              const s = typed(txt, t, a, b);
-              return s.length > 0 ? (
-                <div key={i} style={{ position: "absolute", left: 22, top: 16 + i * 34 }}>
-                  <CodeLine text={s} fs={20} caret={caret === i} />
-                </div>
-              ) : null;
-            })}
-          </Window>
+        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <div style={{fontFamily: MONO, fontSize: 18, color: C.text, fontWeight: 700}}>
+            atomic inventory block ✓
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, opacity: clamp(sealP), transform: `scale(${0.85 + 0.15 * clamp(sealP)})`}}>
+            <Check p={sealP} size={36} color={C.green} />
+            <div style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700}}>Module 13 Mastery Seal ✓</div>
+          </div>
         </div>
-      )}
+      </Win>
 
-      {/* function chain */}
-      {[
-        { a: 182.2, s: "COALESCE", c: C.blue },
-        { a: 183.0, s: "NULLIF", c: C.green },
-        { a: 183.6, s: "GREATEST", c: C.amber },
-      ].map((f, i) => {
-        const e = eb(t, f.a, f.a + 0.5);
-        return e > 0 ? (
-          <React.Fragment key={f.s}>
-            <div style={{ position: "absolute", left: 70 + i * 360, top: 600, width: 300, height: 76, opacity: Math.min(1, e * 1.5), transform: `scale(${0.8 + 0.2 * Math.min(1, e)})`, borderRadius: 18, background: `${f.c}18`, border: `3px solid ${f.c}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 30, lineHeight: "70px", color: f.c }}>
-              {f.s}
+      {/* BOTTOM: Inventory execution panel */}
+      <Win x={80} y={510} w={1760} h={380} title="inventory execution ──► stock updates safely · no double-allocation" accent={C.green} opacity={invP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
+          TX1 (FOR UPDATE) deducts stock ──► TX2 blocked ──► COMMIT ✓ ──► no oversell
+        </div>
+
+        {/* Two panels: TX1 success path / TX2 blocked */}
+        <div style={{position: 'absolute', left: 24, right: 24, top: 56, display: 'flex', gap: 18}}>
+          {/* TX1 success path */}
+          <div style={{flex: 1, padding: '16px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, opacity: clamp(pop(f, t(180))), boxShadow: commitProg > 0.6 ? `0 0 24px ${C.green}44` : 'none'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+              <span style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>TX1 · stock deduction (success path)</span>
+              <Check p={1} size={28} color={C.green} />
             </div>
-            {i < 2 && <div style={{ position: "absolute", left: 70 + i * 360 + 308, top: 612, fontFamily: MONO, fontWeight: 700, fontSize: 36, color: C.dim, opacity: Math.min(1, e) }}>+</div>}
-          </React.Fragment>
-        ) : null;
-      })}
-      {t > 192.0 && (
-        <Arabic3 t={t} />
-      )}
-
-      {/* report */}
-      {t > 191.0 && (
-        <div style={{ opacity: eo(t, 191.0, 191.8), transform: `translateX(${(1 - eo(t, 191.0, 192.0)) * 120}px)` }}>
-          <Window x={1110} y={150} w={740} h={560} title="executive_pricing_report" color={C.green} glow={t > 200 ? 1 : 0}>
-            <div style={{ position: "absolute", left: 18, top: 14, display: "flex", gap: 8 }}>
-              {COLS.map((c) => (
-                <div key={c.k} style={{ width: c.w, fontFamily: MONO, fontWeight: 700, fontSize: 16, color: C.blue, borderBottom: `2px solid ${C.blue}66`, paddingBottom: 6 }}>
-                  {c.k}
-                </div>
-              ))}
+            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>steps:</div>
+            <div dir="ltr" style={{padding: '10px 12px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, minHeight: 90, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 14}}>
+              {`1. BEGIN;
+2. SELECT ... FOR UPDATE;  ──► row 502 locked 🔒
+3. UPDATE stock_qty = stock_qty - 1;
+4. COMMIT;   ──► lock released ✓  (stock: ${stockBefore} → ${stockAfter})`}
             </div>
-            {REP.map((r, i) => {
-              const a = 192.2 + i * 0.6;
-              const e = eb(t, a, a + 0.5);
-              const showFix = r.nameFix && t > 194.3;
-              const showNull = r.avgNull && t > 190.4;
-              const showFloor = r.floor && t > 197.3;
-              return (
-                <div key={r.id} style={{ position: "absolute", left: 12, top: 56 + i * 112, width: 712, height: 100, opacity: Math.min(1, e * 1.5), transform: `translateX(${(1 - Math.min(1, e)) * 80}px)`, borderRadius: 14, background: "#1B2740", border: `2px solid ${C.line}` }}>
-                  <div style={{ position: "absolute", left: 8, top: 10, display: "flex", gap: 8, fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.text }}>
-                    <span style={{ width: 110 }}>{r.id}</span>
-                    <span style={{ width: 190, color: showFix ? C.blue : C.text }}>{r.name}</span>
-                    <span style={{ width: 190, color: r.avgNull ? C.green : "#7DD3FC" }}>{r.avg}</span>
-                    <span style={{ width: 150, color: showFloor ? C.amber : "#6EE7B7" }}>{r.fin}</span>
-                  </div>
-                  <div style={{ position: "absolute", left: 8, top: 56, display: "flex", gap: 8, fontFamily: MONO, fontWeight: 700, fontSize: 14 }}>
-                    <span style={{ width: 110 }} />
-                    <span style={{ width: 190, color: C.blue, opacity: showFix ? 1 : 0 }}>◂ COALESCE default</span>
-                    <span style={{ width: 190, color: C.green, opacity: showNull ? 1 : 0 }}>◂ NULLIF: no crash</span>
-                    <span style={{ width: 150, color: C.amber, opacity: showFloor ? 1 : 0 }}>◂ GREATEST floor</span>
-                  </div>
-                </div>
-              );
-            })}
-          </Window>
-        </div>
-      )}
+            <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>
+              <span>stock decremented</span>
+              <span style={{color: C.green, fontWeight: 700}}>atomic ✓</span>
+            </div>
+            <div style={{height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
+              <div style={{height: '100%', width: `${Math.max(20, stockProg * 100)}%`, background: C.green, borderRadius: 7}} />
+            </div>
+            <div style={{marginTop: 10, fontFamily: MONO, fontSize: 13, color: C.green, fontWeight: 700}}>→ product 502 stock: {stockBefore} → {stockAfter} · COMMIT ✓</div>
+          </div>
 
-      {/* integrity seal */}
-      {stamp > 0 && (
-        <div style={{ position: "absolute", left: 1470, top: 600, width: 340, height: 100, borderRadius: 14, border: `6px solid ${C.green}`, color: C.green, fontFamily: MONO, fontWeight: 700, fontSize: 25, textAlign: "center", lineHeight: "44px", paddingTop: 4, background: "#0B1222E0", transform: `rotate(-8deg) scale(${1.6 - 0.6 * stamp})`, opacity: Math.min(1, stamp * 1.5) * (1 - prog(t, 214.8, 215.4)) }}>
-          FINANCIAL INTEGRITY
-          <br />
-          VERIFIED ✓
-        </div>
-      )}
+          {/* Arrow divider */}
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 80}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, textAlign: 'center'}}>concurrent</div>
+            <svg width={60} height={60}>
+              <line x1={30} y1={10} x2={30} y2={50} stroke={C.amber} strokeWidth={3} />
+              <polygon points="22,18 22,30 14,24" fill={C.green} />
+              <polygon points="38,18 38,30 46,24" fill={C.red} />
+            </svg>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, textAlign: 'center'}}>TX1 / TX2</div>
+          </div>
 
-      <Banner x={70} y={900} w={1780} a={178.4} b={200.8} color={C.blue} fs={25}>
-        Enterprise Financial Shielding ──► COALESCE + NULLIF + GREATEST Pipeline
-      </Banner>
-      <Banner x={70} y={900} w={1780} a={201.2} b={216.2} color={C.green} fs={25}>
-        Zero Mismatch &amp; Robust Reporting ──► Guaranteed Business Logic Security
-      </Banner>
-    </AbsoluteFill>
+          {/* TX2 blocked path */}
+          <div style={{flex: 1, padding: '16px', border: `2px solid ${C.red}`, borderRadius: 14, background: `${C.red}0d`, opacity: clamp(pop(f, t(190)))}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+              <span style={{fontFamily: MONO, fontSize: 18, color: C.red, fontWeight: 700}}>TX2 · concurrent deduction (blocked)</span>
+              <svg width={28} height={28} viewBox="0 0 28 28">
+                <circle cx={14} cy={14} r={12} fill={`${C.red}22`} stroke={C.red} strokeWidth={2.5} />
+                <line x1={8} y1={8} x2={20} y2={20} stroke={C.red} strokeWidth={3} strokeLinecap="round" />
+                <line x1={20} y1={8} x2={8} y2={20} stroke={C.red} strokeWidth={3} strokeLinecap="round" />
+              </svg>
+            </div>
+            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>blocked:</div>
+            <div dir="ltr" style={{padding: '10px 12px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, minHeight: 90, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 14}}>
+              {`1. BEGIN;
+2. SELECT ... FOR UPDATE;  ──► row 502 LOCKED by TX1
+3. ⏳ TX2 BLOCKED ──► waiting for row lock
+4. ↻ after TX1 COMMIT ──► re-read stock (${stockAfter})
+5. UPDATE stock_qty = stock_qty - 1;`}
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>
+              <span>queued behind TX1</span>
+              <span style={{color: C.red, fontWeight: 700}}>serialized ✓</span>
+            </div>
+            <div style={{height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
+              <div style={{height: '100%', width: `${Math.max(20, tx2BlockP * 100)}%`, background: C.amber, borderRadius: 7}} />
+            </div>
+            <div style={{marginTop: 10, fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700}}>→ no double-allocation · no oversell · zero lost updates ✓</div>
+          </div>
+        </div>
+
+        {/* Module 13 Mastery Seal */}
+        <div style={{position: 'absolute', left: 24, right: 24, bottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, opacity: clamp(sealP)}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+            <Check p={sealP} size={42} color={C.green} />
+            <div>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Module 13 Mastery Seal ✓</div>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>Row-Level &amp; Table-Level Locking · MVCC · SKIP LOCKED · Deadlock 40P01 · all mastered</div>
+            </div>
+          </div>
+          <div style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700, textShadow: `0 0 12px ${C.green}66`}}>
+            Capstone ✓
+          </div>
+        </div>
+      </Win>
+
+      {/* Complete seal badge bottom */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 910, display: 'flex', justifyContent: 'center', opacity: clamp(doneP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
+          <Check p={doneP} size={32} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Module 13 Complete · Enterprise Inventory Protected ✓</div>
+        </div>
+      </div>
+
+      <Caption text="Enterprise Lock ──► FOR UPDATE on product 502 ──► stock -1 ──► COMMIT ✓ ──► No Double-Allocation" from={t(192)} to={sec(38)} tone="ok" />
+    </Stage>
   );
 };
-
-const Arabic3: React.FC<{ t: number }> = ({ t }) => (
-  <div style={{ position: "absolute", left: 70, top: 720, width: 1000, textAlign: "right", fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.text, direction: "rtl", opacity: Math.min(prog(t, 192.0, 192.8), 1 - prog(t, 215.0, 215.6)), lineHeight: 1.5 }}>
-    {t < 197.3 ? "ضمان عدم القسمة على صفر + قيم نمطية نظيفة" : "سعر أدنى حامي = مفيش بيع أقل من كلفة التوريد"}
-  </div>
-);

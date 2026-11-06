@@ -1,145 +1,235 @@
-import React from "react";
-import { AbsoluteFill } from "remotion";
-import { AR, MONO } from "../theme";
-import { Arabic, Banner, CodeLine, Window } from "../components/common";
-import { C, eb, eio, eo, lerp, prog, typed, useT, win } from "../lib";
+import React from 'react';
+import {useCurrentFrame} from 'remotion';
+import {C, MONO, START} from '../theme';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// [customer, phone, mobile]
-const ROWS: [string, string | null, string | null][] = [
-  ["Ali", null, "0101234567"],
-  ["Sara", "0122334455", "0109876543"],
-  ["Omar", null, null],
-  ["Mona", null, "0111222333"],
-  ["Hany", null, null],
+// SC01 (0-40s): Locking Concept — Purple Lock Drops onto a Row
+// Anchors: 1.0 welcome | 5.0 locks | 9.0 row-level | 14.0 protection | 20.0 capstone | 28.0 seal | 35.0 safeguard
+const S = START.s1;
+const t = (g: number) => sec(g - S);
+
+// Sample table rows
+const ROWS = [
+  {id: 99, name: 'Keyboard', stock: 24, color: C.muted},
+  {id: 101, name: 'Wireless Mouse', stock: 7, color: C.purple},
+  {id: 105, name: 'USB-C Cable', stock: 50, color: C.muted},
+  {id: 108, name: 'HDMI Adapter', stock: 12, color: C.muted},
+  {id: 112, name: 'Webcam HD', stock: 3, color: C.muted},
 ];
-const TX = 70, TY = 190;
-const COLX = [90, 300, 560, 820];
-const COLW = [200, 250, 250, 230];
-const RY = (i: number) => TY + 120 + i * 66;
-const S0 = 27.0, STEP = 1.15;
-const landOf = (r: [string, string | null, string | null]) => (r[1] ? 0 : r[2] ? 1 : 2);
-const cellC = (c: number) => COLX[c] + COLW[c] / 2;
 
 export const Scene1: React.FC = () => {
-  const t = useT();
-  const valueOf = (r: [string, string | null, string | null]) => (r[1] ? r[1] : r[2] ? r[2] : "N/A");
+  const f = useCurrentFrame();
+  const editorP = clamp(lin(f, t(1.5), 14));
+  const tableP = clamp(lin(f, t(5), 14));
+  // Lock drop animation
+  const lockStart = t(9);
+  const lockDur = sec(8);
+  const lockProg = clamp((f - lockStart) / lockDur);
+  const lockY = lerp(-60, 0, lockProg); // Lock drops from above
+  // Seal & safeguard animations
+  const sealP = pop(f, t(28));
+  const protP = pop(f, t(35));
+  const capP = pop(f, t(20));
 
   return (
-    <AbsoluteFill>
-      {/* top badge 2s–18s */}
-      <div style={{ position: "absolute", left: 70, top: 116, width: 1000, height: 58, opacity: win(t, 2.0, 18.0, 0.6), transform: `translateY(${(1 - prog(t, 2.0, 2.7)) * -24}px)`, display: "flex", alignItems: "center", justifyContent: "center", gap: 14, borderRadius: 999, border: `2px solid ${C.blue}88`, background: "#0B1B33" }}>
-        <span style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl" }}>التحكم في القيم المفقودة</span>
-        <span style={{ color: C.blue, fontSize: 26 }}>|</span>
-        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.blue }}>Handling Missing Values (COALESCE)</span>
+    <Stage dur={1200} inFx="zoom" outFx="left">
+      <TopBadge text="قفل مستوى الصف | Row-Level Locking — FOR UPDATE Protection (Module 13 Capstone)" from={sec(2)} to={sec(18)} color={C.purple} />
+
+      {/* LEFT: Code editor with FOR UPDATE query */}
+      <div style={{opacity: editorP}}>
+        <Editor
+          x={80}
+          y={180}
+          w={820}
+          h={260}
+          title="Query Editor · FOR UPDATE locks the row"
+          lines={[
+            'BEGIN;',
+            'SELECT * FROM products',
+            '  WHERE id = 101 FOR UPDATE;',
+            '-- row 101 locked against',
+            '-- concurrent writes/deletes',
+            'COMMIT;',
+          ]}
+          start={t(1.5)}
+          cps={0.85}
+          size={16}
+          accent={C.purple}
+          hl={2}
+          hlColor={C.purple}
+        />
       </div>
 
-      {/* table */}
-      <div style={{ position: "absolute", left: TX - (1 - eo(t, 1.0, 2.0)) * 500, top: TY, width: 1000, height: 460, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }}>
-        <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.blue }}>customers</div>
+      {/* Concept chips below editor */}
+      <div style={{position: 'absolute', left: 80, top: 460, width: 820, opacity: clamp(lin(f, t(5), 14))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ Row lock golden rule</div>
+        <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
+          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>FOR UPDATE</Chip>
+          <Chip color={C.red} style={{fontSize: 16, padding: '4px 14px'}}>Block Writes ✓</Chip>
+          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>Block Deletes ✓</Chip>
+          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>MVCC Reads ✓</Chip>
+        </div>
       </div>
-      {["customer", "phone", "mobile", "contact"].map((h, c) => (
-        <div key={h} style={{ position: "absolute", left: COLX[c], top: TY + 74, width: COLW[c], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 19, color: c === 3 ? C.green : C.dim, opacity: eo(t, 1.6, 2.4) }}>
-          {h}
+
+      {/* Module 13 Concurrency Capstone badge panel */}
+      <Win x={80} y={540} w={820} h={360} title="module 13 concurrency capstone ──► row-level locking" accent={C.green} opacity={clamp(lin(f, t(14), 14))}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
+          Row lock ──► protects a single row ──► concurrency capstone
         </div>
-      ))}
-      {ROWS.map((r, i) => {
-        const a = eb(t, 2.0 + i * 0.22, 2.7 + i * 0.22);
-        const pulse = t > 14.9 && t < 19.0 ? 0.5 + 0.5 * Math.sin(t * 7) : 0;
-        const s = S0 + i * STEP;
-        const land = landOf(r);
-        const done = t > s + 0.3 * (land + 1) + 0.15;
-        const cells = [r[0], r[1], r[2]];
-        return (
-          <div key={r[0]} style={{ position: "absolute", left: 0, top: 0, opacity: Math.min(1, a * 1.5) }}>
-            <div style={{ position: "absolute", left: 80, top: RY(i) - 4, width: 980, height: 56, borderRadius: 12, background: "#1B2740", border: `1.5px solid ${C.line}` }} />
-            {cells.map((v, c) => {
-              const isNull = v === null;
-              return (
-                <div key={c} style={{ position: "absolute", left: COLX[c], top: RY(i), width: COLW[c], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "48px", color: isNull ? C.red : C.text, opacity: isNull ? 0.7 + 0.3 * pulse : 1 }}>
-                  {isNull ? "NULL" : v}
-                </div>
-              );
-            })}
-            <div style={{ position: "absolute", left: COLX[3], top: RY(i) + 2, width: COLW[3], height: 44, borderRadius: 10, background: done ? `${valueOf(r) === "N/A" ? C.amber : C.green}28` : "transparent", border: `2px ${done ? "solid" : "dashed"} ${done ? (valueOf(r) === "N/A" ? C.amber : C.green) : C.line}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 21, lineHeight: "40px", color: valueOf(r) === "N/A" ? C.amber : "#6EE7B7" }}>
-              {done ? valueOf(r) : ""}
-            </div>
-          </div>
-        );
-      })}
 
-      {/* scanning beam */}
-      {ROWS.map((r, i) => {
-        const s = S0 + i * STEP;
-        const land = landOf(r);
-        const dt = t - s;
-        if (dt < 0 || dt > 0.3 * (land + 1) + 0.6) return null;
-        const pts = [120, cellC(1), cellC(2), COLX[3] + 40];
-        const seg = Math.min(land, Math.floor(dt / 0.3));
-        const x = lerp(pts[seg], pts[seg + 1], eio(t, s + seg * 0.3, s + seg * 0.3 + 0.3));
-        const fin = dt >= 0.3 * (land + 1);
-        return (
-          <div key={r[0]}>
-            <div style={{ position: "absolute", left: 90, top: RY(i) + 21, width: Math.max(0, x - 90), height: 5, background: `linear-gradient(90deg, transparent, ${C.blue})`, opacity: 0.7 }} />
-            <div style={{ position: "absolute", left: x - 11, top: RY(i) + 14, width: 22, height: 22, borderRadius: 11, background: fin ? C.green : C.blue, border: "2px solid #fff", boxShadow: `0 0 14px ${fin ? C.green : C.blue}` }} />
-          </div>
-        );
-      })}
-
-      {/* code window */}
-      {t > 24.6 && (
-        <div style={{ opacity: eo(t, 24.6, 25.2), transform: `translateX(${(1 - eo(t, 24.6, 25.3)) * 100}px)` }}>
-          <Window x={1130} y={190} w={720} h={250} title="contact_list.sql" glow={t < 30 ? 1 : 0}>
-            {[typed("SELECT customer,", t, 25.0, 25.8), typed("  COALESCE(phone, mobile, 'N/A') AS contact", t, 25.8, 29.2), typed("FROM customers;", t, 29.2, 30.0)].map((s, i) =>
-              s.length > 0 ? (
-                <div key={i} style={{ position: "absolute", left: 22, top: 18 + i * 40 }}>
-                  <CodeLine text={s} fs={21} caret={t < 30.1 && t > 25 && (i === 0 ? t < 25.8 : i === 1 ? t >= 25.8 && t < 29.2 : t >= 29.2)} />
-                </div>
-              ) : null,
-            )}
-          </Window>
+        {/* Module 13 chip */}
+        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>
+            <Check p={capP} size={16} color={C.green} /> Module 13 Capstone
+          </Chip>
         </div>
-      )}
-      {win(t, 30.0, 33.6, 0.4) > 0 && (
-        <Arabic x={1130} y={470} w={720} fs={32} color={C.text} o={win(t, 30.0, 33.6, 0.4)}>
-          بتمشي من <span style={{ color: C.blue, fontFamily: MONO }}>اليسار لليمين</span> وترجع أول قيمة مش NULL
-        </Arabic>
-      )}
 
-      {/* real-world problem */}
-      {win(t, 9.7, 19.4, 0.5) > 0 && (
-        <div style={{ position: "absolute", left: 1130, top: 200, width: 720, opacity: win(t, 9.7, 19.4, 0.5) }}>
-          {[
-            { a: 14.9, s: "قيم مفقودة NULL", c: C.amber },
-            { a: 16.3, s: "قسمة صفرية ÷ 0", c: C.red },
-            { a: 17.5, s: "انهيار الاستعلام ✕", c: C.red },
-          ].map((p, i) => {
-            const e = eb(t, p.a, p.a + 0.5);
+        <svg width={780} height={260} style={{position: 'absolute', left: 20, top: 50}}>
+          {/* BEGIN input block */}
+          <rect x={20} y={40} width={150} height={70} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={10} />
+          <text x={95} y={68} fill={C.blue} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">BEGIN;</text>
+          <text x={95} y={90} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">open transaction</text>
+
+          {/* Arrow to SELECT FOR UPDATE */}
+          <line x1={170} y1={75} x2={230} y2={75} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" />
+          <polygon points="224,69 224,81 238,75" fill={C.green} />
+
+          {/* FOR UPDATE block (purple scope) */}
+          <rect x={240} y={20} width={300} height={110} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 12px ${C.purple}66)`}} />
+          <text x={390} y={45} fill={C.purple} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">SELECT ... FOR UPDATE</text>
+          <text x={260} y={70} fill={C.amber} fontSize={12} fontFamily={MONO}>• row id = 101 targeted</text>
+          <text x={260} y={88} fill={C.amber} fontSize={12} fontFamily={MONO}>• row lock acquired</text>
+          <text x={260} y={106} fill={C.amber} fontSize={12} fontFamily={MONO}>• held until COMMIT</text>
+          <text x={400} y={70} fill={C.muted} fontSize={11} fontFamily={MONO}>other TXs wait</text>
+          <text x={400} y={88} fill={C.muted} fontSize={11} fontFamily={MONO}>or SKIP LOCKED</text>
+          <text x={400} y={106} fill={C.muted} fontSize={11} fontFamily={MONO}>or NOWAIT 55P03</text>
+
+          {/* Arrow to COMMIT */}
+          <line x1={540} y1={75} x2={600} y2={75} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" />
+          <polygon points="594,69 594,81 608,75" fill={C.green} />
+
+          {/* COMMIT outcome */}
+          <rect x={610} y={40} width={150} height={70} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} />
+          <text x={685} y={68} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">COMMIT;</text>
+          <text x={685} y={90} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">lock released ✓</text>
+
+          {/* Status text */}
+          <text x={390} y={170} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Row-Level Lock · protects a single row · concurrency capstone</text>
+          <text x={390} y={195} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">other sessions blocked from modifying row 101 until lock released</text>
+          <text x={390} y={220} fill={C.amber} fontSize={11} fontFamily={MONO} textAnchor="middle">SELECT (plain) reads MVCC snapshot · never blocked</text>
+        </svg>
+
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>FOR UPDATE ──► row lock</span>
+          <span>held until COMMIT</span>
+        </div>
+      </Win>
+
+      {/* RIGHT: Table grid with purple lock dropping onto row 101 */}
+      <Win x={940} y={180} w={900} h={720} title="products table ──► row 101 locked (purple lock drop)" accent={C.purple} opacity={tableP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
+          purple lock drops onto row 101 ──► other TXs blocked from writes
+        </div>
+
+        {/* Module 13 chip + lock chip */}
+        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', alignItems: 'center', gap: 12}}>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>Module 13 Capstone</Chip>
+          <Chip color={lockProg > 0.7 ? C.green : C.amber} style={{fontSize: 13, padding: '4px 12px'}}>
+            {lockProg > 0.7 ? 'Locked ✓' : 'Locking...'}
+          </Chip>
+        </div>
+
+        {/* SVG table with lock */}
+        <svg width={900} height={610} style={{position: 'absolute', left: 0, top: 60}}>
+          {/* Table header */}
+          <rect x={60} y={40} width={780} height={44} fill={C.deep} stroke={C.border} strokeWidth={2} rx={6} />
+          <text x={120} y={68} fill={C.muted} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">id</text>
+          <text x={320} y={68} fill={C.muted} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">name</text>
+          <text x={560} y={68} fill={C.muted} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">stock_qty</text>
+          <text x={760} y={68} fill={C.muted} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">status</text>
+
+          {/* Rows */}
+          {ROWS.map((r, i) => {
+            const y = 90 + i * 60;
+            const isLocked = r.id === 101 && lockProg > 0.5;
             return (
-              <div key={i} style={{ marginBottom: 20, height: 80, opacity: Math.min(1, e * 1.5), transform: `translateX(${(1 - Math.min(1, e)) * 120}px)`, borderRadius: 18, background: `${p.c}16`, border: `3px solid ${p.c}`, fontFamily: AR, fontWeight: 900, fontSize: 36, lineHeight: "74px", color: C.text, textAlign: "center", direction: "rtl" }}>
-                {p.s}
-              </div>
+              <g key={i}>
+                <rect
+                  x={60}
+                  y={y}
+                  width={780}
+                  height={56}
+                  fill={isLocked ? `${C.purple}22` : `${C.card}`}
+                  stroke={isLocked ? C.purple : C.border}
+                  strokeWidth={isLocked ? 3 : 1.5}
+                  rx={6}
+                  style={isLocked ? {filter: `drop-shadow(0 0 14px ${C.purple})`} : undefined}
+                />
+                <text x={120} y={y + 34} fill={r.color} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">{r.id}</text>
+                <text x={320} y={y + 34} fill={C.text} fontSize={16} fontFamily={MONO} textAnchor="middle">{r.name}</text>
+                <text x={560} y={y + 34} fill={C.text} fontSize={16} fontFamily={MONO} textAnchor="middle">{r.stock}</text>
+                <text x={760} y={y + 34} fill={isLocked ? C.purple : C.muted} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">{isLocked ? '🔒 LOCKED' : 'active'}</text>
+              </g>
             );
           })}
-        </div>
-      )}
 
-      {/* defaults examples */}
-      {win(t, 36.0, 44.8, 0.5) > 0 && (
-        <div style={{ position: "absolute", left: 1130, top: 520, width: 720, opacity: win(t, 36.0, 44.8, 0.5) }}>
-          <div style={{ height: 86, borderRadius: 18, background: `${C.amber}16`, border: `3px solid ${C.amber}`, textAlign: "center", opacity: prog(t, 39.4, 40.0), marginBottom: 18 }}>
-            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.amber, marginTop: 8 }}>phone NULL ➔ 'N/A'</div>
-            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 24, color: C.text, direction: "rtl" }}>غير متوفر</div>
-          </div>
-          <div style={{ height: 86, borderRadius: 18, background: `${C.green}16`, border: `3px solid ${C.green}`, textAlign: "center", opacity: prog(t, 42.8, 43.4) }}>
-            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.green, marginTop: 8 }}>COALESCE(discount, 0)</div>
-            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 24, color: C.text, direction: "rtl" }}>الخصم المفقود ➔ صفر بدون تعطل</div>
-          </div>
-        </div>
-      )}
+          {/* Purple lock dropping onto row 101 (row index 1) */}
+          <g style={{opacity: clamp(lockProg > 0.1 ? 1 : 0), transform: `translate(0, ${lockY}px)`}}>
+            {/* Lock body */}
+            <rect x={690} y={130} width={80} height={70} fill={`${C.purple}33`} stroke={C.purple} strokeWidth={4} rx={10} style={{filter: `drop-shadow(0 0 16px ${C.purple})`}} />
+            {/* Lock shackle */}
+            <path d="M 700 130 V 110 A 30 30 0 0 1 760 110 V 130" fill="none" stroke={C.purple} strokeWidth={5} strokeLinecap="round" />
+            {/* Keyhole */}
+            <circle cx={730} cy={160} r={6} fill={C.purple} />
+            <rect x={727} y={164} width={6} height={14} fill={C.purple} />
+            {/* Drop line indicator */}
+            {lockProg < 0.95 ? (
+              <line x1={730} y1={50} x2={730} y2={130} stroke={C.purple} strokeWidth={2} strokeDasharray="4 4" opacity={0.5} />
+            ) : null}
+          </g>
 
-      <Banner x={70} y={900} w={1780} a={22.0} b={44.8} color={C.blue} fs={26}>
-        COALESCE(phone, mobile, 'N/A') ──► Returns First Non-NULL Value
-      </Banner>
-    </AbsoluteFill>
+          {/* Lock status banner */}
+          {lockProg >= 0.95 ? (
+            <g style={{opacity: clamp(pop(f, t(28)))}}>
+              <rect x={250} y={490} width={400} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
+              <text x={450} y={522} fill={C.green} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Row 101 Locked: FOR UPDATE</text>
+            </g>
+          ) : null}
+
+          {/* Caption-style status text below */}
+          <text x={450} y={580} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">
+            {lockProg < 0.3 ? 'lock descending onto row 101...' : lockProg < 0.9 ? 'purple lock engaging...' : 'row 101 sealed against concurrent writes ✓'}
+          </text>
+        </svg>
+
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 16, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span style={{color: C.purple}}>Row Lock · purple seal</span>
+          <span style={{color: lockProg >= 1 ? C.green : C.amber, opacity: clamp(pop(f, t(9)))}}>
+            {lockProg >= 1 ? '✓ row 101 locked' : lockProg > 0 ? `locking... ${Math.round(lockProg * 100)}%` : 'idle'}
+          </span>
+          <span style={{color: C.green}}>Module 13 ✓</span>
+        </div>
+      </Win>
+
+      {/* Seal badge */}
+      <div style={{position: 'absolute', left: 80, top: 920, opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
+          <Check p={sealP} size={36} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Row-Level Lock · Sealed ✓</div>
+        </div>
+      </div>
+
+      {/* Safeguard chip on the right */}
+      <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(protP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.purple}`, borderRadius: 14, background: `${C.purple}0d`}}>
+          <Check p={protP} size={36} color={C.purple} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.purple, fontWeight: 700}}>Concurrency Safeguard ✓</div>
+        </div>
+      </div>
+
+      <Caption text="FOR UPDATE ──► Purple Lock Drops onto Row 101 ──► Writes Blocked ──► Concurrency Capstone" from={t(20)} to={sec(38)} tone="ok" />
+    </Stage>
   );
 };
