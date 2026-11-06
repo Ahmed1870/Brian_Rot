@@ -1,44 +1,29 @@
-// manzooma_store_db — Lesson 63 dataset
+import { C } from './theme';
 
-/** tsvector tokenization example. */
-export const TOKENIZATION_EXAMPLE = {
-  raw: 'The fast HDMI cable supports 4K resolution',
-  lexemes: [
-    {word: 'fast', pos: 2},
-    {word: 'hdmi', pos: 3},
-    {word: 'cable', pos: 4},
-    {word: 'support', pos: 5},
-    {word: '4k', pos: 6},
-    {word: 'resolut', pos: 7},
-  ],
-  stopWords: ['the', 'a', 'an', 'is', 'of'],
-};
-
-/** tsquery example. */
-export const TSQUERY_EXAMPLE = "'hdmi' & 'fast'";
-
-/** Enterprise FTS code for Scene 5. */
-export const ENTERPRISE_FTS_CODE = [
-  "ALTER TABLE store_products ADD COLUMN search_vector tsvector",
-  "  GENERATED ALWAYS AS",
-  "  (to_tsvector('english', product_name || ' ' || description))",
-  "  STORED;",
-  "CREATE INDEX idx_fts_products",
-  "  ON store_products USING GIN (search_vector);",
+export type Emp = { n: string; d: number; s: number };
+/** 10 employees in their original (mixed) table order */
+export const EMP: Emp[] = [
+  { n: 'أحمد', d: 10, s: 9000 },
+  { n: 'خالد', d: 20, s: 8000 },
+  { n: 'عمر', d: 30, s: 7000 },
+  { n: 'سارة', d: 10, s: 6000 },
+  { n: 'منى', d: 20, s: 4000 },
+  { n: 'هبة', d: 30, s: 6500 },
+  { n: 'ليلى', d: 10, s: 5000 },
+  { n: 'يوسف', d: 20, s: 6000 },
+  { n: 'نور', d: 30, s: 4500 },
+  { n: 'كريم', d: 10, s: 8000 },
 ];
-
-/** Ranking query for Scene 3. */
-export const RANKING_QUERY = [
-  'SELECT title,',
-  '  ts_rank(search_vector, query) AS rank,',
-  "  ts_headline('english', description, query) AS snippet",
-  "FROM store_products, to_tsquery('english', 'pro & max') query",
-  'WHERE search_vector @@ query',
-  'ORDER BY rank DESC;',
-];
-
-/** GIN index benchmark data. */
-export const FTS_BENCHMARK = {
-  likeMs: 4200,
-  ftsMs: 0.5,
-};
+export const DEPT_COLOR: Record<number, string> = { 10: C.purple, 20: C.client, 30: C.opt };
+export const DEPTS = [10, 20, 30];
+export const sum = (d: number) => EMP.filter((e) => e.d === d).reduce((a, e) => a + e.s, 0);
+export const avg = (d: number) => sum(d) / EMP.filter((e) => e.d === d).length;
+export const ALL_AVG = EMP.reduce((a, e) => a + e.s, 0) / EMP.length;
+export const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
+/** index of each employee after grouping by department (stable) */
+export const GROUPED: number[] = (() => {
+  const out: number[] = new Array(EMP.length).fill(0);
+  let k = 0;
+  for (const d of DEPTS) EMP.forEach((e, i) => { if (e.d === d) out[i] = k++; });
+  return out;
+})();

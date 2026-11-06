@@ -1,9 +1,10 @@
-# Manzooma | SQL From Zero to Professional - Lesson 63 - Full-Text Search via tsvector & tsquery
+# Manzooma — Lesson 31: Window Functions & PARTITION BY
+Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s).
+Composition ID: `Ahmed-SQL-L31` · Output: `out/ahmed_sql_lesson31.mp4` (names live in `package.json` "render" + `src/Root.tsx`).
 
-- Composition id: `SQL-L63-Full-Text-Search` - 1920x1080, 30fps, 7200 frames (4:00)
-- Output: `out/sql-l63-full-text-search.mp4` - artifact `sql-l63-full-text-search`
-- Scene boundaries: 0 | 1200 | 2550 | 3900 | 5100 | 6300 | 7200
-- Voiceover: public/voiceover_lesson_63.mp3 (240.039s) - the ONLY file in public/
+    npm install
+    npm run generate-audio   # SFX + music (needed once for local preview)
+    npm start                # Remotion Studio
+    npm run render           # renders out/ahmed_sql_lesson31.mp4
 
-    npm install && npm start
-    npm run build
+Voiceover: `public/voiceover_lesson_31.mp3` (already has ~1.1 s lead-in, starts at frame 0). Cue times: `src/timeline.json`.

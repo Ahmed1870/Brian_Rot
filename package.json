@@ -1,22 +1,23 @@
 {
-  "name": "manzooma-sql-lesson-63-full-text-search",
+  "name": "ahmed-sql-l31",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 63: Full-Text Search via tsvector & tsquery (Lexeme Tokenization, @@ Match Operator, ts_rank, ts_headline, GIN Inverted Index, Bitmap Index Scan, Enterprise Catalog Search) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma — SQL From Zero to Professional — Lesson 31 (Window Functions & OVER PARTITION BY)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L63-Full-Text-Search out/sql-l63-full-text-search.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "start": "remotion studio src/index.ts",
+    "generate-audio": "node scripts/generate-audio.cjs",
+    "render": "npm run generate-audio && remotion render src/index.ts Ahmed-SQL-L31 out/ahmed_sql_lesson31.mp4 --codec h264 --concurrency 2",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
     "@remotion/google-fonts": "^4.0.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
+    "@types/react": "^18.3.0",
     "typescript": "^5.4.0"
   }
 }
