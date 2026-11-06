@@ -1,24 +1,22 @@
 {
-  "name": "ahmed-manzooma-sql-l48",
+  "name": "manzooma-sql-lesson-63-full-text-search",
   "version": "1.0.0",
   "private": true,
-  "description": "Ahmed x Manzooma - SQL Lesson 48: Ranking Functions (16:9, 4:00) - Remotion",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 63: Full-Text Search via tsvector & tsquery (Lexeme Tokenization, @@ Match Operator, ts_rank, ts_headline, GIN Inverted Index, Bitmap Index Scan, Enterprise Catalog Search) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "sfx": "python3 scripts/generate_sfx.py",
-    "prep": "node scripts/prep.mjs", "check": "node scripts/check_layout.mjs",
-    "start": "node scripts/prep.mjs && remotion studio src/index.ts",
-    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L48 out/ahmed_sql_lesson48.mp4 --codec h264 --concurrency 2"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts SQL-L63-Full-Text-Search out/sql-l63-full-text-search.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.300",
-    "@remotion/google-fonts": "4.0.300",
-    "@remotion/layout-utils": "4.0.300",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "remotion": "4.0.300"
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "19.0.0",
-    "typescript": "5.8.2"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }

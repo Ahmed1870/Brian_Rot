@@ -1,3 +1,9 @@
-# Ahmed x Manzooma - SQL Lesson 48: UNIQUE & Partial Indexes
-Remotion 16:9 (1920x1080 @30fps, 7200 frames = 4:00). Narration: public/voiceover_lesson_48.mp3 (starts at frame 0).
-Render: `npm run render` -> out/ahmed_sql_lesson48.mp4 (CI artifact: ahmed_sql_lesson48). prep.mjs fails the build if anything belongs to another lesson.
+# Manzooma | SQL From Zero to Professional - Lesson 63 - Full-Text Search via tsvector & tsquery
+
+- Composition id: `SQL-L63-Full-Text-Search` - 1920x1080, 30fps, 7200 frames (4:00)
+- Output: `out/sql-l63-full-text-search.mp4` - artifact `sql-l63-full-text-search`
+- Scene boundaries: 0 | 1200 | 2550 | 3900 | 5100 | 6300 | 7200
+- Voiceover: public/voiceover_lesson_63.mp3 (240.039s) - the ONLY file in public/
+
+    npm install && npm start
+    npm run build
