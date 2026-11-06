@@ -1,40 +1,26 @@
-name: Render Lesson 35 — Subqueries, CTEs, IN & EXISTS
-
+name: Render SQL Lesson 43 (Ahmed x Manzooma)
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
+concurrency:
+  group: render-main
+  cancel-in-progress: true
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Chromium system libraries
-        run: |
-          sudo apt-get update -y || true
-          sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libcups2 libpango-1.0-0 libcairo2 || true
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Typecheck
-        run: npx tsc --noEmit
-
-      - name: Generate sound design
-        run: npm run generate-audio
-
-      - name: Render SQL-L35-SubqueriesCTEs
-        run: npx remotion render src/index.ts SQL-L35-SubqueriesCTEs out/sql-l35-subqueries-ctes.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --concurrency=100% --timeout=180000
-
+      - run: npm install --no-audit --no-fund
+      - run: npm run render
+      - name: Verify video exists
+        run: test -s out/ahmed_sql_lesson43.mp4 && ls -lh out/
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l35-subqueries-ctes
-          path: out/sql-l35-subqueries-ctes.mp4
-          retention-days: 14
+          name: ahmed_sql_lesson43
+          path: out/ahmed_sql_lesson43.mp4
+          if-no-files-found: error
