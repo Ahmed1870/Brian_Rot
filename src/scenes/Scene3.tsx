@@ -1,193 +1,88 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {PLPGSQL_CODE} from '../data';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
+import {Caption, Check, Chip, Sql, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec, typed} from '../kit';
 
-// SC03 (85-130s): PL/pgSQL Syntax & Dollar Quoting — $$ delimiters (amber), DECLARE / BEGIN...END (green), IF...THEN, LOOP
-// Anchors: 86.0 dollar quoting | 90.0 $$ | 95.0 DECLARE | 100.0 BEGIN END | 110.0 IF THEN | 118.0 LOOP | 125.0 seal
+// SC03 (85-130s): infinite loop hazard vs termination conditions.
+// Anchors (s): 86.2 warning | 98.0 empty set stops | 107.4 cyclic data | 114.8 termination condition | 121.6 level < 5 | 123.5 path array
 const S = START.s3;
 const t = (g: number) => sec(g - S);
-
-// Extended code with IF...THEN and LOOP examples for the right-side panel
-const IF_LOOP_LINES = [
-  '-- control flow inside PL/pgSQL',
-  '',
-  'IF price > 1000 THEN',
-  '  tax := price * 0.20;',
-  'ELSE',
-  '  tax := price * 0.14;',
-  'END IF;',
-  '',
-  '<<bulk>>',
-  'LOOP',
-  '  EXIT WHEN i > 100;',
-  '  i := i + 1;',
-  'END LOOP;',
+const RING = [
+  {n: 'Ahmed', a: -90},
+  {n: 'Omar', a: 30},
+  {n: 'Hany', a: 150},
+];
+const ROWS = [
+  {l: 'level 1', v: '1 row', ok: true},
+  {l: 'level 2', v: '2 rows', ok: true},
+  {l: 'level 3', v: '3 rows', ok: true},
+  {l: 'level 4', v: '2 rows', ok: true},
+  {l: 'level 5', v: '∅ empty set → STOP', ok: false},
 ];
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(86.5), 14));
-  const dollarP = pop(f, t(90));
-  const declareP = pop(f, t(95));
-  const beginEndP = pop(f, t(100));
-  const ifP = pop(f, t(110));
-  const loopP = pop(f, t(118));
-  const sealP = pop(f, t(125));
-
-  // Pulse for dollar quoting
-  const pulse = 0.5 + 0.5 * Math.sin(f * 0.2);
-
+  const shieldAt = t(114.8);
+  const shield = clamp(lin(f, shieldAt, 22));
+  const frozen = f >= shieldAt + 22;
+  const spinStart = t(86.2);
+  const spin = frozen ? (shieldAt + 22 - spinStart) * 5 : Math.max(0, f - spinStart) * 5;
+  const code = typed('WHERE h.level < 5', f, t(121.6), 0.7);
+  const warn = clamp(pop(f, t(94)));
+  const cyc = clamp(lin(f, t(107.4), 14));
+  const col = frozen ? C.green : C.red;
+  const cx = 430;
+  const cy = 450;
+  const R = 150;
   return (
-    <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="صياغة PL/pgSQL و dollar-quoting | PL/pgSQL Syntax &amp; $$ Dollar Quoting" from={sec(2)} to={sec(40)} color={C.amber} />
+    <Stage dur={1350} inFx="up" outFx="down">
+      <TopBadge text="الحماية من الحلقات | Termination Conditions" from={sec(1)} to={sec(40)} color={C.red} />
 
-      {/* LEFT: PL/pgSQL block editor with $$ highlighted */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={170}
-          w={880}
-          h={470}
-          title="Query Editor · PL/pgSQL block (CREATE FUNCTION with $$ dollar quoting)"
-          lines={PLPGSQL_CODE.concat([
-            '',
-            '-- $$ is the dollar-quote delimiter',
-            '-- avoids escaping single quotes inside body',
-          ])}
-          start={t(86.5)}
-          cps={0.55}
-          size={15}
-          accent={C.amber}
-          hl={1}
-          hlColor={C.amber}
-        />
-      </div>
-
-      {/* Concept chips below editor */}
-      <div style={{position: 'absolute', left: 80, top: 660, width: 880, opacity: clamp(lin(f, t(90), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 8}}>◆ PL/pgSQL block structure:</div>
-        <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={dollarP} size={16} color={C.amber} /> $$ Dollar Quoting
-          </Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={declareP} size={16} color={C.green} /> DECLARE
-          </Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={beginEndP} size={16} color={C.green} /> BEGIN ... END
-          </Chip>
-          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={ifP} size={16} color={C.blue} /> IF ... THEN
-          </Chip>
-          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={loopP} size={16} color={C.purple} /> LOOP
-          </Chip>
-        </div>
-      </div>
-
-      {/* Dollar-quoting explanation panel */}
-      <div style={{position: 'absolute', left: 80, top: 740, width: 880, opacity: clamp(pop(f, t(90)))}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', border: `3px solid ${C.amber}`, borderRadius: 16, background: `${C.amber}0d`, boxShadow: `0 0 24px ${C.amber}33`}}>
-          <Check p={sealP} size={44} color={C.amber} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.amber, fontWeight: 700}}>$$ Dollar Quoting ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>$$ wraps the function body · no need to escape single quotes · unique tag allowed (e.g. $body$)</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Seal at bottom-left */}
-      <div style={{position: 'absolute', left: 80, top: 850, width: 880, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={sealP} size={36} color={C.green} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>PL/pgSQL Syntax &amp; Dollar Quoting Seal ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>$$ · DECLARE · BEGIN ... END · IF ... THEN · LOOP — complete control-flow toolkit</div>
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT: Visual block structure + control flow */}
-      <Win x={1000} y={170} w={840} h={720} title="plpgsql block structure ──► $$ delimiters + DECLARE + BEGIN ... END + IF + LOOP" accent={C.amber} opacity={clamp(lin(f, t(95), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
-          $$ amber delimiters ──► green DECLARE/BEGIN-END ──► blue IF-THEN ──► purple LOOP
-        </div>
-
-        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>$$ dollar</Chip>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>DECLARE</Chip>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>IF THEN</Chip>
-          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>LOOP</Chip>
-        </div>
-
-        {/* SVG: block diagram of PL/pgSQL structure */}
-        <svg width={800} height={620} style={{position: 'absolute', left: 20, top: 60}}>
-          {/* Outer $$ amber delimiter frame */}
-          <g style={{opacity: clamp(dollarP)}}>
-            <rect x={20} y={20} width={760} height={560} fill={`${C.amber}0d`} stroke={C.amber} strokeWidth={4} strokeDasharray="10 5" rx={14} style={{filter: `drop-shadow(0 0 ${10 + pulse * 8}px ${C.amber}66)`}} />
-            <text x={40} y={50} fill={C.amber} fontSize={16} fontFamily={MONO} fontWeight={700}>$$  ──► dollar-quote open</text>
-            <text x={760} y={580} fill={C.amber} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="end">$$  ──► dollar-quote close</text>
+      <Win x={80} y={180} w={860} h={640} title="cyclic data · infinite loop" accent={col} opacity={clamp(lin(f, t(86.2), 14))}>
+        <svg width={860} height={584} style={{position: 'absolute', left: 0, top: 0}}>
+          <g transform={`rotate(${spin} ${cx} ${cy - 236})`}>
+            <circle cx={cx} cy={cy - 236} r={R} fill="none" stroke={col} strokeWidth={6} strokeDasharray="30 20" opacity={0.8} style={{filter: `drop-shadow(0 0 12px ${col})`}} />
+            <polygon points={`${cx + R - 14},${cy - 236 - 6} ${cx + R + 14},${cy - 236 - 6} ${cx + R},${cy - 236 + 22}`} fill={col} />
           </g>
-
-          {/* DECLARE block (top, green) */}
-          <g style={{opacity: clamp(declareP)}}>
-            <rect x={60} y={70} width={680} height={70} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 8px ${C.green}66)`}} />
-            <text x={400} y={100} fill={C.green} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">DECLARE</text>
-            <text x={400} y={122} fill={C.text} fontSize={12} fontFamily={MONO} textAnchor="middle">tax NUMERIC; · i INT := 0;</text>
-          </g>
-
-          {/* BEGIN block (middle, green frame) */}
-          <g style={{opacity: clamp(beginEndP)}}>
-            <rect x={60} y={160} width={680} height={340} fill={`${C.green}0d`} stroke={C.green} strokeWidth={3} rx={10} />
-            <text x={400} y={188} fill={C.green} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">BEGIN</text>
-
-            {/* Body content row */}
-            <rect x={90} y={210} width={620} height={36} fill={`${C.green}11`} stroke={C.green} strokeWidth={1.5} rx={6} />
-            <text x={400} y={233} fill={C.text} fontSize={12} fontFamily={MONO} textAnchor="middle">tax := price * 0.14;</text>
-
-            {/* IF ... THEN (blue) nested inside BEGIN */}
-            <g style={{opacity: clamp(ifP)}}>
-              <rect x={90} y={260} width={620} height={100} fill={`${C.blue}11`} stroke={C.blue} strokeWidth={2.5} strokeDasharray="5 4" rx={8} style={{filter: `drop-shadow(0 0 8px ${C.blue}44)`}} />
-              <text x={110} y={284} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700}>IF price &gt; 1000 THEN</text>
-              <text x={130} y={306} fill={C.text} fontSize={11} fontFamily={MONO}>tax := price * 0.20;</text>
-              <text x={110} y={326} fill={C.blue} fontSize={11} fontFamily={MONO}>ELSE</text>
-              <text x={130} y={346} fill={C.text} fontSize={11} fontFamily={MONO}>tax := price * 0.14;</text>
-              <text x={690} y={354} fill={C.blue} fontSize={11} fontFamily={MONO} textAnchor="end">END IF;</text>
-            </g>
-
-            {/* LOOP (purple) nested inside BEGIN */}
-            <g style={{opacity: clamp(loopP)}}>
-              <rect x={90} y={375} width={620} height={80} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={2.5} strokeDasharray="5 4" rx={8} style={{filter: `drop-shadow(0 0 8px ${C.purple}44)`}} />
-              <text x={110} y={399} fill={C.purple} fontSize={13} fontFamily={MONO} fontWeight={700}>LOOP</text>
-              <text x={130} y={420} fill={C.text} fontSize={11} fontFamily={MONO}>EXIT WHEN i &gt; 100;</text>
-              <text x={130} y={440} fill={C.text} fontSize={11} fontFamily={MONO}>i := i + 1;</text>
-              <text x={690} y={448} fill={C.purple} fontSize={11} fontFamily={MONO} textAnchor="end">END LOOP;</text>
-            </g>
-
-            {/* RETURN inside BEGIN */}
-            <rect x={90} y={465} width={620} height={28} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={1.5} rx={6} />
-            <text x={400} y={484} fill={C.amber} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">RETURN tax;</text>
-            <text x={400} y={510} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">END;</text>
-          </g>
-
-          {/* LANGUAGE clause at bottom */}
-          <g style={{opacity: clamp(beginEndP)}}>
-            <rect x={60} y={520} width={680} height={40} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={2} rx={8} />
-            <text x={400} y={546} fill={C.purple} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">LANGUAGE plpgsql;  ──►  tells PostgreSQL how to interpret the body</text>
-          </g>
+          {RING.map((r, i) => {
+            const x = cx + R * Math.cos((r.a * Math.PI) / 180);
+            const y = cy - 236 + R * Math.sin((r.a * Math.PI) / 180);
+            return (
+              <g key={i}>
+                <circle cx={x} cy={y} r={42} fill={C.card} stroke={col} strokeWidth={4} />
+                <text x={x} y={y + 8} textAnchor="middle" fill={C.text} fontFamily={MONO} fontSize={22} fontWeight={700}>{r.n}</text>
+              </g>
+            );
+          })}
         </svg>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.amber}}>$$ dollar quoting</span>
-          <span style={{color: loopP > 0.5 ? C.green : C.amber}}>{loopP > 0.5 ? '✓ block complete' : 'parsing...'}</span>
-          <span style={{color: C.green}}>DECLARE · BEGIN · END</span>
+        <div dir="ltr" style={{position: 'absolute', left: 40, right: 40, top: 410, fontFamily: MONO, fontSize: 24, color: C.muted, textAlign: 'center', opacity: cyc}}>
+          Ahmed manages Omar · Omar manages Hany · Hany manages Ahmed
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 80, right: 80, top: 36, height: 90, borderRadius: 18, border: `3px solid ${C.red}`, background: `${C.bg}f2`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, opacity: warn * (frozen ? 0 : 1), transform: `scale(${0.85 + 0.15 * warn})`, fontFamily: MONO, fontSize: 30, fontWeight: 700, color: C.red, boxShadow: `0 0 26px ${C.red}77`}}>
+          <Warn size={50} /> Infinite Loop Warning!
+        </div>
+        <div style={{position: 'absolute', left: 30, right: 30, top: 0, height: 20 + 380 * shield, background: `linear-gradient(${C.green}00, ${C.green}33)`, borderBottom: `5px solid ${C.green}`, boxShadow: `0 8px 24px ${C.green}`, opacity: shield > 0 ? 1 : 0, display: shield >= 1 ? 'none' : 'block'}} />
+        <div dir="ltr" style={{position: 'absolute', left: 40, right: 40, top: 480, textAlign: 'center', fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.green, opacity: clamp(lin(f, shieldAt + 22, 12))}}>
+          ✓ blocked by the termination condition
         </div>
       </Win>
 
-      <Caption text="$$ Dollar Quoting ──► DECLARE ──► BEGIN ... END ──► IF THEN ──► LOOP ──► PL/pgSQL Syntax ✓" from={t(95)} to={sec(44)} tone="ok" />
+      <Win x={980} y={180} w={860} h={640} title="safe recursion" accent={C.green} opacity={clamp(lin(f, t(98.0), 14))}>
+        {ROWS.map((r, i) => {
+          const p = clamp(lin(f, t(98.0 + i * 1.5), 12));
+          return (
+            <div key={i} dir="ltr" style={{boxSizing: 'border-box', position: 'absolute', left: 30, right: 30, top: 20 + i * 68, height: 58, borderRadius: 12, border: `2px solid ${r.ok ? C.border : C.green}`, background: r.ok ? 'transparent' : `${C.green}22`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', fontFamily: MONO, fontSize: 28, opacity: p, transform: `translateX(${(1 - p) * 30}px)`, boxShadow: r.ok ? 'none' : `0 0 22px ${C.green}88`}}>
+              <span style={{color: C.muted}}>{r.l}</span>
+              <span style={{color: r.ok ? C.text : C.green, fontWeight: 700}}>{r.v}</span>
+            </div>
+          );
+        })}
+        <div style={{position: 'absolute', left: 30, top: 380, opacity: clamp(pop(f, t(114.8)))}}><Chip color={C.amber} style={{fontSize: 26}}>Termination Condition · max depth</Chip></div>
+        <div dir="ltr" style={{position: 'absolute', left: 30, top: 450, fontFamily: MONO, fontSize: 36}}><Sql text={code} /></div>
+        <div dir="ltr" style={{position: 'absolute', left: 30, top: 520, opacity: clamp(pop(f, t(123.5)))}}><Chip color={C.purple} style={{fontSize: 22}}>or track a path array · block repeats</Chip></div>
+      </Win>
+      <Caption text="Missing Termination Condition ──► Infinite Loop Hazard (Server Crash)" from={t(88)} to={t(106)} tone="danger" />
+      <Caption text="Empty Set Check / Max Depth Limit ──► Safely Stops Recursive Execution" from={t(113)} to={sec(44.5)} tone="ok" />
     </Stage>
   );
 };
