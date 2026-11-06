@@ -1,4 +1,4 @@
-name: Render SQL Lesson 46 MatViews Acceleration
+name: Render SQL Lesson 47 Index Architecture
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 46 only
+      - name: Guard - this repo must contain lesson 47 only
         run: |
-          grep -q "SQL-L46-MatViews-Acceleration" src/theme.ts
-          grep -q "SQL-L46-MatViews-Acceleration" package.json
-          test -f public/voiceover_lesson_46.mp3
+          grep -q "SQL-L47-Index-Architecture" src/theme.ts
+          grep -q "SQL-L47-Index-Architecture" package.json
+          test -f public/voiceover_lesson_47.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L46-MatViews-Acceleration out/sql-l46-matviews-acceleration.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l46-matviews-acceleration.mp4
+      - run: npx remotion render src/index.ts SQL-L47-Index-Architecture out/sql-l47-index-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l47-index-architecture.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l46-matviews-acceleration
-          path: out/sql-l46-matviews-acceleration.mp4
+          name: sql-l47-index-architecture
+          path: out/sql-l47-index-architecture.mp4
           if-no-files-found: error

@@ -2,74 +2,67 @@ import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {REGIONAL_SALES} from '../data';
+import {ENTERPRISE_INDEXES} from '../data';
 
-// SC05 (170-210s): Enterprise Regional Sales Monthly Dashboard
-// Anchors: 171.0 enterprise | 175.0 mv_regional | 180.0 unique index | 185.0 partial | 192.0 dashboard | 200.0 instant | 205.0 seal
+// SC05 (170-210s): Enterprise Multi-Pattern Indexing Dashboard
+// Anchors: 171.0 enterprise | 175.0 multi-pattern | 180.0 B-Tree GIN GiST | 185.0 dashboard | 192.0 instant | 200.0 seal | 205.0 stable
 const S = START.s5;
 const t = (g: number) => sec(g - S);
+
+const CARDS = [
+  {type: 'B-Tree', target: 'unit_price', desc: 'price range queries', color: C.blue, query: 'WHERE unit_price BETWEEN 100 AND 500', speedup: '1000×', time: '0.001s'},
+  {type: 'GIN', target: 'specs_jsonb', desc: 'JSONB containment', color: C.amber, query: "WHERE specs_jsonb @> '{\"tags\":[\"gaming\"]}'", speedup: '850×', time: '0.003s'},
+  {type: 'GiST', target: 'delivery_point', desc: 'GIS spatial search', color: C.purple, query: 'WHERE delivery_point && query_area', speedup: '600×', time: '0.005s'},
+];
 
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(171.5), 14));
+  const reportP = clamp(lin(f, t(180), 14));
   const dashboardP = clamp(lin(f, t(185), 16));
+  // Performance gauge fill
+  const gaugeProg = clamp(lin(f, t(186), sec(12)));
   const sealP = pop(f, t(200));
-
-  // Chart progressive reveal
-  const revealProg = clamp(lin(f, t(186), sec(18)));
-  const visibleRows = Math.max(1, Math.floor(revealProg * REGIONAL_SALES.length));
-
-  // Chart layout
-  const CHART_X = 160;
-  const CHART_Y = 50;
-  const CHART_W = 1480;
-  const CHART_H = 200;
-  const maxRevenue = Math.max(...REGIONAL_SALES.map((r) => r.revenue));
-
-  const xFor = (i: number) => CHART_X + (i / (REGIONAL_SALES.length - 1)) * CHART_W;
-  const yFor = (v: number) => CHART_Y + CHART_H - (v / maxRevenue) * CHART_H;
-
-  const regionColors: {[key: string]: string} = {
-    Cairo: C.blue,
-    Alexandria: C.green,
-    Giza: C.amber,
-  };
+  const stableP = pop(f, t(205));
 
   return (
     <Stage dur={1200} inFx="morph" outFx="fade">
-      <TopBadge text="التطبيق المؤسسي | Regional Sales Monthly Pipeline" from={sec(1)} to={sec(38)} color={C.green} />
+      <TopBadge text="التطبيق المؤسسي | Enterprise Multi-Pattern Indexing Dashboard" from={sec(1)} to={sec(38)} color={C.green} />
 
+      {/* Editor with 3 CREATE INDEX statements */}
       <Editor
         x={80}
         y={170}
         w={880}
         h={260}
-        title="Enterprise MatView · mv_regional_sales_monthly"
+        title="Enterprise · Multi-Pattern Indexes · manzooma_store_db"
         lines={[
-          'CREATE MATERIALIZED VIEW mv_regional_sales_monthly AS',
-          "  SELECT region_id, DATE_TRUNC('month', order_date) AS m_date,",
-          '         SUM(total_amount) AS revenue',
-          '  FROM store_orders GROUP BY 1, 2;',
-          'CREATE UNIQUE INDEX idx_mv_reg_m',
-          '  ON mv_regional_sales_monthly (region_id, m_date);',
+          'CREATE INDEX idx_price ON products USING btree (unit_price);',
+          'CREATE INDEX idx_specs ON products USING gin (specs_jsonb);',
+          'CREATE INDEX idx_geo  ON deliveries USING gist (delivery_point);',
+          '-- B-Tree: ranges · GIN: JSONB · GiST: spatial',
         ]}
         start={t(171.5)}
         cps={0.6}
-        size={15}
-        hl={4}
-        hlColor={C.green}
+        size={14}
+        accent={C.green}
+        hl={1}
+        hlColor={C.amber}
       />
 
-      {/* Report panel right of editor */}
-      <Win x={1000} y={170} w={840} h={260} title="executive report · regional sales BI" accent={C.green} opacity={clamp(lin(f, t(192), 14))}>
+      {/* Executive report panel */}
+      <Win x={1000} y={170} w={840} h={260} title="executive report · multi-pattern indexing" accent={C.green} opacity={reportP}>
         <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          Regional Sales Pipeline
+          3 Index Strategies · 1 Table
         </div>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 46, right: 24, display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>UNIQUE index</Chip>
-          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>partial index</Chip>
-          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>hybrid view</Chip>
-          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>pg_cron</Chip>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 46, right: 24, display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>B-Tree range</Chip>
+          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>GIN JSONB</Chip>
+          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>GiST spatial</Chip>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>3 indexes</Chip>
+        </div>
+        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 110, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep, fontFamily: MONO, fontSize: 13, color: C.text}}>
+          <span style={{color: '#64748B'}}>strategy:</span> each query pattern gets its own optimal index type — no single index fits all workloads.
         </div>
         <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{fontFamily: MONO, fontSize: 20, color: C.text, fontWeight: 700}}>
@@ -82,53 +75,61 @@ export const Scene5: React.FC = () => {
         </div>
       </Win>
 
-      {/* Dashboard chart at bottom */}
-      <Win x={80} y={450} w={1760} h={440} title="mv_regional_sales_monthly · executive BI dashboard" accent={C.green} opacity={dashboardP}>
+      {/* Dashboard — 3 index type performance cards */}
+      <Win x={80} y={450} w={1760} h={440} title="performance dashboard · multi-pattern index gains" accent={C.green} opacity={dashboardP}>
         <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          monthly revenue per region · instant load from materialized snapshot
+          execution acceleration by index type
         </div>
-        <svg width={1760} height={380} style={{position: 'absolute', left: 0, top: 40}}>
-          {/* Axes */}
-          <line x1={CHART_X} y1={CHART_Y + CHART_H} x2={CHART_X + CHART_W} y2={CHART_Y + CHART_H} stroke={C.border} strokeWidth={2} />
-          <line x1={CHART_X} y1={CHART_Y} x2={CHART_X} y2={CHART_Y + CHART_H} stroke={C.border} strokeWidth={2} />
-          {/* Y-axis labels */}
-          {[0, 0.5, 1].map((p, i) => (
-            <g key={i}>
-              <line x1={CHART_X - 5} y1={CHART_Y + CHART_H - p * CHART_H} x2={CHART_X} y2={CHART_Y + CHART_H - p * CHART_H} stroke={C.muted} strokeWidth={1} />
-              <text x={CHART_X - 10} y={CHART_Y + CHART_H - p * CHART_H + 5} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="end">{Math.round(p * maxRevenue / 1000)}K</text>
-            </g>
-          ))}
-          {/* X-axis labels */}
-          {REGIONAL_SALES.map((r, i) => i % 2 === 0 ? (
-            <text key={i} x={xFor(i)} y={CHART_Y + CHART_H + 22} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">{r.region_name.substring(0, 3)}-{r.month.substring(5)}</text>
-          ) : null)}
 
-          {/* Bars */}
-          {REGIONAL_SALES.slice(0, visibleRows).map((row, i) => {
-            const barW = 120;
-            const barH = (row.revenue / maxRevenue) * CHART_H;
-            const barX = xFor(i) - barW / 2;
-            const barY = CHART_Y + CHART_H - barH;
-            const color = regionColors[row.region_name] || C.blue;
+        {/* 3 cards side by side */}
+        <div style={{position: 'absolute', left: 24, right: 24, top: 56, display: 'flex', gap: 18}}>
+          {CARDS.map((card, i) => {
+            const visible = clamp(pop(f, t(186 + i * 0.6)));
+            const fillW = clamp(gaugeProg * (1 - i * 0.05));
             return (
-              <g key={i}>
-                <rect x={barX} y={barY} width={barW} height={barH} fill={`${color}cc`} stroke={color} strokeWidth={2} rx={6} style={{filter: `drop-shadow(0 0 6px ${color}88)`}} />
-                <text x={xFor(i)} y={barY - 8} fill={color} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">${(row.revenue / 1000).toFixed(0)}K</text>
-              </g>
+              <div key={i} dir="ltr" style={{flex: 1, padding: '18px', border: `2px solid ${card.color}`, borderRadius: 14, background: `${card.color}0d`, opacity: visible, transform: `translateY(${(1 - visible) * 20}px)`, boxShadow: `0 0 24px ${card.color}44`}}>
+                {/* Header */}
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+                  <span style={{fontFamily: MONO, fontSize: 20, color: card.color, fontWeight: 700}}>{card.type}</span>
+                  <Check p={1} size={28} color={card.color} />
+                </div>
+                {/* Target column */}
+                <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>target: <span style={{color: C.text}}>{card.target}</span></div>
+                <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 12}}>{card.desc}</div>
+                {/* Sample query */}
+                <div style={{padding: '8px 10px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 11, color: C.text, minHeight: 50, whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
+                  {card.query}
+                </div>
+                {/* Speedup gauge */}
+                <div style={{marginTop: 14}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 12, color: C.muted, marginBottom: 4}}>
+                    <span>speedup</span>
+                    <span style={{color: card.color, fontWeight: 700}}>{card.speedup}</span>
+                  </div>
+                  <div style={{height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
+                    <div style={{height: '100%', width: `${fillW * 100}%`, background: `linear-gradient(90deg, ${card.color}, ${C.green})`, borderRadius: 7}} />
+                  </div>
+                </div>
+                {/* Time */}
+                <div style={{marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <span style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>avg time:</span>
+                  <span style={{fontFamily: MONO, fontSize: 24, color: C.green, fontWeight: 700, textShadow: `0 0 12px ${C.green}66`}}>{card.time}</span>
+                </div>
+              </div>
             );
           })}
-        </svg>
+        </div>
 
         {/* Bottom KPIs */}
         <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 12, height: 50, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 20, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.green}}>total: ${REGIONAL_SALES.slice(0, visibleRows).reduce((a, b) => a + b.revenue, 0).toLocaleString()}</span>
-          <span style={{color: C.blue}}>{visibleRows}/{REGIONAL_SALES.length} rows loaded</span>
-          <span style={{color: C.amber}}>load: 0.002s</span>
+          <span style={{color: C.blue}}>3 indexes · 3 patterns</span>
+          <span style={{color: C.green, opacity: clamp(stableP)}}>{stableP > 0 ? '✓ production stable' : 'loading...'}</span>
+          <span style={{color: C.amber}}>load time: &lt; 0.01s</span>
         </div>
       </Win>
 
-      <Caption text="Enterprise Reporting Pipeline ──► Layered MatView + Partial Indexes" from={t(175)} to={t(195)} />
-      <Caption text="Production Analytics ──► Instant Executive Dashboard Delivery" from={t(197)} to={sec(38.5)} tone="ok" />
+      <Caption text="Enterprise Multi-Pattern Indexing ──► B-Tree + GIN + GiST (1000× / 850× / 600× Speedup)" from={t(180)} to={t(195)} tone="ok" />
+      <Caption text="Production Strategy ──► Match Each Query Pattern To Its Optimal Index Type" from={t(197)} to={sec(38.5)} tone="ok" />
     </Stage>
   );
 };

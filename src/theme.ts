@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 46;
-export const COMP_ID = 'SQL-L46-MatViews-Acceleration';
+export const LESSON = 47;
+export const COMP_ID = 'SQL-L47-Index-Architecture';
 
 export const C = {
   bg: '#0F172A',

@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-46-matviews-acceleration",
+  "name": "manzooma-sql-lesson-47-index-architecture",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 46: MatViews Acceleration Strategies (Pre-Aggregation, pg_cron, Hybrid UNION ALL, Partial Indexes, Query Cost Reduction, maintenance_work_mem, Regional Sales Dashboard) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 47: Indexing Architecture & Data Structures (B-Tree, Hash, GIN, GiST, TIDs, DML Overhead, Multi-Pattern Indexing) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L46-MatViews-Acceleration out/sql-l46-matviews-acceleration.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L47-Index-Architecture out/sql-l47-index-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
