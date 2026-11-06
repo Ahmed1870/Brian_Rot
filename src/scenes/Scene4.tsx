@@ -1,114 +1,204 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO} from '../theme';
-import {Caption, Check, Chip, Stage, TopBadge, clamp, lerp, pop, prog, sec, typed} from '../kit';
+import {C, MONO, START} from '../theme';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
+import {SELECTIVITY} from '../data';
 
-// SC04 (frames 3900-5100, global 130-170s): WindowAgg node - sort by PARTITION BY in work_mem, then one sweep.
-const S = 130;
+// SC04 (130-170s): pg_statistic & Selectivity — Optimizer Routing Seq Scan vs Index Scan
+// Anchors: 131.0 optimizer | 136.0 pg_statistic | 140.0 selectivity | 145.0 0.001 | 150.0 index scan | 155.0 route | 160.0 seal | 165.0 fast
+const S = START.s4;
 const t = (g: number) => sec(g - S);
-const COLX = [100, 570, 1040, 1510];
-const COLW = 340;
-const PCOL = [C.blue, C.purple, C.amber];
-// sorted order (by category): index = rank
-const D = [
-  {n: 'Mouse', c: 0, a: 80},
-  {n: 'Keyboard', c: 0, a: 150},
-  {n: 'Laptop', c: 1, a: 1200},
-  {n: 'Monitor', c: 1, a: 600},
-  {n: 'Chair', c: 2, a: 450},
-  {n: 'Desk', c: 2, a: 700},
-];
-const AVG = [115, 115, 900, 900, 575, 575];
-const SH = [2, 4, 0, 5, 3, 1]; // scan order: data index per slot
-const Y0 = 250;
-const SP = 66;
-const PLAN = ['WindowAgg', '  ->  Sort', '        Sort Key: category_id', '        Sort Method: quicksort  Memory: 25kB', '        ->  Seq Scan on product_sales'];
-
-const Header: React.FC<{i: number; n: string; sub: string; color: string; p: number}> = ({i, n, sub, color, p}) => (
-  <div dir="ltr" style={{position: 'absolute', left: COLX[i], top: 150, width: COLW, opacity: p, transform: `translateY(${(1 - p) * 16}px)`}}>
-    <div style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color}}>{n}</div>
-    <div style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>{sub}</div>
-  </div>
-);
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const h1 = prog(f, t(131.4), 20);
-  const h3 = prog(f, t(137.7), 20);
-  const h2 = prog(f, t(143.4), 20);
-  const h4 = prog(f, t(157.6), 20);
-  const mem = pop(f, t(145.4));
-  const sortMv = prog(f, t(143.8), sec(3.0));
-  const toWin = prog(f, t(147.6), sec(1.0));
-  const probe = clamp((f - t(148.8)) / sec(1.33), 0, 6);
-  const single = pop(f, t(156.9));
-  const res = (i: number) => pop(f, t(157.8) + i * 6);
-  const eff = pop(f, t(160.3));
-  const ms = pop(f, t(162.3));
-  const big = pop(f, t(167.0));
-  const plan = typed(PLAN.join('\n'), f, t(143.6), 1.4).split('\n');
-  const glow = 0.5 + 0.5 * Math.sin(f / 7);
-  const panel = (i: number, color: string, on: number) => (
-    <div style={{position: 'absolute', left: COLX[i], top: 200, width: COLW, height: 450, borderRadius: 22, background: C.card, border: `2px solid ${on > 0.4 ? color : C.border}`, opacity: clamp(0.4 + 0.6 * on), boxShadow: on > 0.4 ? `0 0 ${22 * glow}px ${color}33` : 'none'}} />
-  );
+  const editorP = clamp(lin(f, t(131.5), 14));
+  const statP = clamp(lin(f, t(136), 14));
+  // Selectivity gauge fill
+  const selProg = clamp(lin(f, t(140), sec(8)));
+  // Routing decision animation
+  const routeProg = clamp(lin(f, t(150), sec(10)));
+  const sealP = pop(f, t(160));
+  const fastP = pop(f, t(165));
+
+  // Interpolated selectivity value
+  const selVal = lerp(1, SELECTIVITY.highValue, selProg);
+  // Cost values
+  const seqCost = lerp(0, 5432.10, clamp(lin(f, t(150), 8)));
+  const idxCost = lerp(0, 12.45, clamp(lin(f, t(153), 8)));
 
   return (
-    <Stage dur={1200} inFx="up" outFx="zoom">
-      <TopBadge text="كواليس PostgreSQL 16 | WindowAgg Node" from={t(131.4)} to={t(146)} color={C.blue} />
+    <Stage dur={1200} inFx="zoom" outFx="morph">
+      <TopBadge text="pg_statistic والانتقائية | pg_statistic & Selectivity — Optimizer Routing" from={sec(2)} to={sec(40)} color={C.amber} />
 
-      <Header i={0} n="① Seq Scan" sub="rows arrive mixed" color={C.muted} p={h1} />
-      <Header i={1} n="② Sort by PARTITION BY" sub="in work_mem" color={C.amber} p={h2} />
-      <Header i={2} n="③ WindowAgg Node" sub="one sweep · single pass" color={C.blue} p={h3} />
-      <Header i={3} n="④ Result" sub="metric appended per row" color={C.green} p={h4} />
-      {panel(0, C.muted, h1)}
-      {panel(1, C.amber, h2)}
-      {panel(2, C.blue, h3)}
-      {panel(3, C.green, h4)}
+      {/* EXPLAIN editor at top */}
+      <div style={{opacity: editorP}}>
+        <Editor
+          x={80}
+          y={180}
+          w={1760}
+          h={140}
+          title="PostgreSQL 16 · EXPLAIN ANALYZE · selectivity estimation"
+          lines={[
+            'EXPLAIN SELECT * FROM store_orders WHERE total_amount > 5000;',
+            '-- pg_statistic histogram ──► optimizer estimates selectivity',
+          ]}
+          start={t(131.5)}
+          cps={0.78}
+          size={16}
+          accent={C.blue}
+          hl={0}
+          hlColor={C.blue}
+        />
+      </div>
 
-      {D.map((d, i) => {
-        const slot = SH.indexOf(i);
-        const y = lerp(Y0 + slot * SP, Y0 + i * SP, sortMv);
-        const x = f < t(147.6) ? lerp(COLX[0] + 20, COLX[1] + 20, sortMv) : lerp(COLX[1] + 20, COLX[2] + 20, toWin);
-        const appear = prog(f, t(131.8) + slot * 6, 16);
-        const shown = probe > i;
-        const now = probe > i && probe < i + 1;
-        return (
-          <div key={d.n} dir="ltr" style={{position: 'absolute', left: x, top: y, width: 300, height: 54, borderRadius: 12, background: C.deep, border: `2px solid ${PCOL[d.c]}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', fontFamily: MONO, fontSize: 20, color: C.text, opacity: appear, boxShadow: now ? `0 0 18px ${C.green}` : 'none'}}>
-            <span style={{width: 100}}>{d.n}</span>
-            <span style={{color: C.muted}}>{d.a}</span>
-            <span style={{color: C.green, fontWeight: 700, opacity: shown ? 1 : 0, minWidth: 56, textAlign: 'right'}}>{AVG[i]}</span>
+      {/* LEFT: pg_statistic catalog with selectivity gauge */}
+      <Win x={80} y={340} w={860} h={540} title="pg_statistic catalog ──► selectivity calculation" accent={C.amber} opacity={statP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
+          pg_statistic · most_common_vals + histogram_bounds
+        </div>
+
+        {/* Catalog table */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 60, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, lineHeight: 1.6}}>
+          <div style={{color: '#64748B', fontSize: 11, marginBottom: 6}}>pg_statistic · table=store_orders · column=total_amount</div>
+          <div><span style={{color: C.amber}}>starelid</span>      : 16384 (store_orders)</div>
+          <div><span style={{color: C.amber}}>staattnum</span>     : 5</div>
+          <div><span style={{color: C.amber}}>stadistinct</span>   : -0.85 (≈ 85% distinct)</div>
+          <div><span style={{color: C.amber}}>stanullfrac</span>   : 0.02</div>
+          <div><span style={{color: C.amber}}>histogram_bounds</span>: [0, 250, 1200, ... 5000, ... 99999]</div>
+        </div>
+
+        {/* Selectivity gauge */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 230, padding: '14px 16px', border: `2px solid ${selProg > 0.7 ? C.green : C.amber}`, borderRadius: 10, background: selProg > 0.7 ? `${C.green}0d` : `${C.amber}0d`}}>
+          <div dir="ltr" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+            <span style={{fontFamily: MONO, fontSize: 15, color: C.text, fontWeight: 700}}>Selectivity estimate</span>
+            <span style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color: selProg > 0.7 ? C.green : C.amber}}>
+              {selVal.toFixed(3)}
+            </span>
           </div>
-        );
-      })}
-      <div style={{position: 'absolute', left: COLX[2] + 10, width: COLW - 20, top: Y0 + (probe - 0.1) * SP, height: 5, background: C.green, boxShadow: `0 0 18px ${C.green}`, borderRadius: 3, opacity: probe > 0 && probe < 6 ? 1 : 0}} />
-
-      <div dir="ltr" style={{position: 'absolute', left: COLX[3] + 20, top: Y0, width: 300}}>
-        {D.map((d, i) => (
-          <div key={d.n} style={{height: 54, marginBottom: SP - 54, borderRadius: 12, border: `2px solid ${PCOL[d.c]}`, background: `${C.green}14`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', fontFamily: MONO, fontSize: 20, color: C.text, opacity: clamp(res(i)), transform: `translateX(${(1 - clamp(res(i))) * -60}px)`}}>
-            <span style={{width: 100}}>{d.n}</span>
-            <span style={{color: C.green, fontWeight: 700}}>{AVG[i]}</span>
+          {/* Gauge bar */}
+          <div style={{height: 18, borderRadius: 9, background: C.border, overflow: 'hidden'}}>
+            <div
+              style={{
+                height: '100%',
+                width: `${selProg * 100}%`,
+                background: `linear-gradient(90deg, ${C.green}, ${C.amber})`,
+                borderRadius: 9,
+              }}
+            />
           </div>
-        ))}
+          <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontFamily: MONO, fontSize: 11, color: C.muted}}>
+            <span style={{color: C.green}}>0.001 (high sel)</span>
+            <span>← Index Scan favored</span>
+            <span style={{color: C.red}}>1.0 (low sel)</span>
+          </div>
+        </div>
+
+        {/* Decision matrix */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 360, display: 'flex', gap: 12}}>
+          <div style={{flex: 1, padding: '12px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, opacity: selProg > 0.7 ? 1 : 0.4}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 4}}>High Selectivity</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>sel &lt; 0.05 → Index Scan</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginTop: 4}}>few matching rows</div>
+          </div>
+          <div style={{flex: 1, padding: '12px', border: `2px solid ${C.red}`, borderRadius: 10, background: `${C.red}0d`, opacity: selProg < 0.3 ? 0.4 : 1}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700, marginBottom: 4}}>Low Selectivity</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>sel &gt; 0.20 → Seq Scan</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginTop: 4}}>most rows match</div>
+          </div>
+        </div>
+
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>pg_statistic · histogram_bounds</span>
+          <span>{selProg > 0.7 ? '✓ 0.001 = high selectivity' : 'estimating...'}</span>
+        </div>
+      </Win>
+
+      {/* RIGHT: Execution plan routing — Seq Scan vs Index Scan */}
+      <Win x={980} y={340} w={860} h={540} title="execution plan routing ──► Optimizer picks Index Scan" accent={C.green} opacity={clamp(lin(f, t(150), 14))}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
+          optimizer evaluates costs ──► routes to lowest plan
+        </div>
+
+        {/* Two competing plans */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 60, display: 'flex', gap: 14}}>
+          {/* Seq Scan — high cost */}
+          <div style={{flex: 1, padding: '14px', border: `2px solid ${routeProg > 0.5 ? C.red : C.border}`, borderRadius: 10, background: routeProg > 0.3 ? `${C.red}0d` : 'transparent'}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700, marginBottom: 6}}>Seq Scan ✗</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginBottom: 8}}>on store_orders</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text, marginBottom: 4}}>
+              cost: <span style={{color: C.red, fontWeight: 700, fontSize: 18}}>{seqCost.toFixed(2)}</span>
+            </div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>rows: 1,000,000</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>full table scan</div>
+          </div>
+
+          {/* Index Scan — low cost (winner) */}
+          <div style={{flex: 1, padding: '14px', border: `2px solid ${routeProg > 0.5 ? C.green : C.border}`, borderRadius: 10, background: routeProg > 0.3 ? `${C.green}0d` : 'transparent', boxShadow: routeProg > 0.9 ? `0 0 24px ${C.green}66` : 'none'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6}}>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700}}>Index Scan ✓</div>
+              {routeProg > 0.9 ? <Check p={1} size={24} color={C.green} /> : null}
+            </div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginBottom: 8}}>using idx_total_amount</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text, marginBottom: 4}}>
+              cost: <span style={{color: C.green, fontWeight: 700, fontSize: 18}}>{idxCost.toFixed(2)}</span>
+            </div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>rows: ~1000</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.green}}>sel = 0.001</div>
+          </div>
+        </div>
+
+        {/* Cost comparison bar */}
+        <div style={{position: 'absolute', left: 18, right: 18, top: 250, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep}}>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginBottom: 8}}>cost comparison (log scale)</div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.red, width: 80}}>Seq Scan</span>
+            <div style={{flex: 1, height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
+              <div style={{height: '100%', width: `${Math.min(100, 100 - routeProg * 95)}%`, background: C.red, borderRadius: 7}} />
+            </div>
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.red, fontWeight: 700, width: 70, textAlign: 'right'}}>{seqCost.toFixed(0)}</span>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.green, width: 80}}>Index Scan</span>
+            <div style={{flex: 1, height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
+              <div style={{height: '100%', width: `${Math.max(5, routeProg * 8)}%`, background: C.green, borderRadius: 7}} />
+            </div>
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.green, fontWeight: 700, width: 70, textAlign: 'right'}}>{idxCost.toFixed(0)}</span>
+          </div>
+        </div>
+
+        {/* Winner routing banner */}
+        {routeProg > 0.9 ? (
+          <div style={{position: 'absolute', left: 18, right: 18, top: 380, padding: '12px 14px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, opacity: clamp(sealP)}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700, marginBottom: 4}}>✓ Optimizer routed to: Index Scan</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>selectivity 0.001 · cost reduction {(5432.10 / 12.45).toFixed(0)}× faster · 99.9% rows pruned</div>
+          </div>
+        ) : null}
+
+        {/* Fast chip */}
+        <div style={{position: 'absolute', right: 18, top: 480, opacity: clamp(fastP)}}>
+          <Chip color={C.green} style={{fontSize: 16, padding: '6px 16px'}}>
+            <Check p={1} size={22} color={C.green} /> {fastP > 0 ? '437× Faster ✓' : '...'}
+          </Chip>
+        </div>
+
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>planner · cost-based</span>
+          <span>pg_statistic → selectivity</span>
+          <span>WINNER: Index Scan</span>
+        </div>
+      </Win>
+
+      {/* Seal badge */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 920, display: 'flex', justifyContent: 'center', opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
+          <Check p={sealP} size={36} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>pg_statistic · Selectivity 0.001 · Index Scan ✓</div>
+        </div>
       </div>
 
-      <div dir="ltr" style={{position: 'absolute', left: COLX[1], top: 662, transform: `scale(${clamp(mem)})`, opacity: clamp(mem), transformOrigin: 'left center'}}><Chip color={C.amber} style={{fontSize: 22}}>work_mem</Chip></div>
-      <div dir="ltr" style={{position: 'absolute', left: COLX[2], top: 662, transform: `scale(${clamp(single)})`, opacity: clamp(single), transformOrigin: 'left center'}}><Chip color={C.blue} style={{fontSize: 22}}>Single Pass</Chip></div>
-      <div dir="ltr" style={{position: 'absolute', left: COLX[3], top: 662, display: 'flex', alignItems: 'center', gap: 12, transform: `scale(${clamp(eff)})`, opacity: clamp(eff), transformOrigin: 'left center'}}><Check p={clamp(eff)} size={34} /><Chip color={C.green} style={{fontSize: 22}}>no re-read from disk</Chip></div>
-      <div dir="ltr" style={{position: 'absolute', left: COLX[3], top: 706, display: 'flex', gap: 12, opacity: 1}}>
-        <div style={{transform: `scale(${clamp(ms)})`, transformOrigin: 'left center'}}><Chip color={C.green} style={{fontSize: 18}}>milliseconds</Chip></div>
-        <div style={{transform: `scale(${clamp(big)})`, transformOrigin: 'left center'}}><Chip color={C.green} style={{fontSize: 18}}>millions of rows</Chip></div>
-      </div>
-
-      <div dir="ltr" style={{position: 'absolute', left: 100, top: 760, width: 1090, height: 160, borderRadius: 18, background: C.deep, border: `2px solid ${C.border}`, padding: '10px 24px', fontFamily: MONO, fontSize: 20, lineHeight: '28px', color: C.text, opacity: prog(f, t(143.4), 18)}}>
-        {PLAN.map((l, i) => {
-          const v = plan[i] ?? '';
-          const c = /WindowAgg/.test(v) ? C.blue : /Sort/.test(v) ? C.amber : C.text;
-          return <div key={i} style={{whiteSpace: 'pre', color: c}}>{v}</div>;
-        })}
-      </div>
-
-      <Caption text="PostgreSQL Query Engine ──► Executes via Specialized WindowAgg Node" from={t(137.9)} to={t(146.8)} />
-      <Caption text="In-Memory Partition Sort ──► Sorts Partitions in work_mem for Fast Evaluation" from={t(148.4)} to={t(168.6)} />
+      <Caption text="pg_statistic ──► selectivity 0.001 ──► Optimizer Routes to Index Scan (437× faster)" from={t(150)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };

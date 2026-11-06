@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-37-window-functions",
+  "name": "manzooma-sql-lesson-52-sargable-queries",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 37: Window Functions, OVER() and PARTITION BY (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 52: SARGable Queries & High-Performance Best Practices (Search Argument Able, Function Wrapping, Column Arithmetic, LIKE Wildcards, Implicit Casting, pg_statistic Selectivity, Module 12 Completion) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L37-Window-Functions out/sql-l37-window-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L52-SARGable-Queries out/sql-l52-sargable-queries.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

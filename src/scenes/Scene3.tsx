@@ -1,99 +1,214 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO} from '../theme';
-import {Caption, Chip, Mix, Stage, TopBadge, clamp, lerp, pop, prog, sec} from '../kit';
+import {C, MONO, START} from '../theme';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
 
-// SC03 (frames 2550-3900, global 85-130s): GROUP BY collapses 100 rows into 4; OVER() keeps all 100 and appends the metric.
-const S = 85;
+// SC03 (85-130s): LIKE Wildcards & Implicit Casting — Side-by-side Corrections
+// Anchors: 86.0 LIKE | 90.0 wildcard | 95.0 pg_trgm | 100.0 casting | 110.0 explicit | 118.0 match | 125.0 seal
+const S = START.s3;
 const t = (g: number) => sec(g - S);
-const STEP = 50;
-const CELL = 44;
-const LX = 120;
-const RX = 1020;
-const GY = 300;
-const PCOL = [C.blue, C.purple, C.amber, C.slate400];
-const part = (r: number) => (r < 3 ? 0 : r < 5 ? 1 : r < 8 ? 2 : 3);
-const AVGS = ['112.50', '673.33', '426.67', '310.00'];
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const panels = prog(f, t(86.4), 24);
-  const lbl = pop(f, t(93.4));
-  const sumBars = prog(f, t(96.6), 24);
-  const lost = pop(f, t(100.9));
-  const keep = pop(f, t(105.4));
-  const identity = pop(f, t(112.9));
-  const noJoin = pop(f, t(116.6));
-  const noDer = pop(f, t(119.9));
-  const notNeeded = pop(f, t(122.6));
-  const glow = 0.5 + 0.5 * Math.sin(f / 8);
-
-  const cells: React.ReactNode[] = [];
-  for (let r = 0; r < 10; r++) {
-    for (let c = 0; c < 10; c++) {
-      const k = part(r);
-      const idx = r * 10 + c;
-      const col = PCOL[k];
-      const m = prog(f, t(96.6) + idx * 0.9, sec(1.6));
-      const tx = 700 + 110 - CELL / 2;
-      const ty = 330 + k * 110 + 35 - CELL / 2;
-      const lxp = lerp(LX + c * STEP, tx, m);
-      const lyp = lerp(GY + r * STEP, ty, m);
-      const sc = 1 - 0.75 * m;
-      cells.push(<rect key={`l${idx}`} x={lxp} y={lyp} width={CELL} height={CELL} rx={8} fill={`${col}55`} stroke={col} strokeWidth={2} opacity={panels * (m > 0.98 ? 0 : 1)} transform={`translate(${(CELL * (1 - sc)) / 2} ${(CELL * (1 - sc)) / 2}) scale(${sc})`} />);
-      cells.push(<rect key={`r${idx}`} x={RX + c * STEP} y={GY + r * STEP} width={CELL} height={CELL} rx={8} fill={`${col}55`} stroke={col} strokeWidth={2} opacity={panels} />);
-    }
-  }
+  const leftP = clamp(lin(f, t(86.5), 14));
+  const rightP = clamp(lin(f, t(100), 14));
+  // LIKE correction animation
+  const likeFixP = clamp(lin(f, t(90), sec(8)));
+  // Type cast animation
+  const castFixP = clamp(lin(f, t(110), sec(8)));
+  const trgmP = pop(f, t(95));
+  const sealP = pop(f, t(125));
 
   return (
     <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="GROUP BY مقابل OVER() | الانكماش مقابل الاحتفاظ" from={t(86.6)} to={t(98)} color={C.blue} />
+      <TopBadge text="LIKE والـ Wildcards والتحويل الضمني | LIKE Wildcards & Implicit Casting" from={sec(2)} to={sec(40)} color={C.purple} />
 
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-        <rect x={90} y={190} width={840} height={700} rx={24} fill={C.card} stroke={sumBars > 0.2 ? C.red : C.border} strokeWidth={2} opacity={panels} />
-        <rect x={990} y={190} width={840} height={700} rx={24} fill={C.card} stroke={keep > 0.2 ? C.green : C.border} strokeWidth={2} opacity={panels} />
-        {cells}
-        {/* summary rows (GROUP BY) */}
-        {[0, 1, 2, 3].map((k) => (
-          <g key={k} opacity={sumBars}>
-            <rect x={700} y={330 + k * 110} width={220 * sumBars} height={70} rx={12} fill={`${C.red}22`} stroke={C.red} strokeWidth={3} />
-            <text x={716} y={330 + k * 110 + 44} fontFamily={MONO} fontSize={22} fill={C.text}>group {k + 1} · avg</text>
-          </g>
-        ))}
-      </svg>
+      {/* LEFT: LIKE correction with pg_trgm */}
+      <div style={{opacity: leftP, transform: `translateX(${(1 - leftP) * -30}px)`}}>
+        <Editor
+          x={80}
+          y={180}
+          w={860}
+          h={130}
+          title="LIKE Wildcards ──► prefix vs leading %"
+          lines={["WHERE name LIKE '%store'   ──►  non-SARGable ✗"]}
+          start={t(86.5)}
+          cps={0.85}
+          size={17}
+          accent={C.red}
+          hl={0}
+          hlColor={C.red}
+        />
 
-      {/* headers */}
-      <div dir="ltr" style={{position: 'absolute', left: 120, top: 212, opacity: panels}}><Chip color={C.red} style={{fontSize: 24}}>GROUP BY</Chip></div>
-      <div dir="ltr" style={{position: 'absolute', left: 1020, top: 212, opacity: panels}}><Chip color={C.green} style={{fontSize: 24}}>OVER()</Chip></div>
-      <div dir="ltr" style={{position: 'absolute', left: 700, top: 212, opacity: clamp(lbl), transform: `scale(${clamp(lbl)})`, transformOrigin: 'left center'}}><Chip color={C.muted} style={{fontSize: 20}}>100 rows · 4 departments</Chip></div>
+        <Win x={80} y={330} w={860} h={570} title="LIKE fix ──► prefix match or pg_trgm GIN" accent={C.purple} opacity={leftP}>
+          <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
+            leading wildcard % breaks B-Tree traversal
+          </div>
 
-      {/* left counter */}
-      <div dir="ltr" style={{position: 'absolute', left: 120, top: 818, display: 'flex', alignItems: 'center', gap: 20, opacity: clamp(lost), transform: `scale(${0.9 + 0.1 * clamp(lost)})`, transformOrigin: 'left center'}}>
-        <span style={{fontFamily: MONO, fontSize: 44, fontWeight: 700, color: C.red}}>100 → 4</span>
-        <Chip color={C.red} style={{fontSize: 20}}>names & details lost ✕</Chip>
+          {/* SVG: B-Tree traversal difference */}
+          <svg width={820} height={420} style={{position: 'absolute', left: 20, top: 50}}>
+            {/* BEFORE: %store — broken */}
+            <text x={20} y={20} fill={C.red} fontSize={13} fontFamily={MONO} fontWeight={700}>BEFORE: LIKE "%store" (leading wildcard)</text>
+            <rect x={20} y={35} width={780} height={130} fill={`${C.red}0d`} stroke={C.red} strokeWidth={2} strokeDasharray="6 4" rx={8} />
+            {/* B-Tree cannot start anywhere */}
+            <text x={410} y={65} fill={C.red} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">B-Tree index unusable · cannot anchor search</text>
+            {/* Multiple red leaves (all must be scanned) */}
+            {[100, 180, 260, 340, 420, 500, 580, 660].map((x, i) => (
+              <g key={`bad-${i}`}>
+                <rect x={x} y={90} width={60} height={50} fill={`${C.red}11`} stroke={C.red} strokeWidth={1.5} strokeDasharray="3 3" rx={6} />
+                <text x={x + 30} y={120} fill={C.red} fontSize={11} fontFamily={MONO} textAnchor="middle">leaf</text>
+              </g>
+            ))}
+            <text x={410} y={158} fill={C.red} fontSize={12} fontFamily={MONO} textAnchor="middle">all leaves scanned ──► fallback to Seq Scan</text>
+
+            {/* AFTER: store% — green path */}
+            <text x={20} y={210} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700}>AFTER: LIKE "store%" (prefix match)</text>
+            <rect x={20} y={225} width={780} height={130} fill={likeFixP > 0.5 ? `${C.green}0d` : 'transparent'} stroke={C.green} strokeWidth={2} strokeDasharray={likeFixP > 0.5 ? 'none' : '6 4'} rx={8} />
+            {/* B-Tree can anchor at "store" prefix */}
+            <circle cx={100} cy={265} r={22} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} style={{filter: likeFixP > 0.5 ? `drop-shadow(0 0 8px ${C.green})` : 'none'}} />
+            <text x={100} y={270} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">store</text>
+            <text x={100} y={305} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">anchor ✓</text>
+
+            {/* Green laser to leaves */}
+            {[180, 260, 340].map((x, i) => (
+              <g key={`good-${i}`}>
+                <line x1={122} y1={265} x2={x + 30} y2={290} stroke={C.green} strokeWidth={likeFixP > 0.5 ? 2.5 : 1} strokeOpacity={likeFixP > 0.5 ? 0.9 : 0.3} />
+                <rect x={x} y={275} width={60} height={40} fill={likeFixP > 0.5 ? `${C.green}33` : 'transparent'} stroke={C.green} strokeWidth={2} rx={6} />
+                <text x={x + 30} y={300} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">store*</text>
+              </g>
+            ))}
+
+            {/* Non-matched leaves dimmed */}
+            {[420, 500, 580, 660].map((x, i) => (
+              <g key={`dim-${i}`}>
+                <rect x={x} y={275} width={60} height={40} fill="transparent" stroke={C.border} strokeWidth={1.5} strokeDasharray="3 3" rx={6} />
+                <text x={x + 30} y={300} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">skip</text>
+              </g>
+            ))}
+            <text x={410} y={345} fill={C.green} fontSize={12} fontFamily={MONO} textAnchor="middle">only matching prefix visited ──► Index Scan ✓</text>
+          </svg>
+
+          {/* pg_trgm GIN option */}
+          <div style={{position: 'absolute', left: 18, right: 18, bottom: 60, padding: '12px 14px', border: `2px solid ${C.amber}`, borderRadius: 10, background: `${C.amber}0d`, opacity: clamp(trgmP)}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, marginBottom: 4}}>✓ Need substring search? Use pg_trgm GIN index:</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text}}>
+              CREATE EXTENSION pg_trgm; CREATE INDEX idx_trgm ON tbl USING gin (name gin_trgm_ops);
+            </div>
+          </div>
+
+          {/* Bottom status */}
+          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.purple, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
+            <span>prefix match = index-safe</span>
+            <span>leading % breaks B-Tree</span>
+          </div>
+        </Win>
       </div>
 
-      {/* metric column on the right */}
-      {Array.from({length: 10}).map((_, r) => {
-        const p = pop(f, t(109.8) + r * 4);
-        return (
-          <div key={r} dir="ltr" style={{position: 'absolute', left: 1540, top: GY + r * STEP + 3, width: 250, height: 38, borderRadius: 10, border: `2px solid ${C.green}`, background: `${C.green}1F`, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: MONO, fontSize: 20, fontWeight: 700, color: C.green, opacity: clamp(p), transform: `translateX(${(1 - clamp(p)) * 80}px)`, boxShadow: p > 0.8 ? `0 0 ${10 * glow}px ${C.green}44` : 'none'}}>avg {AVGS[part(r)]}</div>
-        );
-      })}
+      {/* RIGHT: Implicit casting correction */}
+      <div style={{opacity: rightP, transform: `translateX(${(1 - rightP) * 30}px)`}}>
+        <Editor
+          x={980}
+          y={180}
+          w={860}
+          h={130}
+          title="Implicit Casting ──► phone_no = 0100 (numeric literal)"
+          lines={['WHERE phone_no = 0100   ──►  non-SARGable ✗']}
+          start={t(100.5)}
+          cps={0.85}
+          size={17}
+          accent={C.red}
+          hl={0}
+          hlColor={C.red}
+        />
 
-      {/* right counter and no-join chips */}
-      <div dir="ltr" style={{position: 'absolute', left: 1020, top: 818, display: 'flex', alignItems: 'center', gap: 16, opacity: clamp(keep)}}>
-        <span style={{fontFamily: MONO, fontSize: 44, fontWeight: 700, color: C.green}}>100 → 100</span>
-        <div style={{opacity: clamp(identity)}}><Chip color={C.green} style={{fontSize: 20, background: `${C.green}26`}}>every row keeps identity ✓</Chip></div>
-      </div>
-      <div dir="ltr" style={{position: 'absolute', left: 1020, top: 770, display: 'flex', gap: 14, alignItems: 'center'}}>
-        <div style={{opacity: clamp(noJoin), textDecoration: 'line-through', textDecorationColor: C.red}}><Chip color={C.muted} style={{fontSize: 20}}>JOIN</Chip></div>
-        <div style={{opacity: clamp(noDer), textDecoration: 'line-through', textDecorationColor: C.red}}><Chip color={C.muted} style={{fontSize: 20}}>Derived Table</Chip></div>
-        <div style={{opacity: clamp(notNeeded)}}><Mix style={{fontSize: 24, fontWeight: 700, color: C.green}}>غير مطلوبة ✓</Mix></div>
+        <Win x={980} y={330} w={860} h={570} title="cast fix ──► explicit type matching" accent={C.amber} opacity={rightP}>
+          <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
+            numeric literal vs varchar column ──► implicit cast breaks index
+          </div>
+
+          {/* SVG: type mismatch visualization */}
+          <svg width={820} height={420} style={{position: 'absolute', left: 20, top: 50}}>
+            {/* Column type */}
+            <text x={20} y={20} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700}>Column: phone_no (varchar)  ·  Literal: 0100 (integer)</text>
+
+            {/* BEFORE: type mismatch */}
+            <text x={20} y={55} fill={C.red} fontSize={13} fontFamily={MONO} fontWeight={700}>BEFORE: phone_no = 0100 (integer)</text>
+            <rect x={20} y={70} width={780} height={120} fill={`${C.red}0d`} stroke={C.red} strokeWidth={2} strokeDasharray="6 4" rx={8} />
+
+            {/* Column block */}
+            <rect x={50} y={95} width={180} height={70} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2} rx={8} />
+            <text x={140} y={120} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">phone_no</text>
+            <text x={140} y={145} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">type: varchar</text>
+
+            {/* Cast arrow */}
+            <g>
+              <line x1={240} y1={130} x2={320} y2={130} stroke={C.red} strokeWidth={3} strokeDasharray="6 4" />
+              <polygon points="314,124 314,136 328,130" fill={C.red} />
+              <text x={280} y={115} fill={C.red} fontSize={11} fontFamily={MONO} textAnchor="middle">implicit CAST()</text>
+              <text x={280} y={158} fill={C.red} fontSize={10} fontFamily={MONO} textAnchor="middle">column → integer</text>
+            </g>
+
+            {/* Literal block */}
+            <rect x={340} y={95} width={180} height={70} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} />
+            <text x={430} y={120} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">0100</text>
+            <text x={430} y={145} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">type: integer</text>
+
+            {/* Result */}
+            <text x={620} y={120} fill={C.red} fontSize={13} fontFamily={MONO} fontWeight={700}>✗ Index</text>
+            <text x={620} y={145} fill={C.red} fontSize={13} fontFamily={MONO} fontWeight={700}>  broken</text>
+
+            {/* AFTER: explicit varchar literal */}
+            <text x={20} y={240} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700}>AFTER: phone_no = "0100" (quoted varchar)</text>
+            <rect x={20} y={255} width={780} height={120} fill={castFixP > 0.5 ? `${C.green}0d` : 'transparent'} stroke={C.green} strokeWidth={2} strokeDasharray={castFixP > 0.5 ? 'none' : '6 4'} rx={8} />
+
+            {/* Column block */}
+            <rect x={50} y={280} width={180} height={70} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2} rx={8} />
+            <text x={140} y={305} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">phone_no</text>
+            <text x={140} y={330} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">type: varchar</text>
+
+            {/* No cast arrow */}
+            <g>
+              <line x1={240} y1={315} x2={320} y2={315} stroke={C.green} strokeWidth={3} />
+              <polygon points="314,309 314,321 328,315" fill={C.green} />
+              <text x={280} y={300} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">no cast ✓</text>
+              <text x={280} y={343} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">types match</text>
+            </g>
+
+            {/* Quoted literal */}
+            <rect x={340} y={280} width={180} height={70} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={8} style={castFixP > 0.5 ? {filter: `drop-shadow(0 0 8px ${C.green})`} : undefined} />
+            <text x={430} y={305} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">"0100"</text>
+            <text x={430} y={330} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">type: varchar ✓</text>
+
+            {/* Result */}
+            <text x={620} y={305} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700}>✓ Index</text>
+            <text x={620} y={330} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700}>  Scan ✓</text>
+          </svg>
+
+          {/* Best practice callout */}
+          <div style={{position: 'absolute', left: 18, right: 18, bottom: 60, padding: '12px 14px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, opacity: clamp(pop(f, t(118)))}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 4}}>✓ Match column type explicitly</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text}}>
+              varchar column → quote the literal · integer column → use bare integer · always avoid implicit CAST() on indexed column.
+            </div>
+          </div>
+
+          {/* Bottom status */}
+          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
+            <span>implicit CAST() = index killer</span>
+            <span>explicit type matching = index-safe</span>
+          </div>
+        </Win>
       </div>
 
-      <Caption text="GROUP BY ──► Collapses 100 Rows to 4 Summary Rows (Loses Detail)" from={t(96.8)} to={t(105)} />
-      <Caption text="Window Functions ──► Retains All 100 Rows + Appends Group Metric" from={t(105.6)} to={t(127.4)} />
+      {/* Seal badge */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 920, display: 'flex', justifyContent: 'center', opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
+          <Check p={sealP} size={36} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>LIKE Prefix Match · Explicit Type Casting ✓</div>
+        </div>
+      </div>
+
+      <Caption text="LIKE 'store%' (prefix) ──► Index Scan · phone_no = '0100' (varchar) ──► Index Scan" from={t(110)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };
