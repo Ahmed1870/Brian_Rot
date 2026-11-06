@@ -1,191 +1,215 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {UPDATABLE_VIEW_LINES} from '../data';
+import {REFRESH_COMMANDS} from '../data';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC03 (85-130s): CREATE OR REPLACE VIEW & Updatable Views
-// Anchors: 86.0 CREATE OR REPLACE | 90.0 modify | 95.0 updatable | 100.0 single-table | 110.0 UPDATE | 118.0 DROP | 125.0 seal
+// SC03 (85-130s): REFRESH MATERIALIZED VIEW CONCURRENTLY — Non-Blocking Refresh with dual parallel streams
+// Anchors: 86.0 REFRESH | 90.0 CONCURRENTLY | 95.0 UNIQUE index | 100.0 parallel | 110.0 non-blocking | 118.0 background | 125.0 seal
 const S = START.s3;
 const t = (g: number) => sec(g - S);
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(86.5), 14));
-  const modP = pop(f, t(90));
-  const updatableP = pop(f, t(95));
-  const singleP = clamp(lin(f, t(100), 14));
-  // UPDATE animation: city value changes from 'Giza' to 'Cairo' on row 101
-  const updateProg = clamp(lin(f, t(110), sec(8)));
-  // DROP VIEW animation
-  const dropProg = clamp(lin(f, t(118), sec(7)));
+  const idxP = pop(f, t(95));
+  // Parallel streams flow animation
+  const parallelProg = clamp(lin(f, t(100), sec(8)));
+  // Non-blocking flow: purple refresh stream + blue read stream run concurrently
+  const refreshProg = clamp(lin(f, t(110), sec(8)));
+  const readProg = clamp(lin(f, t(110), sec(8)));
+  const bgP = pop(f, t(118));
   const sealP = pop(f, t(125));
 
-  // City value interpolation
-  const cityVal = updateProg > 0.5 ? 'Cairo' : 'Giza';
+  // Pulse for refresh stream
+  const pulse = 0.5 + 0.5 * Math.sin(f * 0.18);
 
   return (
     <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="CREATE OR REPLACE VIEW و العروض القابلة للتحديث | Updatable Views &amp; DROP VIEW CASCADE" from={sec(2)} to={sec(40)} color={C.green} />
+      <TopBadge text="REFRESH CONCURRENTLY و التحديث غير الحاجب | Non-Blocking Refresh (UNIQUE INDEX Required)" from={sec(2)} to={sec(40)} color={C.purple} />
 
-      {/* LEFT: CREATE OR REPLACE VIEW + UPDATE editor */}
+      {/* LEFT: CREATE UNIQUE INDEX + REFRESH CONCURRENTLY editor */}
       <div style={{opacity: editorP}}>
         <Editor
           x={80}
           y={170}
           w={880}
-          h={320}
-          title="Query Editor · CREATE OR REPLACE VIEW + UPDATE on view"
-          lines={UPDATABLE_VIEW_LINES}
+          h={250}
+          title="Query Editor · CREATE UNIQUE INDEX + REFRESH CONCURRENTLY"
+          lines={REFRESH_COMMANDS.concat([
+            '',
+            '-- CONCURRENTLY: no read lock',
+            '-- requires UNIQUE INDEX',
+          ])}
           start={t(86.5)}
           cps={0.5}
           size={14}
-          accent={C.green}
-          hl={5}
-          hlColor={C.amber}
+          accent={C.purple}
+          hl={1}
+          hlColor={C.purple}
         />
       </div>
 
       {/* Concept chips below editor */}
-      <div style={{position: 'absolute', left: 80, top: 510, width: 880, opacity: clamp(lin(f, t(95), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 8}}>◆ Updatable view conditions:</div>
+      <div style={{position: 'absolute', left: 80, top: 440, width: 880, opacity: clamp(lin(f, t(95), 14))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 8}}>◆ REFRESH CONCURRENTLY prerequisites:</div>
         <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>Single-table ✓</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>No aggregates ✓</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>No DISTINCT ✓</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>No GROUP BY ✓</Chip>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>No UNION ✓</Chip>
+          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>
+            <Check p={idxP} size={16} color={C.amber} /> UNIQUE INDEX
+          </Chip>
+          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>CONCURRENTLY ✓</Chip>
+          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>No Read Lock ✓</Chip>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>Parallel ✓</Chip>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>Non-Blocking ✓</Chip>
         </div>
       </div>
 
-      {/* DROP VIEW CASCADE editor */}
-      <div style={{position: 'absolute', left: 80, top: 600, width: 880, opacity: clamp(lin(f, t(118), 14))}}>
-        <Editor
-          x={0}
-          y={0}
-          w={880}
-          h={140}
-          title="Query Editor · DROP VIEW with CASCADE option"
-          lines={[
-            'DROP VIEW vw_active_customers CASCADE;',
-            '-- CASCADE drops dependent views automatically',
-            '-- RESTRICT (default) blocks if dependents exist',
-          ]}
-          start={t(118)}
-          cps={0.6}
-          size={14}
-          accent={C.red}
-          hl={0}
-          hlColor={C.red}
-        />
+      {/* Non-Blocking Refresh badge */}
+      <div style={{position: 'absolute', left: 80, top: 520, width: 880, opacity: clamp(pop(f, t(110)))}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', border: `3px solid ${C.green}`, borderRadius: 16, background: `${C.green}0d`, boxShadow: `0 0 24px ${C.green}33`}}>
+          <Check p={sealP} size={44} color={C.green} />
+          <div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.green, fontWeight: 700}}>Non-Blocking Refresh ✓</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>REFRESH CONCURRENTLY builds a new version in the background · readers keep querying the old version · zero lock</div>
+          </div>
+        </div>
       </div>
 
-      {/* RIGHT: Updatable view demo + single-table propagation */}
-      <Win x={1000} y={170} w={840} h={470} title="updatable view ──► UPDATE propagates to base table (single-table only)" accent={C.green} opacity={singleP}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
-          UPDATE on vw_active_customers ──► propagates to store_customers base row
+      {/* UNIQUE INDEX explanation panel */}
+      <div style={{position: 'absolute', left: 80, top: 640, width: 880, opacity: clamp(lin(f, t(95), 14))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 8}}>◆ Why UNIQUE INDEX is required:</div>
+        <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>Diff old vs new</Chip>
+          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>Identify rows to update</Chip>
+          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>Without UNIQUE: full rebuild (lock)</Chip>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>With UNIQUE: incremental (no lock)</Chip>
+        </div>
+      </div>
+
+      {/* Seal at bottom-left */}
+      <div style={{position: 'absolute', left: 80, top: 780, width: 880, opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.purple}`, borderRadius: 14, background: `${C.purple}0d`}}>
+          <Check p={sealP} size={36} color={C.purple} />
+          <div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.purple, fontWeight: 700}}>REFRESH CONCURRENTLY · Non-Blocking Seal ✓</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>UNIQUE INDEX enables incremental diff · readers never blocked · pg_cron can schedule</div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT: Dual parallel streams visualization */}
+      <Win x={1000} y={170} w={840} h={720} title="dual parallel streams ──► purple refresh + blue read (non-blocking)" accent={C.purple} opacity={clamp(lin(f, t(100), 14))}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
+          REFRESH CONCURRENTLY ──► background refresh (purple) + user reads (blue) run in parallel · no lock
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>
-            <Check p={updatableP} size={16} color={C.green} /> Updatable ✓
-          </Chip>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>Single-table</Chip>
+          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>BG Refresh</Chip>
+          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>User Reads</Chip>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{parallelProg > 0.95 ? 'Parallel ✓' : '...'}</Chip>
         </div>
 
-        {/* SVG: view → base table propagation */}
-        <svg width={800} height={360} style={{position: 'absolute', left: 20, top: 60}}>
-          {/* View box (top) */}
-          <rect x={20} y={20} width={760} height={80} fill={`${C.green}18`} stroke={C.green} strokeWidth={3} rx={12} />
-          <text x={400} y={48} fill={C.green} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">vw_active_customers (virtual view)</text>
-          <text x={400} y={72} fill={C.text} fontSize={12} fontFamily={MONO} textAnchor="middle">customer_id=101 · customer_name='Ahmed' · city='{cityVal}'</text>
-          <text x={400} y={90} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">SELECT customer_id, customer_name, city FROM store_customers WHERE balance &gt; 0;</text>
+        {/* SVG: dual parallel streams */}
+        <svg width={800} height={600} style={{position: 'absolute', left: 20, top: 60}}>
+          {/* REFRESH stream (top, purple) */}
+          <g style={{opacity: clamp(pop(f, t(100)))}}>
+            <rect x={20} y={20} width={760} height={220} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={3} strokeDasharray="6 4" rx={12} style={{filter: `drop-shadow(0 0 ${8 + pulse * 8}px ${C.purple}44)`}} />
+            <text x={400} y={48} fill={C.purple} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">▼ Background Refresh Stream (purple) ▼</text>
 
-          {/* UPDATE arrow propagating downward */}
-          <g style={{opacity: clamp(pop(f, t(110)))}}>
-            <line x1={400} y1={104} x2={400} y2={164} stroke={C.amber} strokeWidth={4} strokeDasharray="6 4" />
-            <polygon points="392,156 408,156 400,172" fill={C.amber} />
-            <text x={420} y={140} fill={C.amber} fontSize={12} fontFamily={MONO} fontWeight={700}>UPDATE propagates</text>
+            {/* Refresh steps */}
+            <rect x={40} y={66} width={150} height={50} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={2} rx={8} />
+            <text x={115} y={88} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">1. Build new ver</text>
+            <text x={115} y={104} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">in background</text>
+
+            <line x1={190} y1={91} x2={230} y2={91} stroke={C.purple} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.4 + 0.6 * refreshProg} />
+            <polygon points="224,86 224,96 236,91" fill={C.purple} />
+
+            <rect x={235} y={66} width={150} height={50} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={2} rx={8} />
+            <text x={310} y={88} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">2. Diff vs old</text>
+            <text x={310} y={104} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">via UNIQUE INDEX</text>
+
+            <line x1={385} y1={91} x2={425} y2={91} stroke={C.purple} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.4 + 0.6 * refreshProg} />
+            <polygon points="419,86 419,96 431,91" fill={C.purple} />
+
+            <rect x={430} y={66} width={150} height={50} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={2} rx={8} />
+            <text x={505} y={88} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">3. Apply delta</text>
+            <text x={505} y={104} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">incremental</text>
+
+            <line x1={580} y1={91} x2={620} y2={91} stroke={C.purple} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.4 + 0.6 * refreshProg} />
+            <polygon points="614,86 614,96 626,91" fill={C.purple} />
+
+            <rect x={625} y={66} width={135} height={50} fill={`${C.purple}33`} stroke={C.purple} strokeWidth={3} rx={8} style={{filter: `drop-shadow(0 0 8px ${C.purple})`}} />
+            <text x={692} y={88} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">4. Swap atomically</text>
+            <text x={692} y={104} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">new version live</text>
+
+            {/* Refresh progress bar */}
+            <rect x={40} y={130} width={720} height={20} fill={C.deep} stroke={C.purple} strokeWidth={2} rx={10} />
+            <rect x={42} y={132} width={716 * refreshProg} height={16} fill={C.purple} rx={8} style={{filter: `drop-shadow(0 0 6px ${C.purple}88)`}} />
+            <text x={400} y={170} fill={C.purple} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">background refresh: {Math.round(refreshProg * 100)}%</text>
           </g>
 
-          {/* Base table (bottom) */}
-          <rect x={20} y={180} width={760} height={130} fill={`${C.blue}18`} stroke={C.blue} strokeWidth={3} rx={12} />
-          <text x={400} y={208} fill={C.blue} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">store_customers (base table · on disk)</text>
-          {/* Row 101 highlighted */}
-          <rect x={40} y={222} width={720} height={36} fill={updateProg > 0.3 ? `${C.green}22` : `${C.card}`} stroke={updateProg > 0.3 ? C.green : C.border} strokeWidth={2} rx={6} style={updateProg > 0.3 ? {filter: `drop-shadow(0 0 8px ${C.green})`} : undefined} />
-          <text x={70} y={244} fill={C.text} fontSize={12} fontFamily={MONO}>101</text>
-          <text x={140} y={244} fill={C.text} fontSize={12} fontFamily={MONO}>Ahmed</text>
-          <text x={280} y={244} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700}>city = '{cityVal}'</text>
-          <text x={460} y={244} fill={C.muted} fontSize={12} fontFamily={MONO}>balance = 250.00</text>
-          <text x={640} y={244} fill={updateProg > 0.5 ? C.green : C.muted} fontSize={12} fontFamily={MONO} fontWeight={700}>{updateProg > 0.5 ? '✓ updated' : 'pending...'}</text>
+          {/* READ stream (bottom, blue) — runs in parallel, never blocked */}
+          <g style={{opacity: clamp(pop(f, t(100)))}}>
+            <rect x={20} y={270} width={760} height={220} fill={`${C.blue}11`} stroke={C.blue} strokeWidth={3} strokeDasharray="6 4" rx={12} style={{filter: `drop-shadow(0 0 8px ${C.blue}44)`}} />
+            <text x={400} y={298} fill={C.blue} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">▲ User Read Stream (blue) — never blocked ▲</text>
 
-          {/* Other rows (unchanged) */}
-          <rect x={40} y={264} width={720} height={28} fill={`${C.card}`} stroke={C.border} strokeWidth={1} rx={4} />
-          <text x={70} y={282} fill={C.text} fontSize={12} fontFamily={MONO}>102</text>
-          <text x={140} y={282} fill={C.text} fontSize={12} fontFamily={MONO}>Sara</text>
-          <text x={280} y={282} fill={C.text} fontSize={12} fontFamily={MONO}>city = 'Alex'</text>
-          <text x={460} y={282} fill={C.muted} fontSize={12} fontFamily={MONO}>balance = 0.00 (filtered out)</text>
+            {/* Read steps */}
+            <rect x={40} y={316} width={150} height={50} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
+            <text x={115} y={338} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">1. SELECT</text>
+            <text x={115} y={354} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">from mv_sales</text>
 
-          {/* Propagation success banner */}
-          {updateProg > 0.95 ? (
+            <line x1={190} y1={341} x2={230} y2={341} stroke={C.blue} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.4 + 0.6 * readProg} />
+            <polygon points="224,336 224,346 236,341" fill={C.blue} />
+
+            <rect x={235} y={316} width={150} height={50} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
+            <text x={310} y={338} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">2. Read old ver</text>
+            <text x={310} y={354} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">still queryable</text>
+
+            <line x1={385} y1={341} x2={425} y2={341} stroke={C.blue} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.4 + 0.6 * readProg} />
+            <polygon points="419,336 419,346 431,341" fill={C.blue} />
+
+            <rect x={430} y={316} width={150} height={50} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
+            <text x={505} y={338} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">3. Return rows</text>
+            <text x={505} y={354} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">instant</text>
+
+            <line x1={580} y1={341} x2={620} y2={341} stroke={C.blue} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.4 + 0.6 * readProg} />
+            <polygon points="614,336 614,346 626,341" fill={C.blue} />
+
+            <rect x={625} y={316} width={135} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={8} style={{filter: `drop-shadow(0 0 8px ${C.green})`}} />
+            <text x={692} y={338} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">4. ✓ Success</text>
+            <text x={692} y={354} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">no lock</text>
+
+            {/* Read progress bar */}
+            <rect x={40} y={380} width={720} height={20} fill={C.deep} stroke={C.blue} strokeWidth={2} rx={10} />
+            <rect x={42} y={382} width={716 * readProg} height={16} fill={C.blue} rx={8} style={{filter: `drop-shadow(0 0 6px ${C.blue}88)`}} />
+            <text x={400} y={420} fill={C.blue} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">user read: {Math.round(readProg * 100)}% · no lock ✓</text>
+          </g>
+
+          {/* Parallel indicator (center divider) */}
+          <g style={{opacity: clamp(pop(f, t(110)))}}>
+            <line x1={20} y1={250} x2={780} y2={250} stroke={C.amber} strokeWidth={2} strokeDasharray="4 4" opacity={0.5} />
+            <rect x={320} y={238} width={160} height={26} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2} rx={13} />
+            <text x={400} y={256} fill={C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">⇅ parallel · no lock</text>
+          </g>
+
+          {/* Non-blocking result banner */}
+          {parallelProg > 0.95 ? (
             <g style={{opacity: clamp(pop(f, t(116)))}}>
-              <rect x={120} y={320} width={560} height={36} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.green}66)`}} />
-              <text x={400} y={343} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ UPDATE propagated · store_customers row 101 city = 'Cairo' (single-table updatable)</text>
+              <rect x={120} y={520} width={560} height={44} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.green}66)`}} />
+              <text x={400} y={548} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Non-Blocking Refresh · readers never wait · UNIQUE INDEX enables concurrent rebuild</text>
             </g>
           ) : null}
         </svg>
 
         {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>UPDATE view</span>
-          <span>→ base row modified</span>
-          <span>single-table ✓</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span style={{color: C.purple}}>refresh (background)</span>
+          <span style={{color: parallelProg >= 1 ? C.green : C.amber}}>{parallelProg >= 1 ? '✓ parallel · no lock' : parallelProg > 0 ? `running... ${Math.round(parallelProg * 100)}%` : 'idle'}</span>
+          <span style={{color: C.blue}}>read (foreground)</span>
         </div>
       </Win>
 
-      {/* RIGHT BOTTOM: DROP VIEW CASCADE visualization */}
-      <Win x={1000} y={660} w={840} h={230} title="DROP VIEW CASCADE ──► dependent views removed automatically" accent={C.red} opacity={clamp(lin(f, t(118), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 16, color: C.red}}>
-          DROP VIEW vw_active_customers CASCADE ──► dependent views also removed
-        </div>
-
-        <svg width={800} height={140} style={{position: 'absolute', left: 20, top: 50}}>
-          {/* Main view (top) */}
-          <rect x={300} y={10} width={200} height={44} fill={dropProg > 0.3 ? `${C.red}22` : `${C.green}22`} stroke={dropProg > 0.3 ? C.red : C.green} strokeWidth={2.5} rx={8} style={dropProg > 0.3 ? {filter: `drop-shadow(0 0 8px ${C.red})`} : undefined} />
-          <text x={400} y={36} fill={dropProg > 0.3 ? C.red : C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">vw_active_customers</text>
-
-          {/* Dependency arrows */}
-          <line x1={340} y1={54} x2={200} y2={90} stroke={C.amber} strokeWidth={2} strokeDasharray="4 4" opacity={dropProg < 0.6 ? 0.6 : 0.2} />
-          <line x1={460} y1={54} x2={600} y2={90} stroke={C.amber} strokeWidth={2} strokeDasharray="4 4" opacity={dropProg < 0.6 ? 0.6 : 0.2} />
-
-          {/* Dependent views */}
-          <rect x={120} y={90} width={160} height={36} fill={dropProg > 0.7 ? `${C.red}22` : `${C.purple}22`} stroke={dropProg > 0.7 ? C.red : C.purple} strokeWidth={2} rx={6} opacity={dropProg > 0.85 ? 0.4 : 1} />
-          <text x={200} y={112} fill={dropProg > 0.7 ? C.red : C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">vw_active_vip</text>
-
-          <rect x={520} y={90} width={160} height={36} fill={dropProg > 0.7 ? `${C.red}22` : `${C.purple}22`} stroke={dropProg > 0.7 ? C.red : C.purple} strokeWidth={2} rx={6} opacity={dropProg > 0.85 ? 0.4 : 1} />
-          <text x={600} y={112} fill={dropProg > 0.7 ? C.red : C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">vw_active_summary</text>
-
-          {/* Cascade result text */}
-          {dropProg > 0.85 ? (
-            <text x={400} y={135} fill={C.red} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ CASCADE removed 3 views (1 main + 2 dependents)</text>
-          ) : (
-            <text x={400} y={135} fill={C.amber} fontSize={11} fontFamily={MONO} textAnchor="middle">cascading... {Math.round(dropProg * 100)}%</text>
-          )}
-        </svg>
-      </Win>
-
-      {/* Seal badge bottom */}
-      <div style={{position: 'absolute', left: 80, top: 770, width: 880, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={sealP} size={36} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>CREATE OR REPLACE · Updatable · DROP CASCADE ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>Single-table views propagate writes to base tables · DROP CASCADE removes dependents</div>
-          </div>
-        </div>
-      </div>
-
-      <Caption text="CREATE OR REPLACE VIEW ──► Single-Table Updatable ──► UPDATE Propagates ──► DROP CASCADE" from={t(110)} to={sec(44)} tone="ok" />
+      <Caption text="CREATE UNIQUE INDEX ──► REFRESH CONCURRENTLY ──► Parallel Streams ──► Non-Blocking Refresh ✓" from={t(110)} to={sec(44)} tone="ok" />
     </Stage>
   );
 };

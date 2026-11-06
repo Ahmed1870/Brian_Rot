@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-57-creating-views",
+  "name": "manzooma-sql-lesson-58-materialized-views",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 57: Creating & Managing Views (Virtual Tables, Abstraction, Security, CREATE OR REPLACE VIEW, Updatable Views, Query Rewriter, pg_rewrite, Module 14 Start) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 58: Materialized Views & Refreshing Strategies (Physical Cache, REFRESH CONCURRENTLY, UNIQUE Index, Heap Files, B-Tree Indexing, Module 14 Completion) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L57-Creating-Views out/sql-l57-creating-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L58-Materialized-Views out/sql-l58-materialized-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

@@ -1,28 +1,25 @@
-// manzooma_store_db — Lesson 57 dataset
+// manzooma_store_db — Lesson 58 dataset
 
-/** Physical tables for Scene 1 visualization. */
-export const PHYSICAL_TABLES = [
-  {name: 'store_orders', x: 80, y: 200, color: '#38BDF8'},
-  {name: 'store_customers', x: 80, y: 380, color: '#38BDF8'},
-  {name: 'store_products', x: 80, y: 560, color: '#38BDF8'},
+/** Performance benchmark data for Scene 2. */
+export const PERF_BENCHMARK = {
+  standardViewMs: 4800,
+  materializedViewMs: 0.4,
+  standardLabel: '4.8s',
+  materializedLabel: '0.4ms',
+};
+
+/** Enterprise materialized view query lines. */
+export const ENTERPRISE_MVIEW_LINES = [
+  'CREATE MATERIALIZED VIEW mv_store_monthly_performance AS',
+  "  SELECT DATE_TRUNC('month', order_date) AS month,",
+  '         product_id, SUM(total_amount) AS revenue',
+  '  FROM store_orders GROUP BY 1, 2;',
+  'CREATE UNIQUE INDEX idx_mv_store_perf',
+  '  ON mv_store_monthly_performance(month, product_id);',
 ];
 
-/** Enterprise view query lines for Scene 5. */
-export const ENTERPRISE_VIEW_LINES = [
-  'CREATE VIEW vw_store_sales_summary AS',
-  '  SELECT o.order_id, c.customer_name, p.product_name,',
-  '         o.total_amount',
-  '  FROM store_orders o',
-  '  JOIN store_customers c ON o.customer_id = c.customer_id',
-  '  JOIN store_products p ON o.product_id = p.product_id;',
-];
-
-/** Updatable view demo lines for Scene 3. */
-export const UPDATABLE_VIEW_LINES = [
-  'CREATE OR REPLACE VIEW vw_active_customers AS',
-  '  SELECT customer_id, customer_name, city',
-  '  FROM store_customers WHERE balance > 0;',
-  '-- Updatable: single-table, no aggregates',
-  "UPDATE vw_active_customers SET city = 'Cairo'",
-  '  WHERE customer_id = 101;',
+/** Refresh strategy commands. */
+export const REFRESH_COMMANDS = [
+  'CREATE UNIQUE INDEX idx_mv_id ON mv_sales (summary_id);',
+  'REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sales;',
 ];

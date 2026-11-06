@@ -3,242 +3,249 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC01 (0-40s): Virtual Tables Concept — Physical tables project through a blue lens into a virtual view
-// Anchors: 1.0 welcome | 5.0 views | 9.0 virtual | 14.0 zero disk | 20.0 projection | 28.0 seal | 35.0 module 14
+// SC01 (0-40s): Materialized Views Concept — Transparent lens transforms into solid purple block on disk
+// Anchors: 1.0 welcome | 5.0 materialized | 9.0 physical | 14.0 cache | 20.0 disk | 28.0 seal | 35.0 module 14
 const S = START.s1;
 const t = (g: number) => sec(g - S);
 
-// Physical tables stacked on the left of the SVG
-const TABLES = [
-  {name: 'store_orders', y: 60, rows: ['order_id', 'customer_id', 'product_id', 'total_amount']},
-  {name: 'store_customers', y: 200, rows: ['customer_id', 'customer_name', 'city']},
-  {name: 'store_products', y: 340, rows: ['product_id', 'product_name', 'price']},
+// Materialized block rows (pre-computed cache content)
+const MV_ROWS = [
+  {id: 101, region: 'Cairo', total: 4250},
+  {id: 102, region: 'Giza', total: 3180},
+  {id: 103, region: 'Alex', total: 2760},
+  {id: 104, region: 'Suez', total: 1990},
 ];
 
 export const Scene1: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(1.5), 14));
-  const tablesP = clamp(lin(f, t(5), 14));
-  const virtualP = clamp(lin(f, t(9), 14));
-  const zeroP = pop(f, t(14));
-  // Projection beam animation (light beams from tables converging into the lens)
-  const beamProg = clamp(lin(f, t(20), sec(8)));
+  const matP = clamp(lin(f, t(5), 14));
+  const physP = clamp(lin(f, t(9), 14));
+  const cacheP = pop(f, t(14));
+  // Clamp-down animation: transparent lens → solid purple block on disk
+  const clampProg = clamp(lin(f, t(20), sec(8)));
+  const diskP = pop(f, t(20));
   const sealP = pop(f, t(28));
   const modP = pop(f, t(35));
 
-  // Lens pulse
+  // Lens-to-block interpolation: opacity (transparent→solid) and color shift
+  const solidify = clampProg;
+  // Speed ray expansion
+  const rayLen = clampProg * 220;
+
+  // Pulse
   const pulse = 0.5 + 0.5 * Math.sin(f * 0.15);
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="left">
-      <TopBadge text="الجداول الافتراضية | Virtual Tables — CREATE VIEW &amp; Projection Lens (Module 14 Start)" from={sec(2)} to={sec(18)} color={C.blue} />
+      <TopBadge text="العروض المجسدة | Materialized Views — CREATE MATERIALIZED VIEW &amp; Pre-Computed Cache (Module 14)" from={sec(2)} to={sec(18)} color={C.purple} />
 
-      {/* LEFT: Code editor with CREATE VIEW query */}
+      {/* LEFT: Code editor with CREATE MATERIALIZED VIEW query */}
       <div style={{opacity: editorP}}>
         <Editor
           x={80}
-          y={180}
+          y={170}
           w={680}
           h={300}
-          title="Query Editor · CREATE VIEW defines a virtual table"
+          title="Query Editor · CREATE MATERIALIZED VIEW writes a solid cache"
           lines={[
-            'CREATE VIEW vw_store_sales AS',
-            '  SELECT o.order_id, c.customer_name,',
-            '         p.product_name, o.total_amount',
-            '  FROM store_orders o',
-            '  JOIN store_customers c',
-            '    ON o.customer_id = c.customer_id',
-            '  JOIN store_products p',
-            '    ON o.product_id = p.product_id;',
+            'CREATE MATERIALIZED VIEW mv_sales AS',
+            '  SELECT region, SUM(total_amount) AS total',
+            '  FROM store_orders',
+            '  GROUP BY region;',
+            '',
+            '-- writes real data to disk',
+            '-- zero re-computation on read',
           ]}
           start={t(1.5)}
           cps={0.7}
           size={15}
-          accent={C.blue}
+          accent={C.purple}
           hl={0}
-          hlColor={C.blue}
+          hlColor={C.purple}
         />
       </div>
 
       {/* Concept chips below editor */}
-      <div style={{position: 'absolute', left: 80, top: 500, width: 680, opacity: clamp(lin(f, t(5), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ Virtual table golden rule</div>
+      <div style={{position: 'absolute', left: 80, top: 490, width: 680, opacity: clamp(lin(f, t(5), 14))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ Materialized view golden rule</div>
         <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>CREATE VIEW</Chip>
-          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>Zero Disk ✓</Chip>
-          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>Stored Query ✓</Chip>
-          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>Queryable ✓</Chip>
+          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>CREATE MATERIALIZED VIEW</Chip>
+          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>On Disk ✓</Chip>
+          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>Pre-Computed ✓</Chip>
+          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>Cache Layer ✓</Chip>
         </div>
       </div>
 
       {/* Module 14 Architecture badge panel */}
-      <Win x={80} y={580} w={680} h={320} title="module 14 architecture ──► virtual tables foundation" accent={C.green} opacity={clamp(lin(f, t(14), 14))}>
+      <Win x={80} y={580} w={680} h={320} title="module 14 architecture ──► materialized optimization foundation" accent={C.green} opacity={clamp(lin(f, t(14), 14))}>
         <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
-          CREATE VIEW ──► projection lens ──► virtual table ──► zero storage overhead
+          CREATE MATERIALIZED VIEW ──► solid purple block ──► physical disk ──► pre-computed cache
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
           <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>
-            <Check p={modP} size={16} color={C.green} /> Module 14 Start
+            <Check p={modP} size={16} color={C.green} /> Module 14 Opt
           </Chip>
         </div>
 
         <svg width={640} height={220} style={{position: 'absolute', left: 20, top: 50}}>
-          {/* Physical tables (3 stacked blocks on left) */}
-          <rect x={20} y={30} width={150} height={44} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
-          <text x={95} y={56} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">store_orders</text>
+          {/* Transparent virtual view (left, faded) */}
+          <rect x={20} y={50} width={140} height={80} fill={`${C.blue}0d`} stroke={C.blue} strokeWidth={2} strokeDasharray="5 4" rx={8} />
+          <text x={90} y={78} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">virtual view</text>
+          <text x={90} y={98} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">re-computes</text>
+          <text x={90} y={114} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">on every read</text>
 
-          <rect x={20} y={90} width={150} height={44} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
-          <text x={95} y={116} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">store_customers</text>
+          {/* Transform arrow */}
+          <line x1={162} y1={90} x2={230} y2={90} stroke={C.purple} strokeWidth={3} strokeDasharray="6 4" />
+          <polygon points="224,84 224,96 238,90" fill={C.purple} />
+          <text x={196} y={80} fill={C.purple} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">CREATE MAT</text>
 
-          <rect x={20} y={150} width={150} height={44} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
-          <text x={95} y={176} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">store_products</text>
+          {/* Solid purple block (center) */}
+          <rect x={240} y={50} width={140} height={80} fill={`${C.purple}33`} stroke={C.purple} strokeWidth={3} rx={8} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.purple})`}} />
+          <text x={310} y={78} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">mv_sales</text>
+          <text x={310} y={98} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">solid block</text>
+          <text x={310} y={114} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">pre-computed</text>
 
-          {/* Beams converging to lens */}
-          <line x1={170} y1={52} x2={320} y2={112} stroke={C.blue} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.7} />
-          <line x1={170} y1={112} x2={320} y2={112} stroke={C.blue} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.7} />
-          <line x1={170} y1={172} x2={320} y2={112} stroke={C.blue} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.7} />
+          {/* Speed rays (green) */}
+          <g style={{opacity: clamp(cacheP)}}>
+            <line x1={380} y1={70} x2={380 + clampProg * 80} y2={70} stroke={C.green} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.7} />
+            <line x1={380} y1={90} x2={380 + clampProg * 100} y2={90} stroke={C.green} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.9} />
+            <line x1={380} y1={110} x2={380 + clampProg * 80} y2={110} stroke={C.green} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.7} />
+          </g>
 
-          {/* Blue lens (CREATE VIEW) */}
-          <ellipse cx={340} cy={112} rx={36} ry={36} fill={`${C.blue}33`} stroke={C.blue} strokeWidth={3} style={{filter: `drop-shadow(0 0 ${10 + pulse * 8}px ${C.blue})`}} />
-          <text x={340} y={108} fill={C.blue} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">CREATE</text>
-          <text x={340} y={120} fill={C.blue} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">VIEW</text>
+          {/* Physical disk (right) */}
+          <g style={{opacity: clamp(diskP)}}>
+            <ellipse cx={560} cy={90} rx={50} ry={16} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2.5} />
+            <path d="M 510 90 V 130 A 50 16 0 0 0 610 130 V 90" fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2.5} />
+            <ellipse cx={560} cy={105} rx={50} ry={16} fill="none" stroke={C.amber} strokeWidth={1.5} opacity={0.6} />
+            <ellipse cx={560} cy={120} rx={50} ry={16} fill="none" stroke={C.amber} strokeWidth={1.5} opacity={0.4} />
+            <text x={560} y={160} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">physical disk</text>
+          </g>
 
-          {/* Projected beam to virtual table */}
-          <line x1={376} y1={112} x2={470} y2={112} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" />
-          <polygon points="464,106 464,118 478,112" fill={C.green} />
-
-          {/* Virtual table (transparent grid) */}
-          <rect x={480} y={60} width={150} height={100} fill={`${C.green}11`} stroke={C.green} strokeWidth={2} strokeDasharray="5 4" rx={8} />
-          <text x={555} y={84} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">vw_store_sales</text>
-          <line x1={490} y1={94} x2={620} y2={94} stroke={C.green} strokeWidth={1} opacity={0.5} />
-          <line x1={490} y1={110} x2={620} y2={110} stroke={C.green} strokeWidth={1} opacity={0.5} />
-          <line x1={490} y1={126} x2={620} y2={126} stroke={C.green} strokeWidth={1} opacity={0.5} />
-          <line x1={490} y1={142} x2={620} y2={142} stroke={C.green} strokeWidth={1} opacity={0.5} />
-          <text x={555} y={178} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">virtual · zero disk</text>
+          {/* Bottom caption */}
+          <text x={310} y={200} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">pre-computed cache layer ✓</text>
         </svg>
 
         {/* Bottom status */}
         <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>physical ──► lens</span>
-          <span>virtual ✓</span>
+          <span>transparent ──► solid</span>
+          <span>disk ✓</span>
         </div>
       </Win>
 
-      {/* RIGHT: Projection visualization with physical tables + lens + virtual grid */}
-      <Win x={800} y={180} w={1040} h={720} title="projection lens ──► physical tables converge into a virtual view" accent={C.blue} opacity={tablesP}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-          3 physical tables ──► blue CREATE VIEW lens ──► transparent virtual table (zero disk space)
+      {/* RIGHT: Big visualization — transparent lens → solid purple block → clamps onto disk with green speed rays */}
+      <Win x={800} y={170} w={1040} h={720} title="materialized view lens ──► solid purple block clamps onto physical disk" accent={C.purple} opacity={physP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
+          transparent virtual lens ──► CREATE MATERIALIZED VIEW ──► solid purple block ──► disk cache + speed rays
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>Physical Tables</Chip>
-          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>{beamProg > 0.05 ? 'Projecting...' : 'idle'}</Chip>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{beamProg > 0.95 ? 'Virtual ✓' : '...'}</Chip>
+          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>Transparent Lens</Chip>
+          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>{clampProg > 0.05 ? 'Solidifying...' : 'idle'}</Chip>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{clampProg > 0.95 ? 'On Disk ✓' : '...'}</Chip>
         </div>
 
-        {/* SVG projection diagram */}
         <svg width={1000} height={600} style={{position: 'absolute', left: 20, top: 60}}>
-          {/* Three physical tables stacked on the left */}
-          {TABLES.map((tbl, i) => {
-            const ap = clamp(pop(f, t(5.5 + i * 0.6)));
-            return (
-              <g key={i} style={{opacity: clamp(ap)}}>
-                <rect x={20} y={tbl.y} width={220} height={120} fill={`${C.blue}18`} stroke={C.blue} strokeWidth={2.5} rx={12} />
-                <rect x={20} y={tbl.y} width={220} height={30} fill={C.blue} rx={12} />
-                <rect x={20} y={tbl.y + 18} width={220} height={12} fill={C.blue} />
-                <text x={130} y={tbl.y + 20} fill={C.bg} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">{tbl.name}</text>
-                {tbl.rows.map((r, j) => (
-                  <text key={j} x={36} y={tbl.y + 56 + j * 18} fill={C.text} fontSize={12} fontFamily={MONO}>{r}</text>
-                ))}
-                {/* Database disk icon */}
-                <g transform={`translate(200, ${tbl.y + 80})`}>
-                  <ellipse cx={0} cy={0} rx={14} ry={5} fill="none" stroke={C.amber} strokeWidth={2} />
-                  <path d="M -14 0 V 14 A 14 5 0 0 0 14 14 V 0" fill="none" stroke={C.amber} strokeWidth={2} />
-                  <ellipse cx={0} cy={7} rx={14} ry={5} fill="none" stroke={C.amber} strokeWidth={1.5} opacity={0.6} />
-                </g>
-              </g>
-            );
-          })}
+          {/* Transparent virtual view lens (left) - fades as block solidifies */}
+          <g style={{opacity: clamp(1 - solidify * 0.85)}}>
+            <ellipse cx={180} cy={300} rx={110} ry={80} fill={`${C.blue}11`} stroke={C.blue} strokeWidth={3} strokeDasharray="8 6" style={{filter: `drop-shadow(0 0 ${10 + pulse * 6}px ${C.blue}66)`}} />
+            <text x={180} y={295} fill={C.blue} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">Virtual View</text>
+            <text x={180} y={316} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">re-computes on every read</text>
+            <text x={180} y={336} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">zero disk storage</text>
+          </g>
 
-          {/* Light beams from each table converging into the lens */}
+          {/* Transformation arrows: lens → block */}
+          <g style={{opacity: clamp(pop(f, t(9)))}}>
+            <line x1={300} y1={300} x2={430} y2={300} stroke={C.purple} strokeWidth={4} strokeDasharray="8 4" opacity={0.4 + 0.6 * solidify} />
+            <polygon points="424,294 424,306 438,300" fill={C.purple} />
+            <text x={365} y={288} fill={C.purple} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">CREATE MAT VIEW ──►</text>
+            <text x={365} y={326} fill={C.amber} fontSize={10} fontFamily={MONO} textAnchor="middle">solidify · clamp onto disk</text>
+          </g>
+
+          {/* Solid purple materialized block (center) - grows solid as clampProg progresses */}
+          <g style={{opacity: clamp(pop(f, t(9)))}}>
+            <rect x={450} y={180} width={280} height={240} fill={`${C.purple}${solidify > 0.5 ? '44' : '11'}`} stroke={C.purple} strokeWidth={4} rx={16} style={{filter: `drop-shadow(0 0 ${10 + solidify * 14}px ${C.purple})`}} />
+            <text x={590} y={210} fill={C.purple} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">mv_sales</text>
+            <text x={590} y={230} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">solid materialized block</text>
+            {/* Block rows (pre-computed cache content) */}
+            {MV_ROWS.map((row, i) => {
+              const rowP = clamp((solidify - i * 0.1) * 1.5);
+              return (
+                <g key={i} style={{opacity: clamp(rowP)}}>
+                  <rect x={470} y={250 + i * 32} width={240} height={28} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={1} rx={4} />
+                  <text x={486} y={268 + i * 32} fill={C.text} fontSize={11} fontFamily={MONO}>{row.id}</text>
+                  <text x={540} y={268 + i * 32} fill={C.text} fontSize={11} fontFamily={MONO}>{row.region}</text>
+                  <text x={660} y={268 + i * 32} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700}>{row.total}</text>
+                </g>
+              );
+            })}
+            <text x={590} y={430} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">pre-computed · cached</text>
+          </g>
+
+          {/* Green speed rays bursting from block */}
           <g style={{opacity: clamp(pop(f, t(20)))}}>
-            {TABLES.map((tbl, i) => {
-              const startY = tbl.y + 60;
-              const beamO = clamp((beamProg - i * 0.1) * 1.5);
+            {[80, 100, 120, 280, 300, 320, 480, 500, 520].map((angleOff, i) => {
+              const baseY = 200 + i * 4;
+              const len = rayLen * (0.6 + (i % 3) * 0.18);
               return (
                 <line
                   key={i}
-                  x1={240}
-                  y1={startY}
-                  x2={460}
-                  y2={300}
-                  stroke={C.blue}
-                  strokeWidth={3}
-                  strokeDasharray="8 4"
-                  opacity={0.25 + 0.6 * beamO}
-                  style={{filter: `drop-shadow(0 0 6px ${C.blue})`}}
+                  x1={730}
+                  y1={200 + i * 32}
+                  x2={730 + len}
+                  y2={200 + i * 32}
+                  stroke={C.green}
+                  strokeWidth={2.5}
+                  strokeDasharray="8 5"
+                  opacity={0.4 + 0.5 * clampProg}
+                  style={{filter: `drop-shadow(0 0 4px ${C.green}88)`}}
                 />
               );
             })}
+            <text x={820} y={150} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚡ Pre-Computed Cache Layer</text>
           </g>
 
-          {/* Blue CREATE VIEW lens (center) */}
+          {/* Physical disk (right) - block clamps down onto it */}
+          <g style={{opacity: clamp(diskP)}}>
+            <ellipse cx={910} cy={300} rx={70} ry={22} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} />
+            <path d="M 840 300 V 380 A 70 22 0 0 0 980 380 V 300" fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} />
+            <ellipse cx={910} cy={325} rx={70} ry={22} fill="none" stroke={C.amber} strokeWidth={2} opacity={0.6} />
+            <ellipse cx={910} cy={350} rx={70} ry={22} fill="none" stroke={C.amber} strokeWidth={2} opacity={0.4} />
+            <text x={910} y={300} fill={C.amber} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">physical disk</text>
+            <text x={910} y={320} fill={C.amber} fontSize={10} fontFamily={MONO} textAnchor="middle">Heap Files</text>
+            {/* Clamp indicator */}
+            <text x={910} y={420} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{clampProg > 0.95 ? '✓ block cached on disk' : `clamping... ${Math.round(clampProg * 100)}%`}</text>
+          </g>
+
+          {/* Clamp-down beam from block to disk */}
           <g style={{opacity: clamp(pop(f, t(20)))}}>
-            <circle cx={500} cy={300} r={60} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={4} style={{filter: `drop-shadow(0 0 ${16 + pulse * 10}px ${C.blue})`}} />
-            <circle cx={500} cy={300} r={44} fill="none" stroke={C.blue} strokeWidth={2} opacity={0.5} />
-            <text x={500} y={292} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">CREATE</text>
-            <text x={500} y={312} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">VIEW</text>
-            <text x={500} y={385} fill={C.blue} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">projection lens</text>
+            <line x1={730} y1={300} x2={840} y2={300} stroke={C.green} strokeWidth={4} strokeDasharray="6 4" opacity={0.4 + 0.6 * clampProg} />
+            <polygon points="834,294 834,306 848,300" fill={C.green} />
+            <text x={785} y={290} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">clamp ──►</text>
           </g>
 
-          {/* Projected beam from lens to virtual table */}
-          <g style={{opacity: clamp(pop(f, t(20)))}}>
-            <line x1={560} y1={300} x2={720} y2={300} stroke={C.green} strokeWidth={3.5} strokeDasharray="8 4" opacity={0.7 + 0.3 * beamProg} />
-            <polygon points="714,294 714,306 728,300" fill={C.green} />
-            <text x={640} y={288} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">projects ──►</text>
-          </g>
-
-          {/* Virtual table (transparent grid) on the right */}
-          <g style={{opacity: clamp(virtualP)}}>
-            <rect x={730} y={160} width={250} height={280} fill={`${C.green}0d`} stroke={C.green} strokeWidth={2.5} strokeDasharray="6 4" rx={12} style={{filter: `drop-shadow(0 0 12px ${C.green}44)`}} />
-            <text x={855} y={192} fill={C.green} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">vw_store_sales</text>
-            <text x={855} y={212} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">Virtual Table</text>
-            {/* Grid rows */}
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((r) => (
-              <line key={r} x1={745} y1={234 + r * 22} x2={965} y2={234 + r * 22} stroke={C.green} strokeWidth={1} opacity={0.4} />
-            ))}
-            {/* Phantom rows of data */}
-            <text x={760} y={252} fill={C.green} fontSize={11} fontFamily={MONO} opacity={0.8}>101 | Ahmed | Mouse | 250</text>
-            <text x={760} y={274} fill={C.green} fontSize={11} fontFamily={MONO} opacity={0.6}>102 | Sara  | Keys  | 480</text>
-            <text x={760} y={296} fill={C.green} fontSize={11} fontFamily={MONO} opacity={0.5}>103 | Omar  | Cable | 90</text>
-            <text x={760} y={318} fill={C.green} fontSize={11} fontFamily={MONO} opacity={0.4}>104 | Hana  | Cam   | 720</text>
-            {/* Zero disk badge */}
-            <rect x={760} y={400} width={190} height={32} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={16} />
-            <text x={855} y={421} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">Zero Disk Space ✓</text>
-          </g>
-
-          {/* Projection status banner */}
-          {beamProg > 0.95 ? (
-            <g style={{opacity: clamp(pop(f, t(27)))}}>
+          {/* Cache layer banner */}
+          {clampProg > 0.95 ? (
+            <g style={{opacity: clamp(pop(f, t(26)))}}>
               <rect x={250} y={500} width={500} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
-              <text x={500} y={532} fill={C.green} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Virtual Table Materialized on Demand · Zero Storage Overhead</text>
+              <text x={500} y={532} fill={C.green} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Materialized Block Cached on Disk · Pre-Computed · Zero Re-Computation</text>
             </g>
           ) : null}
 
-          {/* Caption-style status text below */}
+          {/* Status text */}
           <text x={500} y={580} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">
-            {beamProg < 0.3 ? 'physical tables ready...' : beamProg < 0.9 ? 'blue lens projecting query...' : 'virtual table live ✓ · zero disk'}
+            {clampProg < 0.3 ? 'transparent lens ready...' : clampProg < 0.9 ? 'purple block solidifying · clamping to disk...' : 'materialized view on disk ✓ · pre-computed cache'}
           </text>
         </svg>
 
         {/* Bottom status */}
         <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 16, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.blue}}>Physical · on disk</span>
-          <span style={{color: beamProg >= 1 ? C.green : C.amber, opacity: clamp(pop(f, t(20)))}}>
-            {beamProg >= 1 ? '✓ virtual table live' : beamProg > 0 ? `projecting... ${Math.round(beamProg * 100)}%` : 'idle'}
+          <span style={{color: C.blue}}>Transparent · virtual</span>
+          <span style={{color: clampProg >= 1 ? C.green : C.amber, opacity: clamp(pop(f, t(20)))}}>
+            {clampProg >= 1 ? '✓ on disk · cached' : clampProg > 0 ? `solidifying... ${Math.round(clampProg * 100)}%` : 'idle'}
           </span>
-          <span style={{color: C.green}}>Virtual · zero disk</span>
+          <span style={{color: C.green}}>Solid · on disk</span>
         </div>
       </Win>
 
@@ -246,19 +253,19 @@ export const Scene1: React.FC = () => {
       <div style={{position: 'absolute', left: 80, top: 920, opacity: clamp(sealP)}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
           <Check p={sealP} size={36} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Virtual Table · Sealed ✓</div>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Materialized Block · Sealed ✓</div>
         </div>
       </div>
 
-      {/* Module 14 Architecture chip bottom-right */}
+      {/* Module 14 Materialized Optimization chip bottom-right */}
       <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(modP)}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
           <Check p={modP} size={36} color={C.green} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Module 14 Architecture ✓</div>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Module 14 Materialized Optimization ✓</div>
         </div>
       </div>
 
-      <Caption text="CREATE VIEW ──► Projection Lens ──► Virtual Table ──► Zero Disk Space ──► Module 14 Start" from={t(20)} to={sec(38)} tone="ok" />
+      <Caption text="CREATE MATERIALIZED VIEW ──► Solid Purple Block ──► Disk Cache ──► Pre-Computed ──► Module 14 Opt" from={t(20)} to={sec(38)} tone="ok" />
     </Stage>
   );
 };
