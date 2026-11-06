@@ -3,12 +3,12 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (210-240s): Manzooma Academy outro — Module 12 at 100%
-// Anchors: 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 ACID & transactions
+// SC06 (210-240s): Manzooma Academy outro — Module 13 at 25%
+// Anchors: 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 SAVEPOINT
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['SARGable Predicates ✓', 'Function Wrapping Fix ✓', 'Column Arithmetic ✓', 'LIKE Wildcards ✓', 'Implicit Casting ✓'];
+const SKILLS = ['ACID Properties ✓', 'BEGIN ✓', 'COMMIT ✓', 'ROLLBACK ✓', 'WAL & XID ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
@@ -19,8 +19,8 @@ export const Scene6: React.FC = () => {
   const modDone = prog(f, t(213.5), 20);
   const res = prog(f, t(215), 24);
   const next = prog(f, t(220), 28);
-  const code = typed("BEGIN;\nUPDATE accounts SET balance = balance - 500;\nCOMMIT;", f, t(225), 0.65).split('\n');
-  const pct = Math.round(fill * 100); // 100% of Module 12
+  const code = typed('BEGIN;\nSAVEPOINT sp1;\nUPDATE accounts SET balance = balance - 200;\nROLLBACK TO sp1;\nCOMMIT;', f, t(225), 0.6).split('\n');
+  const pct = Math.round(fill * 25); // 25% of Module 13
 
   return (
     <Stage dur={900} inFx="fade" outFx="black">
@@ -45,17 +45,17 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.green}}>
-              Lesson 52 Completed: <span style={{color: C.text}}>SARGable Queries &amp; High-Performance Best Practices Mastered</span>
+              Lesson 53 Completed: <span style={{color: C.text}}>ACID Properties &amp; Transactions (BEGIN, COMMIT, ROLLBACK, WAL, XID) Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
+              <div style={{width: `${fill * 25}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 12 · Indexing &amp; Optimization — {modDone > 0.5 ? 'SARGable · pg_statistic · Selectivity Mastered ✓' : 'in progress'}
+            Module 13 · ACID &amp; Transactions — {modDone > 0.5 ? 'Started · Atomicity · Consistency · Isolation · Durability ✓' : 'in progress'}
           </div>
         </div>
 
@@ -78,13 +78,13 @@ export const Scene6: React.FC = () => {
 
         <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 53</Mix>
-            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>خصائص ACID والمعاملات (Transactions) — BEGIN / COMMIT / ROLLBACK</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 54</Mix>
+            <Mix style={{fontSize: 30, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>SAVEPOINT و ROLLBACK TO SAVEPOINT — Savepoints &amp; Partial Rollback</Mix>
           </div>
-          <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 15, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 53 · ACID Properties &amp; Transactions</div>
+          <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 14, color: C.text}}>
+            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 54 · SAVEPOINT &amp; ROLLBACK TO SAVEPOINT</div>
             {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 24}}>
+              <div key={i} style={{whiteSpace: 'pre', minHeight: 22}}>
                 <Sql text={l} />
                 {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
               </div>

@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-52-sargable-queries",
+  "name": "manzooma-sql-lesson-53-acid-transactions",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 52: SARGable Queries & High-Performance Best Practices (Search Argument Able, Function Wrapping, Column Arithmetic, LIKE Wildcards, Implicit Casting, pg_statistic Selectivity, Module 12 Completion) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 53: ACID Properties & Transactions (BEGIN, COMMIT, ROLLBACK, Atomicity, Consistency, Isolation, Durability, WAL, XID, Banking & Inventory) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L52-SARGable-Queries out/sql-l52-sargable-queries.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L53-ACID-Transactions out/sql-l53-acid-transactions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

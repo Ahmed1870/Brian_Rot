@@ -1,4 +1,4 @@
-name: Render SQL Lesson 52 SARGable Queries
+name: Render SQL Lesson 53 ACID Transactions
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 52 only
+      - name: Guard - this repo must contain lesson 53 only
         run: |
-          grep -q "SQL-L52-SARGable-Queries" src/theme.ts
-          grep -q "SQL-L52-SARGable-Queries" package.json
-          test -f public/voiceover_lesson_52.mp3
+          grep -q "SQL-L53-ACID-Transactions" src/theme.ts
+          grep -q "SQL-L53-ACID-Transactions" package.json
+          test -f public/voiceover_lesson_53.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L52-SARGable-Queries out/sql-l52-sargable-queries.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l52-sargable-queries.mp4
+      - run: npx remotion render src/index.ts SQL-L53-ACID-Transactions out/sql-l53-acid-transactions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l53-acid-transactions.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l52-sargable-queries
-          path: out/sql-l52-sargable-queries.mp4
+          name: sql-l53-acid-transactions
+          path: out/sql-l53-acid-transactions.mp4
           if-no-files-found: error

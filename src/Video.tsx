@@ -12,7 +12,7 @@ import {Scene6} from './scenes/Scene6';
 export const Video: React.FC = () => (
   <>
     <Backdrop />
-    <Audio src={staticFile('voiceover_lesson_52.mp3')} />
+    <Audio src={staticFile('voiceover_lesson_53.mp3')} />
     <Sequence from={SCENES.s1.from} durationInFrames={SCENES.s1.dur}><Scene1 /></Sequence>
     <Sequence from={SCENES.s2.from} durationInFrames={SCENES.s2.dur}><Scene2 /></Sequence>
     <Sequence from={SCENES.s3.from} durationInFrames={SCENES.s3.dur}><Scene3 /></Sequence>

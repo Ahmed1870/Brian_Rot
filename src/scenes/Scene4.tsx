@@ -1,204 +1,211 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
-import {SELECTIVITY} from '../data';
+import {WAL_ENTRIES} from '../data';
+import {Caption, Check, Chip, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC04 (130-170s): pg_statistic & Selectivity — Optimizer Routing Seq Scan vs Index Scan
-// Anchors: 131.0 optimizer | 136.0 pg_statistic | 140.0 selectivity | 145.0 0.001 | 150.0 index scan | 155.0 route | 160.0 seal | 165.0 fast
+// SC04 (130-170s): XID & WAL — Transaction ID + Write-Ahead Log
+// Anchors: 131.0 XID | 136.0 unique | 140.0 WAL | 145.0 write-ahead | 150.0 crash | 155.0 durability | 160.0 seal | 165.0 fast
 const S = START.s4;
 const t = (g: number) => sec(g - S);
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(131.5), 14));
-  const statP = clamp(lin(f, t(136), 14));
-  // Selectivity gauge fill
-  const selProg = clamp(lin(f, t(140), sec(8)));
-  // Routing decision animation
-  const routeProg = clamp(lin(f, t(150), sec(10)));
+  const xidP = clamp(lin(f, t(131.5), 14));
+  const uniqueP = clamp(lin(f, t(136), 14));
+  const walP = clamp(lin(f, t(140), 14));
+  const writeAheadP = clamp(lin(f, t(145), 14));
+  const crashP = pop(f, t(150));
+  const durP = pop(f, t(155));
   const sealP = pop(f, t(160));
   const fastP = pop(f, t(165));
 
-  // Interpolated selectivity value
-  const selVal = lerp(1, SELECTIVITY.highValue, selProg);
-  // Cost values
-  const seqCost = lerp(0, 5432.10, clamp(lin(f, t(150), 8)));
-  const idxCost = lerp(0, 12.45, clamp(lin(f, t(153), 8)));
+  // WAL stream flow animation - entries flowing through the stream
+  const flowProg = clamp(lin(f, t(140), sec(20)));
+  // Disk write flush animation
+  const flushProg = clamp(lin(f, t(155), sec(8)));
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="pg_statistic والانتقائية | pg_statistic & Selectivity — Optimizer Routing" from={sec(2)} to={sec(40)} color={C.amber} />
+      <TopBadge text="XID و WAL | Transaction ID & Write-Ahead Log — Crash-Proof Durability" from={sec(2)} to={sec(40)} color={C.purple} />
 
-      {/* EXPLAIN editor at top */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={180}
-          w={1760}
-          h={140}
-          title="PostgreSQL 16 · EXPLAIN ANALYZE · selectivity estimation"
-          lines={[
-            'EXPLAIN SELECT * FROM store_orders WHERE total_amount > 5000;',
-            '-- pg_statistic histogram ──► optimizer estimates selectivity',
-          ]}
-          start={t(131.5)}
-          cps={0.78}
-          size={16}
-          accent={C.blue}
-          hl={0}
-          hlColor={C.blue}
-        />
-      </div>
-
-      {/* LEFT: pg_statistic catalog with selectivity gauge */}
-      <Win x={80} y={340} w={860} h={540} title="pg_statistic catalog ──► selectivity calculation" accent={C.amber} opacity={statP}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
-          pg_statistic · most_common_vals + histogram_bounds
+      {/* LEFT: PostgreSQL 16 engine + XID capsule assignment */}
+      <Win x={80} y={180} w={860} h={360} title="PostgreSQL 16 engine ──► XID assignment" accent={C.purple} opacity={xidP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
+          every transaction gets a unique XID ──► identity capsule
         </div>
 
-        {/* Catalog table */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 60, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, lineHeight: 1.6}}>
-          <div style={{color: '#64748B', fontSize: 11, marginBottom: 6}}>pg_statistic · table=store_orders · column=total_amount</div>
-          <div><span style={{color: C.amber}}>starelid</span>      : 16384 (store_orders)</div>
-          <div><span style={{color: C.amber}}>staattnum</span>     : 5</div>
-          <div><span style={{color: C.amber}}>stadistinct</span>   : -0.85 (≈ 85% distinct)</div>
-          <div><span style={{color: C.amber}}>stanullfrac</span>   : 0.02</div>
-          <div><span style={{color: C.amber}}>histogram_bounds</span>: [0, 250, 1200, ... 5000, ... 99999]</div>
+        <div style={{position: 'absolute', right: 18, top: 14}}>
+          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>PostgreSQL 16</Chip>
         </div>
 
-        {/* Selectivity gauge */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 230, padding: '14px 16px', border: `2px solid ${selProg > 0.7 ? C.green : C.amber}`, borderRadius: 10, background: selProg > 0.7 ? `${C.green}0d` : `${C.amber}0d`}}>
-          <div dir="ltr" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
-            <span style={{fontFamily: MONO, fontSize: 15, color: C.text, fontWeight: 700}}>Selectivity estimate</span>
-            <span style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color: selProg > 0.7 ? C.green : C.amber}}>
-              {selVal.toFixed(3)}
-            </span>
-          </div>
-          {/* Gauge bar */}
-          <div style={{height: 18, borderRadius: 9, background: C.border, overflow: 'hidden'}}>
-            <div
-              style={{
-                height: '100%',
-                width: `${selProg * 100}%`,
-                background: `linear-gradient(90deg, ${C.green}, ${C.amber})`,
-                borderRadius: 9,
-              }}
-            />
-          </div>
-          <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 6, fontFamily: MONO, fontSize: 11, color: C.muted}}>
-            <span style={{color: C.green}}>0.001 (high sel)</span>
-            <span>← Index Scan favored</span>
-            <span style={{color: C.red}}>1.0 (low sel)</span>
-          </div>
-        </div>
+        <svg width={820} height={280} style={{position: 'absolute', left: 20, top: 60}}>
+          {/* PostgreSQL engine block */}
+          <rect x={20} y={60} width={200} height={120} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} rx={14} style={{filter: `drop-shadow(0 0 12px ${C.blue}55)`}} />
+          <text x={120} y={100} fill={C.blue} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">PostgreSQL 16</text>
+          <text x={120} y={120} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">TX Manager</text>
+          <text x={120} y={142} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">pg_xact · pg_mvcc</text>
+          <text x={120} y={160} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">assigning XID...</text>
 
-        {/* Decision matrix */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 360, display: 'flex', gap: 12}}>
-          <div style={{flex: 1, padding: '12px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, opacity: selProg > 0.7 ? 1 : 0.4}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 4}}>High Selectivity</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>sel &lt; 0.05 → Index Scan</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginTop: 4}}>few matching rows</div>
-          </div>
-          <div style={{flex: 1, padding: '12px', border: `2px solid ${C.red}`, borderRadius: 10, background: `${C.red}0d`, opacity: selProg < 0.3 ? 0.4 : 1}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700, marginBottom: 4}}>Low Selectivity</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>sel &gt; 0.20 → Seq Scan</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginTop: 4}}>most rows match</div>
-          </div>
-        </div>
+          {/* Arrow from engine to XID capsule */}
+          <line x1={220} y1={120} x2={300} y2={120} stroke={C.purple} strokeWidth={4} strokeDasharray="8 4" />
+          <polygon points="294,114 294,126 308,120" fill={C.purple} />
+          <text x={260} y={110} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">assigns</text>
+
+          {/* XID capsule (purple, large) */}
+          <rect
+            x={310}
+            y={70}
+            width={490}
+            height={100}
+            fill={`${C.purple}22`}
+            stroke={C.purple}
+            strokeWidth={4}
+            rx={50}
+            style={{filter: `drop-shadow(0 0 18px ${C.purple}66)`, opacity: clamp(uniqueP)}}
+          />
+          <text x={555} y={110} fill={C.purple} fontSize={28} fontFamily={MONO} fontWeight={700} textAnchor="middle">XID: 804921</text>
+          <text x={555} y={140} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">unique transaction identifier · monotonically increasing</text>
+          <text x={555} y={158} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">✓ globally unique · never reused</text>
+
+          {/* XID properties */}
+          <text x={120} y={210} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">every BEGIN ──► new XID allocated</text>
+          <text x={555} y={210} fill={C.purple} fontSize={12} fontFamily={MONO} textAnchor="middle">XID ──► MVCC visibility · WAL tagging · rollback tracking</text>
+          <text x={410} y={240} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">XID + WAL = crash-safe transaction durability</text>
+        </svg>
 
         {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>pg_statistic · histogram_bounds</span>
-          <span>{selProg > 0.7 ? '✓ 0.001 = high selectivity' : 'estimating...'}</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>BEGIN ──► assigns XID</span>
+          <span>unique · monotonic</span>
+          <span>used by MVCC + WAL</span>
         </div>
       </Win>
 
-      {/* RIGHT: Execution plan routing — Seq Scan vs Index Scan */}
-      <Win x={980} y={340} w={860} h={540} title="execution plan routing ──► Optimizer picks Index Scan" accent={C.green} opacity={clamp(lin(f, t(150), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
-          optimizer evaluates costs ──► routes to lowest plan
+      {/* RIGHT: WAL log stream visualization */}
+      <Win x={980} y={180} w={860} h={720} title="WAL log stream ──► write-ahead logging" accent={C.blue} opacity={walP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
+          WAL buffers changes BEFORE disk write ──► crash-safe guarantee
         </div>
 
-        {/* Two competing plans */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 60, display: 'flex', gap: 14}}>
-          {/* Seq Scan — high cost */}
-          <div style={{flex: 1, padding: '14px', border: `2px solid ${routeProg > 0.5 ? C.red : C.border}`, borderRadius: 10, background: routeProg > 0.3 ? `${C.red}0d` : 'transparent'}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700, marginBottom: 6}}>Seq Scan ✗</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginBottom: 8}}>on store_orders</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text, marginBottom: 4}}>
-              cost: <span style={{color: C.red, fontWeight: 700, fontSize: 18}}>{seqCost.toFixed(2)}</span>
-            </div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>rows: 1,000,000</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>full table scan</div>
-          </div>
-
-          {/* Index Scan — low cost (winner) */}
-          <div style={{flex: 1, padding: '14px', border: `2px solid ${routeProg > 0.5 ? C.green : C.border}`, borderRadius: 10, background: routeProg > 0.3 ? `${C.green}0d` : 'transparent', boxShadow: routeProg > 0.9 ? `0 0 24px ${C.green}66` : 'none'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6}}>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700}}>Index Scan ✓</div>
-              {routeProg > 0.9 ? <Check p={1} size={24} color={C.green} /> : null}
-            </div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted, marginBottom: 8}}>using idx_total_amount</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text, marginBottom: 4}}>
-              cost: <span style={{color: C.green, fontWeight: 700, fontSize: 18}}>{idxCost.toFixed(2)}</span>
-            </div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>rows: ~1000</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.green}}>sel = 0.001</div>
-          </div>
+        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
+          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>{writeAheadP > 0.5 ? 'Write-Ahead ✓' : '...'}</Chip>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{durP > 0.5 ? 'Durable ✓' : '...'}</Chip>
         </div>
 
-        {/* Cost comparison bar */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 250, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginBottom: 8}}>cost comparison (log scale)</div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.red, width: 80}}>Seq Scan</span>
-            <div style={{flex: 1, height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${Math.min(100, 100 - routeProg * 95)}%`, background: C.red, borderRadius: 7}} />
-            </div>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.red, fontWeight: 700, width: 70, textAlign: 'right'}}>{seqCost.toFixed(0)}</span>
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.green, width: 80}}>Index Scan</span>
-            <div style={{flex: 1, height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${Math.max(5, routeProg * 8)}%`, background: C.green, borderRadius: 7}} />
-            </div>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.green, fontWeight: 700, width: 70, textAlign: 'right'}}>{idxCost.toFixed(0)}</span>
-          </div>
-        </div>
+        {/* SVG WAL stream */}
+        <svg width={820} height={560} style={{position: 'absolute', left: 20, top: 60}}>
+          {/* Source: DML changes */}
+          <rect x={20} y={20} width={170} height={70} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2} rx={10} />
+          <text x={105} y={50} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">DML changes</text>
+          <text x={105} y={70} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">INSERT · UPDATE · DELETE</text>
 
-        {/* Winner routing banner */}
-        {routeProg > 0.9 ? (
-          <div style={{position: 'absolute', left: 18, right: 18, top: 380, padding: '12px 14px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, opacity: clamp(sealP)}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700, marginBottom: 4}}>✓ Optimizer routed to: Index Scan</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>selectivity 0.001 · cost reduction {(5432.10 / 12.45).toFixed(0)}× faster · 99.9% rows pruned</div>
-          </div>
-        ) : null}
+          {/* Arrow into WAL buffer */}
+          <line x1={190} y1={55} x2={240} y2={55} stroke={C.blue} strokeWidth={3} />
+          <polygon points="234,49 234,61 248,55" fill={C.blue} />
 
-        {/* Fast chip */}
-        <div style={{position: 'absolute', right: 18, top: 480, opacity: clamp(fastP)}}>
-          <Chip color={C.green} style={{fontSize: 16, padding: '6px 16px'}}>
-            <Check p={1} size={22} color={C.green} /> {fastP > 0 ? '437× Faster ✓' : '...'}
-          </Chip>
-        </div>
+          {/* WAL Buffer (blue stream container) */}
+          <rect
+            x={250}
+            y={20}
+            width={320}
+            height={70}
+            fill={`${C.blue}22`}
+            stroke={C.blue}
+            strokeWidth={3}
+            rx={10}
+            style={{filter: `drop-shadow(0 0 12px ${C.blue}55)`}}
+          />
+          <text x={410} y={45} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">WAL Buffer (shared_buffers)</text>
+          <text x={410} y={68} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">write-ahead · serialized · ordered</text>
+          <text x={410} y={84} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">✓ written BEFORE data files</text>
+
+          {/* Arrow from WAL buffer to WAL log file */}
+          <line x1={570} y1={55} x2={620} y2={55} stroke={C.blue} strokeWidth={3} />
+          <polygon points="614,49 614,61 628,55" fill={C.blue} />
+
+          {/* WAL log file (on disk) */}
+          <rect x={630} y={20} width={170} height={70} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.green}66)`}} />
+          <text x={715} y={50} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">WAL log file</text>
+          <text x={715} y={70} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">pg_wal/000001...</text>
+          <text x={715} y={84} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">✓ fsync() flushed</text>
+
+          {/* WAL entries flowing through the stream */}
+          <text x={410} y={140} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">─── WAL entries flow (tagged with XID 804921) ───</text>
+
+          {WAL_ENTRIES.map((entry, i) => {
+            const itemFlow = clamp((flowProg * WAL_ENTRIES.length) - i);
+            const x = lerp(40, 720, clamp(itemFlow));
+            const y = 180 + i * 80;
+            const flushed = flushProg > (i + 1) / (WAL_ENTRIES.length + 1);
+            return (
+              <g key={i} style={{opacity: clamp(itemFlow)}}>
+                {/* Entry card */}
+                <rect
+                  x={x}
+                  y={y}
+                  width={260}
+                  height={64}
+                  fill={flushed ? `${C.green}22` : `${C.blue}22`}
+                  stroke={flushed ? C.green : C.blue}
+                  strokeWidth={flushed ? 3 : 2}
+                  rx={10}
+                  style={flushed ? {filter: `drop-shadow(0 0 8px ${C.green}55)`} : undefined}
+                />
+                <text x={x + 130} y={y + 22} fill={flushed ? C.green : C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">{entry.action}</text>
+                <text x={x + 130} y={y + 40} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">{entry.xid} · {entry.lsn}</text>
+                <text x={x + 130} y={y + 56} fill={flushed ? C.green : C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{flushed ? '✓ flushed to disk' : '◉ in buffer'}</text>
+
+                {/* Arrow to next entry (if not last) */}
+                {i < WAL_ENTRIES.length - 1 ? (
+                  <line x1={x + 130} y1={y + 64} x2={x + 130} y2={y + 80} stroke={C.blue} strokeWidth={2} strokeDasharray="4 3" opacity={0.6} />
+                ) : null}
+              </g>
+            );
+          })}
+
+          {/* Crash durability banner */}
+          <g style={{opacity: clamp(crashP)}}>
+            <rect x={20} y={440} width={780} height={60} fill={`${C.red}11`} stroke={C.red} strokeWidth={2} strokeDasharray="6 4" rx={10} />
+            <text x={410} y={465} fill={C.red} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚠ System crash scenario</text>
+            <text x={410} y={486} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">on reboot ──► PostgreSQL replays WAL ──► committed TXs restored · uncommitted rolled back</text>
+          </g>
+
+          {/* Durability result */}
+          <g style={{opacity: clamp(durP)}}>
+            <rect x={20} y={510} width={780} height={40} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} style={{filter: `drop-shadow(0 0 8px ${C.green}55)`}} />
+            <text x={410} y={535} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Crash Durability · instant rollback · zero data loss</text>
+          </g>
+        </svg>
 
         {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>planner · cost-based</span>
-          <span>pg_statistic → selectivity</span>
-          <span>WINNER: Index Scan</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>WAL ──► write-ahead log</span>
+          <span>flushed BEFORE commit</span>
+          <span>crash-safe ✓</span>
         </div>
       </Win>
 
       {/* Seal badge */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 920, display: 'flex', justifyContent: 'center', opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
+      <div style={{position: 'absolute', left: 80, top: 580, width: 860, opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
           <Check p={sealP} size={36} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>pg_statistic · Selectivity 0.001 · Index Scan ✓</div>
+          <div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>XID + WAL ──► Crash-Safe Seal ✓</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>unique identity · write-ahead log · durability guaranteed</div>
+          </div>
         </div>
       </div>
 
-      <Caption text="pg_statistic ──► selectivity 0.001 ──► Optimizer Routes to Index Scan (437× faster)" from={t(150)} to={sec(44)} tone="ok" />
+      {/* Fast chip */}
+      <div style={{position: 'absolute', left: 80, top: 690, width: 860, opacity: clamp(fastP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`}}>
+          <Check p={fastP} size={32} color={C.amber} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.amber, fontWeight: 700}}>Instant Rollback · Fast Recovery · Production-Ready ✓</div>
+        </div>
+      </div>
+
+      <Caption text="XID (unique) ──► WAL write-ahead log ──► fsync ──► Crash Durability + Instant Rollback" from={t(150)} to={sec(40)} tone="ok" />
     </Stage>
   );
 };

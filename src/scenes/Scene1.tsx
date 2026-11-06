@@ -3,221 +3,215 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC01 (0-40s): SARGable Engine — Predicate Matching Guard Shield & Green Index Path
-// Anchors: 1.0 welcome | 5.0 SARGable | 9.0 Search Argument | 14.0 golden standard | 20.0 index scan | 28.0 seal | 35.0 benchmark
+// SC01 (0-40s): Transaction Concept — Unit of Work & Laser-Gated Scope
+// Anchors: 1.0 welcome | 5.0 transaction | 9.0 all-or-nothing | 14.0 unit of work | 20.0 lock | 28.0 seal | 35.0 protected
 const S = START.s1;
 const t = (g: number) => sec(g - S);
 
-// B-Tree leaf nodes (index path visualization)
-const LEAVES = [
-  {x: 80, y: 80, value: 10, active: false},
-  {x: 180, y: 80, value: 25, active: false},
-  {x: 280, y: 80, value: 40, active: true},
-  {x: 380, y: 80, value: 50, active: false},
-  {x: 480, y: 80, value: 75, active: false},
-  {x: 580, y: 80, value: 90, active: false},
-  {x: 680, y: 80, value: 100, active: false},
+// DML statements that flow into the transaction scope
+const DML_FLOW = [
+  {label: 'INSERT', color: C.green, y: 110},
+  {label: 'UPDATE', color: C.amber, y: 200},
+  {label: 'DELETE', color: C.red, y: 290},
+  {label: 'COMMIT', color: C.blue, y: 380},
 ];
 
 export const Scene1: React.FC = () => {
   const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(2), 14));
-  const engineP = clamp(lin(f, t(5), 16));
-  const argP = clamp(lin(f, t(9), 14));
-  const goldP = clamp(lin(f, t(14), 14));
-  // Index scan laser animation
-  const scanStart = t(20);
-  const scanDur = sec(8);
-  const scanProg = clamp((f - scanStart) / scanDur);
-  // Pointer position along the index path
-  const idx = Math.min(LEAVES.length - 1, Math.floor(scanProg * LEAVES.length));
-  const stepFrac = scanProg * LEAVES.length - idx;
-  const cur = LEAVES[idx];
-  const next = LEAVES[Math.min(LEAVES.length - 1, idx + 1)];
-  const px = lerp(cur.x, next.x, stepFrac);
-  const py = lerp(cur.y, next.y, stepFrac);
+  const editorP = clamp(lin(f, t(1.5), 14));
+  const txP = clamp(lin(f, t(5), 16));
+  // Laser gates closing animation (close around the DML statements)
+  const lockStart = t(20);
+  const lockDur = sec(8);
+  const lockProg = clamp((f - lockStart) / lockDur);
+  // Top gate slides down, bottom gate slides up
+  const gateTopY = lerp(-40, 70, lockProg);
+  const gateBotY = lerp(490, 420, lockProg);
+  // DML flow-in animation (each statement slides in)
+  const flowProg = clamp(lin(f, t(9), sec(8)));
   const sealP = pop(f, t(28));
-  const benchP = pop(f, t(35));
+  const protP = pop(f, t(35));
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="left">
-      <TopBadge text="محرّك SARGable | SARGable Engine — Search Argument Able Queries" from={sec(2)} to={sec(18)} color={C.blue} />
+      <TopBadge text="مفهوم المعاملة (Transaction) | Transaction Scope — All-or-Nothing Unit of Work" from={sec(2)} to={sec(18)} color={C.purple} />
 
-      {/* LEFT: Query editor (SARGable query) */}
+      {/* LEFT: Code editor with transaction DML statements */}
       <div style={{opacity: editorP}}>
         <Editor
           x={80}
           y={180}
           w={820}
-          h={220}
-          title="Query Editor · SARGable predicate"
+          h={260}
+          title="Query Editor · transaction DML block"
           lines={[
-            'SELECT id, name, unit_price',
-            'FROM products',
-            'WHERE unit_price > 100',
-            '  AND name LIKE "Pro%";',
-            '-- SARGable: column OP constant',
+            'BEGIN;',
+            'INSERT INTO orders (id, total)',
+            "  VALUES (9001, 1500);",
+            'UPDATE accounts SET balance = balance - 1500',
+            '  WHERE id = 101;',
+            'COMMIT;',
           ]}
-          start={t(2)}
+          start={t(1.5)}
           cps={0.85}
-          size={17}
+          size={16}
           accent={C.blue}
-          hl={2}
-          hlColor={C.blue}
+          hl={0}
+          hlColor={C.purple}
         />
       </div>
 
       {/* Concept chips below editor */}
-      <div style={{position: 'absolute', left: 80, top: 420, width: 820, opacity: clamp(lin(f, t(9), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ SARGable golden standard</div>
+      <div style={{position: 'absolute', left: 80, top: 460, width: 820, opacity: clamp(lin(f, t(9), 14))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ Transaction golden rule</div>
         <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>Column OP Constant</Chip>
-          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>Index Scan ✓</Chip>
-          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>B-Tree Traversal</Chip>
-          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>O(log n)</Chip>
+          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>Unit of Work</Chip>
+          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>All-or-Nothing ✓</Chip>
+          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>Atomic Block</Chip>
+          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>BEGIN · COMMIT</Chip>
         </div>
       </div>
 
-      {/* Guard shield — predicate matching gate */}
-      <Win x={80} y={480} w={820} h={420} title="predicate matching guard ──► SARGability check" accent={C.green} opacity={clamp(lin(f, t(14), 14))}>
+      {/* Unit of Work badge panel */}
+      <Win x={80} y={540} w={820} h={360} title="unit of work ──► all-or-nothing execution" accent={C.green} opacity={clamp(lin(f, t(14), 14))}>
         <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
-          WHERE clause ──► guard shield ──► green index path
+          BEGIN ──► DML block ──► COMMIT or ROLLBACK
         </div>
 
-        <svg width={780} height={300} style={{position: 'absolute', left: 20, top: 50}}>
-          {/* Input: WHERE clause */}
-          <rect x={20} y={120} width={220} height={60} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={10} />
-          <text x={130} y={148} fill={C.blue} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">WHERE unit_price</text>
-          <text x={130} y={168} fill={C.amber} fontSize={14} fontFamily={MONO} textAnchor="middle">&gt; 100</text>
+        <svg width={780} height={260} style={{position: 'absolute', left: 20, top: 50}}>
+          {/* BEGIN input block */}
+          <rect x={20} y={40} width={160} height={70} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={10} />
+          <text x={100} y={68} fill={C.blue} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">BEGIN;</text>
+          <text x={100} y={90} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">open transaction</text>
 
-          {/* Arrow to shield */}
-          <line x1={240} y1={150} x2={300} y2={150} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" />
-          <polygon points="294,144 294,156 308,150" fill={C.green} />
+          {/* Arrow to DML block */}
+          <line x1={180} y1={75} x2={240} y2={75} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" />
+          <polygon points="234,69 234,81 248,75" fill={C.green} />
 
-          {/* Guard shield (SVG path) */}
-          <g style={{filter: `drop-shadow(0 0 14px ${C.green}88)`}}>
-            <path d="M380 90 L460 70 L540 90 L540 170 C540 210 500 230 460 240 C420 230 380 210 380 170 Z"
-              fill={`${C.green}22`} stroke={C.green} strokeWidth={3} strokeLinejoin="round" />
-            <text x={460} y={140} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">SARGable</text>
-            <text x={460} y={160} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Guard</text>
-            <text x={460} y={190} fill={C.text} fontSize={12} fontFamily={MONO} textAnchor="middle">column OP const</text>
-          </g>
+          {/* DML block (purple scope) */}
+          <rect x={250} y={20} width={280} height={110} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 12px ${C.purple}66)`}} />
+          <text x={390} y={45} fill={C.purple} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">DML Scope (Unit of Work)</text>
+          <text x={280} y={70} fill={C.amber} fontSize={12} fontFamily={MONO}>• INSERT</text>
+          <text x={280} y={88} fill={C.amber} fontSize={12} fontFamily={MONO}>• UPDATE</text>
+          <text x={280} y={106} fill={C.amber} fontSize={12} fontFamily={MONO}>• DELETE</text>
+          <text x={400} y={70} fill={C.muted} fontSize={11} fontFamily={MONO}>all executed</text>
+          <text x={400} y={88} fill={C.muted} fontSize={11} fontFamily={MONO}>as one block</text>
+          <text x={400} y={106} fill={C.muted} fontSize={11} fontFamily={MONO}>atomic</text>
 
-          {/* Arrow from shield to index path */}
-          <line x1={540} y1={150} x2={600} y2={150} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" />
-          <polygon points="594,144 594,156 608,150" fill={C.green} />
+          {/* Arrow to COMMIT/ROLLBACK */}
+          <line x1={530} y1={75} x2={590} y2={75} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" />
+          <polygon points="584,69 584,81 598,75" fill={C.green} />
 
-          {/* Index path output */}
-          <rect x={610} y={120} width={150} height={60} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={10} />
-          <text x={685} y={148} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Index Scan</text>
-          <text x={685} y={168} fill={C.green} fontSize={12} fontFamily={MONO} textAnchor="middle">✓ approved</text>
+          {/* COMMIT / ROLLBACK outcome */}
+          <rect x={600} y={20} width={150} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} />
+          <text x={675} y={48} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">COMMIT ✓</text>
+          <text x={675} y={62} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">permanent</text>
+
+          <rect x={600} y={80} width={150} height={50} fill={`${C.red}22`} stroke={C.red} strokeWidth={2} rx={8} />
+          <text x={675} y={108} fill={C.red} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">ROLLBACK ✗</text>
+          <text x={675} y={122} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">reverted</text>
 
           {/* Status text */}
-          <text x={390} y={270} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700}>✓ SARGable predicate · index-safe · green laser route</text>
+          <text x={390} y={170} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Unit of Work · all-or-nothing atomic block</text>
+          <text x={390} y={195} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">no partial state · no torn writes · guaranteed integrity</text>
+          <text x={390} y={220} fill={C.amber} fontSize={11} fontFamily={MONO} textAnchor="middle">fail anywhere → entire block reverts</text>
         </svg>
 
         {/* Bottom status */}
         <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>predicate form: column OP expression</span>
-          <span>rule: keep column bare on left side</span>
+          <span>BEGIN ──► opens transaction</span>
+          <span>COMMIT / ROLLBACK ──► closes</span>
         </div>
       </Win>
 
-      {/* RIGHT: SARGable Engine with B-Tree index path */}
-      <Win x={940} y={180} w={900} h={720} title="SARGable Engine ──► B-Tree green laser index path" accent={C.blue} opacity={engineP}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-          search: unit_price &gt; 100 ──► index traversal
+      {/* RIGHT: Transaction Scope container with laser gates closing around DML statements */}
+      <Win x={940} y={180} w={900} h={720} title="transaction scope ──► laser gates seal DML statements" accent={C.purple} opacity={txP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
+          DML statements enter scope ──► laser gates lock them as one unit
         </div>
 
-        {/* SARGable Engine badge + Module 12 chip */}
+        {/* Module 13 chip + lock chip */}
         <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', alignItems: 'center', gap: 12}}>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 14px'}}>
-            <Check p={1} size={22} color={C.green} /> Index Scan ✓
+          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>Module 13 Transactions</Chip>
+          <Chip color={lockProg > 0.7 ? C.green : C.amber} style={{fontSize: 13, padding: '4px 12px'}}>
+            {lockProg > 0.7 ? 'Locked ✓' : 'Locking...'}
           </Chip>
-          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>Module 12 Optimization Benchmark</Chip>
         </div>
 
-        {/* SVG B-Tree index path */}
-        <svg width={900} height={420} style={{position: 'absolute', left: 0, top: 60}}>
-          {/* B-Tree root */}
-          <circle cx={450} cy={40} r={30} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} />
-          <text x={450} y={48} fill={C.blue} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">50</text>
-          <text x={450} y={84} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">Root</text>
+        {/* SVG scope container with laser gates */}
+        <svg width={900} height={610} style={{position: 'absolute', left: 0, top: 60}}>
+          {/* Transaction scope outer frame (purple) */}
+          <rect
+            x={60}
+            y={50}
+            width={780}
+            height={430}
+            fill={`${C.purple}11`}
+            stroke={C.purple}
+            strokeWidth={3}
+            strokeDasharray="10 6"
+            rx={16}
+            style={{filter: `drop-shadow(0 0 18px ${C.purple}55)`}}
+          />
+          <text x={450} y={40} fill={C.purple} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚡ Transaction Scope (purple boundary)</text>
 
-          {/* Internal nodes */}
-          <line x1={440} y1={66} x2={220} y2={130} stroke={C.border} strokeWidth={3} />
-          <line x1={460} y1={66} x2={680} y2={130} stroke={C.border} strokeWidth={3} />
-          <circle cx={220} cy={150} r={28} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} />
-          <text x={220} y={157} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">25</text>
-          <text x={220} y={192} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">Internal L</text>
-          <circle cx={680} cy={150} r={28} fill={`${C.green}22`} stroke={C.green} strokeWidth={4} style={{filter: `drop-shadow(0 0 8px ${C.green})`}} />
-          <text x={680} y={157} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">75</text>
-          <text x={680} y={192} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">Internal R ✓</text>
+          {/* TOP laser gate (closes downward) */}
+          <g style={{opacity: clamp(lockProg > 0 ? 1 : 0)}}>
+            <line x1={70} y1={gateTopY} x2={830} y2={gateTopY} stroke={C.purple} strokeWidth={4} style={{filter: `drop-shadow(0 0 8px ${C.purple})`}} />
+            <text x={450} y={gateTopY - 8} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">▼ laser gate (top)</text>
+          </g>
 
-          {/* Lines from internal R to leaves */}
-          {LEAVES.map((leaf, i) => (
-            <line
-              key={`line-${i}`}
-              x1={680}
-              y1={178}
-              x2={leaf.x + 30}
-              y2={leaf.y + 30}
-              stroke={scanProg > i / LEAVES.length ? C.green : C.border}
-              strokeWidth={scanProg > i / LEAVES.length ? 3 : 2}
-              strokeOpacity={scanProg > i / LEAVES.length ? 0.9 : 0.4}
-            />
-          ))}
+          {/* BOTTOM laser gate (closes upward) */}
+          <g style={{opacity: clamp(lockProg > 0 ? 1 : 0)}}>
+            <line x1={70} y1={gateBotY} x2={830} y2={gateBotY} stroke={C.purple} strokeWidth={4} style={{filter: `drop-shadow(0 0 8px ${C.purple})`}} />
+            <text x={450} y={gateBotY + 18} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">▲ laser gate (bottom)</text>
+          </g>
 
-          {/* Leaf nodes */}
-          {LEAVES.map((leaf, i) => {
-            const reached = scanProg > i / LEAVES.length;
-            const matched = leaf.value > 100;
-            const isCurrent = i === idx && scanProg < 1;
+          {/* DML statements flowing into the scope */}
+          {DML_FLOW.map((dml, i) => {
+            const itemProg = clamp((flowProg * DML_FLOW.length) - i);
+            const xEnter = lerp(-180, 130 + i * 170, clamp(itemProg));
+            const yInside = dml.y;
+            const locked = lockProg > 0.5 && itemProg >= 1;
             return (
-              <g key={`leaf-${i}`} style={{opacity: reached ? 1 : 0.45}}>
+              <g key={i} style={{opacity: clamp(itemProg)}}>
                 <rect
-                  x={leaf.x}
-                  y={leaf.y}
-                  width={60}
-                  height={60}
-                  fill={matched && reached ? `${C.green}33` : reached ? `${C.blue}22` : 'transparent'}
-                  stroke={matched && reached ? C.green : reached ? C.blue : C.border}
-                  strokeWidth={matched && reached ? 3 : 2}
-                  rx={8}
-                  style={isCurrent ? {filter: `drop-shadow(0 0 8px ${C.green})`} : undefined}
+                  x={xEnter}
+                  y={yInside - 25}
+                  width={140}
+                  height={50}
+                  fill={locked ? `${dml.color}33` : `${dml.color}22`}
+                  stroke={dml.color}
+                  strokeWidth={locked ? 3 : 2}
+                  rx={10}
+                  style={locked ? {filter: `drop-shadow(0 0 10px ${dml.color})`} : undefined}
                 />
-                <text x={leaf.x + 30} y={leaf.y + 38} fill={matched && reached ? C.green : C.text} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">{leaf.value}</text>
+                <text x={xEnter + 70} y={yInside + 4} fill={dml.color} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">{dml.label}{locked ? ' 🔒' : ''}</text>
               </g>
             );
           })}
 
-          {/* Green laser pointer */}
-          {scanProg > 0 && scanProg < 1 ? (
-            <g style={{filter: `drop-shadow(0 0 8px ${C.green})`}}>
-              <circle cx={px + 30} cy={py + 30} r={12} fill={C.green} opacity={0.7} />
-              <circle cx={px + 30} cy={py + 30} r={7} fill={C.text} />
-              <text x={px + 30} y={py - 6} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">scanning</text>
+          {/* Lock status */}
+          {lockProg >= 1 ? (
+            <g style={{opacity: clamp(pop(f, t(28)))}}>
+              <rect x={300} y={500} width={300} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
+              <text x={450} y={532} fill={C.green} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Sealed: Unit of Work</text>
             </g>
           ) : null}
 
-          {/* Status label */}
-          <text x={450} y={210} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">Leaf Level · B-Tree</text>
+          {/* Caption-style status text below */}
+          <text x={450} y={580} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">
+            {lockProg < 0.3 ? 'statements entering scope...' : lockProg < 0.9 ? 'laser gates closing...' : 'all DML locked as one atomic block ✓'}
+          </text>
         </svg>
 
-        {/* Index scan explanation */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 510, padding: '14px 16px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, opacity: clamp(lin(f, t(20), 14))}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700, marginBottom: 6}}>✓ SARGable predicate approved</div>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text, lineHeight: 1.6}}>
-            WHERE unit_price &gt; 100 ──► column (unit_price) directly compared to constant (100).<br />
-            Optimizer routes to B-Tree Index Scan ──► O(log n) lookup ──► only matching leaves visited.
-          </div>
-        </div>
-
         {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 60, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 16, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.blue}}>SARGable · column OP constant</span>
-          <span style={{color: C.green, opacity: clamp(pop(f, t(20)))}}>{scanProg >= 1 ? '✓ Index Scan complete' : scanProg > 0 ? `scanning leaf ${idx + 1}/${LEAVES.length}` : 'idle'}</span>
-          <span style={{color: C.amber}}>cost: O(log n)</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 16, fontWeight: 700, paddingTop: 8, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span style={{color: C.purple}}>Transaction · purple scope</span>
+          <span style={{color: lockProg >= 1 ? C.green : C.amber, opacity: clamp(pop(f, t(20)))}}>
+            {lockProg >= 1 ? '✓ Unit of Work sealed' : lockProg > 0 ? `locking... ${Math.round(lockProg * 100)}%` : 'idle'}
+          </span>
+          <span style={{color: C.green}}>Atomicity ✓</span>
         </div>
       </Win>
 
@@ -225,19 +219,19 @@ export const Scene1: React.FC = () => {
       <div style={{position: 'absolute', left: 80, top: 920, opacity: clamp(sealP)}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
           <Check p={sealP} size={36} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>SARGable · Golden Standard · Index Scan ✓</div>
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Unit of Work · All-or-Nothing · Sealed ✓</div>
         </div>
       </div>
 
-      {/* Benchmark chip on the right */}
-      <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(benchP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`}}>
-          <Check p={benchP} size={36} color={C.amber} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.amber, fontWeight: 700}}>Module 12 Optimization Benchmark ✓</div>
+      {/* Protected chip on the right */}
+      <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(protP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.purple}`, borderRadius: 14, background: `${C.purple}0d`}}>
+          <Check p={protP} size={36} color={C.purple} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.purple, fontWeight: 700}}>Transaction Protected ✓</div>
         </div>
       </div>
 
-      <Caption text="SARGable Engine ──► WHERE column OP constant ──► Index Scan (Golden Standard)" from={t(20)} to={sec(38)} tone="ok" />
+      <Caption text="Transaction ──► BEGIN ──► DML Block ──► Laser Gates Seal ──► All-or-Nothing Unit of Work" from={t(20)} to={sec(38)} tone="ok" />
     </Stage>
   );
 };
