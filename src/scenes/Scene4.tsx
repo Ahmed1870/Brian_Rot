@@ -1,211 +1,199 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {WAL_ENTRIES} from '../data';
 import {Caption, Check, Chip, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC04 (130-170s): XID & WAL — Transaction ID + Write-Ahead Log
-// Anchors: 131.0 XID | 136.0 unique | 140.0 WAL | 145.0 write-ahead | 150.0 crash | 155.0 durability | 160.0 seal | 165.0 fast
+// SC04 (130-170s): Subtransactions & SubXID — PostgreSQL 16 Subtransaction Engine
+// Anchors: 131.0 subtransactions | 136.0 SubXID | 140.0 WAL | 145.0 abort | 150.0 capsule | 155.0 target | 160.0 seal | 165.0 fast
 const S = START.s4;
 const t = (g: number) => sec(g - S);
 
+// SubXID capsule list
+const SUBCAPS = [
+  {label: 'SubXID: 804922', savepoint: 'sp_a', color: C.blue},
+  {label: 'SubXID: 804923', savepoint: 'sp_b', color: C.blue},
+];
+
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const xidP = clamp(lin(f, t(131.5), 14));
-  const uniqueP = clamp(lin(f, t(136), 14));
-  const walP = clamp(lin(f, t(140), 14));
-  const writeAheadP = clamp(lin(f, t(145), 14));
-  const crashP = pop(f, t(150));
-  const durP = pop(f, t(155));
+  const subP = clamp(lin(f, t(131.5), 14));
+  const xidP = clamp(lin(f, t(136), sec(6)));
+  const walP = clamp(lin(f, t(140), sec(6)));
+  const abortP = clamp(lin(f, t(145), sec(8)));
+  const capP = pop(f, t(150));
+  const tgtP = pop(f, t(155));
   const sealP = pop(f, t(160));
   const fastP = pop(f, t(165));
-
-  // WAL stream flow animation - entries flowing through the stream
-  const flowProg = clamp(lin(f, t(140), sec(20)));
-  // Disk write flush animation
-  const flushProg = clamp(lin(f, t(155), sec(8)));
+  // SubXID spawn animation
+  const spawnProg = clamp(lin(f, t(136), sec(8)));
+  // Abort animation
+  const abortProg = clamp(lin(f, t(145), sec(8)));
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="XID و WAL | Transaction ID & Write-Ahead Log — Crash-Proof Durability" from={sec(2)} to={sec(40)} color={C.purple} />
+      <TopBadge text="Subtransactions و SubXID | PostgreSQL 16 Subtransaction Engine" from={sec(2)} to={sec(40)} color={C.purple} />
 
-      {/* LEFT: PostgreSQL 16 engine + XID capsule assignment */}
-      <Win x={80} y={180} w={860} h={360} title="PostgreSQL 16 engine ──► XID assignment" accent={C.purple} opacity={xidP}>
+      {/* LEFT: PostgreSQL 16 engine + main XID + SubXID capsules */}
+      <Win x={80} y={180} w={860} h={560} title="PostgreSQL 16 subtransaction engine ──► XID spawns SubXIDs" accent={C.purple} opacity={subP}>
         <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
-          every transaction gets a unique XID ──► identity capsule
-        </div>
-
-        <div style={{position: 'absolute', right: 18, top: 14}}>
-          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>PostgreSQL 16</Chip>
-        </div>
-
-        <svg width={820} height={280} style={{position: 'absolute', left: 20, top: 60}}>
-          {/* PostgreSQL engine block */}
-          <rect x={20} y={60} width={200} height={120} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} rx={14} style={{filter: `drop-shadow(0 0 12px ${C.blue}55)`}} />
-          <text x={120} y={100} fill={C.blue} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">PostgreSQL 16</text>
-          <text x={120} y={120} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">TX Manager</text>
-          <text x={120} y={142} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">pg_xact · pg_mvcc</text>
-          <text x={120} y={160} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">assigning XID...</text>
-
-          {/* Arrow from engine to XID capsule */}
-          <line x1={220} y1={120} x2={300} y2={120} stroke={C.purple} strokeWidth={4} strokeDasharray="8 4" />
-          <polygon points="294,114 294,126 308,120" fill={C.purple} />
-          <text x={260} y={110} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">assigns</text>
-
-          {/* XID capsule (purple, large) */}
-          <rect
-            x={310}
-            y={70}
-            width={490}
-            height={100}
-            fill={`${C.purple}22`}
-            stroke={C.purple}
-            strokeWidth={4}
-            rx={50}
-            style={{filter: `drop-shadow(0 0 18px ${C.purple}66)`, opacity: clamp(uniqueP)}}
-          />
-          <text x={555} y={110} fill={C.purple} fontSize={28} fontFamily={MONO} fontWeight={700} textAnchor="middle">XID: 804921</text>
-          <text x={555} y={140} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">unique transaction identifier · monotonically increasing</text>
-          <text x={555} y={158} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">✓ globally unique · never reused</text>
-
-          {/* XID properties */}
-          <text x={120} y={210} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">every BEGIN ──► new XID allocated</text>
-          <text x={555} y={210} fill={C.purple} fontSize={12} fontFamily={MONO} textAnchor="middle">XID ──► MVCC visibility · WAL tagging · rollback tracking</text>
-          <text x={410} y={240} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">XID + WAL = crash-safe transaction durability</text>
-        </svg>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>BEGIN ──► assigns XID</span>
-          <span>unique · monotonic</span>
-          <span>used by MVCC + WAL</span>
-        </div>
-      </Win>
-
-      {/* RIGHT: WAL log stream visualization */}
-      <Win x={980} y={180} w={860} h={720} title="WAL log stream ──► write-ahead logging" accent={C.blue} opacity={walP}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-          WAL buffers changes BEFORE disk write ──► crash-safe guarantee
+          main XID ──► SAVEPOINT creates child SubXID ──► per-savepoint identity
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>{writeAheadP > 0.5 ? 'Write-Ahead ✓' : '...'}</Chip>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{durP > 0.5 ? 'Durable ✓' : '...'}</Chip>
+          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>PostgreSQL 16</Chip>
+          <Chip color={abortProg > 0.5 ? C.green : C.amber} style={{fontSize: 13, padding: '4px 12px'}}>
+            {abortProg > 0.7 ? 'Sub aborted ✓' : 'spawning...'}
+          </Chip>
         </div>
 
-        {/* SVG WAL stream */}
-        <svg width={820} height={560} style={{position: 'absolute', left: 20, top: 60}}>
-          {/* Source: DML changes */}
-          <rect x={20} y={20} width={170} height={70} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2} rx={10} />
-          <text x={105} y={50} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">DML changes</text>
-          <text x={105} y={70} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">INSERT · UPDATE · DELETE</text>
+        <svg width={820} height={460} style={{position: 'absolute', left: 20, top: 60}}>
+          {/* PostgreSQL engine block */}
+          <rect x={20} y={20} width={200} height={100} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} rx={14} style={{filter: `drop-shadow(0 0 10px ${C.blue}55)`}} />
+          <text x={120} y={56} fill={C.blue} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">PostgreSQL 16</text>
+          <text x={120} y={78} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">Subtransaction Engine</text>
+          <text x={120} y={98} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">assigning SubXID...</text>
 
-          {/* Arrow into WAL buffer */}
-          <line x1={190} y1={55} x2={240} y2={55} stroke={C.blue} strokeWidth={3} />
-          <polygon points="234,49 234,61 248,55" fill={C.blue} />
+          {/* Main XID capsule (purple, large) */}
+          <rect x={250} y={20} width={550} height={100} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={4} rx={50} style={{filter: `drop-shadow(0 0 18px ${C.purple}66)`, opacity: clamp(xidP)}} />
+          <text x={525} y={58} fill={C.purple} fontSize={24} fontFamily={MONO} fontWeight={700} textAnchor="middle">XID: 804921 (main)</text>
+          <text x={525} y={84} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">transaction stays ACTIVE through subtransaction abort</text>
+          <text x={525} y={102} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">✓ main XID unaffected by sub-abort</text>
 
-          {/* WAL Buffer (blue stream container) */}
-          <rect
-            x={250}
-            y={20}
-            width={320}
-            height={70}
-            fill={`${C.blue}22`}
-            stroke={C.blue}
-            strokeWidth={3}
-            rx={10}
-            style={{filter: `drop-shadow(0 0 12px ${C.blue}55)`}}
-          />
-          <text x={410} y={45} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">WAL Buffer (shared_buffers)</text>
-          <text x={410} y={68} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">write-ahead · serialized · ordered</text>
-          <text x={410} y={84} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">✓ written BEFORE data files</text>
+          {/* Spawning arrows */}
+          <g style={{opacity: clamp(spawnProg)}}>
+            <line x1={525} y1={120} x2={250} y2={180} stroke={C.blue} strokeWidth={3} strokeDasharray="6 4" />
+            <polygon points="256,176 262,186 246,184" fill={C.blue} />
+            <line x1={525} y1={120} x2={525} y2={180} stroke={C.blue} strokeWidth={3} strokeDasharray="6 4" />
+            <polygon points="519,176 531,176 525,188" fill={C.blue} />
+            <line x1={525} y1={120} x2={800} y2={180} stroke={C.blue} strokeWidth={3} strokeDasharray="6 4" />
+            <polygon points="794,184 798,176 808,182" fill={C.blue} />
+          </g>
 
-          {/* Arrow from WAL buffer to WAL log file */}
-          <line x1={570} y1={55} x2={620} y2={55} stroke={C.blue} strokeWidth={3} />
-          <polygon points="614,49 614,61 628,55" fill={C.blue} />
-
-          {/* WAL log file (on disk) */}
-          <rect x={630} y={20} width={170} height={70} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.green}66)`}} />
-          <text x={715} y={50} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">WAL log file</text>
-          <text x={715} y={70} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">pg_wal/000001...</text>
-          <text x={715} y={84} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">✓ fsync() flushed</text>
-
-          {/* WAL entries flowing through the stream */}
-          <text x={410} y={140} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">─── WAL entries flow (tagged with XID 804921) ───</text>
-
-          {WAL_ENTRIES.map((entry, i) => {
-            const itemFlow = clamp((flowProg * WAL_ENTRIES.length) - i);
-            const x = lerp(40, 720, clamp(itemFlow));
-            const y = 180 + i * 80;
-            const flushed = flushProg > (i + 1) / (WAL_ENTRIES.length + 1);
+          {/* SubXID capsules (blue) */}
+          {SUBCAPS.map((sub, i) => {
+            const itemProg = clamp((spawnProg * SUBCAPS.length) - i);
+            const x = 80 + i * 350;
+            const aborted = abortProg > 0.5 && i === 0; // 804922 (sp_a) is aborted
+            const op = aborted ? 0.35 : clamp(itemProg);
+            const col = aborted ? C.red : sub.color;
             return (
-              <g key={i} style={{opacity: clamp(itemFlow)}}>
-                {/* Entry card */}
-                <rect
-                  x={x}
-                  y={y}
-                  width={260}
-                  height={64}
-                  fill={flushed ? `${C.green}22` : `${C.blue}22`}
-                  stroke={flushed ? C.green : C.blue}
-                  strokeWidth={flushed ? 3 : 2}
-                  rx={10}
-                  style={flushed ? {filter: `drop-shadow(0 0 8px ${C.green}55)`} : undefined}
-                />
-                <text x={x + 130} y={y + 22} fill={flushed ? C.green : C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">{entry.action}</text>
-                <text x={x + 130} y={y + 40} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">{entry.xid} · {entry.lsn}</text>
-                <text x={x + 130} y={y + 56} fill={flushed ? C.green : C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{flushed ? '✓ flushed to disk' : '◉ in buffer'}</text>
-
-                {/* Arrow to next entry (if not last) */}
-                {i < WAL_ENTRIES.length - 1 ? (
-                  <line x1={x + 130} y1={y + 64} x2={x + 130} y2={y + 80} stroke={C.blue} strokeWidth={2} strokeDasharray="4 3" opacity={0.6} />
-                ) : null}
+              <g key={i} style={{opacity: op}}>
+                <rect x={x} y={200} width={290} height={90} fill={`${col}22`} stroke={col} strokeWidth={aborted ? 2 : 4} rx={45} style={aborted ? {filter: 'none'} : {filter: `drop-shadow(0 0 12px ${col}66)`}} />
+                <text x={x + 145} y={236} fill={col} fontSize={18} fontFamily={MONO} fontWeight={700} textAnchor="middle">{sub.label}</text>
+                <text x={x + 145} y={260} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">spawned at {sub.savepoint}</text>
+                <text x={x + 145} y={280} fill={aborted ? C.red : C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{aborted ? '✗ ABORTED (target)' : '✓ active sub'}</text>
+                {/* Strike-through if aborted */}
+                {aborted ? <line x1={x + 20} y1={245} x2={x + 270} y2={245} stroke={C.red} strokeWidth={2} strokeDasharray="6 4" /> : null}
               </g>
             );
           })}
 
-          {/* Crash durability banner */}
-          <g style={{opacity: clamp(crashP)}}>
-            <rect x={20} y={440} width={780} height={60} fill={`${C.red}11`} stroke={C.red} strokeWidth={2} strokeDasharray="6 4" rx={10} />
-            <text x={410} y={465} fill={C.red} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚠ System crash scenario</text>
-            <text x={410} y={486} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">on reboot ──► PostgreSQL replays WAL ──► committed TXs restored · uncommitted rolled back</text>
+          {/* ROLLBACK TO SAVEPOINT label between sub-capsules */}
+          <g style={{opacity: clamp(abortP)}}>
+            <rect x={140} y={310} width={540} height={50} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={2} strokeDasharray="6 4" rx={10} />
+            <text x={410} y={342} fill={C.purple} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">ROLLBACK TO SAVEPOINT sp_a ──► aborts SubXID 804922 only</text>
           </g>
 
-          {/* Durability result */}
-          <g style={{opacity: clamp(durP)}}>
-            <rect x={20} y={510} width={780} height={40} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} style={{filter: `drop-shadow(0 0 8px ${C.green}55)`}} />
-            <text x={410} y={535} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Crash Durability · instant rollback · zero data loss</text>
-          </g>
+          {/* Result banner */}
+          {abortProg > 0.6 ? (
+            <g style={{opacity: clamp(pop(f, t(160)))}}>
+              <rect x={20} y={380} width={780} height={60} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green}66)`}} />
+              <text x={410} y={406} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ SubXID 804922 aborted · SubXID 804923 + main XID 804921 still active</text>
+              <text x={410} y={428} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">partial rollback lives at the SubXID layer · zero main-TX cost</text>
+            </g>
+          ) : null}
         </svg>
 
         {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>WAL ──► write-ahead log</span>
-          <span>flushed BEFORE commit</span>
-          <span>crash-safe ✓</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 38, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>XID (main)</span>
+          <span>SAVEPOINT → SubXID spawn</span>
+          <span>target abort ✓</span>
         </div>
       </Win>
 
-      {/* Seal badge */}
-      <div style={{position: 'absolute', left: 80, top: 580, width: 860, opacity: clamp(sealP)}}>
+      {/* RIGHT: WAL log stream with abort tracking */}
+      <Win x={980} y={180} w={860} h={560} title="WAL log stream ──► SubXID abort tracking" accent={C.blue} opacity={walP}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
+          WAL records every SubXID ──► abort logged · main XID unaffected
+        </div>
+
+        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
+          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>WAL tagged</Chip>
+          <Chip color={abortProg > 0.6 ? C.green : C.amber} style={{fontSize: 13, padding: '4px 12px'}}>
+            {abortProg > 0.7 ? 'Aborted ✓' : 'tracking...'}
+          </Chip>
+        </div>
+
+        <svg width={820} height={460} style={{position: 'absolute', left: 20, top: 60}}>
+          {/* WAL stream container */}
+          <rect x={10} y={10} width={800} height={40} fill={`${C.blue}11`} stroke={C.blue} strokeWidth={2} rx={8} />
+          <text x={410} y={36} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">─── WAL stream · all entries tagged with main XID 804921 ───</text>
+
+          {/* WAL entries */}
+          {[
+            {xid: 'XID 804921', sub: 'main', action: 'BEGIN', status: 'flushed', color: C.purple, y: 70},
+            {xid: 'XID 804921 · Sub 804922', sub: 'sp_a', action: 'UPDATE orders', status: 'logged', color: C.blue, y: 130},
+            {xid: 'XID 804921 · Sub 804923', sub: 'sp_b', action: 'UPDATE inventory', status: 'logged', color: C.blue, y: 190},
+            {xid: 'XID 804921 · Sub 804922', sub: 'sp_a', action: 'ABORT (ROLLBACK TO sp_a)', status: 'flushed', color: C.red, y: 250},
+            {xid: 'XID 804921', sub: 'main', action: 'COMMIT', status: 'flushed', color: C.green, y: 320},
+          ].map((entry, i) => {
+            const itemProg = clamp((walP * 5) - i);
+            const isAbort = i === 3;
+            const aborted = abortProg > 0.5 && isAbort;
+            return (
+              <g key={i} style={{opacity: clamp(itemProg)}}>
+                <rect x={20} y={entry.y} width={780} height={50} fill={aborted ? `${C.red}22` : `${entry.color}22`} stroke={aborted ? C.red : entry.color} strokeWidth={aborted ? 3 : 2} rx={10} style={aborted ? {filter: `drop-shadow(0 0 8px ${C.red}66)`} : undefined} />
+                <text x={36} y={entry.y + 22} fill={aborted ? C.red : entry.color} fontSize={13} fontFamily={MONO} fontWeight={700}>{entry.action}</text>
+                <text x={36} y={entry.y + 40} fill={C.muted} fontSize={11} fontFamily={MONO}>{entry.xid}</text>
+                <text x={780} y={entry.y + 30} fill={aborted ? C.red : (entry.status === 'flushed' ? C.green : C.amber)} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="end">{aborted ? '✗ ABORTED' : (entry.status === 'flushed' ? '✓ flushed' : '◉ in buffer')}</text>
+                {/* Connector */}
+                {i < 4 ? <line x1={410} y1={entry.y + 50} x2={410} y2={entry.y + 70} stroke={C.border} strokeWidth={1.5} strokeDasharray="3 3" opacity={0.5} /> : null}
+              </g>
+            );
+          })}
+
+          {/* Abort outcome banner */}
+          {abortProg > 0.7 ? (
+            <g style={{opacity: clamp(pop(f, t(160)))}}>
+              <rect x={20} y={390} width={780} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.green}55)`}} />
+              <text x={410} y={412} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ SubXID 804922 ABORT recorded · main XID 804921 COMMIT succeeded</text>
+              <text x={410} y={432} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">WAL preserves abort record for crash recovery · zero main-TX rollback</text>
+            </g>
+          ) : null}
+        </svg>
+
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 38, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>WAL ──► SubXID tracking</span>
+          <span>abort flushed</span>
+          <span>main XID intact ✓</span>
+        </div>
+      </Win>
+
+      {/* Seal badge bottom-left */}
+      <div style={{position: 'absolute', left: 80, top: 770, width: 860, opacity: clamp(sealP)}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
           <Check p={sealP} size={36} />
           <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>XID + WAL ──► Crash-Safe Seal ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>unique identity · write-ahead log · durability guaranteed</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Subtransaction Seal ✓</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>SubXID abort · main XID stays active · WAL-tagged recovery</div>
           </div>
         </div>
       </div>
 
-      {/* Fast chip */}
-      <div style={{position: 'absolute', left: 80, top: 690, width: 860, opacity: clamp(fastP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`}}>
-          <Check p={fastP} size={32} color={C.amber} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.amber, fontWeight: 700}}>Instant Rollback · Fast Recovery · Production-Ready ✓</div>
+      {/* Fast recovery chip bottom-right */}
+      <div style={{position: 'absolute', left: 980, top: 770, width: 860, opacity: clamp(fastP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`}}>
+          <Check p={fastP} size={36} color={C.amber} />
+          <div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.amber, fontWeight: 700}}>Fast SubXID Abort · Zero Main-TX Cost</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>target-only rollback · production-grade resilience</div>
+          </div>
         </div>
       </div>
 
-      <Caption text="XID (unique) ──► WAL write-ahead log ──► fsync ──► Crash Durability + Instant Rollback" from={t(150)} to={sec(40)} tone="ok" />
+      <Caption text="XID ──► SubXID (sp_a / sp_b) ──► ROLLBACK TO sp_a ──► Target SubXID Aborted · Main XID Active ✓" from={t(150)} to={sec(40)} tone="ok" />
     </Stage>
   );
 };

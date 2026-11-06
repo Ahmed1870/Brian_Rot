@@ -1,26 +1,33 @@
-// manzooma_store_db — Lesson 53 dataset
+// manzooma_store_db — Lesson 54 dataset
 
-/** ACID properties data. */
-export const ACID_PROPERTIES = [
-  {letter: 'A', name: 'Atomicity', desc: 'All-or-Nothing Execution', color: '#38BDF8', icon: 'atom'},
-  {letter: 'C', name: 'Consistency', desc: 'Valid State Transition', color: '#F59E0B', icon: 'balance'},
-  {letter: 'I', name: 'Isolation', desc: 'Zero Concurrency Interference', color: '#A855F7', icon: 'wall'},
-  {letter: 'D', name: 'Durability', desc: 'Power Failure Proof (WAL)', color: '#10B981', icon: 'shield'},
+/** Savepoint path steps for Scene 1 visualization. */
+export const SAVEPOINT_PATH = [
+  {label: 'BEGIN', type: 'start', color: '#F59E0B'},
+  {label: 'Step 1: INSERT', type: 'step', color: '#38BDF8'},
+  {label: 'SAVEPOINT A', type: 'savepoint', color: '#38BDF8'},
+  {label: 'Step 2: UPDATE', type: 'step', color: '#38BDF8'},
+  {label: 'SAVEPOINT B', type: 'savepoint', color: '#38BDF8'},
+  {label: 'Step 3: ERROR', type: 'error', color: '#EF4444'},
 ];
 
-/** Enterprise transaction query lines. */
+/** Enterprise checkout transaction lines. */
 export const ENTERPRISE_TX_LINES = [
   'BEGIN;',
-  'UPDATE store_customers SET balance = balance - 1500',
-  '  WHERE customer_id = 101;',
-  'UPDATE store_products SET stock_qty = stock_qty - 1',
-  '  WHERE product_id = 502;',
-  'COMMIT; -- or ROLLBACK on insufficient balance',
+  "UPDATE store_orders SET status = 'paid' WHERE order_id = 901;",
+  'SAVEPOINT coupon_apply;',
+  "UPDATE store_orders SET discount = 200 WHERE coupon_code = 'INVALID';",
+  'ROLLBACK TO SAVEPOINT coupon_apply; -- Reverts coupon only',
+  'COMMIT;',
 ];
 
-/** WAL log entries for visualization. */
-export const WAL_ENTRIES = [
-  {xid: 'XID: 804921', lsn: 'LSN: 0/1A2B3C', action: 'INSERT store_customers', status: 'logged'},
-  {xid: 'XID: 804921', lsn: 'LSN: 0/1A2B4D', action: 'UPDATE store_products', status: 'logged'},
-  {xid: 'XID: 804921', lsn: 'LSN: 0/1A2B5E', action: 'COMMIT', status: 'flushed'},
+/** Subtransaction data for Scene 4. */
+export const SUBTRANSACTIONS = [
+  {label: 'XID: 804921', type: 'main', color: '#A855F7', sub: []},
+  {label: 'XID: 804921', type: 'main', color: '#A855F7', sub: [
+    {label: 'SubXID: 804922', savepoint: 'sp_a', color: '#38BDF8'},
+  ]},
+  {label: 'XID: 804921', type: 'main', color: '#A855F7', sub: [
+    {label: 'SubXID: 804922', savepoint: 'sp_a', color: '#38BDF8'},
+    {label: 'SubXID: 804923', savepoint: 'sp_b', color: '#38BDF8'},
+  ]},
 ];

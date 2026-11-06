@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-53-acid-transactions",
+  "name": "manzooma-sql-lesson-54-savepoint-rollback",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 53: ACID Properties & Transactions (BEGIN, COMMIT, ROLLBACK, Atomicity, Consistency, Isolation, Durability, WAL, XID, Banking & Inventory) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 54: SAVEPOINT & ROLLBACK TO SAVEPOINT (Partial Rollbacks, RELEASE SAVEPOINT, Subtransactions, SubXID, WAL, Resilient E-Commerce Checkout) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L53-ACID-Transactions out/sql-l53-acid-transactions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L54-Savepoint-Rollback out/sql-l54-savepoint-rollback.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

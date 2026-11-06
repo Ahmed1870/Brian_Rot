@@ -4,8 +4,8 @@ import {C, MONO, START} from '../theme';
 import {ENTERPRISE_TX_LINES} from '../data';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC05 (170-210s): Enterprise Banking & Inventory — Atomic Financial Transaction
-// Anchors: 171.0 enterprise | 175.0 banking | 180.0 balance | 185.0 stock | 192.0 commit/rollback | 200.0 seal | 205.0 protected
+// SC05 (170-210s): Enterprise Resilient Checkout — Coupon Rollback, Main Order Preserved
+// Anchors: 171.0 enterprise | 175.0 checkout | 180.0 coupon | 185.0 rollback | 192.0 commit | 200.0 seal | 205.0 resilient
 const S = START.s5;
 const t = (g: number) => sec(g - S);
 
@@ -13,74 +13,75 @@ export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(171.5), 14));
   const reportP = clamp(lin(f, t(175), 14));
-  const bankP = clamp(lin(f, t(180), 14));
-  // Banking balance deduction animation
-  const balProg = clamp(lin(f, t(180), sec(8)));
-  // Stock decrement animation
-  const stockProg = clamp(lin(f, t(185), sec(8)));
-  // Commit/rollback branch animation
-  const branchProg = clamp(lin(f, t(192), sec(10)));
+  const couponP = clamp(lin(f, t(180), sec(8)));
+  // Coupon rollback animation
+  const rollbackProg = clamp(lin(f, t(185), sec(8)));
+  // Commit animation
+  const commitProg = clamp(lin(f, t(192), sec(8)));
   const sealP = pop(f, t(200));
-  const protP = pop(f, t(205));
+  const resP = pop(f, t(205));
 
-  // Interpolated values
-  const balanceBefore = 5000;
-  const balanceAfter = lerp(5000, 3500, balProg);
-  const stockBefore = 12;
-  const stockAfter = lerp(12, 11, stockProg);
+  // Order amount interp (illustrative)
+  const orderTotal = 1500;
+  const invalidDiscount = lerp(200, 0, rollbackProg); // discount reverted to 0
+  const finalTotal = orderTotal - invalidDiscount;
 
   return (
     <Stage dur={1200} inFx="morph" outFx="fade">
-      <TopBadge text="تطبيق مؤسسي | Enterprise Banking & Inventory — Atomic Financial Transaction" from={sec(1)} to={sec(38)} color={C.green} />
+      <TopBadge text="تطبيق مؤسسي | Enterprise Resilient Checkout — SAVEPOINT-Protected Coupon Apply" from={sec(1)} to={sec(38)} color={C.green} />
 
-      {/* LEFT: Editor with enterprise banking + inventory transaction */}
+      {/* LEFT: Editor with enterprise checkout transaction */}
       <Editor
         x={80}
         y={170}
         w={880}
-        h={320}
-        title="Enterprise · Banking + Inventory transaction (manzooma_store_db)"
+        h={340}
+        title="Enterprise · resilient checkout transaction (manzooma_store_db)"
         lines={ENTERPRISE_TX_LINES.concat([
           '',
-          '-- atomic: both UPDATEs succeed or both revert',
-          '-- ACID: balance + stock change together as one unit',
+          '-- main order commits · coupon UPDATE reverted',
+          '-- transaction stays resilient through invalid coupon',
         ])}
         start={t(171.5)}
-        cps={0.55}
+        cps={0.5}
         size={15}
         accent={C.green}
-        hl={1}
-        hlColor={C.blue}
+        hl={3}
+        hlColor={C.red}
       />
 
       {/* RIGHT: Executive report panel */}
-      <Win x={1000} y={170} w={840} h={320} title="executive report · banking + inventory atomicity" accent={C.green} opacity={reportP}>
+      <Win x={1000} y={170} w={840} h={340} title="executive report · resilient checkout atomicity" accent={C.green} opacity={reportP}>
         <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          Banking &amp; Inventory · Module 13 Capstone
+          Resilient Checkout · Module 13 Capstone
         </div>
         <div dir="ltr" style={{position: 'absolute', left: 24, top: 46, right: 24, display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>balance deduction</Chip>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>stock decrement</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>atomic ✓</Chip>
-          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>XID-tagged</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>WAL-flushed</Chip>
+          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>order paid ✓</Chip>
+          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>SAVEPOINT coupon_apply</Chip>
+          <Chip color={C.red} style={{fontSize: 14, padding: '4px 12px'}}>invalid coupon ✗</Chip>
+          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>ROLLBACK TO SAVEPOINT</Chip>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>COMMIT ✓</Chip>
         </div>
         <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 110, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep, fontFamily: MONO, fontSize: 13, color: C.text, lineHeight: 1.5}}>
-          <span style={{color: '#64748B'}}>transaction strategy:</span> single BEGIN ──► both UPDATEs execute ──► COMMIT (success) or ROLLBACK (insufficient balance / stock). ACID guarantees zero torn writes between bank and inventory ledgers.
+          <span style={{color: '#64748B'}}>resilient strategy:</span> SAVEPOINT before risky coupon UPDATE ──► on invalid coupon ──► ROLLBACK TO SAVEPOINT ──► COMMIT main order anyway. Zero torn checkout · graceful degradation.
         </div>
         <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 200, display: 'flex', gap: 12}}>
-          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.blue}`, borderRadius: 10, background: `${C.blue}0d`}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.blue, fontWeight: 700}}>Customer 101</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>balance: {balanceBefore.toFixed(0)} → {balanceAfter.toFixed(0)}</div>
+          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.green, fontWeight: 700}}>Order 901</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>status: pending → paid ✓</div>
           </div>
-          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.amber}`, borderRadius: 10, background: `${C.amber}0d`}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700}}>Product 502</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>stock: {stockBefore} → {stockAfter}</div>
+          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${rollbackProg > 0.5 ? C.red : C.amber}`, borderRadius: 10, background: `${rollbackProg > 0.5 ? C.red : C.amber}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: rollbackProg > 0.5 ? C.red : C.amber, fontWeight: 700}}>Coupon INVALID</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>discount: {invalidDiscount.toFixed(0)} → 0 (reverted)</div>
+          </div>
+          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.blue}`, borderRadius: 10, background: `${C.blue}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.blue, fontWeight: 700}}>Final Total</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>${finalTotal.toFixed(0)}</div>
           </div>
         </div>
         <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{fontFamily: MONO, fontSize: 18, color: C.text, fontWeight: 700}}>
-            atomic financial block ✓
+            resilient block ✓
           </div>
           <div style={{display: 'flex', alignItems: 'center', gap: 10, opacity: clamp(sealP), transform: `scale(${0.85 + 0.15 * clamp(sealP)})`}}>
             <Check p={sealP} size={36} color={C.green} />
@@ -89,94 +90,105 @@ export const Scene5: React.FC = () => {
         </div>
       </Win>
 
-      {/* BOTTOM: Banking panel with COMMIT ✓ / ROLLBACK ✗ paths */}
-      <Win x={80} y={510} w={1760} h={380} title="banking & inventory execution ──► COMMIT vs ROLLBACK outcome" accent={C.green} opacity={bankP}>
+      {/* BOTTOM: Checkout execution panel */}
+      <Win x={80} y={530} w={1760} h={380} title="resilient checkout execution ──► main order succeeds · coupon reverted" accent={C.green} opacity={couponP}>
         <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          both UPDATEs succeed ──► COMMIT ✓  ·  either fails ──► ROLLBACK ✗
+          order commits anyway ──► coupon UPDATE reverted via ROLLBACK TO SAVEPOINT
         </div>
 
-        {/* Two large panels: COMMIT path / ROLLBACK path */}
-        <div style={{position: 'absolute', left: 24, right: 24, top: 56, display: 'flex', gap: 18}}>
-          {/* COMMIT success path */}
-          <div style={{flex: 1, padding: '16px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, opacity: clamp(pop(f, t(192))), boxShadow: branchProg > 0.6 ? `0 0 24px ${C.green}44` : 'none'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
-              <span style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>COMMIT ✓ (success path)</span>
-              <Check p={1} size={28} color={C.green} />
+        {/* Three-stage execution timeline */}
+        <div style={{position: 'absolute', left: 24, right: 24, top: 60, display: 'flex', gap: 14}}>
+          {/* Stage 1: order paid */}
+          <div style={{flex: 1, padding: '14px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, opacity: clamp(couponP), boxShadow: `0 0 20px ${C.green}33`}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+              <span style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700}}>① UPDATE order → paid</span>
+              <Check p={1} size={26} color={C.green} />
             </div>
-            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>conditions:</div>
-            <div dir="ltr" style={{padding: '10px 12px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, minHeight: 80, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 14}}>
-              {`✓ balance >= 1500  (customer 101 has ${balanceAfter.toFixed(0)} after)\n✓ stock_qty >= 1   (product 502 has ${stockAfter} after)\n✓ all constraints satisfied\n→ COMMIT; ──► permanent ✓`}
+            <div dir="ltr" style={{padding: '8px 10px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 11, color: C.text, minHeight: 56, whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
+              {`UPDATE store_orders\nSET status = 'paid'\nWHERE order_id = 901;`}
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>
-              <span>both ledgers updated</span>
-              <span style={{color: C.green, fontWeight: 700}}>atomic ✓</span>
-            </div>
-            <div style={{height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${Math.max(20, balProg * 100)}%`, background: C.green, borderRadius: 7}} />
-            </div>
-            <div style={{marginTop: 10, fontFamily: MONO, fontSize: 13, color: C.green, fontWeight: 700}}>→ bank: -1500 · inventory: -1 · WAL flushed</div>
+            <div style={{marginTop: 8, fontFamily: MONO, fontSize: 12, color: C.green, fontWeight: 700}}>→ order status: paid ✓</div>
           </div>
 
-          {/* Arrow divider */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 80}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, textAlign: 'center'}}>branch</div>
-            <svg width={60} height={60}>
-              <line x1={30} y1={10} x2={30} y2={50} stroke={C.amber} strokeWidth={3} />
-              <polygon points="22,18 22,30 14,24" fill={C.green} />
-              <polygon points="38,18 38,30 46,24" fill={C.red} />
-            </svg>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, textAlign: 'center'}}>success / fail</div>
-          </div>
-
-          {/* ROLLBACK failure path */}
-          <div style={{flex: 1, padding: '16px', border: `2px solid ${C.red}`, borderRadius: 14, background: `${C.red}0d`, opacity: clamp(pop(f, t(194)))}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
-              <span style={{fontFamily: MONO, fontSize: 18, color: C.red, fontWeight: 700}}>ROLLBACK ✗ (failure path)</span>
-              <svg width={28} height={28} viewBox="0 0 28 28">
-                <circle cx={14} cy={14} r={12} fill={`${C.red}22`} stroke={C.red} strokeWidth={2.5} />
-                <line x1={8} y1={8} x2={20} y2={20} stroke={C.red} strokeWidth={3} strokeLinecap="round" />
-                <line x1={20} y1={8} x2={8} y2={20} stroke={C.red} strokeWidth={3} strokeLinecap="round" />
+          {/* Stage 2: SAVEPOINT + coupon attempt */}
+          <div style={{flex: 1, padding: '14px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`, opacity: clamp(couponP)}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+              <span style={{fontFamily: MONO, fontSize: 16, color: C.amber, fontWeight: 700}}>② SAVEPOINT coupon_apply</span>
+              <svg width={26} height={26} viewBox="0 0 26 26">
+                <circle cx={13} cy={13} r={11} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2.5} />
+                <circle cx={13} cy={13} r={4} fill={C.amber} />
               </svg>
             </div>
-            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>conditions:</div>
-            <div dir="ltr" style={{padding: '10px 12px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, minHeight: 80, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 14}}>
-              {`✗ balance < 1500  (insufficient funds)\n✗ stock_qty < 1   (out of stock)\n✗ constraint / trigger violation\n→ ROLLBACK; ──► full revert ✗`}
+            <div dir="ltr" style={{padding: '8px 10px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 11, color: C.text, minHeight: 56, whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
+              {`SAVEPOINT coupon_apply;\nUPDATE store_orders\nSET discount = 200\nWHERE coupon_code = 'INVALID';`}
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>
-              <span>both ledgers restored</span>
-              <span style={{color: C.red, fontWeight: 700}}>atomic ✗→✓</span>
+            <div style={{marginTop: 8, fontFamily: MONO, fontSize: 12, color: C.red, fontWeight: 700}}>→ coupon UPDATE fails ✗</div>
+          </div>
+
+          {/* Stage 3: ROLLBACK TO SAVEPOINT + COMMIT */}
+          <div style={{flex: 1, padding: '14px', border: `2px solid ${C.purple}`, borderRadius: 14, background: `${C.purple}0d`, opacity: clamp(rollbackProg), boxShadow: rollbackProg > 0.5 ? `0 0 20px ${C.purple}44` : 'none'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+              <span style={{fontFamily: MONO, fontSize: 16, color: C.purple, fontWeight: 700}}>③ ROLLBACK TO + COMMIT</span>
+              <svg width={26} height={26} viewBox="0 0 26 26">
+                <circle cx={13} cy={13} r={11} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={2.5} />
+                <polyline points="7,13 11,17 19,9" fill="none" stroke={C.purple} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
-            <div style={{height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${Math.max(20, branchProg * 100)}%`, background: C.red, borderRadius: 7}} />
+            <div dir="ltr" style={{padding: '8px 10px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 11, color: C.text, minHeight: 56, whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
+              {`ROLLBACK TO SAVEPOINT coupon_apply;\n-- coupon reverted\nCOMMIT;`}
             </div>
-            <div style={{marginTop: 10, fontFamily: MONO, fontSize: 13, color: C.red, fontWeight: 700}}>→ bank: unchanged · inventory: unchanged · no torn writes</div>
+            <div style={{marginTop: 8, fontFamily: MONO, fontSize: 12, color: commitProg > 0.5 ? C.green : C.amber, fontWeight: 700}}>
+              {commitProg > 0.5 ? '→ main order committed ✓' : '→ committing...'}
+            </div>
           </div>
         </div>
 
-        {/* Financial Quality Stamp seal */}
-        <div style={{position: 'absolute', left: 24, right: 24, bottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`, opacity: clamp(sealP)}}>
+        {/* Result summary footer */}
+        <div style={{position: 'absolute', left: 24, right: 24, top: 250, display: 'flex', gap: 14}}>
+          <div style={{flex: 1, padding: '12px 14px', border: `2px solid ${C.green}`, borderRadius: 12, background: `${C.green}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700, marginBottom: 4}}>✓ Checkout Outcome</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text, lineHeight: 1.5}}>
+              main order commits · customer pays full ${orderTotal} · invalid coupon UPDATE reverted · zero torn writes · checkout does not crash.
+            </div>
+          </div>
+          <div style={{flex: 1, padding: '12px 14px', border: `2px solid ${C.amber}`, borderRadius: 12, background: `${C.amber}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.amber, fontWeight: 700, marginBottom: 4}}>⚠ Invalid Coupon</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text, lineHeight: 1.5}}>
+              coupon UPDATE within SAVEPOINT block · ROLLBACK TO SAVEPOINT isolates the failure · main order work preserved prior to the anchor.
+            </div>
+          </div>
+          <div style={{flex: 1, padding: '12px 14px', border: `2px solid ${C.purple}`, borderRadius: 12, background: `${C.purple}0d`}}>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.purple, fontWeight: 700, marginBottom: 4}}>✓ Resilience Pattern</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text, lineHeight: 1.5}}>
+              wrap risky DML in SAVEPOINT / ROLLBACK TO ──► degrade gracefully · COMMIT what works · revert what fails.
+            </div>
+          </div>
+        </div>
+
+        {/* Enterprise Quality Stamp seal */}
+        <div style={{position: 'absolute', left: 24, right: 24, bottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, opacity: clamp(sealP)}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-            <Check p={sealP} size={42} color={C.amber} />
+            <Check p={sealP} size={42} color={C.green} />
             <div>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.amber, fontWeight: 700}}>Financial Quality Stamp ✓</div>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>Banking + Inventory ACID guarantees · zero torn writes</div>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Enterprise Quality Seal ✓</div>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>Resilient checkout · SAVEPOINT-protected · zero torn writes</div>
             </div>
           </div>
           <div style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700, textShadow: `0 0 12px ${C.green}66`}}>
-            Atomic · Durable
+            Resilient · Atomic
           </div>
         </div>
       </Win>
 
-      {/* Protected seal badge bottom */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 910, display: 'flex', justifyContent: 'center', opacity: clamp(protP)}}>
+      {/* Resilient seal badge bottom */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 930, display: 'flex', justifyContent: 'center', opacity: clamp(resP)}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={protP} size={32} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Banking &amp; Inventory Protected · Financial Integrity ✓</div>
+          <Check p={resP} size={32} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Resilient Checkout · Coupon Reverted · Order Committed ✓</div>
         </div>
       </div>
 
-      <Caption text="Enterprise Transaction ──► Banking (-1500) + Inventory (-1) ──► COMMIT ✓ OR ROLLBACK ✗" from={t(192)} to={sec(38)} tone="ok" />
+      <Caption text="Resilient Checkout ──► order paid + SAVEPOINT + coupon fails + ROLLBACK TO + COMMIT ✓" from={t(192)} to={sec(38)} tone="ok" />
     </Stage>
   );
 };
