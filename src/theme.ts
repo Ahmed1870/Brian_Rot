@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 58;
-export const COMP_ID = 'SQL-L58-Materialized-Views';
+export const LESSON = 59;
+export const COMP_ID = 'SQL-L59-Stored-Procedures';
 
 export const C = {
   bg: '#0F172A',

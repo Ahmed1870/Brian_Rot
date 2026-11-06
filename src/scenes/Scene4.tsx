@@ -3,287 +3,286 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC04 (130-170s): Heap Files & B-Tree Indexing — PostgreSQL 16 Materialized Core
-// Anchors: 131.0 heap files | 136.0 physical | 140.0 B-Tree | 145.0 index scan | 150.0 optimizer | 155.0 fast | 160.0 seal | 165.0 pre-computed
+// SC04 (130-170s): Compiled Execution Tree — PL/pgSQL Interpreter compiles first call into cached tree; subsequent calls bypass parsing
+// Anchors: 131.0 interpreter | 136.0 compile | 140.0 tree | 145.0 cache | 150.0 memory | 155.0 fast | 160.0 seal | 165.0 cached
 const S = START.s4;
 const t = (g: number) => sec(g - S);
-
-// Heap file rows (materialized data on disk)
-const HEAP_ROWS = [
-  {tid: '(0,1)', region: 'Cairo', total: 4250},
-  {tid: '(0,2)', region: 'Giza', total: 3180},
-  {tid: '(0,3)', region: 'Alex', total: 2760},
-  {tid: '(0,4)', region: 'Suez', total: 1990},
-  {tid: '(0,5)', region: 'Aswan', total: 1450},
-];
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(131.5), 14));
-  const heapP = clamp(lin(f, t(136), 14));
-  // B-Tree builds over the materialized data
-  const btreeProg = clamp(lin(f, t(140), sec(8)));
-  // Optimizer routes to Index Scan
-  const scanProg = clamp(lin(f, t(145), sec(6)));
-  const optP = pop(f, t(150));
+  const interpP = pop(f, t(131));
+  // Compile progress: parser -> tree (first call)
+  const compileProg = clamp(lin(f, t(136), sec(8)));
+  const treeP = pop(f, t(140));
+  const cacheP = pop(f, t(145));
+  const memP = pop(f, t(150));
   const fastP = pop(f, t(155));
   const sealP = pop(f, t(160));
-  const preP = pop(f, t(165));
+  const cachedP = pop(f, t(165));
+
+  // Subsequent call progress: lightning bypass
+  const bypassProg = clamp(lin(f, t(155), sec(6)));
 
   // Pulse
-  const pulse = 0.5 + 0.5 * Math.sin(f * 0.15);
+  const pulse = 0.5 + 0.5 * Math.sin(f * 0.18);
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="ملفات Heap و فهارس B-Tree | Heap Files &amp; B-Tree Indexing (PostgreSQL 16 Materialized Core)" from={sec(2)} to={sec(40)} color={C.amber} />
+      <TopBadge text="شجرة التنفيذ المترجمة | Compiled Execution Tree — PL/pgSQL Interpreter (Parse Once · Cache · Bypass)" from={sec(2)} to={sec(40)} color={C.green} />
 
-      {/* LEFT: Simple query editor */}
+      {/* LEFT: Editor with first and subsequent calls */}
       <div style={{opacity: editorP}}>
         <Editor
           x={80}
           y={170}
           w={620}
-          h={150}
-          title="Query Editor · SELECT on materialized view"
+          h={260}
+          title="Query Editor · first call vs subsequent calls"
           lines={[
-            'SELECT * FROM mv_sales',
-            '  WHERE region = :Cairo;',
-            '-- routes to Index Scan on B-Tree',
+            '-- First call: parse + compile + cache',
+            "SELECT fn_calc_tax(100);",
+            '',
+            '-- Subsequent calls: skip parse',
+            "SELECT fn_calc_tax(200);",
+            "SELECT fn_calc_tax(300);",
+            '-- cached tree → instant execute',
           ]}
           start={t(131.5)}
           cps={0.55}
-          size={15}
-          accent={C.blue}
-          hl={0}
-          hlColor={C.blue}
+          size={14}
+          accent={C.green}
+          hl={1}
+          hlColor={C.purple}
         />
       </div>
 
-      {/* Heap Files panel */}
-      <Win x={80} y={340} w={620} h={310} title="Heap Files (PostgreSQL 16) ──► materialized data on physical disk" accent={C.purple} opacity={heapP}>
+      {/* PL/pgSQL Interpreter panel */}
+      <Win x={80} y={450} w={620} h={260} title="plpgsql interpreter engine ──► first call compiles · subsequent calls bypass" accent={C.purple} opacity={interpP ? clamp(interpP) : 0}>
         <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 16, color: C.purple}}>
-          materialized view = Heap Files + B-Tree index on disk
+          first call: Parser → Compiled Execution Tree → cache in memory
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
           <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>
-            <Check p={heapP} size={16} color={C.purple} /> Heap Files ✓
+            <Check p={interpP} size={16} color={C.purple} /> Interpreter
           </Chip>
         </div>
 
-        {/* SVG: heap files representation */}
-        <svg width={580} height={210} style={{position: 'absolute', left: 20, top: 56}}>
-          {/* Heap file capsule (purple) */}
-          <rect x={10} y={10} width={560} height={180} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={3} strokeDasharray="6 4" rx={14} style={{filter: `drop-shadow(0 0 8px ${C.purple}44)`}} />
-          <text x={290} y={34} fill={C.purple} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">mv_sales · Heap File (physical storage)</text>
+        {/* SVG: parser + tree + cache */}
+        <svg width={580} height={170} style={{position: 'absolute', left: 20, top: 56}}>
+          {/* Parser (left, purple) */}
+          <g style={{opacity: clamp(interpP)}}>
+            <rect x={10} y={20} width={140} height={80} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 8px ${C.purple}66)`}} />
+            <text x={80} y={48} fill={C.purple} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">Parser</text>
+            <text x={80} y={68} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">tokenize + AST</text>
+            <text x={80} y={84} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">first call only</text>
+          </g>
 
-          {/* Heap rows */}
-          {HEAP_ROWS.map((row, i) => {
-            const ap = clamp(pop(f, t(137 + i * 0.3)));
-            return (
-              <g key={i} style={{opacity: clamp(ap)}}>
-                <rect x={30} y={48 + i * 26} width={520} height={22} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={1} rx={4} />
-                <text x={50} y={64 + i * 26} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700}>TID {row.tid}</text>
-                <text x={160} y={64 + i * 26} fill={C.text} fontSize={10} fontFamily={MONO}>{row.region}</text>
-                <text x={280} y={64 + i * 26} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700}>{row.total}</text>
-                <text x={400} y={64 + i * 26} fill={C.muted} fontSize={9} fontFamily={MONO}>heap block</text>
-              </g>
-            );
-          })}
+          {/* Compile arrow */}
+          <line x1={150} y1={60} x2={220} y2={60} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" opacity={0.4 + 0.6 * compileProg} />
+          <polygon points="214,54 214,66 228,60" fill={C.green} />
+          <text x={185} y={50} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">compile</text>
+
+          {/* Compiled Execution Tree (center, green) */}
+          <g style={{opacity: clamp(treeP)}}>
+            <rect x={230} y={20} width={170} height={80} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.green})`}} />
+            <text x={315} y={48} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">Compiled Tree</text>
+            <text x={315} y={68} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">execution plan</text>
+            <text x={315} y={84} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">nodes cached</text>
+          </g>
+
+          {/* Cache arrow */}
+          <line x1={400} y1={60} x2={470} y2={60} stroke={C.amber} strokeWidth={3} strokeDasharray="6 4" opacity={0.4 + 0.6 * compileProg} />
+          <polygon points="464,54 464,66 478,60" fill={C.amber} />
+          <text x={435} y={50} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">cache</text>
+
+          {/* Memory cache (right, amber) */}
+          <g style={{opacity: clamp(memP)}}>
+            <rect x={480} y={20} width={100} height={80} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} rx={10} />
+            <text x={530} y={48} fill={C.amber} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">Memory</text>
+            <text x={530} y={68} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">cached tree</text>
+            <text x={530} y={84} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">ready ✓</text>
+          </g>
+
+          {/* Bottom legend */}
+          <text x={290} y={130} fill={C.text} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">first call: parse → compile → cache  ·  later: skip parse, execute cached tree</text>
+          <text x={290} y={150} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{bypassProg > 0.5 ? '✓ subsequent calls bypass parsing' : 'compiling on first call...'}</text>
         </svg>
 
         {/* Bottom status */}
         <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>Heap Files</span>
-          <span>physical disk ✓</span>
+          <span>Interpreter</span>
+          <span>{bypassProg > 0.5 ? '✓ cached' : 'compiling...'}</span>
         </div>
       </Win>
 
-      {/* Optimizer routing chip */}
-      <div style={{position: 'absolute', left: 80, top: 670, width: 620, opacity: clamp(optP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`}}>
-          <Check p={optP} size={36} color={C.amber} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.amber, fontWeight: 700}}>Optimizer Routes to Index Scan ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginTop: 2}}>planner picks B-Tree index scan over Heap scan · O(log n) lookup · fast ✓</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Seal + fast + pre-computed chips at bottom-left */}
-      <div style={{position: 'absolute', left: 80, top: 780, width: 620, display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-        <div style={{opacity: clamp(sealP)}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', border: `2px solid ${C.amber}`, borderRadius: 12, background: `${C.amber}0d`}}>
-            <Check p={sealP} size={28} color={C.amber} />
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700}}>Heap+B-Tree Seal ✓</span>
-          </div>
-        </div>
+      {/* Fast / seal / cached chips at bottom-left */}
+      <div style={{position: 'absolute', left: 80, top: 740, width: 620, display: 'flex', gap: 8, flexWrap: 'wrap'}}>
         <div style={{opacity: clamp(fastP)}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', border: `2px solid ${C.green}`, borderRadius: 12, background: `${C.green}0d`}}>
             <Check p={fastP} size={28} color={C.green} />
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700}}>Fast O(log n) ✓</span>
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700}}>Fast Execute ✓</span>
           </div>
         </div>
-        <div style={{opacity: clamp(preP)}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', border: `2px solid ${C.purple}`, borderRadius: 12, background: `${C.purple}0d`}}>
-            <Check p={preP} size={28} color={C.purple} />
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.purple, fontWeight: 700}}>Pre-Computed ✓</span>
+        <div style={{opacity: clamp(sealP)}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', border: `2px solid ${C.amber}`, borderRadius: 12, background: `${C.amber}0d`}}>
+            <Check p={sealP} size={28} color={C.amber} />
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700}}>Compiled Tree Seal ✓</span>
+          </div>
+        </div>
+        <div style={{opacity: clamp(cachedP)}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', border: `2px solid ${C.blue}`, borderRadius: 12, background: `${C.blue}0d`}}>
+            <Check p={cachedP} size={28} color={C.blue} />
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700}}>Cached ✓</span>
           </div>
         </div>
       </div>
 
-      {/* RIGHT: Heap Files + B-Tree Indexing visualization */}
-      <Win x={740} y={170} w={1100} h={720} title="PostgreSQL 16 Materialized Core ──► Heap Files + B-Tree Index → Index Scan" accent={C.amber} opacity={heapP}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
-          Heap Files (purple) ──► B-Tree index (green) builds over materialized data ──► Optimizer routes to Index Scan
+      {/* RIGHT: Full visualization — first call vs subsequent call paths */}
+      <Win x={740} y={170} w={1100} h={720} title="plpgsql interpreter engine ──► first call compiles · subsequent calls bypass parsing (lightning)" accent={C.green} opacity={clamp(interpP)}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
+          First call: Parser → Compiled Tree → Memory cache  ·  Subsequent calls: ⚡ blue lightning bypass → instant execute
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>Heap Files</Chip>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{btreeProg > 0.05 ? 'B-Tree building...' : 'idle'}</Chip>
-          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>{scanProg > 0.95 ? 'Index Scan ✓' : '...'}</Chip>
+          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>Parser (1st)</Chip>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{compileProg > 0.05 ? 'Compiling...' : 'idle'}</Chip>
+          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>{bypassProg > 0.95 ? '⚡ Bypass ✓' : '...'}</Chip>
         </div>
 
-        {/* SVG: Heap capsule + B-Tree + Optimizer routing */}
+        {/* SVG: full pipeline with two paths */}
         <svg width={1060} height={600} style={{position: 'absolute', left: 20, top: 60}}>
-          {/* Heap Files capsule (bottom, purple) */}
-          <g style={{opacity: clamp(pop(f, t(136)))}}>
-            <rect x={50} y={460} width={960} height={120} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={3} rx={14} style={{filter: `drop-shadow(0 0 10px ${C.purple}44)`}} />
-            <text x={530} y={484} fill={C.purple} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">mv_sales · Heap Files (physical disk · materialized data)</text>
-
-            {/* Heap row blocks */}
-            {HEAP_ROWS.map((row, i) => {
-              const ap = clamp(pop(f, t(137 + i * 0.3)));
-              return (
-                <g key={i} style={{opacity: clamp(ap)}}>
-                  <rect x={70 + i * 188} y={498} width={170} height={64} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={2} rx={6} />
-                  <text x={155 + i * 188} y={520} fill={C.amber} fontSize={9} fontFamily={MONO} fontWeight={700} textAnchor="middle">TID {row.tid}</text>
-                  <text x={155 + i * 188} y={538} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">{row.region}</text>
-                  <text x={155 + i * 188} y={554} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{row.total}</text>
-                </g>
-              );
-            })}
+          {/* First call source (top-left) */}
+          <g style={{opacity: clamp(pop(f, t(131)))}}>
+            <rect x={20} y={20} width={180} height={70} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} rx={10} />
+            <text x={110} y={48} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">1st call</text>
+            <text x={110} y={68} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">SELECT fn_calc_tax(100)</text>
+            <text x={110} y={84} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">cold start</text>
           </g>
 
-          {/* B-Tree index (top, green) - builds progressively */}
-          <g style={{opacity: clamp(pop(f, t(140)))}}>
-            <text x={530} y={30} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">▼ B-Tree Index on region (built over Heap Files) ▼</text>
-
-            {/* B-Tree root node */}
-            <g style={{opacity: clamp(btreeProg * 1.5)}}>
-              <rect x={490} y={50} width={80} height={40} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={8} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.green})`}} />
-              <text x={530} y={75} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">root</text>
-            </g>
-
-            {/* B-Tree internal nodes (level 2) - appears as btreeProg grows */}
-            <g style={{opacity: clamp(btreeProg * 1.5 - 0.3)}}>
-              {/* Edges from root to internal */}
-              <line x1={510} y1={90} x2={330} y2={130} stroke={C.green} strokeWidth={2} opacity={0.7} />
-              <line x1={530} y1={90} x2={530} y2={130} stroke={C.green} strokeWidth={2} opacity={0.7} />
-              <line x1={550} y1={90} x2={730} y2={130} stroke={C.green} strokeWidth={2} opacity={0.7} />
-
-              <rect x={290} y={130} width={80} height={36} fill={`${C.green}22`} stroke={C.green} strokeWidth={2.5} rx={6} />
-              <text x={330} y={153} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">&lt; Giza</text>
-
-              <rect x={490} y={130} width={80} height={36} fill={`${C.green}22`} stroke={C.green} strokeWidth={2.5} rx={6} />
-              <text x={530} y={153} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">G-L</text>
-
-              <rect x={690} y={130} width={80} height={36} fill={`${C.green}22`} stroke={C.green} strokeWidth={2.5} rx={6} />
-              <text x={730} y={153} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">&gt; L</text>
-            </g>
-
-            {/* B-Tree leaf nodes (level 3) - appears last */}
-            <g style={{opacity: clamp(btreeProg * 1.5 - 0.6)}}>
-              {/* Edges from internal to leaves */}
-              <line x1={330} y1={166} x2={200} y2={210} stroke={C.green} strokeWidth={2} opacity={0.6} />
-              <line x1={330} y1={166} x2={330} y2={210} stroke={C.green} strokeWidth={2} opacity={0.6} />
-              <line x1={530} y1={166} x2={460} y2={210} stroke={C.green} strokeWidth={2} opacity={0.6} />
-              <line x1={530} y1={166} x2={600} y2={210} stroke={C.green} strokeWidth={2} opacity={0.6} />
-              <line x1={730} y1={166} x2={800} y2={210} stroke={C.green} strokeWidth={2} opacity={0.6} />
-              <line x1={730} y1={166} x2={900} y2={210} stroke={C.green} strokeWidth={2} opacity={0.6} />
-
-              {[
-                {x: 160, label: 'Aswan', tid: '(0,5)'},
-                {x: 290, label: 'Cairo', tid: '(0,1)'},
-                {x: 420, label: 'Giza', tid: '(0,2)'},
-                {x: 560, label: 'Alex', tid: '(0,3)'},
-                {x: 760, label: 'Suez', tid: '(0,4)'},
-                {x: 860, label: '∞', tid: '-'},
-              ].map((leaf, i) => (
-                <g key={i}>
-                  <rect x={leaf.x} y={210} width={80} height={36} fill={`${C.green}11`} stroke={C.green} strokeWidth={2} rx={6} />
-                  <text x={leaf.x + 40} y={231} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">{leaf.label}</text>
-                  <text x={leaf.x + 40} y={243} fill={C.muted} fontSize={8} fontFamily={MONO} textAnchor="middle">TID {leaf.tid}</text>
-                </g>
-              ))}
-            </g>
+          {/* Arrow: 1st call -> Parser (purple path) */}
+          <g style={{opacity: clamp(pop(f, t(131)))}}>
+            <line x1={200} y1={55} x2={300} y2={55} stroke={C.purple} strokeWidth={4} strokeDasharray="6 4" opacity={0.4 + 0.6 * compileProg} />
+            <polygon points="294,49 294,61 308,55" fill={C.purple} />
+            <text x={250} y={45} fill={C.purple} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">parse</text>
           </g>
 
-          {/* Optimizer box (left center) */}
-          <g style={{opacity: clamp(optP)}}>
-            <rect x={50} y={290} width={200} height={80} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 ${10 + pulse * 6}px ${C.amber})`}} />
-            <text x={150} y={318} fill={C.amber} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Optimizer</text>
-            <text x={150} y={338} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">picks cheapest plan</text>
-            <text x={150} y={356} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">B-Tree available ✓</text>
+          {/* Parser (purple) */}
+          <g style={{opacity: clamp(interpP)}}>
+            <rect x={310} y={20} width={180} height={70} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.purple}66)`}} />
+            <text x={400} y={48} fill={C.purple} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">PL/pgSQL Parser</text>
+            <text x={400} y={68} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">tokenize · build AST</text>
+            <text x={400} y={84} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">runs ONCE</text>
           </g>
 
-          {/* Routing arrows: Optimizer → Index Scan (green) and Heap Scan (faded red, rejected) */}
-          <g style={{opacity: clamp(scanProg)}}>
-            {/* Index Scan path (green, selected) */}
-            <line x1={250} y1={320} x2={450} y2={320} stroke={C.green} strokeWidth={4} strokeDasharray="6 4" opacity={0.5 + 0.5 * scanProg} />
-            <polygon points="444,314 444,326 458,320" fill={C.green} />
-            <text x={350} y={310} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">route ✓</text>
-
-            {/* Index Scan box (selected) */}
-            <rect x={460} y={290} width={240} height={60} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.green})`}} />
-            <text x={580} y={316} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">Index Scan</text>
-            <text x={580} y={336} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">O(log n) · walks B-Tree → Heap TID</text>
-
-            {/* Heap Scan box (rejected, faded red) */}
-            <rect x={720} y={290} width={240} height={60} fill={`${C.red}0d`} stroke={C.red} strokeWidth={2} strokeDasharray="4 4" rx={10} opacity={0.4} />
-            <text x={840} y={316} fill={C.red} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">Seq Scan</text>
-            <text x={840} y={336} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">O(n) · rejected ✗</text>
-
-            {/* Rejected arrow (red, faded) */}
-            <line x1={250} y1={340} x2={720} y2={340} stroke={C.red} strokeWidth={2} strokeDasharray="4 4" opacity={0.2} />
+          {/* Arrow: Parser -> Compiled Tree */}
+          <g style={{opacity: clamp(treeP)}}>
+            <line x1={490} y1={55} x2={580} y2={55} stroke={C.green} strokeWidth={4} strokeDasharray="6 4" opacity={0.5 + 0.5 * compileProg} />
+            <polygon points="574,49 574,61 588,55" fill={C.green} />
+            <text x={535} y={45} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">compile</text>
           </g>
 
-          {/* B-Tree lookup path: Index Scan → B-Tree leaf → Heap row (TID pointer) */}
-          <g style={{opacity: clamp(scanProg * 1.2 - 0.2)}}>
-            {/* Arrow from Index Scan up to B-Tree leaf */}
-            <line x1={580} y1={290} x2={580} y2={250} stroke={C.green} strokeWidth={2.5} strokeDasharray="5 4" opacity={0.7} />
-            <polygon points="574,256 586,256 580,248" fill={C.green} />
-            <text x={620} y={272} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700}>lookup ✓</text>
+          {/* Compiled Execution Tree (green, center) */}
+          <g style={{opacity: clamp(treeP)}}>
+            <rect x={590} y={20} width={220} height={120} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 ${10 + pulse * 8}px ${C.green})`}} />
+            <text x={700} y={48} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Compiled Execution Tree</text>
+            <text x={700} y={68} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">root node · branch nodes</text>
 
-            {/* Arrow from B-Tree leaf down to Heap row (TID pointer) */}
-            <line x1={330} y1={246} x2={155} y2={498} stroke={C.amber} strokeWidth={2.5} strokeDasharray="5 4" opacity={0.7} />
-            <polygon points="149,492 161,492 155,504" fill={C.amber} />
-            <text x={210} y={380} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700}>TID → heap row</text>
+            {/* Mini tree visualization inside the box */}
+            <circle cx={700} cy={92} r={9} fill={C.green} />
+            <line x1={700} y1={101} x2={660} y2={120} stroke={C.green} strokeWidth={2} />
+            <line x1={700} y1={101} x2={740} y2={120} stroke={C.green} strokeWidth={2} />
+            <circle cx={660} cy={125} r={6} fill={C.green} />
+            <circle cx={740} cy={125} r={6} fill={C.green} />
           </g>
 
-          {/* Result banner */}
-          {scanProg > 0.95 ? (
-            <g style={{opacity: clamp(pop(f, t(150)))}}>
-              <rect x={250} y={400} width={560} height={40} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 10px ${C.green}66)`}} />
-              <text x={530} y={426} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Optimizer chose Index Scan · B-Tree → Heap TID · O(log n) · fast</text>
+          {/* Arrow: Tree -> Memory cache */}
+          <g style={{opacity: clamp(memP)}}>
+            <line x1={810} y1={55} x2={900} y2={55} stroke={C.amber} strokeWidth={4} strokeDasharray="6 4" opacity={0.7} />
+            <polygon points="894,49 894,61 908,55" fill={C.amber} />
+            <text x={855} y={45} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">cache</text>
+          </g>
+
+          {/* Memory cache (amber, top-right) */}
+          <g style={{opacity: clamp(memP)}}>
+            <rect x={910} y={20} width={130} height={120} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 8px ${C.amber}66)`}} />
+            <text x={975} y={48} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">Memory</text>
+            <text x={975} y={68} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">cached tree</text>
+            <text x={975} y={92} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{bypassProg > 0.5 ? '✓ ready' : '...'}</text>
+            <text x={975} y={115} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">reused on every</text>
+            <text x={975} y={128} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">subsequent call</text>
+          </g>
+
+          {/* Divider line */}
+          <line x1={20} y1={180} x2={1040} y2={180} stroke={C.border} strokeWidth={2} strokeDasharray="4 4" opacity={0.5} />
+          <text x={530} y={210} fill={C.text} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">▼ Subsequent calls (2nd, 3rd, ...) bypass parsing ▼</text>
+
+          {/* Subsequent call sources (bottom-left, stacked) */}
+          <g style={{opacity: clamp(bypassProg)}}>
+            <rect x={20} y={250} width={180} height={50} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2.5} rx={8} />
+            <text x={110} y={280} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">2nd call: fn_calc_tax(200)</text>
+
+            <rect x={20} y={310} width={180} height={50} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2.5} rx={8} />
+            <text x={110} y={340} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">3rd call: fn_calc_tax(300)</text>
+
+            <rect x={20} y={370} width={180} height={50} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2.5} rx={8} />
+            <text x={110} y={400} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Nth call: fn_calc_tax(N)</text>
+          </g>
+
+          {/* Lightning bypass arrows (blue) from subsequent calls straight to cached tree */}
+          <g style={{opacity: clamp(bypassProg)}}>
+            {/* Path 1: bypasses parser entirely, goes straight up to compiled tree */}
+            <path d="M 200 275 Q 400 200 590 80" stroke={C.blue} strokeWidth={4} fill="none" strokeDasharray="8 6" opacity={0.7} style={{filter: `drop-shadow(0 0 6px ${C.blue})`}} />
+            <polygon points="584,74 584,86 598,80" fill={C.blue} transform="translate(-7,0)" />
+
+            <path d="M 200 335 Q 400 240 590 90" stroke={C.blue} strokeWidth={3.5} fill="none" strokeDasharray="8 6" opacity={0.6} style={{filter: `drop-shadow(0 0 4px ${C.blue}88)`}} />
+
+            <path d="M 200 395 Q 400 280 590 95" stroke={C.blue} strokeWidth={3} fill="none" strokeDasharray="8 6" opacity={0.5} />
+
+            {/* Lightning label */}
+            <text x={400} y={220} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚡ lightning bypass ──► no parsing</text>
+          </g>
+
+          {/* Crossed-out Parser (subsequent path skips it) */}
+          <g style={{opacity: clamp(bypassProg)}}>
+            <text x={400} y={285} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle" textDecoration="line-through">Parser SKIPPED ✓</text>
+          </g>
+
+          {/* Result banner: instant execute */}
+          {bypassProg > 0.7 ? (
+            <g style={{opacity: clamp(fastP)}}>
+              <rect x={250} y={450} width={560} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green}66)`}} />
+              <text x={530} y={482} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚡ Subsequent calls execute cached tree instantly · zero parse overhead · 10× faster</text>
             </g>
           ) : null}
 
+          {/* Performance comparison */}
+          <g style={{opacity: clamp(pop(f, t(150)))}}>
+            <rect x={120} y={520} width={300} height={50} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={2} rx={8} />
+            <text x={270} y={542} fill={C.purple} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">1st call: parse + compile</text>
+            <text x={270} y={560} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">~8ms cold</text>
+
+            <rect x={640} y={520} width={300} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} />
+            <text x={790} y={542} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">Nth call: cached execute</text>
+            <text x={790} y={560} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">~0.8ms hot · 10× faster</text>
+          </g>
+
           {/* Status text */}
-          <text x={530} y={450} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">
-            {btreeProg < 0.3 ? 'heap files on disk...' : btreeProg < 0.95 ? 'building B-Tree index...' : scanProg < 0.95 ? 'optimizer routing...' : 'Index Scan ✓ · pre-computed cache + B-Tree'}
+          <text x={530} y={595} fill={C.muted} fontSize={13} fontFamily={MONO} textAnchor="middle">
+            {compileProg < 0.3 ? 'parsing first call...' : compileProg < 0.95 ? 'compiling execution tree...' : bypassProg < 0.5 ? 'caching in memory...' : '⚡ subsequent calls bypass parsing · cached tree executes instantly'}
           </text>
         </svg>
 
         {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.purple}}>Heap Files (disk)</span>
-          <span style={{color: scanProg >= 1 ? C.green : C.amber}}>{scanProg >= 1 ? '✓ Index Scan' : scanProg > 0 ? `routing... ${Math.round(scanProg * 100)}%` : 'idle'}</span>
-          <span style={{color: C.green}}>B-Tree · fast</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span style={{color: C.purple}}>Parse (1st only)</span>
+          <span style={{color: bypassProg >= 1 ? C.green : C.amber}}>{bypassProg >= 1 ? '⚡ bypass ✓' : bypassProg > 0 ? `bypassing... ${Math.round(bypassProg * 100)}%` : 'compiling...'}</span>
+          <span style={{color: C.green}}>Cached · 10× faster</span>
         </div>
       </Win>
 
-      <Caption text="Heap Files ──► B-Tree Index ──► Optimizer ──► Index Scan ──► Fast O(log n) ──► Pre-Computed ✓" from={t(140)} to={sec(40)} tone="ok" />
+      <Caption text="PL/pgSQL Interpreter ──► Parse Once ──► Compile ──► Cached Tree ──► Bypass ──► 10× Faster ✓" from={t(140)} to={sec(40)} tone="ok" />
     </Stage>
   );
 };

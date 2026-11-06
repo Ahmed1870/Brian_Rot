@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-58-materialized-views",
+  "name": "manzooma-sql-lesson-59-stored-procedures",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 58: Materialized Views & Refreshing Strategies (Physical Cache, REFRESH CONCURRENTLY, UNIQUE Index, Heap Files, B-Tree Indexing, Module 14 Completion) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 59: Stored Procedures & User-Defined Functions (PL/pgSQL, CREATE FUNCTION vs CREATE PROCEDURE, Dollar Quoting, Compiled Execution Tree, Module 15 Start) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L58-Materialized-Views out/sql-l58-materialized-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L59-Stored-Procedures out/sql-l59-stored-procedures.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

@@ -3,12 +3,12 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (210-240s): Manzooma Academy outro — Module 14 at 100% (completed, Lesson 2 of 2 in Module 14)
-// Anchors: 211.0 excellent | 213.5 skills | 220.0 prepare | 225.0 next lesson | 230.0 FUNCTION preview
+// SC06 (210-240s): Manzooma Academy outro — Module 15 at 33% (started, Lesson 1 of 3 in Module 15)
+// Anchors: 211.0 excellent | 213.5 skills | 220.0 prepare | 225.0 next lesson | 230.0 TRIGGER preview
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['Materialized Views ✓', 'Physical Cache ✓', 'REFRESH CONCURRENTLY ✓', 'UNIQUE Index ✓', 'Heap Files & B-Tree ✓'];
+const SKILLS = ['PL/pgSQL Engine ✓', 'CREATE FUNCTION ✓', 'CREATE PROCEDURE ✓', '$$ Dollar Quoting ✓', 'Compiled Execution Tree ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
@@ -19,8 +19,8 @@ export const Scene6: React.FC = () => {
   const modStart = prog(f, t(213.5), 20);
   const res = prog(f, t(215), 24);
   const next = prog(f, t(220), 28);
-  const code = typed('CREATE OR REPLACE FUNCTION calculate_total(...)\nRETURNS numeric AS $$\nBEGIN\n  ...\nEND;', f, t(225), 0.5).split('\n');
-  const pct = Math.round(fill * 100); // 100% — Module 14 completed (Lesson 2 of 2)
+  const code = typed('CREATE TRIGGER trg_audit\nAFTER INSERT ON orders\nFOR EACH ROW\nEXECUTE FUNCTION fn_audit();', f, t(225), 0.5).split('\n');
+  const pct = Math.round(fill * 33); // 33% — Module 15 started (Lesson 1 of 3)
 
   return (
     <Stage dur={900} inFx="fade" outFx="black">
@@ -45,17 +45,17 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.green}}>
-              Lesson 58 Completed: <span style={{color: C.text}}>Materialized Views &amp; Refreshing Strategies (Physical Cache, REFRESH CONCURRENTLY, UNIQUE Index, Heap Files, B-Tree Indexing, Module 14 Complete) Mastered</span>
+              Lesson 59 Completed: <span style={{color: C.text}}>Stored Procedures &amp; User-Defined Functions (PL/pgSQL Engine, CREATE FUNCTION vs CREATE PROCEDURE, $$ Dollar Quoting, Compiled Execution Tree, Module 15 Start) Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
+              <div style={{width: `${fill * 33}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modStart > 0.5 ? C.green : C.muted}}>
-            Module 14 · Views &amp; Materialized Views — {modStart > 0.5 ? 'COMPLETED ✓ · Lesson 2 of 2 · Materialized Views & REFRESH CONCURRENTLY' : 'in progress'}
+            Module 15 · Server-Side Programming — {modStart > 0.5 ? 'STARTED ✓ · Lesson 1 of 3 · PL/pgSQL Engine & Stored Procedures' : 'in progress'}
           </div>
         </div>
 
@@ -78,11 +78,11 @@ export const Scene6: React.FC = () => {
 
         <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 59</Mix>
-            <Mix style={{fontSize: 30, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>Stored Procedures &amp; Functions — CREATE OR REPLACE FUNCTION, RETURNS, PL/pgSQL BEGIN END</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 60</Mix>
+            <Mix style={{fontSize: 30, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>Triggers &amp; Trigger Functions — CREATE TRIGGER, AFTER/BEFORE, FOR EACH ROW, EXECUTE FUNCTION</Mix>
           </div>
           <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 14, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 59 · Stored Procedures &amp; Functions</div>
+            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 60 · Triggers &amp; Trigger Functions</div>
             {code.map((l, i) => (
               <div key={i} style={{whiteSpace: 'pre', minHeight: 22}}>
                 <Sql text={l} />
