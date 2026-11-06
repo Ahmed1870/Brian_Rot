@@ -1,26 +1,23 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
+import {C, FONT, MONO} from '../theme';
+import {Check, Chip, Mix, Stage, clamp, pop, prog, sec, typed} from '../kit';
+import {Sql} from '../kit';
 
-// SC06 (210-240s): Manzooma Academy outro — Module 14 at 100% (Triggers complete · Lesson 3 of 3 in Module 14)
-// Anchors: 211.0 excellent | 213.5 skills | 220.0 next lesson | 225.0 JSONB preview | 230.0 100% complete
-const S = START.s6;
+// SC06 (frames 6300-7200, global 210-240s): Manzooma Academy outro. Ends with a fade to black.
+const S = 210.0;
 const t = (g: number) => sec(g - S);
-
-const SKILLS = ['Trigger Guard ✓', 'BEFORE/AFTER/INSTEAD OF ✓', 'NEW & OLD ✓', 'RETURN NULL ✓', 'Audit Automation ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
   const card = prog(f, 0, 30);
-  const head = prog(f, t(211), 24);
-  const badge = pop(f, t(211.6));
-  const fill = prog(f, t(212.2), sec(4.8));
-  const modStart = prog(f, t(213.5), 20);
-  const res = prog(f, t(215), 24);
-  const next = prog(f, t(220), 28);
-  const code = typed("SELECT data->>'name' FROM products\nWHERE data @> '{\"category\": \"electronics\"}';", f, t(225), 0.45).split('\n');
-  const pct = Math.round(fill * 100); // 100% — Module 14 complete (Lesson 3 of 3)
+  const head = prog(f, t(210.3), 24);
+  const badge = pop(f, t(211.3));
+  const fill = prog(f, t(211.5), sec(6.5));
+  const res = prog(f, t(218.4), 24);
+  const next = prog(f, t(226.6), 28);
+  const code = typed('EXPLAIN ANALYZE SELECT 1;', f, t(228.0), 0.5);
+  const pct = Math.round(fill * 50);
 
   return (
     <Stage dur={900} inFx="fade" outFx="black">
@@ -41,54 +38,37 @@ export const Scene6: React.FC = () => {
           </div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 170}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 190}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.green}}>
-              Lesson 60 Completed: <span style={{color: C.text}}>Triggers &amp; Trigger Functions (CREATE TRIGGER, BEFORE/AFTER/INSTEAD OF, FOR EACH ROW/STATEMENT, NEW/OLD/TG_OP, RETURN NULL Abort, Audit Automation, Module 14 Capstone) Mastered</span>
-            </div>
+            <div style={{fontFamily: MONO, fontSize: 38, fontWeight: 700, color: C.green}}>Lesson 49 Completed: <span style={{color: C.text}}>Expression & Multi-Column Indexes Mastered</span></div>
           </div>
-          <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
+          <div style={{marginTop: 34, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
+              <div style={{width: `${fill * 50}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modStart > 0.5 ? C.green : C.muted}}>
-            Module 14 · Triggers &amp; Automation — {modStart > 0.5 ? 'COMPLETE ✓ · Lesson 3 of 3 · Trigger Functions, RETURN NULL Abort, Enterprise Audit Logging' : 'in progress'}
-          </div>
+          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: C.muted}}>Module 12 · Indexing & Query Optimization — 50% complete</div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 14, flexWrap: 'wrap', maxWidth: 1540}}>
-          {SKILLS.map((s, i) => {
-            const p = pop(f, t(214 + i * 0.5));
-            return (
-              <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
-                <Chip color={C.blue} style={{fontSize: 18}}>{s}</Chip>
-              </div>
-            );
-          })}
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 460, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 400, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
           <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
             <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
           </Chip>
         </div>
 
-        <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
+        <div style={{position: 'absolute', left: 90, right: 90, top: 500, height: 300, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 61</Mix>
-            <Mix style={{fontSize: 30, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>JSONB Data &amp; GIN Indexes — Containment (@&gt;), Key Extraction (-&gt;&gt;), GIN Indexing for Document Queries</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 50</Mix>
+            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>تحليل خطط التنفيذ EXPLAIN & EXPLAIN ANALYZE</Mix>
           </div>
-          <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 14, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 61 · JSONB Data &amp; GIN Indexes</div>
-            {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 22}}>
-                <Sql text={l} />
-                {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
-              </div>
-            ))}
+          <div dir="ltr" style={{width: 560, height: 170, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '26px 28px', fontFamily: MONO, fontSize: 28, color: C.text}}>
+            <div style={{color: '#64748B', fontSize: 20, marginBottom: 16}}>-- Lesson 50</div>
+            <div>
+              <Sql text={code} />
+              <span style={{color: C.green}}>▌</span>
+            </div>
           </div>
         </div>
       </div>

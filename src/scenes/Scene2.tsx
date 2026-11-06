@@ -1,236 +1,103 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {TRIGGER_TIMINGS} from '../data';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
+import {C, MONO} from '../theme';
+import {Caption, Check, Chip, Mix, Stage, TopBadge, Win, clamp, lerp, pop, prog, sec} from '../kit';
 
-// SC02 (40-85s): Trigger Timings & Scope — BEFORE (blue) / AFTER (green) / INSTEAD OF (purple) + FOR EACH ROW vs FOR EACH STATEMENT
-// Anchors: 41.0 BEFORE | 45.0 AFTER | 52.0 INSTEAD OF | 60.0 FOR EACH ROW | 68.0 STATEMENT | 75.0 scope | 80.0 seal
-const S = START.s2;
+// SC02 (frames 1200-2550, global 40-85s): leftmost prefix rule and Index Only Scan.
+const S = 40;
 const t = (g: number) => sec(g - S);
+const LEAVES = [
+  {x: 190, l: 'Jan · paid'},
+  {x: 330, l: 'Feb · new'},
+  {x: 470, l: 'Jan · paid'},
+  {x: 610, l: 'Mar · paid'},
+  {x: 750, l: 'Feb · paid'},
+  {x: 890, l: 'Mar · new'},
+];
 
 export const Scene2: React.FC = () => {
   const f = useCurrentFrame();
-  const beforeP = pop(f, t(41));
-  const afterP = pop(f, t(45));
-  const insteadP = pop(f, t(52));
-  const rowP = pop(f, t(60));
-  const stmtP = pop(f, t(68));
-  const scopeP = pop(f, t(75));
-  const sealP = pop(f, t(80));
-
-  // Pulse
-  const pulse = 0.5 + 0.5 * Math.sin(f * 0.17);
+  const tree = prog(f, t(41.4), 28);
+  const pathA = prog(f, t(52.0), sec(3.4));
+  const pathA2 = prog(f, t(55.6), sec(2.6));
+  const cardA = pop(f, t(49.9));
+  const cardB = pop(f, t(59.2));
+  const brk = prog(f, t(60.0), 20);
+  const seq = prog(f, t(62.6), sec(3.2));
+  const ios = pop(f, t(66.2));
+  const zero = pop(f, t(76.0));
+  const glow = 0.5 + 0.5 * Math.sin(f / 8);
 
   return (
-    <Stage dur={1350} inFx="left" outFx="left">
-      <TopBadge text="توقيتات المُحفّزات ونطاقها | Trigger Timings (BEFORE · AFTER · INSTEAD OF) & Scope (ROW vs STATEMENT)" from={sec(2)} to={sec(40)} color={C.blue} />
+    <Stage dur={1350} inFx="zoom" outFx="left">
+      <TopBadge text="قاعدة البادئة اليسرى | Leftmost Prefix Rule" from={t(41.4)} to={t(60)} color={C.blue} />
 
-      {/* LEFT: Trigger timings diagram - 3 timing paths */}
-      <Win x={80} y={170} w={1080} h={540} title="trigger timings ──► BEFORE (blue) · AFTER (green) · INSTEAD OF (purple)" accent={C.blue} opacity={clamp(lin(f, t(41.5), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-          DML ──► BEFORE trigger (validate) ──► write to disk ──► AFTER trigger (audit)  ·  INSTEAD OF routes to views
-        </div>
-
-        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>BEFORE</Chip>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>AFTER</Chip>
-          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>INSTEAD OF</Chip>
-        </div>
-
-        {/* SVG: 3 timing paths */}
-        <svg width={1040} height={460} style={{position: 'absolute', left: 18, top: 60}}>
-          {/* DML source (left) */}
-          <g style={{opacity: clamp(beforeP)}}>
-            <rect x={20} y={200} width={140} height={60} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} rx={10} />
-            <text x={90} y={225} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">DML</text>
-            <text x={90} y={245} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">INSERT/UPDATE</text>
-          </g>
-
-          {/* === BEFORE path (top, blue) === */}
-          <g style={{opacity: clamp(beforeP)}}>
-            <line x1={160} y1={70} x2={160} y2={70} stroke={C.blue} strokeWidth={2} opacity={0} />
-            <path d="M 160 200 Q 200 100 280 70" stroke={C.blue} strokeWidth={3} strokeDasharray="6 4" fill="none" opacity={0.7} />
-            <rect x={280} y={40} width={220} height={60} fill={`${C.blue}33`} stroke={C.blue} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.blue})`}} />
-            <text x={390} y={65} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">BEFORE Trigger</text>
-            <text x={390} y={85} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">validate &amp; modify NEW</text>
-
-            {/* Arrow down to disk */}
-            <path d="M 500 70 Q 600 70 660 200" stroke={C.blue} strokeWidth={3} strokeDasharray="6 4" fill="none" opacity={0.7} />
-            <text x={580} y={60} fill={C.blue} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">pre-write ✓</text>
-          </g>
-
-          {/* Disk write (center) */}
-          <g style={{opacity: clamp(beforeP)}}>
-            <ellipse cx={700} cy={230} rx={60} ry={20} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} />
-            <path d="M 640 230 V 290 A 60 20 0 0 0 760 290 V 230" fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} />
-            <ellipse cx={700} cy={250} rx={60} ry={20} fill="none" stroke={C.amber} strokeWidth={2} opacity={0.6} />
-            <text x={700} y={230} fill={C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">disk write</text>
-            <text x={700} y={320} fill={C.amber} fontSize={10} fontFamily={MONO} textAnchor="middle">PostgreSQL 16</text>
-          </g>
-
-          {/* === AFTER path (middle, green) === */}
-          <g style={{opacity: clamp(afterP)}}>
-            <path d="M 760 230 Q 820 230 880 200" stroke={C.green} strokeWidth={3} strokeDasharray="6 4" fill="none" opacity={0.7} />
-            <rect x={880} y={170} width={140} height={60} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.green})`}} />
-            <text x={950} y={195} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">AFTER Trigger</text>
-            <text x={950} y={215} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">log &amp; audit</text>
-            <text x={950} y={150} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">post-write ✓</text>
-          </g>
-
-          {/* === INSTEAD OF path (bottom, purple) === */}
-          <g style={{opacity: clamp(insteadP)}}>
-            <path d="M 160 230 Q 200 380 280 410" stroke={C.purple} strokeWidth={3} strokeDasharray="6 4" fill="none" opacity={0.7} />
-            <rect x={280} y={380} width={240} height={60} fill={`${C.purple}33`} stroke={C.purple} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.purple})`}} />
-            <text x={400} y={405} fill={C.purple} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">INSTEAD OF Trigger</text>
-            <text x={400} y={425} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">route DML to views</text>
-
-            {/* Arrow to view node */}
-            <line x1={520} y1={410} x2={620} y2={410} stroke={C.purple} strokeWidth={3} strokeDasharray="6 4" opacity={0.7} />
-            <polygon points="614,404 614,416 628,410" fill={C.purple} />
-            <text x={570} y={400} fill={C.purple} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">route ──►</text>
-
-            <rect x={620} y={380} width={120} height={60} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={2} strokeDasharray="5 4" rx={8} />
-            <text x={680} y={405} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">VIEW</text>
-            <text x={680} y={425} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">updatable</text>
-          </g>
-
-          {/* Bottom legend */}
-          <text x={520} y={445} fill={C.text} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">BEFORE = pre-write validation  ·  AFTER = post-commit audit  ·  INSTEAD OF = view routing</text>
-        </svg>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.blue}}>BEFORE · validate</span>
-          <span style={{color: C.green}}>AFTER · audit</span>
-          <span style={{color: C.purple}}>INSTEAD OF · views</span>
-        </div>
-      </Win>
-
-      {/* LEFT-BOTTOM: Row vs Statement editor */}
-      <div style={{opacity: clamp(rowP)}}>
-        <Editor
-          x={80}
-          y={730}
-          w={1080}
-          h={170}
-          title="scope.sql · FOR EACH ROW vs FOR EACH STATEMENT"
-          lines={[
-            'CREATE TRIGGER trg_row BEFORE UPDATE ON store_customers',
-            '  FOR EACH ROW EXECUTE FUNCTION fn_validate();   -- fires once per affected row',
-            'CREATE TRIGGER trg_stmt AFTER UPDATE ON store_customers',
-            '  FOR EACH STATEMENT EXECUTE FUNCTION fn_audit_batch();   -- fires once per statement',
-          ]}
-          start={t(60)}
-          cps={0.45}
-          size={14}
-          accent={C.amber}
-          hl={1}
-          hlColor={C.blue}
-        />
-      </div>
-
-      {/* RIGHT: FOR EACH ROW vs FOR EACH STATEMENT visualization */}
-      <Win x={1180} y={170} w={660} h={720} title="trigger scope ──► FOR EACH ROW (per-row) vs FOR EACH STATEMENT (once)" accent={C.amber} opacity={clamp(lin(f, t(60), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
-          FOR EACH ROW ──► fires N times  ·  FOR EACH STATEMENT ──► fires ONCE per statement
-        </div>
-
-        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>ROW</Chip>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>STATEMENT</Chip>
-        </div>
-
-        {/* SVG: row iteration vs statement batch */}
-        <svg width={620} height={580} style={{position: 'absolute', left: 18, top: 60}}>
-          {/* === FOR EACH ROW (top, blue) === */}
-          <g style={{opacity: clamp(rowP)}}>
-            <text x={20} y={20} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700}>FOR EACH ROW</text>
-            <text x={20} y={40} fill={C.muted} fontSize={11} fontFamily={MONO}>fires once per affected row</text>
-
-            {/* Source statement */}
-            <rect x={20} y={56} width={180} height={50} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2.5} rx={8} />
-            <text x={110} y={80} fill={C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">UPDATE ... WHERE id IN (1,2,3,4)</text>
-            <text x={110} y={97} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">affects 4 rows</text>
-
-            {/* Row iteration arrows */}
-            {[0, 1, 2, 3].map((i) => {
-              const rowFire = clamp(rowP - i * 0.08);
-              return (
-                <g key={i} style={{opacity: clamp(rowFire)}}>
-                  <line x1={200} y1={81 + (i - 1.5) * 14} x2={280} y2={81 + (i - 1.5) * 14} stroke={C.blue} strokeWidth={2.5} strokeDasharray="5 3" opacity={0.7} />
-                  <polygon points={`276,${81 + (i - 1.5) * 14 - 4} 276,${81 + (i - 1.5) * 14 + 4} 288,${81 + (i - 1.5) * 14}`} fill={C.blue} />
-                  <rect x={290} y={66 + (i - 1.5) * 14} width={170} height={28} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={1.5} rx={6} />
-                  <text x={375} y={84 + (i - 1.5) * 14} fill={C.blue} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">fn() · row #{i + 1}</text>
-                </g>
-              );
-            })}
-
-            <text x={375} y={150} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">→ fires N times ✓</text>
-          </g>
-
-          {/* Divider */}
-          <line x1={20} y1={180} x2={600} y2={180} stroke={C.border} strokeWidth={2} strokeDasharray="4 4" opacity={0.5} />
-
-          {/* === FOR EACH STATEMENT (bottom, green) === */}
-          <g style={{opacity: clamp(stmtP)}}>
-            <text x={20} y={210} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700}>FOR EACH STATEMENT</text>
-            <text x={20} y={230} fill={C.muted} fontSize={11} fontFamily={MONO}>fires ONCE regardless of row count</text>
-
-            {/* Source statement */}
-            <rect x={20} y={246} width={180} height={50} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2.5} rx={8} />
-            <text x={110} y={270} fill={C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">UPDATE ... WHERE id IN (1,2,3,4)</text>
-            <text x={110} y={287} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">affects 4 rows</text>
-
-            {/* Single arrow */}
-            <g style={{opacity: clamp(stmtP)}}>
-              <line x1={200} y1={271} x2={290} y2={271} stroke={C.green} strokeWidth={4} strokeDasharray="6 4" opacity={0.8} style={{filter: `drop-shadow(0 0 4px ${C.green})`}} />
-              <polygon points="286,265 286,277 300,271" fill={C.green} />
-              <text x={245} y={261} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">once</text>
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+        <g opacity={tree}>
+          <rect x={90} y={170} width={1000} height={470} rx={26} fill={C.card} stroke={C.border} strokeWidth={2} />
+          {/* root */}
+          <rect x={290} y={200} width={400} height={60} rx={12} fill={C.deep} stroke={C.blue} strokeWidth={3} />
+          <text x={490} y={238} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.blue}>branch_id · order_date · status</text>
+          {[0, 1, 2].map((k) => (
+            <g key={k}>
+              <line x1={490} y1={260} x2={260 + k * 280} y2={340} stroke={C.border} strokeWidth={3} />
+              <rect x={150 + k * 280} y={340} width={220} height={54} rx={10} fill={C.deep} stroke={k === 2 && pathA > 0.4 ? C.green : C.blue} strokeWidth={3} />
+              <text x={260 + k * 280} y={374} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.text}>branch_id = {k + 1}</text>
             </g>
-
-            {/* Single fire node */}
-            <rect x={300} y={246} width={260} height={50} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={8} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.green})`}} />
-            <text x={430} y={270} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">fn_audit_batch() · single call</text>
-            <text x={430} y={288} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">regardless of affected rows</text>
-
-            <text x={430} y={322} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">→ fires ONCE ✓</text>
+          ))}
+          {LEAVES.map((l, i) => {
+            const parent = Math.floor(i / 2);
+            const hit = i === 5 && pathA2 > 0.5;
+            return (
+              <g key={i}>
+                <line x1={260 + parent * 280} y1={394} x2={l.x + 5} y2={470} stroke={C.border} strokeWidth={2} />
+                <rect x={l.x - 60} y={470} width={130} height={50} rx={9} fill={hit ? `${C.green}33` : C.deep} stroke={hit ? C.green : C.blue} strokeWidth={2} />
+                <text x={l.x + 5} y={502} textAnchor="middle" fontFamily={MONO} fontSize={17} fill={hit ? C.green : C.muted}>{l.l}</text>
+              </g>
+            );
+          })}
+          <text x={110} y={600} fontFamily={MONO} fontSize={20} fill={C.muted}>B-Tree · leaf pages hold (branch_id, order_date, status)</text>
+        </g>
+        {/* query A: green path */}
+        <g opacity={tree}>
+          <line x1={490} y1={260} x2={490 + (840 - 490) * pathA} y2={260 + (340 - 260) * pathA} stroke={C.green} strokeWidth={7} strokeLinecap="round" />
+          <line x1={840} y1={394} x2={840 + (895 - 840) * pathA2} y2={394 + (470 - 394) * pathA2} stroke={C.green} strokeWidth={7} strokeLinecap="round" opacity={pathA2 > 0 ? 1 : 0} />
+          {/* query B: blocked at the root */}
+          <line x1={490} y1={260} x2={400} y2={300} stroke={C.red} strokeWidth={6} strokeDasharray="10 8" opacity={brk} />
+          <g opacity={brk} stroke={C.red} strokeWidth={8} strokeLinecap="round">
+            <line x1={380} y1={286} x2={420} y2={326} />
+            <line x1={420} y1={286} x2={380} y2={326} />
           </g>
+        </g>
+        {/* heap table with sequential scan */}
+        <g opacity={tree}>
+          <rect x={90} y={670} width={1000} height={200} rx={22} fill={C.card} stroke={seq > 0 && seq < 1 ? C.red : C.border} strokeWidth={2} />
+          <text x={120} y={706} fontFamily={MONO} fontSize={20} fill={C.muted}>Heap (table pages)</text>
+          {Array.from({length: 16}).map((_, i) => (
+            <rect key={i} x={120 + i * 60} y={730} width={50} height={90} rx={8} fill={seq * 16 > i ? `${C.red}33` : C.deep} stroke={seq * 16 > i ? C.red : C.border} strokeWidth={2} />
+          ))}
+          <rect x={120 + seq * 940} y={722} width={6} height={106} fill={C.red} opacity={seq > 0 && seq < 1 ? 1 : 0} />
+        </g>
+      </svg>
 
-          {/* Comparison panel */}
-          <g style={{opacity: clamp(scopeP)}}>
-            <rect x={20} y={360} width={580} height={150} fill={`${C.amber}0d`} stroke={C.amber} strokeWidth={2} strokeDasharray="5 4" rx={10} />
-            <text x={310} y={388} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">⚠ Scope selection guide</text>
-            <text x={310} y={412} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">ROW: per-row validation, modifying NEW/OLD, cascading logic</text>
-            <text x={310} y={432} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">STATEMENT: batch audit, summary aggregation, single-shot init</text>
-            <text x={310} y={458} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">ROW has NEW/OLD context  ·  STATEMENT has no row-level context</text>
-            <text x={310} y={478} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">→ choose based on whether you need per-row visibility</text>
-          </g>
-        </svg>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.blue}}>ROW · N fires</span>
-          <span style={{color: C.green}}>STATEMENT · 1 fire</span>
-        </div>
-      </Win>
-
-      {/* Seal badge bottom-center */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 910, display: 'flex', justifyContent: 'center', opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 18, padding: '12px 26px', border: `3px solid ${C.green}`, borderRadius: 18, background: `${C.green}0d`, boxShadow: `0 0 32px ${C.green}44`}}>
-          <Check p={sealP} size={48} color={C.green} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700}}>Trigger Timings &amp; Scope Seal ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>BEFORE · AFTER · INSTEAD OF  ·  FOR EACH ROW  ·  FOR EACH STATEMENT — complete trigger control</div>
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 8, marginLeft: 16, padding: '6px 16px', border: `2px solid ${C.green}`, borderRadius: 999, background: `${C.green}1a`}}>
-            <Check p={scopeP} size={22} color={C.green} />
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700}}>Scope ✓</span>
-          </div>
-        </div>
+      {/* query cards */}
+      <div dir="ltr" style={{position: 'absolute', left: 1150, top: 170, width: 680, borderRadius: 24, border: `3px solid ${C.green}`, background: C.card, padding: '20px 28px', opacity: clamp(cardA), transform: `scale(${0.92 + 0.08 * clamp(cardA)})`, transformOrigin: 'left top', boxShadow: `0 0 ${22 * glow}px ${C.green}33`}}>
+        <Chip color={C.green} style={{fontSize: 22}}>uses the leftmost column ✓</Chip>
+        <div style={{fontFamily: MONO, fontSize: 24, color: C.text, marginTop: 14, lineHeight: 1.5}}>WHERE branch_id = 3<br />  AND order_date &gt;= '2025-03-01'</div>
+      </div>
+      <div dir="ltr" style={{position: 'absolute', left: 1150, top: 400, width: 680, borderRadius: 24, border: `3px solid ${C.red}`, background: C.card, padding: '20px 28px', opacity: clamp(cardB), transform: `scale(${0.92 + 0.08 * clamp(cardB)})`, transformOrigin: 'left top'}}>
+        <Chip color={C.red} style={{fontSize: 22}}>skips branch_id ✕</Chip>
+        <div style={{fontFamily: MONO, fontSize: 24, color: C.text, marginTop: 14}}>WHERE status = 'paid'</div>
+        <div style={{fontFamily: MONO, fontSize: 22, color: C.red, marginTop: 10, opacity: seq}}>→ Sequential Scan fallback</div>
+      </div>
+      <div dir="ltr" style={{position: 'absolute', left: 1150, top: 640, width: 680, display: 'flex', flexDirection: 'column', gap: 16}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, transform: `scale(${clamp(ios)})`, opacity: clamp(ios), transformOrigin: 'left center'}}><Check p={clamp(ios)} size={44} /><Chip color={C.blue} style={{fontSize: 24}}>Index Only Scan</Chip></div>
+        <div style={{transform: `scale(${clamp(zero)})`, opacity: clamp(zero), transformOrigin: 'left center'}}><Chip color={C.green} style={{fontSize: 24, background: `${C.green}26`}}>Heap reads: 0</Chip></div>
+        <div style={{opacity: clamp(zero)}}><Mix style={{fontSize: 26, color: C.muted}}>الأعمدة المطلوبة كلها داخل الفهرس نفسه</Mix></div>
       </div>
 
-      <Caption text="BEFORE ──► AFTER ──► INSTEAD OF ──► FOR EACH ROW ──► FOR EACH STATEMENT ──► Trigger Scope ✓" from={t(60)} to={sec(44)} tone="ok" />
+      <Caption text="Leftmost Prefix Rule ──► Queries Must Include First Index Column (col1)" from={t(49.9)} to={t(65.4)} />
+      <Caption text="Index Only Scan ──► Fetches Data Directly From Index Pages (Zero Heap Reads)" from={t(66.4)} to={t(82)} />
     </Stage>
   );
 };

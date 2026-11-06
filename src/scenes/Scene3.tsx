@@ -1,208 +1,97 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {TRIGGER_FN_CODE} from '../data';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
+import {C, MONO} from '../theme';
+import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, clamp, lerp, pop, prog, sec} from '../kit';
 
-// SC03 (85-130s): Trigger Function & CREATE TRIGGER — RETURNS TRIGGER + CREATE TRIGGER ... EXECUTE FUNCTION + NEW/OLD/TG_OP magic vars
-// Anchors: 86.0 RETURNS TRIGGER | 90.0 CREATE TRIGGER | 95.0 EXECUTE FUNCTION | 100.0 NEW | 110.0 OLD | 118.0 TG_OP | 125.0 seal
-const S = START.s3;
+// SC03 (frames 2550-3900, global 85-130s): a function on the column defeats a plain index; an expression index fixes it.
+const S = 85;
 const t = (g: number) => sec(g - S);
+const Q = "WHERE LOWER(email) = 'admin@manzooma.com'";
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(86.5), 14));
-  const returnsP = pop(f, t(86));
-  const createP = pop(f, t(90));
-  const execP = pop(f, t(95));
-  const newP = pop(f, t(100));
-  const oldP = pop(f, t(110));
-  const tgopP = pop(f, t(118));
-  const sealP = pop(f, t(125));
-
-  // Pulse
-  const pulse = 0.5 + 0.5 * Math.sin(f * 0.2);
+  const ed = prog(f, t(86.4), 16);
+  const swap = prog(f, t(102.2), 12);
+  const flowA = prog(f, t(92.2), 24);
+  const aArrow = prog(f, t(96.0), sec(2.2));
+  const wrap = pop(f, t(99.5));
+  const blocked = pop(f, t(100.7));
+  const seq = pop(f, t(101.6));
+  const flowB = prog(f, t(102.7), 24);
+  const pre = prog(f, t(107.6), 24);
+  const bArrow = prog(f, t(110.2), sec(1.2));
+  const hit = pop(f, t(111.4));
+  const logn = pop(f, t(113.4));
+  const cpu = pop(f, t(116.2));
+  const done = pop(f, t(124.0));
+  const glow = 0.5 + 0.5 * Math.sin(f / 8);
 
   return (
     <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="دوال المُحفّزات ومتغيراتها | Trigger Function (RETURNS TRIGGER) &amp; Magic Variables (NEW · OLD · TG_OP)" from={sec(2)} to={sec(40)} color={C.purple} />
+      <TopBadge text="فهارس التعبيرات | Expression Indexes" from={t(86.4)} to={t(100)} color={C.purple} />
 
-      {/* LEFT: Trigger function + CREATE TRIGGER editor */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={170}
-          w={920}
-          h={420}
-          title="Query Editor · CREATE FUNCTION ... RETURNS TRIGGER + CREATE TRIGGER ... EXECUTE FUNCTION"
-          lines={TRIGGER_FN_CODE.concat([
-            '',
-            '-- RETURNS TRIGGER is mandatory',
-            '-- CREATE TRIGGER binds it to table + event',
-            '-- EXECUTE FUNCTION wires the trigger to the fn',
-          ])}
-          start={t(86.5)}
-          cps={0.5}
-          size={15}
-          accent={C.purple}
-          hl={0}
-          hlColor={C.blue}
-        />
+      <div style={{opacity: 1 - swap}}>
+        <Editor x={90} y={150} w={1250} h={130} title="plain_index.sql" lines={['CREATE INDEX idx_users_email ON users (email);']} start={t(86.6)} cps={1.4} size={26} accent={C.border} opacity={ed} />
+      </div>
+      <div style={{opacity: swap, position: 'absolute', inset: 0}}>
+        <Editor x={90} y={150} w={1250} h={130} title="expression_index.sql" lines={['CREATE INDEX idx_users_lower_email ON users (LOWER(email));']} start={t(102.8)} cps={1.2} size={26} accent={C.purple} />
       </div>
 
-      {/* Concept chips below editor */}
-      <div style={{position: 'absolute', left: 80, top: 610, width: 920, opacity: clamp(lin(f, t(90), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 8}}>◆ Trigger function anatomy:</div>
-        <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={returnsP} size={16} color={C.blue} /> RETURNS TRIGGER
-          </Chip>
-          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={createP} size={16} color={C.purple} /> CREATE TRIGGER
-          </Chip>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={execP} size={16} color={C.amber} /> EXECUTE FUNCTION
-          </Chip>
-          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={newP} size={16} color={C.blue} /> NEW
-          </Chip>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={oldP} size={16} color={C.amber} /> OLD
-          </Chip>
-          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>
-            <Check p={tgopP} size={16} color={C.purple} /> TG_OP
-          </Chip>
-        </div>
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+        {/* flow A: plain index ignored */}
+        <g opacity={flowA}>
+          <rect x={90} y={320} width={1740} height={260} rx={26} fill={C.card} stroke={blocked > 0.3 ? C.red : C.border} strokeWidth={2} />
+          <text x={120} y={362} fontFamily={MONO} fontSize={22} fontWeight={700} fill={C.red}>plain index on (email)</text>
+          <rect x={120} y={400} width={640} height={70} rx={14} fill={C.deep} stroke={C.border} strokeWidth={2} />
+          <text x={140} y={444} fontFamily={MONO} fontSize={24} fill={C.text}>{Q}</text>
+          <line x1={760} y1={435} x2={760 + 150 * aArrow} y2={435} stroke={C.muted} strokeWidth={5} strokeDasharray="10 8" />
+          <rect x={930} y={395} width={300} height={80} rx={14} fill={C.deep} stroke={blocked > 0.3 ? C.red : C.blue} strokeWidth={3} />
+          <text x={1080} y={443} textAnchor="middle" fontFamily={MONO} fontSize={22} fill={C.blue}>idx_users_email</text>
+          <g opacity={clamp(wrap)}>
+            <rect x={820} y={500} width={170} height={44} rx={10} fill={`${C.amber}26`} stroke={C.amber} strokeWidth={2} />
+            <text x={905} y={530} textAnchor="middle" fontFamily={MONO} fontSize={20} fontWeight={700} fill={C.amber}>LOWER(email)</text>
+            <text x={1010} y={530} fontFamily={MONO} fontSize={19} fill={C.muted}>≠ stored values</text>
+          </g>
+          <g opacity={clamp(blocked)} stroke={C.red} strokeWidth={9} strokeLinecap="round">
+            <line x1={1040} y1={415} x2={1120} y2={455} />
+            <line x1={1120} y1={415} x2={1040} y2={455} />
+          </g>
+          <line x1={1230} y1={435} x2={1330} y2={435} stroke={C.red} strokeWidth={5} opacity={clamp(seq)} />
+          <rect x={1330} y={395} width={460} height={80} rx={14} fill={`${C.red}1F`} stroke={C.red} strokeWidth={3} opacity={clamp(seq)} />
+          <text x={1560} y={445} textAnchor="middle" fontFamily={MONO} fontSize={26} fontWeight={700} fill={C.red} opacity={clamp(seq)}>Sequential Scan ✕</text>
+        </g>
+
+        {/* flow B: expression index */}
+        <g opacity={flowB}>
+          <rect x={90} y={620} width={1740} height={260} rx={26} fill={C.card} stroke={hit > 0.3 ? C.green : C.border} strokeWidth={2} />
+          <text x={120} y={662} fontFamily={MONO} fontSize={22} fontWeight={700} fill={C.purple}>expression index on (LOWER(email))</text>
+          <rect x={120} y={700} width={640} height={70} rx={14} fill={C.deep} stroke={C.border} strokeWidth={2} />
+          <text x={140} y={744} fontFamily={MONO} fontSize={24} fill={C.text}>{Q}</text>
+          <line x1={760} y1={735} x2={760 + 150 * bArrow} y2={735} stroke={C.green} strokeWidth={6} />
+          <rect x={930} y={680} width={300} height={110} rx={14} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} style={{filter: hit > 0.3 ? `drop-shadow(0 0 ${12 * glow}px ${C.green})` : 'none'}} />
+          <text x={1080} y={712} textAnchor="middle" fontFamily={MONO} fontSize={19} fill={C.purple}>idx_users_lower_email</text>
+          {['admin@manzooma.com', 'sara@mail.com'].map((v, i) => (
+            <text key={v} x={1080} y={744 + i * 28} textAnchor="middle" fontFamily={MONO} fontSize={17} fill={C.text} opacity={pre}>{v}</text>
+          ))}
+          <line x1={1230} y1={735} x2={1330} y2={735} stroke={C.green} strokeWidth={6} opacity={clamp(hit)} />
+          <rect x={1330} y={695} width={460} height={80} rx={14} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} opacity={clamp(hit)} />
+          <text x={1560} y={745} textAnchor="middle" fontFamily={MONO} fontSize={26} fontWeight={700} fill={C.green} opacity={clamp(hit)}>Index Scan ✓</text>
+        </g>
+      </svg>
+
+      <div dir="ltr" style={{position: 'absolute', left: 1360, top: 150, display: 'flex', flexDirection: 'column', gap: 14, width: 470}}>
+        <div style={{transform: `scale(${clamp(pre)})`, opacity: clamp(pre), transformOrigin: 'left center'}}><Chip color={C.purple} style={{fontSize: 22}}>value pre-computed & indexed</Chip></div>
+        <div style={{transform: `scale(${clamp(logn)})`, opacity: clamp(logn), transformOrigin: 'left center'}}><Chip color={C.green} style={{fontSize: 24, background: `${C.green}26`}}>O(log n)</Chip></div>
+        <div style={{transform: `scale(${clamp(cpu)})`, opacity: clamp(cpu), transformOrigin: 'left center'}}><Chip color={C.amber} style={{fontSize: 20}}>small CPU cost on INSERT / UPDATE</Chip></div>
       </div>
 
-      {/* Magic variables explanation panel */}
-      <div style={{position: 'absolute', left: 80, top: 690, width: 920, opacity: clamp(pop(f, t(100)))}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', border: `3px solid ${C.purple}`, borderRadius: 16, background: `${C.purple}0d`, boxShadow: `0 0 24px ${C.purple}33`}}>
-          <Check p={sealP} size={44} color={C.purple} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.purple, fontWeight: 700}}>Magic Variables ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>NEW = incoming row · OLD = original row · TG_OP = operation type (INSERT/UPDATE/DELETE)</div>
-          </div>
-        </div>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 893, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 14, opacity: clamp(done)}}>
+        <Check p={clamp(done)} size={34} />
+        <Mix style={{fontSize: 26, fontWeight: 700, color: C.green}}>الدالة اتحسبت مسبقاً… فالبحث بيضرب الفهرس مباشرة</Mix>
       </div>
 
-      {/* Seal at bottom-left */}
-      <div style={{position: 'absolute', left: 80, top: 800, width: 920, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={sealP} size={36} color={C.green} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Trigger Function &amp; CREATE TRIGGER Seal ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>RETURNS TRIGGER · EXECUTE FUNCTION · NEW · OLD · TG_OP — full trigger API</div>
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT: Magic variable cards popping up */}
-      <Win x={1020} y={170} w={820} h={720} title="magic variables ──► NEW (blue) · OLD (amber) · TG_OP (purple) pop into scope" accent={C.purple} opacity={clamp(lin(f, t(95), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.purple}}>
-          trigger function exposes magic variables ──► NEW · OLD · TG_OP available inside body
-        </div>
-
-        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>NEW</Chip>
-          <Chip color={C.amber} style={{fontSize: 13, padding: '4px 12px'}}>OLD</Chip>
-          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>TG_OP</Chip>
-        </div>
-
-        {/* SVG: function with magic variable cards popping up */}
-        <svg width={780} height={620} style={{position: 'absolute', left: 20, top: 60}}>
-          {/* Trigger function box (center) */}
-          <g style={{opacity: clamp(returnsP)}}>
-            <rect x={200} y={240} width={380} height={120} fill={`${C.blue}33`} stroke={C.blue} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 ${10 + pulse * 8}px ${C.blue})`}} />
-            <text x={390} y={270} fill={C.blue} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">fn_audit() RETURNS TRIGGER</text>
-            <text x={390} y={294} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">trigger function body</text>
-            <text x={390} y={316} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">accesses NEW / OLD / TG_OP</text>
-            <text x={390} y={338} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">RETURN NEW;</text>
-          </g>
-
-          {/* EXECUTE FUNCTION arrow (right side, amber) */}
-          <g style={{opacity: clamp(execP)}}>
-            <line x1={580} y1={300} x2={660} y2={300} stroke={C.amber} strokeWidth={4} strokeDasharray="6 4" opacity={0.8} />
-            <polygon points="656,294 656,306 670,300" fill={C.amber} />
-            <text x={620} y={290} fill={C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">EXECUTE</text>
-
-            {/* Bound table */}
-            <rect x={660} y={265} width={120} height={70} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2.5} rx={8} />
-            <text x={720} y={290} fill={C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">store_customers</text>
-            <text x={720} y={308} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">BEFORE UPDATE</text>
-            <text x={720} y={324} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">FOR EACH ROW</text>
-          </g>
-
-          {/* === NEW card (top-left, blue) — pops up from above fn === */}
-          <g style={{opacity: clamp(newP), transform: `translate(0px, ${(1 - clamp(newP)) * -30}px)`}}>
-            <rect x={40} y={40} width={220} height={150} fill={`${C.blue}33`} stroke={C.blue} strokeWidth={3} rx={14} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.blue})`}} />
-            <text x={150} y={70} fill={C.blue} fontSize={20} fontFamily={MONO} fontWeight={700} textAnchor="middle">NEW</text>
-            <text x={150} y={92} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">post-modification row</text>
-            <line x1={60} y1={104} x2={240} y2={104} stroke={C.blue} strokeWidth={1} opacity={0.5} />
-            <text x={150} y={124} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">scope:</text>
-            <text x={150} y={142} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">INSERT · UPDATE</text>
-            <text x={150} y={160} fill={C.blue} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">incoming values ✓</text>
-            <text x={150} y={178} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">NEW.balance, NEW.id ...</text>
-          </g>
-
-          {/* NEW arrow down to function */}
-          <g style={{opacity: clamp(newP)}}>
-            <path d="M 200 190 Q 240 215 290 240" stroke={C.blue} strokeWidth={2.5} strokeDasharray="5 3" fill="none" opacity={0.7} />
-            <text x={250} y={220} fill={C.blue} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">NEW ●</text>
-          </g>
-
-          {/* === OLD card (top-right, amber) — pops up from above fn === */}
-          <g style={{opacity: clamp(oldP), transform: `translate(0px, ${(1 - clamp(oldP)) * -30}px)`}}>
-            <rect x={520} y={40} width={220} height={150} fill={`${C.amber}33`} stroke={C.amber} strokeWidth={3} rx={14} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.amber})`}} />
-            <text x={630} y={70} fill={C.amber} fontSize={20} fontFamily={MONO} fontWeight={700} textAnchor="middle">OLD</text>
-            <text x={630} y={92} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">pre-modification row</text>
-            <line x1={540} y1={104} x2={720} y2={104} stroke={C.amber} strokeWidth={1} opacity={0.5} />
-            <text x={630} y={124} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">scope:</text>
-            <text x={630} y={142} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">UPDATE · DELETE</text>
-            <text x={630} y={160} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">original values ✓</text>
-            <text x={630} y={178} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">OLD.balance, OLD.id ...</text>
-          </g>
-
-          {/* OLD arrow down to function */}
-          <g style={{opacity: clamp(oldP)}}>
-            <path d="M 600 190 Q 540 215 490 240" stroke={C.amber} strokeWidth={2.5} strokeDasharray="5 3" fill="none" opacity={0.7} />
-            <text x={560} y={220} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">● OLD</text>
-          </g>
-
-          {/* === TG_OP card (bottom, purple) — pops up from below fn === */}
-          <g style={{opacity: clamp(tgopP), transform: `translate(0px, ${(1 - clamp(tgopP)) * 30}px)`}}>
-            <rect x={280} y={440} width={220} height={140} fill={`${C.purple}33`} stroke={C.purple} strokeWidth={3} rx={14} style={{filter: `drop-shadow(0 0 ${8 + pulse * 6}px ${C.purple})`}} />
-            <text x={390} y={470} fill={C.purple} fontSize={20} fontFamily={MONO} fontWeight={700} textAnchor="middle">TG_OP</text>
-            <text x={390} y={492} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">operation identifier</text>
-            <line x1={300} y1={504} x2={480} y2={504} stroke={C.purple} strokeWidth={1} opacity={0.5} />
-            <text x={390} y={524} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">values:</text>
-            <text x={390} y={544} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">'INSERT' · 'UPDATE' · 'DELETE'</text>
-            <text x={390} y={564} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">branch on operation type</text>
-          </g>
-
-          {/* TG_OP arrow up to function */}
-          <g style={{opacity: clamp(tgopP)}}>
-            <line x1={390} y1={440} x2={390} y2={360} stroke={C.purple} strokeWidth={2.5} strokeDasharray="5 3" opacity={0.7} />
-            <polygon points="386,364 394,364 390,354" fill={C.purple} />
-            <text x={420} y={400} fill={C.purple} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">TG_OP ●</text>
-          </g>
-
-          {/* CREATE TRIGGER banner at top */}
-          <g style={{opacity: clamp(createP)}}>
-            <rect x={40} y={600} width={700} height={30} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={1.5} strokeDasharray="5 3" rx={6} />
-            <text x={390} y={620} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">CREATE TRIGGER ... BEFORE UPDATE ON store_customers FOR EACH ROW EXECUTE FUNCTION fn_audit();</text>
-          </g>
-        </svg>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.blue}}>NEW ✓</span>
-          <span style={{color: C.amber}}>OLD ✓</span>
-          <span style={{color: C.purple}}>TG_OP ✓</span>
-        </div>
-      </Win>
-
-      <Caption text="RETURNS TRIGGER ──► CREATE TRIGGER ──► EXECUTE FUNCTION ──► NEW ──► OLD ──► TG_OP ✓" from={t(95)} to={sec(44)} tone="ok" />
+      <Caption text="CREATE INDEX ON users (LOWER(email)) ──► Pre-computes & Indexes Expressions" from={t(103.0)} to={t(111)} />
+      <Caption text="Speed Upgrade ──► Converts Function Sequential Scans to O(log n) Index Scan" from={t(111.6)} to={t(127.6)} />
     </Stage>
   );
 };
