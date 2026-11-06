@@ -1,10 +1,9 @@
-# Manzooma — Lesson 31: Window Functions & PARTITION BY
-Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s).
-Composition ID: `Ahmed-SQL-L31` · Output: `out/ahmed_sql_lesson31.mp4` (names live in `package.json` "render" + `src/Root.tsx`).
+# Manzooma | SQL From Zero to Professional - Lesson 53 - ACID Properties & Transactions
 
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/ahmed_sql_lesson31.mp4
+- Composition id: `SQL-L53-ACID-Transactions` - 1920x1080, 30fps, 7200 frames (4:00)
+- Output: `out/sql-l53-acid-transactions.mp4` - artifact `sql-l53-acid-transactions`
+- Scene boundaries: 0 | 1200 | 2550 | 3900 | 5100 | 6300 | 7200
+- Voiceover: public/voiceover_lesson_53.mp3 (239.99s) - the ONLY file in public/
 
-Voiceover: `public/voiceover_lesson_31.mp3` (already has ~1.1 s lead-in, starts at frame 0). Cue times: `src/timeline.json`.
+    npm install && npm start
+    npm run build
