@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-56-row-table-locking",
+  "name": "manzooma-sql-lesson-57-creating-views",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 56: Row-Level & Table-Level Locking (FOR UPDATE, MVCC, SKIP LOCKED, Deadlock 40P01, Module 13 Completion) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 57: Creating & Managing Views (Virtual Tables, Abstraction, Security, CREATE OR REPLACE VIEW, Updatable Views, Query Rewriter, pg_rewrite, Module 14 Start) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L56-Row-Table-Locking out/sql-l56-row-table-locking.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L57-Creating-Views out/sql-l57-creating-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

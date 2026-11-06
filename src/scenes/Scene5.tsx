@@ -1,188 +1,205 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
-import {ENTERPRISE_LOCK_LINES} from '../data';
+import {ENTERPRISE_VIEW_LINES} from '../data';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC05 (170-210s): Enterprise Inventory Concurrency — FOR UPDATE protects stock deduction
-// Anchors: 171.0 enterprise | 175.0 inventory | 180.0 FOR UPDATE | 185.0 stock | 192.0 commit | 200.0 module 13 seal | 205.0 complete
+// SC05 (170-210s): Enterprise BI View Integration
+// Anchors: 171.0 enterprise | 175.0 BI | 180.0 view | 185.0 dashboard | 192.0 SELECT | 200.0 seal | 205.0 production
 const S = START.s5;
 const t = (g: number) => sec(g - S);
 
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(171.5), 14));
-  const reportP = clamp(lin(f, t(175), 14));
-  const invP = clamp(lin(f, t(180), 14));
-  // Stock decrement animation (FOR UPDATE locks row, then UPDATE deducts)
-  const stockProg = clamp(lin(f, t(185), sec(8)));
-  // Commit animation
-  const commitProg = clamp(lin(f, t(192), sec(8)));
+  const viewP = clamp(lin(f, t(180), 14));
+  const dashP = clamp(lin(f, t(185), 14));
+  // SELECT * FROM vw_store_sales_summary query flowing to dashboard
+  const flowProg = clamp(lin(f, t(192), sec(8)));
   const sealP = pop(f, t(200));
-  const doneP = pop(f, t(205));
+  const prodP = pop(f, t(205));
 
-  // Interpolated stock values
-  const stockBefore = 7;
-  const stockAfter = lerp(7, 6, stockProg);
-
-  // Concurrent TX attempting double-allocation (blocked)
-  const tx2BlockP = clamp(lin(f, t(190), sec(4)));
+  // Bar chart heights (sales by product) — interpolate with flow progress
+  const bars = [
+    {label: 'Mouse', h: 0.45},
+    {label: 'Keyboard', h: 0.78},
+    {label: 'Cable', h: 0.32},
+    {label: 'Webcam', h: 0.62},
+    {label: 'Adapter', h: 0.51},
+  ];
 
   return (
     <Stage dur={1200} inFx="morph" outFx="fade">
-      <TopBadge text="تطبيق مؤسسي | Enterprise Inventory Concurrency — FOR UPDATE Stock Protection" from={sec(1)} to={sec(38)} color={C.green} />
+      <TopBadge text="تكامل العروض في بيئة المؤسسات | Enterprise BI View Integration (vw_store_sales_summary)" from={sec(1)} to={sec(38)} color={C.green} />
 
-      {/* LEFT: Editor with enterprise inventory lock transaction */}
-      <Editor
-        x={80}
-        y={170}
-        w={880}
-        h={320}
-        title="Enterprise · Inventory lock transaction (manzooma_store_db)"
-        lines={ENTERPRISE_LOCK_LINES.concat([
-          '',
-          '-- FOR UPDATE locks product_id = 502',
-          '-- stock deduction atomic & serialized',
-        ])}
-        start={t(171.5)}
-        cps={0.55}
-        size={15}
-        accent={C.green}
-        hl={2}
-        hlColor={C.purple}
-      />
+      {/* LEFT: Enterprise view editor */}
+      <div style={{opacity: editorP}}>
+        <Editor
+          x={80}
+          y={170}
+          w={820}
+          h={300}
+          title="Enterprise · CREATE VIEW vw_store_sales_summary (manzooma_store_db)"
+          lines={ENTERPRISE_VIEW_LINES.concat([
+            '',
+            '-- single view joins 3 tables',
+            '-- BI tools query this, not base tables',
+          ])}
+          start={t(171.5)}
+          cps={0.45}
+          size={14}
+          accent={C.green}
+          hl={0}
+          hlColor={C.green}
+        />
+      </div>
 
-      {/* RIGHT: Executive report panel */}
-      <Win x={1000} y={170} w={840} h={320} title="executive report · inventory concurrency" accent={C.green} opacity={reportP}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          Inventory Lock · Module 13 Concurrency Capstone
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 46, right: 24, display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>FOR UPDATE</Chip>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>stock -1</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>no double-alloc ✓</Chip>
-          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>MVCC reads</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>COMMIT ✓</Chip>
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 110, padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 8, background: C.deep, fontFamily: MONO, fontSize: 13, color: C.text, lineHeight: 1.5}}>
-          <span style={{color: '#64748B'}}>transaction strategy:</span> BEGIN ──► SELECT ... FOR UPDATE locks the row ──► UPDATE stock_qty = stock_qty - 1 ──► COMMIT. Other concurrent TXs block until lock released ──► zero double-allocation.
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, top: 200, display: 'flex', gap: 12}}>
-          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.amber}`, borderRadius: 10, background: `${C.amber}0d`}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700}}>Product 502</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>stock: {stockBefore} → {stockAfter}</div>
-          </div>
-          <div style={{flex: 1, padding: '10px 12px', border: `2px solid ${C.purple}`, borderRadius: 10, background: `${C.purple}0d`}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.purple, fontWeight: 700}}>FOR UPDATE</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.text}}>row locked ✓</div>
-          </div>
-        </div>
-        <div dir="ltr" style={{position: 'absolute', left: 24, right: 24, bottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <div style={{fontFamily: MONO, fontSize: 18, color: C.text, fontWeight: 700}}>
-            atomic inventory block ✓
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 10, opacity: clamp(sealP), transform: `scale(${0.85 + 0.15 * clamp(sealP)})`}}>
-            <Check p={sealP} size={36} color={C.green} />
-            <div style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700}}>Module 13 Mastery Seal ✓</div>
-          </div>
-        </div>
-      </Win>
-
-      {/* BOTTOM: Inventory execution panel */}
-      <Win x={80} y={510} w={1760} h={380} title="inventory execution ──► stock updates safely · no double-allocation" accent={C.green} opacity={invP}>
-        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 20, color: C.green}}>
-          TX1 (FOR UPDATE) deducts stock ──► TX2 blocked ──► COMMIT ✓ ──► no oversell
-        </div>
-
-        {/* Two panels: TX1 success path / TX2 blocked */}
-        <div style={{position: 'absolute', left: 24, right: 24, top: 56, display: 'flex', gap: 18}}>
-          {/* TX1 success path */}
-          <div style={{flex: 1, padding: '16px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, opacity: clamp(pop(f, t(180))), boxShadow: commitProg > 0.6 ? `0 0 24px ${C.green}44` : 'none'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
-              <span style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>TX1 · stock deduction (success path)</span>
-              <Check p={1} size={28} color={C.green} />
-            </div>
-            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>steps:</div>
-            <div dir="ltr" style={{padding: '10px 12px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, minHeight: 90, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 14}}>
-              {`1. BEGIN;
-2. SELECT ... FOR UPDATE;  ──► row 502 locked 🔒
-3. UPDATE stock_qty = stock_qty - 1;
-4. COMMIT;   ──► lock released ✓  (stock: ${stockBefore} → ${stockAfter})`}
-            </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>
-              <span>stock decremented</span>
-              <span style={{color: C.green, fontWeight: 700}}>atomic ✓</span>
-            </div>
-            <div style={{height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${Math.max(20, stockProg * 100)}%`, background: C.green, borderRadius: 7}} />
-            </div>
-            <div style={{marginTop: 10, fontFamily: MONO, fontSize: 13, color: C.green, fontWeight: 700}}>→ product 502 stock: {stockBefore} → {stockAfter} · COMMIT ✓</div>
-          </div>
-
-          {/* Arrow divider */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 80}}>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, textAlign: 'center'}}>concurrent</div>
-            <svg width={60} height={60}>
-              <line x1={30} y1={10} x2={30} y2={50} stroke={C.amber} strokeWidth={3} />
-              <polygon points="22,18 22,30 14,24" fill={C.green} />
-              <polygon points="38,18 38,30 46,24" fill={C.red} />
-            </svg>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, textAlign: 'center'}}>TX1 / TX2</div>
-          </div>
-
-          {/* TX2 blocked path */}
-          <div style={{flex: 1, padding: '16px', border: `2px solid ${C.red}`, borderRadius: 14, background: `${C.red}0d`, opacity: clamp(pop(f, t(190)))}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
-              <span style={{fontFamily: MONO, fontSize: 18, color: C.red, fontWeight: 700}}>TX2 · concurrent deduction (blocked)</span>
-              <svg width={28} height={28} viewBox="0 0 28 28">
-                <circle cx={14} cy={14} r={12} fill={`${C.red}22`} stroke={C.red} strokeWidth={2.5} />
-                <line x1={8} y1={8} x2={20} y2={20} stroke={C.red} strokeWidth={3} strokeLinecap="round" />
-                <line x1={20} y1={8} x2={8} y2={20} stroke={C.red} strokeWidth={3} strokeLinecap="round" />
-              </svg>
-            </div>
-            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>blocked:</div>
-            <div dir="ltr" style={{padding: '10px 12px', border: `1px solid ${C.border}`, borderRadius: 6, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, minHeight: 90, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 14}}>
-              {`1. BEGIN;
-2. SELECT ... FOR UPDATE;  ──► row 502 LOCKED by TX1
-3. ⏳ TX2 BLOCKED ──► waiting for row lock
-4. ↻ after TX1 COMMIT ──► re-read stock (${stockAfter})
-5. UPDATE stock_qty = stock_qty - 1;`}
-            </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 13, color: C.muted, marginBottom: 4}}>
-              <span>queued behind TX1</span>
-              <span style={{color: C.red, fontWeight: 700}}>serialized ✓</span>
-            </div>
-            <div style={{height: 14, borderRadius: 7, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${Math.max(20, tx2BlockP * 100)}%`, background: C.amber, borderRadius: 7}} />
-            </div>
-            <div style={{marginTop: 10, fontFamily: MONO, fontSize: 13, color: C.amber, fontWeight: 700}}>→ no double-allocation · no oversell · zero lost updates ✓</div>
-          </div>
-        </div>
-
-        {/* Module 13 Mastery Seal */}
-        <div style={{position: 'absolute', left: 24, right: 24, bottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`, opacity: clamp(sealP)}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-            <Check p={sealP} size={42} color={C.green} />
-            <div>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Module 13 Mastery Seal ✓</div>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>Row-Level &amp; Table-Level Locking · MVCC · SKIP LOCKED · Deadlock 40P01 · all mastered</div>
-            </div>
-          </div>
-          <div style={{fontFamily: MONO, fontSize: 22, color: C.green, fontWeight: 700, textShadow: `0 0 12px ${C.green}66`}}>
-            Capstone ✓
-          </div>
-        </div>
-      </Win>
-
-      {/* Complete seal badge bottom */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 910, display: 'flex', justifyContent: 'center', opacity: clamp(doneP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={doneP} size={32} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Module 13 Complete · Enterprise Inventory Protected ✓</div>
+      {/* View definition chip panel */}
+      <div style={{position: 'absolute', left: 80, top: 490, width: 820, opacity: clamp(lin(f, t(180), 14))}}>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 8}}>◆ Enterprise view characteristics:</div>
+        <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>3-table JOIN ✓</Chip>
+          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>orders</Chip>
+          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>customers</Chip>
+          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>products</Chip>
+          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>BI-ready ✓</Chip>
         </div>
       </div>
 
-      <Caption text="Enterprise Lock ──► FOR UPDATE on product 502 ──► stock -1 ──► COMMIT ✓ ──► No Double-Allocation" from={t(192)} to={sec(38)} tone="ok" />
+      {/* BI dashboard connection editor */}
+      <div style={{position: 'absolute', left: 80, top: 560, width: 820, opacity: clamp(lin(f, t(192), 14))}}>
+        <Editor
+          x={0}
+          y={0}
+          w={820}
+          h={130}
+          title="BI Tool · dashboard query (clean single-line access)"
+          lines={[
+            'SELECT * FROM vw_store_sales_summary',
+            '  WHERE total_amount > 100',
+            '  ORDER BY total_amount DESC;',
+          ]}
+          start={t(192)}
+          cps={0.6}
+          size={14}
+          accent={C.blue}
+          hl={0}
+          hlColor={C.blue}
+        />
+      </div>
+
+      {/* Seal at bottom-left */}
+      <div style={{position: 'absolute', left: 80, top: 720, width: 820, opacity: clamp(sealP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', border: `3px solid ${C.green}`, borderRadius: 16, background: `${C.green}0d`, boxShadow: `0 0 24px ${C.green}33`}}>
+          <Check p={sealP} size={44} color={C.green} />
+          <div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.green, fontWeight: 700}}>Enterprise Quality Seal ✓</div>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 2}}>Single source of truth · BI consumes one view · 3 base tables joined once</div>
+          </div>
+          <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px', border: `2px solid ${C.blue}`, borderRadius: 999, background: `${C.blue}1a`}}>
+            <Check p={prodP} size={22} color={C.blue} />
+            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700}}>Production ✓</span>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT: BI dashboard panel */}
+      <Win x={940} y={170} w={900} h={720} title="BI dashboard ──► powered by vw_store_sales_summary view" accent={C.blue} opacity={dashP}>
+        <div dir="ltr" style={{position: 'absolute', left: 24, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
+          BI dashboard ──► single view ──► real-time sales by product
+        </div>
+
+        <div style={{position: 'absolute', right: 24, top: 14, display: 'flex', gap: 10}}>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{flowProg > 0.95 ? 'Live ✓' : 'connecting...'}</Chip>
+          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>vw_store_sales_summary</Chip>
+        </div>
+
+        {/* SVG: data flow from view to dashboard + chart */}
+        <svg width={860} height={600} style={{position: 'absolute', left: 20, top: 60}}>
+          {/* View node (top-left) */}
+          <rect x={20} y={20} width={260} height={80} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 8px ${C.green}44)`}} />
+          <text x={150} y={48} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">vw_store_sales_summary</text>
+          <text x={150} y={70} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">SELECT * FROM vw_store_sales_summary</text>
+          <text x={150} y={88} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">order_id · customer_name · product_name · total_amount</text>
+
+          {/* Flowing data arrow to dashboard */}
+          <line x1={280} y1={60} x2={400 + flowProg * 200} y2={60} stroke={C.blue} strokeWidth={3.5} strokeDasharray="8 4" opacity={0.4 + 0.6 * flowProg} />
+          <polygon points={`${400 + flowProg * 200 - 8},52 ${400 + flowProg * 200 - 8},68 ${400 + flowProg * 200 + 4},60`} fill={C.blue} />
+          <text x={340} y={42} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">data flows ──►</text>
+
+          {/* Dashboard node (top-right) */}
+          <rect x={620} y={20} width={220} height={80} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 8px ${C.blue}44)`}} />
+          <text x={730} y={48} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">BI Dashboard</text>
+          <text x={730} y={70} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">Sales by Product</text>
+          <text x={730} y={88} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">real-time · refreshes on view query</text>
+
+          {/* KPI cards row */}
+          <g style={{opacity: clamp(pop(f, t(187)))}}>
+            <rect x={20} y={140} width={200} height={90} fill={`${C.card}`} stroke={C.green} strokeWidth={2} rx={10} />
+            <text x={120} y={168} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">TOTAL SALES</text>
+            <text x={120} y={200} fill={C.green} fontSize={24} fontFamily={MONO} fontWeight={700} textAnchor="middle">EGP 48,250</text>
+            <text x={120} y={220} fill={C.green} fontSize={11} fontFamily={MONO} textAnchor="middle">▲ 12.4% vs last week</text>
+
+            <rect x={240} y={140} width={200} height={90} fill={`${C.card}`} stroke={C.blue} strokeWidth={2} rx={10} />
+            <text x={340} y={168} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">ORDERS</text>
+            <text x={340} y={200} fill={C.blue} fontSize={24} fontFamily={MONO} fontWeight={700} textAnchor="middle">182</text>
+            <text x={340} y={220} fill={C.blue} fontSize={11} fontFamily={MONO} textAnchor="middle">▲ 8 this week</text>
+
+            <rect x={460} y={140} width={200} height={90} fill={`${C.card}`} stroke={C.purple} strokeWidth={2} rx={10} />
+            <text x={560} y={168} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">CUSTOMERS</text>
+            <text x={560} y={200} fill={C.purple} fontSize={24} fontFamily={MONO} fontWeight={700} textAnchor="middle">94</text>
+            <text x={560} y={220} fill={C.purple} fontSize={11} fontFamily={MONO} textAnchor="middle">▲ 5 new</text>
+
+            <rect x={680} y={140} width={160} height={90} fill={`${C.card}`} stroke={C.amber} strokeWidth={2} rx={10} />
+            <text x={760} y={168} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">AVG ORDER</text>
+            <text x={760} y={200} fill={C.amber} fontSize={24} fontFamily={MONO} fontWeight={700} textAnchor="middle">EGP 265</text>
+            <text x={760} y={220} fill={C.amber} fontSize={11} fontFamily={MONO} textAnchor="middle">▲ 3.2%</text>
+          </g>
+
+          {/* Bar chart: sales by product */}
+          <g style={{opacity: clamp(pop(f, t(189)))}}>
+            <text x={20} y={270} fill={C.text} fontSize={14} fontFamily={MONO} fontWeight={700}>Sales by Product (last 7 days)</text>
+            {/* Chart axes */}
+            <line x1={50} y1={290} x2={50} y2={540} stroke={C.border} strokeWidth={2} />
+            <line x1={50} y1={540} x2={840} y2={540} stroke={C.border} strokeWidth={2} />
+            {/* Y-axis labels */}
+            {[0, 25, 50, 75, 100].map((v, i) => (
+              <g key={i}>
+                <text x={40} y={545 - i * 62} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="end">{v}%</text>
+                <line x1={50} y1={540 - i * 62} x2={840} y2={540 - i * 62} stroke={C.border} strokeWidth={0.5} opacity={0.4} />
+              </g>
+            ))}
+            {/* Bars */}
+            {bars.map((bar, i) => {
+              const barH = bar.h * 250 * flowProg;
+              const x = 90 + i * 150;
+              const y = 540 - barH;
+              return (
+                <g key={i}>
+                  <rect x={x} y={y} width={100} height={barH} fill={`url(#barGrad${i})`} rx={4} style={{filter: `drop-shadow(0 0 6px ${[C.green, C.blue, C.purple, C.amber, C.red][i]}66)`}} />
+                  <defs>
+                    <linearGradient id={`barGrad${i}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={[C.green, C.blue, C.purple, C.amber, C.red][i]} stopOpacity={0.9} />
+                      <stop offset="100%" stopColor={[C.green, C.blue, C.purple, C.amber, C.red][i]} stopOpacity={0.4} />
+                    </linearGradient>
+                  </defs>
+                  <text x={x + 50} y={560} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">{bar.label}</text>
+                  <text x={x + 50} y={y - 6} fill={[C.green, C.blue, C.purple, C.amber, C.red][i]} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">{Math.round(bar.h * 100)}</text>
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+
+        {/* Bottom status */}
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span style={{color: C.green}}>vw_store_sales_summary</span>
+          <span style={{color: flowProg >= 1 ? C.green : C.amber}}>{flowProg >= 1 ? '✓ dashboard live' : flowProg > 0 ? `connecting... ${Math.round(flowProg * 100)}%` : 'idle'}</span>
+          <span style={{color: C.blue}}>production ✓</span>
+        </div>
+      </Win>
+
+      <Caption text="CREATE VIEW vw_store_sales_summary ──► BI Dashboard ──► SELECT * ──► Production Seal ✓" from={t(192)} to={sec(38)} tone="ok" />
     </Stage>
   );
 };

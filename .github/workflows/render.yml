@@ -1,4 +1,4 @@
-name: Render SQL Lesson 56 Row Table Locking
+name: Render SQL Lesson 57 Creating Views
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 56 only
+      - name: Guard - this repo must contain lesson 57 only
         run: |
-          grep -q "SQL-L56-Row-Table-Locking" src/theme.ts
-          grep -q "SQL-L56-Row-Table-Locking" package.json
-          test -f public/voiceover_lesson_56.mp3
+          grep -q "SQL-L57-Creating-Views" src/theme.ts
+          grep -q "SQL-L57-Creating-Views" package.json
+          test -f public/voiceover_lesson_57.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L56-Row-Table-Locking out/sql-l56-row-table-locking.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l56-row-table-locking.mp4
+      - run: npx remotion render src/index.ts SQL-L57-Creating-Views out/sql-l57-creating-views.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l57-creating-views.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l56-row-table-locking
-          path: out/sql-l56-row-table-locking.mp4
+          name: sql-l57-creating-views
+          path: out/sql-l57-creating-views.mp4
           if-no-files-found: error

@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 56;
-export const COMP_ID = 'SQL-L56-Row-Table-Locking';
+export const LESSON = 57;
+export const COMP_ID = 'SQL-L57-Creating-Views';
 
 export const C = {
   bg: '#0F172A',

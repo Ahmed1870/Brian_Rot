@@ -1,38 +1,28 @@
-// manzooma_store_db — Lesson 56 dataset
+// manzooma_store_db — Lesson 57 dataset
 
-/** Row lock types for Scene 2. */
-export const ROW_LOCK_TYPES = [
-  {type: 'FOR UPDATE', desc: 'Locks rows against writes & deletes', color: '#EF4444'},
-  {type: 'FOR NO KEY UPDATE', desc: 'Locks for non-key modifications', color: '#F59E0B'},
-  {type: 'FOR SHARE', desc: 'Shared read lock, blocks writes', color: '#38BDF8'},
-  {type: 'FOR KEY SHARE', desc: 'Lightest key protection lock', color: '#10B981'},
+/** Physical tables for Scene 1 visualization. */
+export const PHYSICAL_TABLES = [
+  {name: 'store_orders', x: 80, y: 200, color: '#38BDF8'},
+  {name: 'store_customers', x: 80, y: 380, color: '#38BDF8'},
+  {name: 'store_products', x: 80, y: 560, color: '#38BDF8'},
 ];
 
-/** Table lock levels for Scene 3. */
-export const TABLE_LOCK_LEVELS = [
-  {level: 'ACCESS SHARE', desc: 'SELECT (auto)', color: '#10B981'},
-  {level: 'ROW SHARE', desc: 'SELECT FOR UPDATE/SHARE', color: '#38BDF8'},
-  {level: 'ROW EXCLUSIVE', desc: 'INSERT/UPDATE/DELETE', color: '#F59E0B'},
-  {level: 'SHARE UPDATE EXCLUSIVE', desc: 'VACUUM/ANALYZE', color: '#F59E0B'},
-  {level: 'SHARE', desc: 'CREATE INDEX', color: '#A855F7'},
-  {level: 'SHARE ROW EXCLUSIVE', desc: 'Concurrent CREATE INDEX', color: '#A855F7'},
-  {level: 'EXCLUSIVE', desc: 'Rare maintenance', color: '#EF4444'},
-  {level: 'ACCESS EXCLUSIVE', desc: 'ALTER/DROP/TRUNCATE', color: '#EF4444'},
+/** Enterprise view query lines for Scene 5. */
+export const ENTERPRISE_VIEW_LINES = [
+  'CREATE VIEW vw_store_sales_summary AS',
+  '  SELECT o.order_id, c.customer_name, p.product_name,',
+  '         o.total_amount',
+  '  FROM store_orders o',
+  '  JOIN store_customers c ON o.customer_id = c.customer_id',
+  '  JOIN store_products p ON o.product_id = p.product_id;',
 ];
 
-/** Enterprise inventory query lines. */
-export const ENTERPRISE_LOCK_LINES = [
-  'BEGIN;',
-  'SELECT product_id, stock_qty FROM store_products',
-  '  WHERE product_id = 502 FOR UPDATE;',
-  'UPDATE store_products SET stock_qty = stock_qty - 1',
-  '  WHERE product_id = 502;',
-  'COMMIT;',
-];
-
-/** Job queue query for SKIP LOCKED demo. */
-export const JOB_QUEUE_LINES = [
-  'SELECT * FROM job_queue',
-  '  FOR UPDATE SKIP LOCKED',
-  '  LIMIT 1;',
+/** Updatable view demo lines for Scene 3. */
+export const UPDATABLE_VIEW_LINES = [
+  'CREATE OR REPLACE VIEW vw_active_customers AS',
+  '  SELECT customer_id, customer_name, city',
+  '  FROM store_customers WHERE balance > 0;',
+  '-- Updatable: single-table, no aggregates',
+  "UPDATE vw_active_customers SET city = 'Cairo'",
+  '  WHERE customer_id = 101;',
 ];

@@ -3,12 +3,12 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (210-240s): Manzooma Academy outro — Module 13 at 100% (Complete)
-// Anchors: 211.0 excellent | 213.5 skills | 220.0 prepare | 225.0 next lesson | 230.0 CREATE VIEW
+// SC06 (210-240s): Manzooma Academy outro — Module 14 at 33% (in progress, Lesson 1 of 3)
+// Anchors: 211.0 excellent | 213.5 skills | 220.0 prepare | 225.0 next lesson | 230.0 MATERIALIZED VIEW
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['Row-Level Locks ✓', 'MVCC Reads ✓', 'Table Locks ✓', 'SKIP LOCKED ✓', 'Deadlock 40P01 ✓'];
+const SKILLS = ['Virtual Tables ✓', 'Abstraction & Security ✓', 'CREATE OR REPLACE VIEW ✓', 'Updatable Views ✓', 'Query Rewriter ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
@@ -16,11 +16,11 @@ export const Scene6: React.FC = () => {
   const head = prog(f, t(211), 24);
   const badge = pop(f, t(211.6));
   const fill = prog(f, t(212.2), sec(4.8));
-  const modDone = prog(f, t(213.5), 20);
+  const modStart = prog(f, t(213.5), 20);
   const res = prog(f, t(215), 24);
   const next = prog(f, t(220), 28);
-  const code = typed('CREATE VIEW v_active_products AS\nSELECT * FROM products\nWHERE status = \'active\';', f, t(225), 0.6).split('\n');
-  const pct = Math.round(fill * 100); // 100% of Module 13
+  const code = typed('CREATE MATERIALIZED VIEW mv_sales AS\nSELECT ...;\nREFRESH MATERIALIZED VIEW mv_sales;', f, t(225), 0.5).split('\n');
+  const pct = Math.round(fill * 33); // 33% — Module 14 started (Lesson 1 of 3)
 
   return (
     <Stage dur={900} inFx="fade" outFx="black">
@@ -45,17 +45,17 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.green}}>
-              Lesson 56 Completed: <span style={{color: C.text}}>Row-Level &amp; Table-Level Locking (FOR UPDATE, MVCC, SKIP LOCKED, Deadlock 40P01, Module 13 Capstone) Mastered</span>
+              Lesson 57 Completed: <span style={{color: C.text}}>Creating &amp; Managing Views (Virtual Tables, Abstraction, Security, CREATE OR REPLACE VIEW, Updatable Views, Query Rewriter, pg_rewrite, Module 14 Start) Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
+              <div style={{width: `${fill * 33}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 13 · ACID &amp; Concurrency — {modDone > 0.5 ? 'COMPLETE ✓ · Atomicity · Isolation · Locks · MVCC · Deadlocks' : 'in progress'}
+          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modStart > 0.5 ? C.green : C.muted}}>
+            Module 14 · Views &amp; Materialized Views — {modStart > 0.5 ? 'IN PROGRESS · Lesson 1 of 3 · Virtual Tables & CREATE VIEW' : 'in progress'}
           </div>
         </div>
 
@@ -78,11 +78,11 @@ export const Scene6: React.FC = () => {
 
         <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 57</Mix>
-            <Mix style={{fontSize: 30, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>Creating &amp; Managing Views — CREATE VIEW, Queryable Virtual Tables</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 58</Mix>
+            <Mix style={{fontSize: 30, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>Materialized Views &amp; Refreshing Strategies — CREATE MATERIALIZED VIEW, REFRESH, CONCURRENTLY</Mix>
           </div>
           <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 14, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 57 · CREATE VIEW &amp; Managing Views</div>
+            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 58 · MATERIALIZED VIEW &amp; REFRESH</div>
             {code.map((l, i) => (
               <div key={i} style={{whiteSpace: 'pre', minHeight: 22}}>
                 <Sql text={l} />
