@@ -1,26 +1,29 @@
-// manzooma_store_db — Lesson 53 dataset
+import { C } from './theme';
 
-/** ACID properties data. */
-export const ACID_PROPERTIES = [
-  {letter: 'A', name: 'Atomicity', desc: 'All-or-Nothing Execution', color: '#38BDF8', icon: 'atom'},
-  {letter: 'C', name: 'Consistency', desc: 'Valid State Transition', color: '#F59E0B', icon: 'balance'},
-  {letter: 'I', name: 'Isolation', desc: 'Zero Concurrency Interference', color: '#A855F7', icon: 'wall'},
-  {letter: 'D', name: 'Durability', desc: 'Power Failure Proof (WAL)', color: '#10B981', icon: 'shield'},
+export type Emp = { n: string; d: number; s: number };
+/** 10 employees in their original (mixed) table order */
+export const EMP: Emp[] = [
+  { n: 'أحمد', d: 10, s: 9000 },
+  { n: 'خالد', d: 20, s: 8000 },
+  { n: 'عمر', d: 30, s: 7000 },
+  { n: 'سارة', d: 10, s: 6000 },
+  { n: 'منى', d: 20, s: 4000 },
+  { n: 'هبة', d: 30, s: 6500 },
+  { n: 'ليلى', d: 10, s: 5000 },
+  { n: 'يوسف', d: 20, s: 6000 },
+  { n: 'نور', d: 30, s: 4500 },
+  { n: 'كريم', d: 10, s: 8000 },
 ];
-
-/** Enterprise transaction query lines. */
-export const ENTERPRISE_TX_LINES = [
-  'BEGIN;',
-  'UPDATE store_customers SET balance = balance - 1500',
-  '  WHERE customer_id = 101;',
-  'UPDATE store_products SET stock_qty = stock_qty - 1',
-  '  WHERE product_id = 502;',
-  'COMMIT; -- or ROLLBACK on insufficient balance',
-];
-
-/** WAL log entries for visualization. */
-export const WAL_ENTRIES = [
-  {xid: 'XID: 804921', lsn: 'LSN: 0/1A2B3C', action: 'INSERT store_customers', status: 'logged'},
-  {xid: 'XID: 804921', lsn: 'LSN: 0/1A2B4D', action: 'UPDATE store_products', status: 'logged'},
-  {xid: 'XID: 804921', lsn: 'LSN: 0/1A2B5E', action: 'COMMIT', status: 'flushed'},
-];
+export const DEPT_COLOR: Record<number, string> = { 10: C.purple, 20: C.client, 30: C.opt };
+export const DEPTS = [10, 20, 30];
+export const sum = (d: number) => EMP.filter((e) => e.d === d).reduce((a, e) => a + e.s, 0);
+export const avg = (d: number) => sum(d) / EMP.filter((e) => e.d === d).length;
+export const ALL_AVG = EMP.reduce((a, e) => a + e.s, 0) / EMP.length;
+export const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
+/** index of each employee after grouping by department (stable) */
+export const GROUPED: number[] = (() => {
+  const out: number[] = new Array(EMP.length).fill(0);
+  let k = 0;
+  for (const d of DEPTS) EMP.forEach((e, i) => { if (e.d === d) out[i] = k++; });
+  return out;
+})();

@@ -1,0 +1,31 @@
+{
+  "fps": 30,
+  "total": 240,
+  "scenes": [0, 40, 85, 130, 170, 210, 240],
+  "s1": { "tableAt": 1.4, "head": [2.0, 11.0], "recapAt": 11.1, "collapseAt": 15.6, "lostAt": 20.7, "windowAt": 24.1, "overAt": 26.8, "retainAt": 33.5, "cap": [26.8, 38.6] },
+  "s2": { "typeAt": [41.5, 47.6], "gbAt": 48.4, "splitAt": 53.3, "capA": [60.0, 66.3], "computeAt": 66.5, "colAt": 70.3, "diffAt": 77.5, "capB": [66.5, 83.5] },
+  "s3": { "panelsAt": 86.3, "gbAt": 94.3, "collapseAt": 101.0, "namesAt": 104.6, "winAt": 107.6, "attachAt": 111.7, "noJoinAt": 122.1, "capA": [94.3, 107.4], "capB": [107.6, 128.4] },
+  "s4": { "scanAt": 131.2, "aggAt": 135.1, "sortAt": 142.2, "sortedAt": 146.8, "sweepAt": 151.8, "effAt": 159.3, "millionsAt": 163.0, "cap1": [131.2, 142.0], "cap2": [142.2, 168.5] },
+  "s5": { "dashAt": 171.5, "typeA": [182.5, 188.7], "typeB": [189.2, 194.2], "avgAt": 186.0, "shareAt": 191.0, "reportAt": 195.0, "sealAt": 200.8, "cap1": [171.2, 194.8], "cap2": [195.0, 207.5] },
+  "s6": { "header": 210.4, "badge": 211.5, "progress": [212, 218], "sheets": 218.8, "next": 223.9, "chips": 227.6, "fadeOut": 237 },
+  "sfx": [
+    { "kind": "resonance", "at": 24.1, "vol": 0.4 },
+    { "kind": "pulse", "at": 26.8, "vol": 0.45 },
+    { "kind": "typingshort", "at": 41.5, "vol": 0.3 },
+    { "kind": "sprout", "at": 53.3, "vol": 0.45 },
+    { "kind": "pulse", "at": 70.3, "vol": 0.4 },
+    { "kind": "crash", "at": 101.0, "vol": 0.5 },
+    { "kind": "resonance", "at": 111.7, "vol": 0.45 },
+    { "kind": "laser", "at": 135.1, "vol": 0.4 },
+    { "kind": "speed", "at": 151.8, "vol": 0.45 },
+    { "kind": "typingshort", "at": 182.5, "vol": 0.3 },
+    { "kind": "typingshort", "at": 189.2, "vol": 0.3 },
+    { "kind": "pop", "at": 195.0, "vol": 0.5 },
+    { "kind": "stamp", "at": 200.8, "vol": 0.55 },
+    { "kind": "whoosh", "at": 38.7, "vol": 0.25 },
+    { "kind": "whoosh", "at": 83.8, "vol": 0.25 },
+    { "kind": "whoosh", "at": 128.7, "vol": 0.25 },
+    { "kind": "whoosh", "at": 168.8, "vol": 0.25 },
+    { "kind": "whoosh", "at": 207.8, "vol": 0.25 }
+  ]
+}
