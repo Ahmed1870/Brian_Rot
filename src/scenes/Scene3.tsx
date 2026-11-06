@@ -1,229 +1,145 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner } from "../components/common";
+import { C, eb, eio, eo, fmt, prog, useT, win } from "../lib";
 
-// SC03 (85-130s): RELEASE SAVEPOINT — Memory Cleanup & Nested Savepoint Cascading
-// Anchors: 86.0 RELEASE | 90.0 cleanup | 95.0 memory | 100.0 nested | 110.0 cascading | 118.0 chronological | 125.0 seal
-const S = START.s3;
-const t = (g: number) => sec(g - S);
-
-// Nested savepoint chain
-const NESTED = [
-  {name: 'sp_outer', depth: 0, color: C.purple},
-  {name: 'sp_mid', depth: 1, color: C.blue},
-  {name: 'sp_inner', depth: 2, color: C.green},
+const PURPLE = "#A855F7";
+const DATA: [string, number, number, number][] = [
+  ["Laptop", 1500, 1350, 1100],
+  ["Phone", 900, 950, 700],
+  ["Monitor", 400, 380, 420],
 ];
+const CX = [95, 300, 490, 680, 880, 1040];
+const CW = [190, 180, 180, 190, 150, 150];
+const TY = 190, HY = 262;
+const RY = (i: number) => 320 + i * 86;
+const maxIdx = (r: number[]) => r.indexOf(Math.max(...r)) ; // within [retail, promo, wholesale]
+const minIdx = (r: number[]) => r.indexOf(Math.min(...r));
 
 export const Scene3: React.FC = () => {
-  const f = useCurrentFrame();
-  const relP = clamp(lin(f, t(86.5), 14));
-  const cleanP = clamp(lin(f, t(90), sec(6)));
-  const memP = clamp(lin(f, t(95), sec(6)));
-  const nestedP = clamp(lin(f, t(100), sec(8)));
-  const cascP = clamp(lin(f, t(110), sec(8)));
-  const chronP = pop(f, t(118));
-  const sealP = pop(f, t(125));
-  // RELEASE animation: savepoint fades out, data stays green
-  const fadeProg = clamp(lin(f, t(90), sec(8)));
-  // Memory release animation
-  const memProg = clamp(lin(f, t(95), sec(6)));
+  const t = useT();
+  const tableIn = eo(t, 87.0, 88.4);
+  const vals = DATA.map((d) => [d[1], d[2], d[3]]);
+
+  const SWEEPS: { row: number; a: number; d: number }[] = [
+    { row: 0, a: 90.4, d: 1.6 },
+    { row: 0, a: 92.6, d: 1.6 },
+    ...[0, 1, 2].map((i) => ({ row: i, a: 104.9 + i * 1.2, d: 0.9 })),
+    ...[0, 1, 2].map((i) => ({ row: i, a: 114.6 + i * 0.8, d: 0.7 })),
+  ];
+
+  const gShown = (i: number) => t > 105.8 + i * 1.2;
+  const lShown = (i: number) => t > 115.3 + i * 0.8;
 
   return (
-    <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="RELEASE SAVEPOINT | Memory Cleanup · Nested Savepoint Cascading" from={sec(2)} to={sec(40)} color={C.amber} />
-
-      {/* LEFT: Code editor with RELEASE SAVEPOINT */}
-      <div style={{opacity: relP}}>
-        <Editor
-          x={80}
-          y={180}
-          w={820}
-          h={280}
-          title="Query Editor · RELEASE SAVEPOINT (explicit cleanup)"
-          lines={[
-            'BEGIN;',
-            'SAVEPOINT my_savepoint;',
-            'UPDATE store_orders SET status = $paid;',
-            'RELEASE SAVEPOINT my_savepoint;',
-            '-- savepoint removed · DML preserved',
-            'COMMIT;',
-          ]}
-          start={t(86.5)}
-          cps={0.7}
-          size={16}
-          accent={C.amber}
-          hl={3}
-          hlColor={C.amber}
-        />
+    <AbsoluteFill>
+      {/* table card */}
+      <div style={{ position: "absolute", left: 70 - (1 - tableIn) * 400, top: TY, width: 1130, height: 520, opacity: tableIn, borderRadius: 24, background: C.card2, border: `2px solid ${C.line}` }}>
+        <div style={{ height: 58, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: `1.5px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.blue }}>product_prices</div>
       </div>
-
-      {/* Cleanup badge */}
-      <div style={{position: 'absolute', left: 80, top: 480, width: 820, opacity: clamp(cleanP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`, boxShadow: `0 0 24px ${C.amber}33`}}>
-          <svg width={42} height={42} viewBox="0 0 42 42">
-            <circle cx={21} cy={21} r={19} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} />
-            <circle cx={21} cy={21} r={6} fill={C.amber} style={{opacity: 1 - fadeProg}} />
-          </svg>
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 20, color: C.amber, fontWeight: 700}}>RELEASE SAVEPOINT ──► removes marker ✓</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>explicit cleanup · savepoint name freed · DML inside remains committed-pending</div>
+      {["product", "retail_price", "promo_price", "wholesale_price", "GREATEST", "LEAST"].map((h, c) => {
+        const o = c < 4 ? tableIn : c === 4 ? prog(t, 95.0, 95.6) : prog(t, 95.9, 96.5);
+        const col = c === 4 ? C.amber : c === 5 ? C.blue : c === 1 && t > 100.2 && t < 104.5 ? C.blue : C.dim;
+        return (
+          <div key={h} style={{ position: "absolute", left: CX[c], top: HY, width: CW[c], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: c >= 3 ? 16 : 17, color: col, opacity: o }}>
+            {h}
           </div>
-        </div>
-      </div>
+        );
+      })}
+      {DATA.map((d, i) => {
+        const e = eb(t, 87.8 + i * 0.25, 88.5 + i * 0.25);
+        const mx = maxIdx(vals[i]);
+        const mn = minIdx(vals[i]);
+        const gHit = gShown(i);
+        const lHit = lShown(i);
+        return (
+          <div key={d[0]} style={{ position: "absolute", left: 0, top: 0, opacity: Math.min(1, e * 1.5) }}>
+            <div style={{ position: "absolute", left: 85, top: RY(i), width: 1100, height: 70, borderRadius: 14, background: "#1B2740", border: `1.5px solid ${C.line}` }} />
+            <div style={{ position: "absolute", left: CX[0], top: RY(i), width: CW[0], textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "70px", color: C.text }}>{d[0]}</div>
+            {[1, 2, 3].map((k) => {
+              const isMax = gHit && k - 1 === mx;
+              const isMin = lHit && k - 1 === mn;
+              const bc = isMax ? C.amber : isMin ? C.blue : "transparent";
+              return (
+                <div key={k} style={{ position: "absolute", left: CX[k] + 10, top: RY(i) + 8, width: CW[k] - 20, height: 54, borderRadius: 10, border: `3px solid ${bc}`, background: isMax ? `${C.amber}22` : isMin ? `${C.blue}22` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.text }}>
+                  {fmt(d[k] as number)}
+                </div>
+              );
+            })}
+            <div style={{ position: "absolute", left: CX[4] + 10, top: RY(i) + 8, width: 130, height: 54, borderRadius: 10, border: `3px ${gHit ? "solid" : "dashed"} ${gHit ? C.amber : C.line}`, background: gHit ? `${C.amber}28` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.amber, opacity: t > 95.0 ? 1 : 0 }}>
+              {gHit ? fmt(vals[i][mx]) : ""}
+            </div>
+            <div style={{ position: "absolute", left: CX[5] + 10, top: RY(i) + 8, width: 130, height: 54, borderRadius: 10, border: `3px ${lHit ? "solid" : "dashed"} ${lHit ? C.blue : C.line}`, background: lHit ? `${C.blue}28` : "transparent", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "48px", color: C.blue, opacity: t > 95.9 ? 1 : 0 }}>
+              {lHit ? fmt(vals[i][mn]) : ""}
+            </div>
+          </div>
+        );
+      })}
 
-      {/* Memory release panel */}
-      <Win x={80} y={580} w={820} h={320} title="memory release ──► savepoint name freed · data preserved" accent={C.green} opacity={clamp(memP)}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.green}}>
-          RELEASE ──► savepoint record released · DML survives in green
-        </div>
+      {/* horizontal purple sweeps */}
+      {SWEEPS.map((sw, k) => {
+        if (t < sw.a || t > sw.a + sw.d + 0.35) return null;
+        const w = 560 * eio(t, sw.a, sw.a + sw.d);
+        return (
+          <div key={k} style={{ position: "absolute", left: 295, top: RY(sw.row) + 31, width: w, height: 8, borderRadius: 4, background: PURPLE, opacity: 0.95 }}>
+            <div style={{ position: "absolute", right: -14, top: -11, width: 30, height: 30, borderRadius: 15, background: PURPLE, border: "3px solid #fff" }} />
+          </div>
+        );
+      })}
+      {win(t, 90.0, 95.0, 0.4) > 0 && (
+        <Arabic2 t={t} />
+      )}
 
-        <svg width={780} height={220} style={{position: 'absolute', left: 20, top: 50}}>
-          {/* Savepoint node (fades out in amber) */}
-          <g style={{opacity: 1 - fadeProg * 0.85}}>
-            <rect x={30} y={30} width={220} height={120} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 12px ${C.amber}66)`}} />
-            <text x={140} y={70} fill={C.amber} fontSize={18} fontFamily={MONO} fontWeight={700} textAnchor="middle">SAVEPOINT</text>
-            <text x={140} y={95} fill={C.amber} fontSize={14} fontFamily={MONO} textAnchor="middle">my_savepoint</text>
-            <text x={140} y={120} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">marker record · name table</text>
-            <text x={140} y={140} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">held until RELEASE</text>
-          </g>
+      {/* vertical MAX / MIN */}
+      {t > 100.2 && t < 104.6 && (
+        <>
+          <div style={{ position: "absolute", left: CX[1] + CW[1] / 2 - 3, top: 290, width: 6, height: 290 * eio(t, 100.2, 101.8), background: C.blue, opacity: win(t, 100.2, 104.6, 0.3) }} />
+          <div style={{ position: "absolute", left: CX[1] + CW[1] / 2 - 14, top: 566, fontFamily: MONO, fontWeight: 700, fontSize: 28, color: C.blue, opacity: win(t, 101.6, 104.6, 0.3) }}>▼</div>
+        </>
+      )}
+      {[
+        { a: 100.4, l: "MAX(retail_price) = 1,500", c: C.blue, x: 95 },
+        { a: 100.8, l: "MIN(retail_price) = 400", c: C.dim, x: 560 },
+      ].map((m) => {
+        const o = win(t, m.a, 104.6, 0.3);
+        return o > 0 ? (
+          <div key={m.l} style={{ position: "absolute", left: m.x, top: 620, width: 430, height: 56, borderRadius: 14, border: `2.5px solid ${m.c}`, background: `${m.c}18`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "52px", color: C.text, opacity: o }}>
+            {m.l}
+          </div>
+        ) : null;
+      })}
 
-          {/* Arrow to released state */}
-          <g style={{opacity: clamp(memProg)}}>
-            <line x1={260} y1={90} x2={320} y2={90} stroke={C.green} strokeWidth={4} />
-            <polygon points="316,82 316,98 332,90" fill={C.green} />
-            <text x={290} y={78} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">RELEASE</text>
-          </g>
+      {/* right panel: comparison cards, then use-cases */}
+      {[
+        { a: 99.5, y: 190, c: C.blue, k: "MAX() / MIN()", ar: "عمود واحد ↓ رأسي عبر كل الأسطر", end: 117.2 },
+        { a: 104.7, y: 370, c: PURPLE, k: "GREATEST() / LEAST()", ar: "عدة أعمدة → أفقي داخل السطر الواحد", end: 117.2 },
+        { a: 120.5, y: 190, c: C.amber, k: "SEASONAL PRICES", ar: "مقارنة أسعار المواسم المختلفة", end: 134.4 },
+        { a: 124.0, y: 370, c: PURPLE, k: "SHIPPING & DISCOUNTS", ar: "حدّ أدنى وأقصى لرسوم الشحن والخصومات", end: 134.4 },
+        { a: 129.6, y: 550, c: C.green, k: "PROFIT MARGIN ✓", ar: "تمنع الخسائر وتحمي هامش الربح", end: 134.4 },
+      ].map((cd) => {
+        const o = win(t, cd.a, cd.end, 0.45);
+        if (o <= 0) return null;
+        return (
+          <div key={cd.k} style={{ position: "absolute", left: 1240, top: cd.y, width: 610, height: 158, opacity: o, transform: `translateX(${(1 - eo(t, cd.a, cd.a + 0.6)) * 120}px)`, borderRadius: 20, background: `${cd.c}16`, border: `3px solid ${cd.c}`, padding: "14px 24px" }}>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 25, color: cd.c }}>{cd.k}</div>
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 30, color: C.text, direction: "rtl", textAlign: "right", marginTop: 10, lineHeight: 1.35 }}>{cd.ar}</div>
+          </div>
+        );
+      })}
 
-          {/* Released: data preserved (green) */}
-          <g style={{opacity: clamp(memProg)}}>
-            <rect x={330} y={30} width={250} height={120} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 12px ${C.green}66)`}} />
-            <text x={455} y={68} fill={C.green} fontSize={18} fontFamily={MONO} fontWeight={700} textAnchor="middle">DML Preserved</text>
-            <text x={455} y={92} fill={C.green} fontSize={14} fontFamily={MONO} textAnchor="middle">UPDATE store_orders</text>
-            <text x={455} y={114} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">survives RELEASE ✓</text>
-            <text x={455} y={134} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">committed at COMMIT;</text>
-          </g>
-
-          {/* Memory freed indicator */}
-          <g style={{opacity: clamp(memProg)}}>
-            <rect x={600} y={30} width={170} height={120} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} rx={12} />
-            <text x={685} y={68} fill={C.purple} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">Memory Freed</text>
-            <text x={685} y={92} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">name table slot</text>
-            <text x={685} y={110} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">release · reusable</text>
-            <text x={685} y={136} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ released</text>
-          </g>
-
-          {/* Bottom caption */}
-          <text x={390} y={180} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">
-            RELEASE SAVEPOINT = remove the marker · DML still pending COMMIT · cannot ROLLBACK TO this name anymore
-          </text>
-          <text x={390} y={202} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">
-            {memProg > 0.7 ? '✓ Memory released · data preserved · ready for COMMIT' : 'releasing memory...'}
-          </text>
-        </svg>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 38, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>SAVEPOINT ──► marker</span>
-          <span style={{color: C.amber}}>RELEASE ──► remove marker</span>
-          <span>DML preserved ✓</span>
-        </div>
-      </Win>
-
-      {/* RIGHT: Nested savepoints with chronological cascading */}
-      <Win x={940} y={180} w={900} h={720} title="nested savepoints ──► chronological cascading on RELEASE" accent={C.blue} opacity={clamp(nestedP)}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-          nested SAVEPOINTs ──► RELEASE cascades children chronologically
-        </div>
-
-        <div style={{position: 'absolute', right: 18, top: 14, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>Nested ✓</Chip>
-          <Chip color={cascP > 0.5 ? C.green : C.amber} style={{fontSize: 13, padding: '4px 12px'}}>
-            {cascP > 0.7 ? 'Cascaded ✓' : cascP > 0 ? 'cascading...' : 'idle'}
-          </Chip>
-        </div>
-
-        <svg width={880} height={600} style={{position: 'absolute', left: 10, top: 60}}>
-          {/* Outer savepoint container */}
-          <g style={{opacity: clamp(nestedP)}}>
-            <rect x={30} y={30} width={820} height={500} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={2.5} strokeDasharray="10 6" rx={16} style={{filter: `drop-shadow(0 0 16px ${C.purple}44)`}} />
-            <text x={440} y={20} fill={C.purple} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">sp_outer (depth 0)</text>
-
-            {/* Middle savepoint container */}
-            <rect x={80} y={70} width={720} height={440} fill={`${C.blue}11`} stroke={C.blue} strokeWidth={2.5} strokeDasharray="8 5" rx={14} />
-            <text x={440} y={62} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">sp_mid (depth 1)</text>
-
-            {/* Inner savepoint container */}
-            <rect x={140} y={110} width={600} height={380} fill={`${C.green}11`} stroke={C.green} strokeWidth={2.5} strokeDasharray="6 4" rx={12} />
-            <text x={440} y={104} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">sp_inner (depth 2)</text>
-          </g>
-
-          {/* Chronological sequence arrows pointing inward */}
-          <g style={{opacity: clamp(cascP)}}>
-            <line x1={440} y1={42} x2={440} y2={66} stroke={C.amber} strokeWidth={3} strokeDasharray="6 3" />
-            <polygon points="434,60 446,60 440,72" fill={C.amber} />
-            <line x1={440} y1={82} x2={440} y2={106} stroke={C.amber} strokeWidth={3} strokeDasharray="6 3" />
-            <polygon points="434,100 446,100 440,112" fill={C.amber} />
-          </g>
-
-          {/* DML step labels inside inner */}
-          <g style={{opacity: clamp(nestedP)}}>
-            <text x={440} y={150} fill={C.muted} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">DML block inside nested savepoints</text>
-
-            <rect x={180} y={170} width={520} height={40} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
-            <text x={440} y={196} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">① SAVEPOINT sp_outer;  (create outer)</text>
-
-            <rect x={180} y={220} width={520} height={40} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2} rx={8} />
-            <text x={440} y={246} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">② UPDATE orders SET status = $paid;</text>
-
-            <rect x={180} y={270} width={520} height={40} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
-            <text x={440} y={296} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">③ SAVEPOINT sp_mid;  (create mid)</text>
-
-            <rect x={180} y={320} width={520} height={40} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={2} rx={8} />
-            <text x={440} y={346} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">④ UPDATE inventory SET qty = qty - 1;</text>
-
-            <rect x={180} y={370} width={520} height={40} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} />
-            <text x={440} y={396} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">⑤ SAVEPOINT sp_inner;  (create inner)</text>
-
-            <rect x={180} y={420} width={520} height={40} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} rx={8} style={{filter: `drop-shadow(0 0 8px ${C.purple}55)`}} />
-            <text x={440} y={446} fill={C.purple} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">⑥ RELEASE SAVEPOINT sp_outer;  → cascades sp_mid + sp_inner</text>
-          </g>
-
-          {/* Chronological cascade outcome banner */}
-          {cascP > 0.7 ? (
-            <g style={{opacity: clamp(pop(f, t(118)))}}>
-              <rect x={60} y={480} width={760} height={60} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green}66)`}} />
-              <text x={440} y={506} fill={C.green} fontSize={15} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Chronological Cascade · sp_outer RELEASE removes sp_mid + sp_inner in order</text>
-              <text x={440} y={528} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">child savepoints auto-released in chronological order · DML still pending COMMIT ✓</text>
-            </g>
-          ) : null}
-        </svg>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 38, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>sp_outer (parent)</span>
-          <span>RELEASE → cascades children chronologically</span>
-          <span>DML preserved ✓</span>
-        </div>
-      </Win>
-
-      {/* Seal badge */}
-      <div style={{position: 'absolute', left: 80, top: 920, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={sealP} size={36} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>RELEASE SAVEPOINT · Memory Cleaned ✓</div>
-        </div>
-      </div>
-
-      {/* Chronological cascade chip */}
-      <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(chronP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.blue}`, borderRadius: 14, background: `${C.blue}0d`}}>
-          <Check p={chronP} size={36} color={C.blue} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.blue, fontWeight: 700}}>Chronological Cascade ✓</div>
-        </div>
-      </div>
-
-      <Caption text="RELEASE SAVEPOINT ──► Memory Freed · DML Preserved · Nested Children Cascade Chronologically" from={t(110)} to={sec(44)} tone="ok" />
-    </Stage>
+      <Banner x={70} y={900} w={1780} a={90.0} b={109.8} color={PURPLE} fs={25}>
+        GREATEST(c1, c2, c3) ──► Horizontal Row-Level Comparison (Vs Vertical MAX)
+      </Banner>
+      <Banner x={70} y={900} w={1780} a={110.2} b={134.2} color={C.blue} fs={26}>
+        LEAST(c1, c2, c3) ──► Extracts Minimum Bound Across Row Columns
+      </Banner>
+    </AbsoluteFill>
   );
 };
+
+const Arabic2: React.FC<{ t: number }> = ({ t }) => (
+  <div style={{ position: "absolute", left: 300, top: 600, width: 600, textAlign: "center", fontFamily: AR, fontWeight: 900, fontSize: 36, color: PURPLE, direction: "rtl", opacity: win(t, 90.0, 95.0, 0.4) }}>
+    ↔ داخل نفس السطر
+  </div>
+);
