@@ -1,215 +1,139 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Warn, Win, clamp, lin, pop, sec} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner, CodeLine } from "../components/common";
+import { C, eb, eio, eo, fmt, prog, useT, win } from "../lib";
 
-// SC04 (130-170s): TIDs + DML Write Overhead — Index Pages ↔ Heap Laser Threads
-// Anchors: 131.0 TIDs | 136.0 heap | 140.0 block offset | 145.0 index pages | 150.0 DML | 155.0 overhead | 160.0 warning | 165.0 seal
-const S = START.s4;
-const t = (g: number) => sec(g - S);
-
-// 5 redundant indexes on the table (each must be updated on INSERT)
-const REDUNDANT_INDEXES = [
-  {name: 'idx_price', col: 'unit_price', type: 'B-Tree'},
-  {name: 'idx_sku', col: 'sku', type: 'Hash'},
-  {name: 'idx_tags', col: 'tags', type: 'GIN'},
-  {name: 'idx_created', col: 'created_at', type: 'B-Tree'},
-  {name: 'idx_name', col: 'name', type: 'B-Tree'},
-];
-
-// Index pages on the left
-const INDEX_PAGES = [
-  {name: 'idx_price', y: 60},
-  {name: 'idx_sku', y: 140},
-  {name: 'idx_tags', y: 220},
-];
-
-// Heap TIDs on the right (block + offset)
-const HEAP_TIDS = [
-  {block: 12, offset: 4, y: 60},
-  {block: 12, offset: 5, y: 140},
-  {block: 13, offset: 1, y: 220},
-  {block: 13, offset: 2, y: 300},
-];
+const LX = [70, 990];
+const LY = 170, LW = 860, LH = 600;
 
 export const Scene4: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(131.5), 14));
-  const laserP = clamp(lin(f, t(140), 14));
-  // INSERT trigger animation
-  const insertP = clamp(lin(f, t(150), sec(8)));
-  // Flashing red for redundant indexes
-  const flashPhase = Math.floor(f / 8) % 2;
-  const isFlashing = insertP > 0.3 && insertP < 0.95;
-  const overheadP = clamp(lin(f, t(155), sec(6)));
-  const warnP = pop(f, t(160));
-  const sealP = pop(f, t(165));
-
-  // Laser line opacity pulsing
-  const laserPulse = (0.6 + 0.4 * Math.sin(f * 0.3));
+  const t = useT();
+  const inlAct = win(t, 139.4, 158.6, 0.4);
+  const bufAct = win(t, 158.8, 169.9, 0.4);
+  const laneOp = (i: number) => eo(t, 130.4 + i * 0.4, 131.6 + i * 0.4) * (1 - (i === 0 ? bufAct : inlAct) * 0.5);
+  const merge = eio(t, 150.7, 154.4);
+  const buf = eo(t, 163.4, 165.6);
+  const gauge = eo(t, 164.7, 166.4) * 0.55;
+  const rows = Math.round(1000000 * eio(t, 163.6, 165.4));
 
   return (
-    <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="معرفات الصفوف وعبء الكتابة | TIDs & DML Write Overhead" from={sec(2)} to={sec(40)} color={C.red} />
-
-      {/* EXPLAIN editor at top */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={180}
-          w={1760}
-          h={140}
-          title="TID · Heap Tuple Identifier (Block + Offset)"
-          lines={[
-            'INSERT INTO products (sku, name, unit_price) VALUES (?, ?, ?);',
-            "-- EXPLAIN: TID = (block, offset) ──► every index must be updated",
-          ]}
-          start={t(131.5)}
-          cps={0.78}
-          size={16}
-          accent={C.blue}
-          hl={0}
-          hlColor={C.blue}
-        />
+    <AbsoluteFill>
+      <div style={{ position: "absolute", left: 560, top: 112, width: 800, height: 50, borderRadius: 999, border: `2px solid ${C.blue}77`, background: "#0B1B33", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "46px", color: C.blue, opacity: win(t, 130.2, 169.9, 0.6) }}>
+        PostgreSQL 16 · Optimizer Plan
       </div>
 
-      {/* LEFT: Index Pages ↔ Heap TIDs laser threads */}
-      <Win x={80} y={340} w={860} h={540} title="index pages ──► heap TIDs (laser threads)" accent={C.blue} opacity={clamp(lin(f, t(140), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-          index page ──► TID pointer ──► heap block
-        </div>
+      {[0, 1].map((i) => {
+        const c = i === 0 ? C.blue : C.green;
+        const act = i === 0 ? inlAct : bufAct;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: LX[i] + (i === 0 ? -1 : 1) * (1 - eo(t, 130.4 + i * 0.4, 131.8 + i * 0.4)) * 300,
+              top: LY,
+              width: LW,
+              height: LH,
+              opacity: laneOp(i),
+              borderRadius: 28,
+              background: `linear-gradient(170deg, ${c}${act > 0 ? "1E" : "0E"}, ${C.card2})`,
+              border: `${act > 0 ? 4 : 2}px solid ${act > 0 ? c : C.line}`,
+              boxShadow: act > 0 ? `0 0 20px ${c}55` : "none",
+            }}
+          >
+            <div style={{ position: "absolute", left: 40, top: 24, fontFamily: MONO, fontWeight: 700, fontSize: 40, color: c }}>{i === 0 ? "CTE Inlining" : "CTE Scan Buffer"}</div>
+            <div style={{ position: "absolute", left: 40, top: 80, fontFamily: AR, fontWeight: 700, fontSize: 28, color: C.text, direction: "rtl" }}>{i === 0 ? "مرة واحدة ➔ دمج تلقائي" : "عدة مرات ➔ بافر في الذاكرة"}</div>
 
-        {/* SVG with index pages (left) and heap TIDs (right) connected by laser lines */}
-        <svg width={820} height={420} style={{position: 'absolute', left: 20, top: 50}}>
-          {/* Section labels */}
-          <text x={20} y={20} fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700}>Index Pages</text>
-          <text x={680} y={20} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700}>Heap TIDs</text>
+            {i === 0 && (
+              <>
+                {t > 143.4 && (
+                  <div style={{ position: "absolute", left: 40, top: 140, width: 780, height: 250, borderRadius: 16, background: "#0B1222", border: `2px solid ${C.blue}88`, opacity: prog(t, 143.4, 144.0) }}>
+                    <div style={{ opacity: 1 - merge }}>
+                      {["WITH t AS (", "  SELECT * FROM orders WHERE total > 500", ")", "SELECT * FROM t WHERE customer_id = 7;"].map((s, k) => (
+                        <div key={k} style={{ position: "absolute", left: 24, top: 16 + k * 46, opacity: k === 0 || k === 2 ? 1 - merge : 1, transform: k === 1 ? `translateY(${merge * 46}px)` : undefined }}>
+                          <CodeLine text={s} fs={20} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ opacity: merge }}>
+                      {["SELECT * FROM orders", "WHERE total > 500", "  AND customer_id = 7;"].map((s, k) => (
+                        <div key={k} style={{ position: "absolute", left: 24, top: 16 + k * 46 }}>
+                          <CodeLine text={s} fs={20} override={k >= 1 ? "#7DD3FC" : undefined} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ position: "absolute", right: 18, bottom: 12, fontFamily: MONO, fontWeight: 700, fontSize: 18, color: C.blue, opacity: prog(t, 153.8, 154.4) }}>merged ✓</div>
+                  </div>
+                )}
+                {t > 144.4 && (
+                  <div style={{ position: "absolute", left: 40, top: 410, padding: "8px 22px", borderRadius: 999, border: `2.5px solid ${C.blue}`, background: `${C.blue}18`, fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.blue, opacity: prog(t, 144.4, 145.0) }}>used ONCE · non-recursive</div>
+                )}
+                {t > 154.4 && (
+                  <div style={{ position: "absolute", left: 40, top: 470, width: 380, height: 56, borderRadius: 14, border: `2.5px solid ${C.violet}`, background: `${C.violet}18`, fontFamily: MONO, fontWeight: 700, fontSize: 20, lineHeight: "52px", textAlign: "center", color: C.violet, opacity: prog(t, 154.4, 155.0) }}>
+                    SubPlan inside Query Planner
+                  </div>
+                )}
+                {t > 155.9 && (
+                  <div style={{ position: "absolute", left: 440, top: 470, width: 380, height: 56, borderRadius: 14, border: `2.5px solid ${C.green}`, background: `${C.green}18`, fontFamily: MONO, fontWeight: 700, fontSize: 20, lineHeight: "52px", textAlign: "center", color: C.green, opacity: prog(t, 155.9, 156.5) }}>
+                    Index Scan ✓ · no extra cost
+                  </div>
+                )}
+              </>
+            )}
 
-          {/* Laser lines connecting pages to TIDs */}
-          {INDEX_PAGES.map((page, pi) =>
-            HEAP_TIDS.map((tid, ti) => {
-              const visible = laserP > 0.3 + (pi + ti) * 0.05;
-              return (
-                <line
-                  key={`${pi}-${ti}`}
-                  x1={210}
-                  y1={page.y + 40}
-                  x2={620}
-                  y2={tid.y + 30}
-                  stroke={C.blue}
-                  strokeWidth={visible ? 1.5 : 0}
-                  strokeOpacity={visible ? laserPulse * 0.7 : 0}
-                  strokeDasharray="3 4"
-                  style={{filter: visible ? `drop-shadow(0 0 3px ${C.blue})` : 'none'}}
-                />
-              );
-            })
-          )}
-
-          {/* Index Pages (left column) */}
-          {INDEX_PAGES.map((page, i) => (
-            <g key={i}>
-              <rect x={20} y={page.y} width={190} height={60} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2} rx={8} />
-              <text x={115} y={page.y + 25} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">{page.name}</text>
-              <text x={115} y={page.y + 44} fill={C.muted} fontSize={11} fontFamily={MONO} textAnchor="middle">page #{i + 1}</text>
-            </g>
-          ))}
-
-          {/* Heap TIDs (right column) */}
-          {HEAP_TIDS.map((tid, i) => {
-            const visible = laserP > 0.3 + i * 0.1;
-            return (
-              <g key={i} style={{opacity: visible ? 1 : 0.3}}>
-                <rect x={620} y={tid.y} width={180} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={8} />
-                <text x={710} y={tid.y + 22} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">TID ({tid.block}, {tid.offset})</text>
-                <text x={710} y={tid.y + 40} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">block + offset</text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Storage callouts */}
-        <div style={{position: 'absolute', left: 18, right: 18, bottom: 50, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>Index Pages</Chip>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>→ TID pointers</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>Heap Blocks</Chip>
-        </div>
-
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>heap · unordered rows</span>
-          <span>TID = (block, offset)</span>
-        </div>
-      </Win>
-
-      {/* RIGHT: 5 redundant indexes flashing red on INSERT */}
-      <Win x={980} y={340} w={860} h={540} title="INSERT triggers 5 index updates ──► DML Write Overhead" accent={C.red} opacity={clamp(lin(f, t(150), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.red}}>
-          single INSERT ──► 5 indexes must be updated
-        </div>
-
-        {/* Index list with flashing red */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 60, display: 'flex', flexDirection: 'column', gap: 10}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginBottom: 4}}>redundant indexes on products:</div>
-          {REDUNDANT_INDEXES.map((idx, i) => {
-            const visible = clamp(pop(f, t(150 + i * 0.4)));
-            const flashing = isFlashing && flashPhase === 0;
-            return (
-              <div key={i} dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', border: `2px solid ${flashing ? C.red : C.border}`, borderRadius: 8, background: flashing ? `${C.red}22` : 'transparent', opacity: clamp(visible)}}>
-                <span style={{fontFamily: MONO, fontSize: 14, color: flashing ? C.red : C.amber, fontWeight: 700}}>{flashing ? '⚡' : '○'}</span>
-                <span style={{fontFamily: MONO, fontSize: 15, color: C.text, fontWeight: 700, minWidth: 130}}>{idx.name}</span>
-                <span style={{fontFamily: MONO, fontSize: 13, color: C.muted, flex: 1}}>({idx.col}) · {idx.type}</span>
-                <span style={{fontFamily: MONO, fontSize: 12, color: flashing ? C.red : C.muted, fontWeight: 700}}>{flashing ? 'updating...' : 'idle'}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* DML overhead meter */}
-        <div style={{position: 'absolute', left: 18, right: 18, top: 330, padding: '12px 14px', border: `2px solid ${C.amber}`, borderRadius: 10, background: `${C.amber}0d`, opacity: clamp(overheadP)}}>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, marginBottom: 6}}>DML Write Overhead per INSERT</div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.muted, minWidth: 80}}>heap write</span>
-            <div style={{flex: 1, height: 12, borderRadius: 6, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${overheadP * 20}%`, background: C.green, borderRadius: 6}} />
-            </div>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.green, fontWeight: 700, minWidth: 50}}>1×</span>
+            {i === 1 && (
+              <>
+                {t > 158.9 && (
+                  <>
+                    <div style={{ position: "absolute", left: 40, top: 150, width: 380, height: 70, borderRadius: 14, background: `${C.blue}16`, border: `2.5px solid ${C.blue}`, fontFamily: MONO, fontWeight: 700, fontSize: 22, lineHeight: "66px", textAlign: "center", color: C.text, opacity: prog(t, 158.9, 159.5) }}>
+                      WITH totals AS (…)
+                    </div>
+                    {[0, 1].map((k) => (
+                      <div key={k} style={{ position: "absolute", left: 440 + k * 0, top: 240 + k * 70, width: 380, height: 56, borderRadius: 12, background: "#1B2740", border: `2px solid ${C.line}`, fontFamily: MONO, fontWeight: 700, fontSize: 19, lineHeight: "52px", paddingLeft: 16, color: C.text, opacity: prog(t, 160.2 + k * 0.8, 160.8 + k * 0.8) }}>
+                        {k === 0 ? "main query · use #1 → totals" : "main query · use #2 → totals"}
+                      </div>
+                    ))}
+                    <div style={{ position: "absolute", left: 40, top: 240, fontFamily: AR, fontWeight: 900, fontSize: 28, color: C.amber, direction: "rtl", opacity: prog(t, 159.4, 160.0) }}>اتنادت عدة مرات</div>
+                  </>
+                )}
+                {buf > 0 && (
+                  <div style={{ position: "absolute", left: 40, top: 392, width: 780, height: 90, opacity: Math.min(1, buf * 1.5), transform: `scaleY(${0.5 + 0.5 * buf})`, transformOrigin: "top", borderRadius: 16, background: `${C.green}18`, border: `3px solid ${C.green}` }}>
+                    <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.green, margin: "10px 0 0 22px" }}>CTE Scan · work_mem buffer</div>
+                    <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.text, margin: "6px 0 0 22px" }}>{fmt(rows)} rows cached · computed ONCE</div>
+                  </div>
+                )}
+                {t > 164.7 && (
+                  <div style={{ position: "absolute", left: 40, top: 504, width: 780 }}>
+                    <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 20, color: C.dim }}>work_mem</div>
+                    <div style={{ marginTop: 6, height: 26, borderRadius: 13, background: "#0B1222", border: `2px solid ${C.line}` }}>
+                      <div style={{ width: `${Math.max(1, gauge * 100)}%`, height: "100%", borderRadius: 11, background: C.green }} />
+                    </div>
+                  </div>
+                )}
+                {t > 168.0 && (
+                  <div style={{ position: "absolute", left: 40, top: 556, width: 780, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 20, color: C.green, opacity: prog(t, 168.0, 168.6) }}>
+                    ✓ no re-evaluation · fewer disk reads
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 6}}>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.muted, minWidth: 80}}>index writes</span>
-            <div style={{flex: 1, height: 12, borderRadius: 6, background: C.border, overflow: 'hidden'}}>
-              <div style={{height: '100%', width: `${overheadP * 100}%`, background: C.red, borderRadius: 6}} />
-            </div>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.red, fontWeight: 700, minWidth: 50}}>5×</span>
-          </div>
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginTop: 8}}>total writes per INSERT = 6 (1 heap + 5 index)</div>
-        </div>
+        );
+      })}
 
-        {/* Warning sign */}
-        <div style={{position: 'absolute', left: 18, right: 18, bottom: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', border: `2px solid ${C.red}`, borderRadius: 10, background: `${C.red}0d`, opacity: clamp(warnP)}}>
-          <Warn size={48} color={C.red} />
-          <div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.red, fontWeight: 700}}>DML Write Overhead</div>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.muted, marginTop: 4}}>redundant indexes slow down INSERT / UPDATE / DELETE</div>
-          </div>
+      {win(t, 131.4, 139.2, 0.5) > 0 && (
+        <div style={{ position: "absolute", left: 560, top: 790, width: 800, textAlign: "center", opacity: win(t, 131.4, 139.2, 0.5), fontFamily: AR, fontWeight: 900, fontSize: 36, color: C.text, direction: "rtl" }}>
+          تطوّر مذهل في معالجة الـ <span style={{ color: C.blue, fontFamily: MONO }}>CTEs</span>
         </div>
+      )}
 
-        {/* Bottom status */}
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>5 indexes updated</span>
-          <span>rule: drop unused indexes</span>
-        </div>
-      </Win>
-
-      {/* Seal badge */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 920, display: 'flex', justifyContent: 'center', opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.amber}`, borderRadius: 14, background: `${C.amber}0d`}}>
-          <Check p={sealP} size={36} color={C.amber} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.amber, fontWeight: 700}}>TID = (Block, Offset) · Each INSERT Writes To Every Index</div>
-        </div>
-      </div>
-
-      <Caption text="TID (Block, Offset) ──► Each INSERT Updates ALL Indexes (DML Write Overhead)" from={t(155)} to={sec(44)} tone="danger" />
-    </Stage>
+      <Banner x={70} y={808} w={1780} a={139.5} b={158.5} color={C.blue} fs={25}>
+        PostgreSQL 16 Optimizer ──► Automatic CTE Inlining for Single-Use CTEs
+      </Banner>
+      <Banner x={70} y={808} w={1780} a={158.9} b={169.8} color={C.green} fs={25}>
+        CTE Scan Buffer ──► In-Memory Caching in work_mem for Multi-Use CTEs
+      </Banner>
+    </AbsoluteFill>
   );
 };

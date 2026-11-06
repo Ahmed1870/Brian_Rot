@@ -1,97 +1,97 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Logo } from "../components/common";
+import { C, eb, eio, eo, prog, useT } from "../lib";
 
-// SC06 (210-240s): Manzooma Academy outro — Module 12 at 25%
-// Anchors: 211.0 excellent | 213.5 download scripts | 220.0 prepare | 225.0 next lesson | 230.0 composite & partial
-const S = START.s6;
-const t = (g: number) => sec(g - S);
-
-const SKILLS = ['B-Tree Architecture ✓', 'Hash Equality Index ✓', 'GIN Inverted Index ✓', 'GiST Spatial Index ✓', 'TIDs & DML Overhead ✓'];
+const SKILLS = [
+  { a: 213.0, t: "Subqueries", ar: "استعلامات فرعية", c: C.blue },
+  { a: 214.2, t: "WITH / CTEs", ar: "جداول مؤقتة اسمية", c: C.green },
+  { a: 215.8, t: "IN · EXISTS", ar: "فحص شريحي آمن", c: C.amber },
+  { a: 216.9, t: "Inlining · Buffer", ar: "كواليس PostgreSQL 16", c: C.violet },
+];
+const BAR_X = 260, BAR_W = 1400, BAR_Y = 618;
 
 export const Scene6: React.FC = () => {
-  const f = useCurrentFrame();
-  const card = prog(f, 0, 30);
-  const head = prog(f, t(211), 24);
-  const badge = pop(f, t(211.6));
-  const fill = prog(f, t(212.2), sec(4.8));
-  const modDone = prog(f, t(213.5), 20);
-  const res = prog(f, t(215), 24);
-  const next = prog(f, t(220), 28);
-  const code = typed("CREATE INDEX idx_comp ON tbl (col1, col2);\n\n-- partial: WHERE active = true\n-- composite: (col1, col2) ordering", f, t(225), 0.65).split('\n');
-  const pct = Math.round(fill * 25); // 25% of Module 12
+  const t = useT();
+  const cardIn = eo(t, 208.7, 210.0);
+  const logoIn = eb(t, 209.3, 210.3);
+  const badge = eb(t, 210.7, 211.4);
+  const check = prog(t, 211.0, 211.6);
+  const fill = eio(t, 212.4, 217.2);
+  const pct = Math.round(fill * 100);
+  const done = prog(t, 217.4, 218.1);
 
   return (
-    <Stage dur={900} inFx="fade" outFx="black">
-      <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
-        <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
-          <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
-            <svg width={70} height={70} viewBox="0 0 70 70">
-              <line x1={14} y1={52} x2={35} y2={16} stroke={C.blue} strokeWidth={5} />
-              <line x1={35} y1={16} x2={56} y2={52} stroke={C.green} strokeWidth={5} />
-              <line x1={14} y1={52} x2={56} y2={52} stroke={C.amber} strokeWidth={5} />
-              <circle cx={14} cy={52} r={9} fill={C.blue} />
-              <circle cx={35} cy={16} r={9} fill={C.text} />
-              <circle cx={56} cy={52} r={9} fill={C.green} />
-            </svg>
-            <Mix style={{fontSize: 62, fontWeight: 700, color: C.text}}>منظومة أكاديمي</Mix>
-            <span style={{fontFamily: MONO, fontSize: 40, color: C.muted}}>|</span>
-            <span dir="ltr" style={{fontFamily: MONO, fontSize: 40, fontWeight: 700, color: C.blue}}>Manzooma SQL Masterclass</span>
-          </div>
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 170}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
-            <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.green}}>
-              Lesson 47 Completed: <span style={{color: C.text}}>Indexing Architecture &amp; Data Structures Mastered</span>
-            </div>
-          </div>
-          <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
-            <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.border}`}}>
-              <div style={{width: `${fill * 25}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14}} />
-            </div>
-            <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
-          </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 12 · Indexing Architecture &amp; Data Structures — {modDone > 0.5 ? 'B-Tree · Hash · GIN · GiST · TIDs Mastered ✓' : 'in progress'}
-          </div>
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 14, flexWrap: 'wrap', maxWidth: 1540}}>
-          {SKILLS.map((s, i) => {
-            const p = pop(f, t(214 + i * 0.5));
-            return (
-              <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
-                <Chip color={C.blue} style={{fontSize: 18}}>{s}</Chip>
-              </div>
-            );
-          })}
-        </div>
-
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 460, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
-          <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
-            <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
-          </Chip>
-        </div>
-
-        <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
-          <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 48</Mix>
-            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>الفهارس المركبة والجزئية وتحسين أداء الاستعلامات متعددة الأعمدة</Mix>
-          </div>
-          <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 15, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 48</div>
-            {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 24}}>
-                <Sql text={l} />
-                {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
-              </div>
-            ))}
-          </div>
-        </div>
+    <AbsoluteFill>
+      <div style={{ position: "absolute", left: 160, top: 70 + (1 - cardIn) * 80, width: 1600, height: 940, opacity: cardIn, borderRadius: 44, background: "linear-gradient(160deg, #1E293BCC 0%, #0F172AE6 55%, #0B1B33E6 100%)", border: `2px solid ${C.blue}55` }} />
+      <div style={{ position: "absolute", left: 840, top: 92, opacity: Math.min(1, logoIn * 1.4), transform: `scale(${0.7 + 0.3 * Math.min(1.1, logoIn)})`, willChange: "transform" }}>
+        <Logo size={240} />
       </div>
-    </Stage>
+      <div style={{ position: "absolute", left: 160, top: 336, width: 1600, textAlign: "center", opacity: prog(t, 209.7, 210.5), transform: `translateY(${(1 - eo(t, 209.7, 210.7)) * 30}px)` }}>
+        <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 64, color: C.text, direction: "rtl", lineHeight: 1.15 }}>
+          منظومة <span style={{ color: C.blue }}>أكاديمي</span>
+        </div>
+        <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 30, color: C.blue, letterSpacing: 2 }}>Manzooma SQL Masterclass</div>
+      </div>
+
+      <div style={{ position: "absolute", left: 300, top: 488, width: 1320, height: 70, borderRadius: 999, background: `${C.green}1E`, border: `3px solid ${C.green}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 20, opacity: Math.min(1, badge * 1.5), transform: `scale(${0.85 + 0.15 * Math.min(1.1, badge)})` }}>
+        <svg width={46} height={46} viewBox="0 0 46 46">
+          <circle cx="23" cy="23" r="21" fill={C.green} />
+          <path d="M12 24 L20 32 L35 15" fill="none" stroke="#07101F" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - check} />
+        </svg>
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 28, color: C.text }}>
+          Lesson 35 Completed: <span style={{ color: C.green }}>CTEs &amp; Subqueries Mastered</span>
+        </span>
+      </div>
+
+      <div style={{ position: "absolute", left: BAR_X, top: BAR_Y - 44, width: BAR_W, display: "flex", justifyContent: "space-between", fontFamily: MONO, fontWeight: 700, fontSize: 21, opacity: prog(t, 212.2, 212.8) }}>
+        <span style={{ color: C.dim }}>MODULE 10 · SUBQUERIES, CTEs &amp; ADVANCED STRUCTURES</span>
+        <span style={{ color: C.green, fontSize: 28 }}>{pct}%</span>
+      </div>
+      <div style={{ position: "absolute", left: BAR_X, top: BAR_Y, width: BAR_W, height: 28, borderRadius: 14, background: "#0B1222", border: `2px solid ${C.line}`, opacity: prog(t, 212.2, 212.8) }}>
+        <div style={{ width: `${Math.max(0.5, fill * 100)}%`, height: "100%", borderRadius: 12, background: `linear-gradient(90deg, ${C.blue}, ${C.green})` }} />
+      </div>
+      <div style={{ position: "absolute", left: 160, top: 656, width: 1600, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.green, opacity: done }}>
+        Module 10 Started · Subqueries &amp; CTEs Mastered
+      </div>
+
+      <div style={{ position: "absolute", left: 160, top: 704, width: 1600, display: "flex", justifyContent: "center", gap: 20 }}>
+        {SKILLS.map((s, i) => {
+          const e = eb(t, s.a, s.a + 0.6);
+          return (
+            <div key={i} style={{ width: 360, height: 84, borderRadius: 20, background: `${s.c}16`, border: `2.5px solid ${s.c}`, textAlign: "center", opacity: Math.min(1, e * 1.5), transform: `translateY(${(1 - Math.min(1, e)) * 40}px)` }}>
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 25, color: s.c, marginTop: 8 }}>{s.t}</div>
+              <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 22, color: C.text, direction: "rtl" }}>{s.ar}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {(() => {
+        const e = eb(t, 222.4, 223.2);
+        if (e <= 0) return null;
+        return (
+          <div style={{ position: "absolute", left: 210, top: 818, width: 700, height: 160, borderRadius: 26, background: `${C.blue}14`, border: `3px solid ${C.blue}`, opacity: Math.min(1, e * 1.5), transform: `translateY(${(1 - Math.min(1, e)) * 50}px)`, padding: "14px 30px" }}>
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.text, direction: "rtl", textAlign: "right" }}>الشيتات والتمارين التطبيقية</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 21, color: C.dim, marginTop: 4 }}>CTEs &amp; subquery scripts · practice sheets</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 31, color: C.blue, marginTop: 10, textDecoration: "underline", textUnderlineOffset: 8 }}>solutions.gomaaintelligence.me</div>
+          </div>
+        );
+      })()}
+
+      {(() => {
+        const e = eb(t, 227.1, 227.9);
+        if (e <= 0) return null;
+        return (
+          <div style={{ position: "absolute", left: 950, top: 818, width: 760, height: 160, borderRadius: 26, background: `${C.violet}14`, border: `3px solid ${C.violet}`, opacity: Math.min(1, e * 1.5), transform: `translateY(${(1 - Math.min(1, e)) * 50}px)`, padding: "12px 30px" }}>
+            <div style={{ fontFamily: AR, fontWeight: 700, fontSize: 24, color: C.violet, direction: "rtl", textAlign: "right" }}>الدرس القادم</div>
+            <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 29, color: C.text, direction: "rtl", textAlign: "right" }}>الدرس 36: التعبيرات التكرارية المتقدمة</div>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.violet, marginTop: 2, opacity: prog(t, 231.2, 231.8) }}>RECURSIVE CTEs</div>
+            <div style={{ fontFamily: MONO, fontWeight: 500, fontSize: 19, color: C.dim, marginTop: 4, whiteSpace: "pre", lineHeight: 1.5, opacity: prog(t, 232.0, 232.6) }}>{"WITH RECURSIVE org_tree AS ( … )"}</div>
+          </div>
+        );
+      })()}
+    </AbsoluteFill>
   );
 };

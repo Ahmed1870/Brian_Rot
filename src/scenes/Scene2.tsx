@@ -1,208 +1,179 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, pop, sec} from '../kit';
-import {JSONB_DOC, JSONB_KEYS} from '../data';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eio, eo, lerp, prog, typed, useT, win } from "../lib";
 
-// SC02 (40-85s): Hash Index + GIN Inverted Index — Equality vs Containment
-// Anchors: 41.0 hash | 45.0 equality | 52.0 GIN | 60.0 JSONB | 68.0 arrays | 75.0 inverted | 80.0 fast
-const S = START.s2;
-const t = (g: number) => sec(g - S);
+const CUST: [number, string][] = [
+  [1, "Ali"],
+  [2, "Sara"],
+  [3, "Omar"],
+  [4, "Mona"],
+  [5, "Hany"],
+];
+const ORD: (number | null)[] = [2, 3, null];
+const PX = [70, 980], PW = 870, PY = 190, PH = 520;
+const CY = (i: number) => 150 + i * 52;
+const OY = (k: number) => 150 + k * 52;
+const matchIdx = (id: number) => ORD.indexOf(id);
+
+const Lists: React.FC<{ nullPulse?: boolean; probe?: { chip: number } | null; verdict?: (i: number) => "yes" | "no" | "unk" | null }> = ({ nullPulse, probe, verdict }) => (
+  <>
+    <div style={{ position: "absolute", left: 26, top: 108, fontFamily: MONO, fontWeight: 700, fontSize: 17, color: C.dim }}>customers</div>
+    <div style={{ position: "absolute", left: 330, top: 108, fontFamily: MONO, fontWeight: 700, fontSize: 17, color: C.dim }}>orders.customer_id</div>
+    {CUST.map(([id, n], i) => {
+      const v = verdict ? verdict(i) : null;
+      const col = v === "yes" ? C.green : v === "unk" ? C.red : v === "no" ? C.dim : C.line;
+      return (
+        <div key={id} style={{ position: "absolute", left: 20, top: CY(i), width: 270, height: 44, borderRadius: 10, background: v === "yes" ? `${C.green}22` : "#1B2740", border: `2px solid ${col}`, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 12px", fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.text }}>
+          <span>{id} · {n}</span>
+          <span style={{ color: col, fontSize: 15 }}>{v === "yes" ? "✓ match" : v === "unk" ? "UNKNOWN ?" : v === "no" ? "no match" : ""}</span>
+        </div>
+      );
+    })}
+    {ORD.map((v, k) => {
+      const isNull = v === null;
+      const hot = probe && probe.chip === k;
+      const c = isNull ? C.red : C.blue;
+      return (
+        <div key={k} style={{ position: "absolute", left: 330, top: OY(k), width: 150, height: 44, borderRadius: 10, background: `${c}${hot ? "44" : isNull && nullPulse ? "38" : "18"}`, border: `${hot || (isNull && nullPulse) ? 3 : 2}px solid ${c}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 20, lineHeight: "40px", color: isNull ? "#FCA5A5" : C.text }}>
+          {isNull ? "NULL" : v}
+        </div>
+      );
+    })}
+  </>
+);
 
 export const Scene2: React.FC = () => {
-  const f = useCurrentFrame();
-  const leftP = clamp(lin(f, t(41.5), 14));
-  const rightP = clamp(lin(f, t(52), 14));
-  // Hash flow animation
-  const hashFlowP = clamp(lin(f, t(45), sec(20)));
-  // GIN decomposition animation
-  const ginDecompP = clamp(lin(f, t(60), sec(20)));
-  const visibleKeys = Math.max(0, Math.floor(ginDecompP * JSONB_KEYS.length));
-  const sealP = pop(f, t(75));
-  const fastP = pop(f, t(80));
+  const t = useT();
 
-  // Hash buckets — 8 buckets, the email hashes to bucket #3
-  const hashBuckets = [0, 1, 2, 3, 4, 5, 6, 7];
-  const targetBucket = 3;
+  /* left panel: IN → NOT IN */
+  const notIn = t > 56.0;
+  const l1 = notIn ? typed("WHERE id NOT IN (SELECT customer_id FROM orders);", t, 56.0, 57.2) : typed("WHERE id IN (SELECT customer_id FROM orders);", t, 49.6, 52.4);
+  const leftVerdict = (i: number) => {
+    if (notIn) return t > 58.6 + i * 0.4 ? ("unk" as const) : null;
+    return null;
+  };
+  const trap = t > 61.2;
+  const shake = t > 61.2 && t < 62.0 ? Math.sin((t - 61.2) * 90) * 8 * (1 - prog(t, 61.2, 62.0)) : 0;
+
+  /* right panel: EXISTS probe */
+  const S = (i: number) => 68.8 + i * 1.4;
+  const rightVerdict = (i: number) => {
+    const m = matchIdx(CUST[i][0]);
+    const total = m >= 0 ? 0.3 * (m + 1) : 0.9;
+    if (t < S(i) + total + 0.1) return null;
+    return m >= 0 ? ("yes" as const) : ("no" as const);
+  };
+  const probeNow = (() => {
+    for (let i = 0; i < 5; i++) {
+      const m = matchIdx(CUST[i][0]);
+      const dt = t - S(i);
+      const total = m >= 0 ? 0.3 * (m + 1) : 0.9;
+      if (dt >= 0 && dt < total) return { i, chip: Math.min(2, Math.floor(dt / 0.3)), dt };
+    }
+    return null;
+  })();
 
   return (
-    <Stage dur={1350} inFx="left" outFx="left">
-      <TopBadge text="هاش و GIN | Hash Index & GIN Inverted Index" from={sec(2)} to={sec(40)} color={C.amber} />
-
-      {/* LEFT: Hash Index — equality lookup */}
-      <div style={{opacity: leftP, transform: `translateX(${(1 - leftP) * -30}px)`}}>
-        <Editor
-          x={80}
-          y={180}
-          w={860}
-          h={130}
-          title="Hash Index ──► equality only (=)"
-          lines={['CREATE INDEX idx_email ON users USING hash (email);']}
-          start={t(41.5)}
-          cps={0.85}
-          size={18}
-          accent={C.blue}
-          hl={0}
-          hlColor={C.blue}
-        />
-        <Win x={80} y={330} w={860} h={570} title="hash index · maps key to bucket via hash function" accent={C.blue} opacity={leftP}>
-          <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.blue}}>
-            exact equality lookup ──► no range support
+    <AbsoluteFill>
+      <div style={{ opacity: eo(t, 41.2, 41.9), transform: `translateX(${shake}px)` }}>
+        <Window x={PX[0]} y={PY} w={PW} h={PH} title={notIn ? "NOT IN" : "IN"} color={trap ? C.red : C.amber} glow={trap ? 1 : 0}>
+          <div style={{ position: "absolute", left: 24, top: 12 }}>
+            <CodeLine text={typed("SELECT name FROM customers", t, 42.5, 44.5)} fs={20} />
           </div>
-
-          {/* Flow visualization: input → hash function → bucket → TID */}
-          <div style={{position: 'absolute', left: 18, right: 18, top: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18}}>
-            {/* Step 1: input key */}
-            <div style={{display: 'flex', alignItems: 'center', gap: 14, opacity: hashFlowP > 0.05 ? 1 : 0.4}}>
-              <div dir="ltr" style={{padding: '10px 18px', border: `2px solid ${C.blue}`, borderRadius: 10, background: `${C.blue}0d`, fontFamily: MONO, fontSize: 16, color: C.text}}>
-                email = 'user@example.com'
-              </div>
-            </div>
-
-            {/* Arrow down */}
-            <svg width={60} height={28}>
-              <line x1={30} y1={2} x2={30} y2={22} stroke={C.blue} strokeWidth={3} strokeDasharray="5 3" />
-              <polygon points="24,18 36,18 30,26" fill={C.blue} />
-            </svg>
-
-            {/* Step 2: hash function */}
-            <div style={{display: 'flex', alignItems: 'center', gap: 16, opacity: hashFlowP > 0.15 ? 1 : 0.4}}>
-              <div style={{width: 80, height: 80, borderRadius: 40, border: `3px solid ${C.blue}`, background: `${C.blue}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700, textAlign: 'center'}}>
-                hash()
-              </div>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.blue}}>
-                ──►
-              </div>
-              <div dir="ltr" style={{padding: '10px 18px', border: `2px solid ${C.blue}`, borderRadius: 10, background: C.deep, fontFamily: MONO, fontSize: 18, color: C.amber, fontWeight: 700}}>
-                0x3F4A
-              </div>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.muted}}>
-                mod 8 = bucket #{targetBucket}
-              </div>
-            </div>
-
-            {/* Arrow down */}
-            <svg width={60} height={28}>
-              <line x1={30} y1={2} x2={30} y2={22} stroke={C.blue} strokeWidth={3} strokeDasharray="5 3" />
-              <polygon points="24,18 36,18 30,26" fill={C.blue} />
-            </svg>
-
-            {/* Step 3: bucket array */}
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, width: '100%', maxWidth: 700}}>
-              {hashBuckets.map((b) => {
-                const isTarget = b === targetBucket;
-                const active = isTarget && hashFlowP > 0.5;
-                return (
-                  <div key={b} dir="ltr" style={{padding: '10px 8px', border: `2px solid ${active ? C.green : isTarget ? C.amber : C.border}`, borderRadius: 8, background: active ? `${C.green}0d` : isTarget ? `${C.amber}0d` : 'transparent', textAlign: 'center', fontFamily: MONO, fontSize: 14, color: active ? C.green : isTarget ? C.amber : C.muted, fontWeight: 700}}>
-                    <div>#{b}</div>
-                    <div style={{fontSize: 11, color: active ? C.green : C.muted, marginTop: 4}}>{active ? 'TID ✓' : '—'}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Result */}
-            {hashFlowP > 0.7 ? (
-              <div style={{padding: '10px 18px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, display: 'flex', alignItems: 'center', gap: 12, opacity: clamp(pop(f, t(50)))}}>
-                <Check p={1} size={32} color={C.green} />
-                <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.green, fontWeight: 700}}>TID (block=12, offset=4) ──► row found</div>
-              </div>
-            ) : null}
+          <div style={{ position: "absolute", left: 24, top: 48 }}>
+            <CodeLine text={l1} fs={20} caret={(t > 49.6 && t < 52.5) || (t > 56 && t < 57.3)} />
           </div>
-
-          {/* Bottom status */}
-          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.blue, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-            <span>operator: =</span>
-            <span style={{color: C.muted}}>no range, no sorting</span>
-            <span>cost: O(1) avg</span>
-          </div>
-        </Win>
+          <Lists nullPulse={t > 58.4 && t < 63} verdict={leftVerdict} />
+          {/* IN works */}
+          {!notIn && t > 52.8 && (
+            <div style={{ position: "absolute", left: 520, top: 150, width: 330, opacity: prog(t, 52.8, 53.4) }}>
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 17, color: C.dim, marginBottom: 8 }}>result</div>
+              {["Sara", "Omar"].map((n) => (
+                <div key={n} style={{ height: 44, marginBottom: 8, borderRadius: 10, border: `2px solid ${C.green}`, background: `${C.green}1E`, fontFamily: MONO, fontWeight: 700, fontSize: 20, lineHeight: "40px", paddingLeft: 14, color: C.text }}>
+                  {n} ✓
+                </div>
+              ))}
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 18, color: C.amber, marginTop: 6 }}>IN ✓ works</div>
+            </div>
+          )}
+          {/* NOT IN trap */}
+          {trap && (
+            <div style={{ position: "absolute", left: 520, top: 150, width: 330, height: 200, borderRadius: 18, background: `${C.red}1C`, border: `3px solid ${C.red}`, padding: "16px 18px", opacity: prog(t, 61.2, 61.7) }}>
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 24, color: C.red }}>Empty Result Set</div>
+              <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 17, color: C.text, marginTop: 8 }}>x NOT IN (…, NULL) ➔ UNKNOWN</div>
+              <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 28, color: C.text, direction: "rtl", marginTop: 14 }}>فخ الـ NULL ✕</div>
+            </div>
+          )}
+        </Window>
       </div>
 
-      {/* RIGHT: GIN Index — JSONB / arrays / full-text */}
-      <div style={{opacity: rightP, transform: `translateX(${(1 - rightP) * 30}px)`}}>
-        <Editor
-          x={980}
-          y={180}
-          w={860}
-          h={130}
-          title="GIN Index ──► inverted index (arrays, JSONB, tsvector)"
-          lines={['CREATE INDEX idx_specs ON products USING gin (specs_jsonb);']}
-          start={t(52.5)}
-          cps={0.78}
-          size={17}
-          accent={C.amber}
-          hl={0}
-          hlColor={C.amber}
-        />
-        <Win x={980} y={330} w={860} h={570} title="GIN · inverted index · decompose JSONB into keys" accent={C.amber} opacity={rightP}>
-          <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, fontFamily: MONO, fontSize: 18, color: C.amber}}>
-            each key/element ──► list of TIDs (inverted index)
-          </div>
-
-          {/* JSONB document on the left, decomposed keys on the right */}
-          <div style={{position: 'absolute', left: 18, right: 18, top: 60, display: 'flex', gap: 14}}>
-            {/* JSONB document */}
-            <div style={{flex: 1, padding: '12px 14px', border: `2px solid ${C.amber}`, borderRadius: 10, background: C.deep, fontFamily: MONO, fontSize: 12, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all'}}>
-              <div style={{color: '#64748B', fontSize: 11, marginBottom: 6}}>JSONB document (specs_jsonb column)</div>
-              {JSONB_DOC}
+      {t > 64.4 && (
+        <div style={{ opacity: eo(t, 64.4, 65.1) }}>
+          <Window x={PX[1]} y={PY} w={PW} h={PH} title="WHERE EXISTS · Semi-Join" color={C.green} glow={t > 65 ? 1 : 0}>
+            <div style={{ position: "absolute", left: 24, top: 12 }}>
+              <CodeLine text="SELECT name FROM customers c" fs={20} />
             </div>
-
-            {/* Decomposition arrow */}
-            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6}}>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: C.amber, fontWeight: 700}}>decompose</div>
-              <svg width={50} height={30}>
-                <line x1={4} y1={15} x2={40} y2={15} stroke={C.amber} strokeWidth={3} strokeDasharray="5 3" />
-                <polygon points="34,9 34,21 46,15" fill={C.amber} />
-              </svg>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>extract keys</div>
+            <div style={{ position: "absolute", left: 24, top: 48 }}>
+              <CodeLine text={typed("WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id);", t, 64.8, 68.4)} fs={17} caret={t < 68.5} />
             </div>
-
-            {/* Inverted index matrix */}
-            <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 6}}>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 12, color: '#64748B', marginBottom: 2}}>inverted index · key ──► TID list</div>
-              {JSONB_KEYS.map((k, i) => {
-                const visible = i < visibleKeys;
-                return (
-                  <div key={i} dir="ltr" style={{display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: `1px solid ${visible ? C.amber : C.border}`, borderRadius: 6, background: visible ? `${C.amber}0d` : 'transparent', fontFamily: MONO, fontSize: 12, opacity: visible ? 1 : 0.35}}>
-                    <span style={{color: C.amber, fontWeight: 700, minWidth: 110}}>{k.key}</span>
-                    <span style={{color: C.muted}}>=&gt;</span>
-                    <span style={{color: C.text}}>"{k.value}"</span>
-                    <span style={{color: C.green, marginLeft: 'auto'}}>→ TID(8,{i + 1})</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Containment query demo */}
-          {ginDecompP > 0.6 ? (
-            <div style={{position: 'absolute', left: 18, right: 18, bottom: 70, padding: '12px 14px', border: `2px solid ${C.green}`, borderRadius: 10, background: `${C.green}0d`, opacity: clamp(pop(f, t(68)))}}>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, marginBottom: 4}}>containment operator @&gt; supported:</div>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 13, color: C.text}}>
-                {"SELECT * FROM products WHERE specs_jsonb @> '{\"tags\": [\"gaming\"]}';"}
+            <Lists probe={probeNow ? { chip: probeNow.chip } : null} verdict={rightVerdict} />
+            {probeNow && (
+              <div style={{ position: "absolute", left: lerp(296, 326, eio(t, S(probeNow.i) + probeNow.chip * 0.3, S(probeNow.i) + probeNow.chip * 0.3 + 0.3)), top: lerp(CY(probeNow.i) + 14, OY(probeNow.chip) + 14, eio(t, S(probeNow.i) + probeNow.chip * 0.3, S(probeNow.i) + probeNow.chip * 0.3 + 0.3)), width: 18, height: 18, borderRadius: 9, background: C.green, border: "2px solid #fff", boxShadow: `0 0 12px ${C.green}` }} />
+            )}
+            {t > 70.2 && (
+              <div style={{ position: "absolute", left: 520, top: 150, width: 330, opacity: prog(t, 70.2, 70.8) }}>
+                <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 17, color: C.dim, marginBottom: 8 }}>result</div>
+                {[{ n: "Sara", a: 69.5 }, { n: "Omar", a: 70.8 }].map((r) =>
+                  t > r.a ? (
+                    <div key={r.n} style={{ height: 44, marginBottom: 8, borderRadius: 10, border: `2px solid ${C.green}`, background: `${C.green}1E`, fontFamily: MONO, fontWeight: 700, fontSize: 20, lineHeight: "40px", paddingLeft: 14, color: C.text }}>
+                      {r.n} ✓
+                    </div>
+                  ) : null,
+                )}
               </div>
-            </div>
-          ) : null}
-
-          {/* Bottom status */}
-          <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.amber, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-            <span>operators: @&gt; ? ?| ?&amp;</span>
-            <span style={{color: C.muted}}>arrays · JSONB · tsvector</span>
-            <span>cost: O(matches)</span>
-          </div>
-        </Win>
-      </div>
-
-      {/* Seal badge */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 920, display: 'flex', justifyContent: 'center', opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={sealP} size={36} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Hash = Equality · GIN = Containment</div>
+            )}
+            {t > 76.0 && (
+              <div style={{ position: "absolute", left: 520, top: 290, width: 330, borderRadius: 14, border: `2.5px solid ${C.green}`, background: `${C.green}16`, padding: "10px 14px", opacity: prog(t, 76.0, 76.6) }}>
+                <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 18, color: C.green }}>stops at 1st match</div>
+                <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 18, color: C.green }}>NULL ignored safely ✓</div>
+              </div>
+            )}
+          </Window>
         </div>
-      </div>
+      )}
 
-      <Caption text="Hash Index ──► Equality (=) O(1) · GIN ──► Inverted Index for JSONB / Arrays" from={t(60)} to={sec(44)} tone="ok" />
-    </Stage>
+      {/* IN / EXISTS pills */}
+      {[
+        { a: 47.6, x: 560, s: "IN", c: C.amber },
+        { a: 48.2, x: 860, s: "EXISTS", c: C.green },
+      ].map((p) => {
+        const e = eb(t, p.a, p.a + 0.4);
+        return e > 0 ? (
+          <div key={p.s} style={{ position: "absolute", left: p.x, top: 736, width: 200, height: 52, opacity: Math.min(1, e * 1.5) * (1 - prog(t, 79.0, 79.4)), transform: `scale(${0.8 + 0.2 * Math.min(1, e)})`, borderRadius: 14, background: `${p.c}18`, border: `3px solid ${p.c}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 26, lineHeight: "46px", color: p.c }}>
+            {p.s}
+          </div>
+        ) : null;
+      })}
+      {[
+        { a: 79.2, x: 560, s: "FASTEST ⚡", c: C.amber },
+        { a: 80.1, x: 900, s: "SAFEST ✓", c: C.green },
+      ].map((p) => {
+        const e = eb(t, p.a, p.a + 0.5);
+        return e > 0 ? (
+          <div key={p.s} style={{ position: "absolute", left: p.x, top: 736, width: 290, height: 60, opacity: Math.min(1, e * 1.5), transform: `scale(${0.8 + 0.2 * Math.min(1, e)})`, borderRadius: 16, background: `${p.c}1E`, border: `3px solid ${p.c}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 28, lineHeight: "54px", color: p.c }}>
+            {p.s}
+          </div>
+        ) : null;
+      })}
+
+      <Banner x={70} y={900} w={1780} a={49.4} b={64.5} color={C.red} fs={26}>
+        NOT IN (Subquery) ──► Dangerous NULL Trap (Returns Empty Set)
+      </Banner>
+      <Banner x={70} y={900} w={1780} a={65.0} b={84.6} color={C.green} fs={26}>
+        WHERE EXISTS (Subquery) ──► Semi-Join Scan (Fast &amp; NULL-Safe)
+      </Banner>
+    </AbsoluteFill>
   );
 };

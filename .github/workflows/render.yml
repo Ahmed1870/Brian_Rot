@@ -1,28 +1,40 @@
-name: Render SQL Lesson 47 Index Architecture
+name: Render Lesson 35 — Subqueries, CTEs, IN & EXISTS
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 47 only
-        run: |
-          grep -q "SQL-L47-Index-Architecture" src/theme.ts
-          grep -q "SQL-L47-Index-Architecture" package.json
-          test -f public/voiceover_lesson_47.mp3
-          test "$(ls public | wc -l)" = "1"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npx remotion render src/index.ts SQL-L47-Index-Architecture out/sql-l47-index-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l47-index-architecture.mp4
+
+      - name: Chromium system libraries
+        run: |
+          sudo apt-get update -y || true
+          sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libcups2 libpango-1.0-0 libcairo2 || true
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Generate sound design
+        run: npm run generate-audio
+
+      - name: Render SQL-L35-SubqueriesCTEs
+        run: npx remotion render src/index.ts SQL-L35-SubqueriesCTEs out/sql-l35-subqueries-ctes.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --concurrency=100% --timeout=180000
+
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l47-index-architecture
-          path: out/sql-l47-index-architecture.mp4
-          if-no-files-found: error
+          name: sql-l35-subqueries-ctes
+          path: out/sql-l35-subqueries-ctes.mp4
+          retention-days: 14

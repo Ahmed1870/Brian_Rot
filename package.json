@@ -1,22 +1,23 @@
 {
-  "name": "manzooma-sql-lesson-47-index-architecture",
+  "name": "manzooma-sql-lesson-35-subqueries-ctes",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 47: Indexing Architecture & Data Structures (B-Tree, Hash, GIN, GiST, TIDs, DML Overhead, Multi-Pattern Indexing) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma SQL From Zero to Professional - Lesson 35: Subqueries, CTEs, IN and EXISTS",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L47-Index-Architecture out/sql-l47-index-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "generate-audio": "node scripts/generate-audio.cjs",
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "render": "npm run generate-audio && remotion render src/index.ts SQL-L35-SubqueriesCTEs out/sql-l35-subqueries-ctes.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "^4.0.0"
+    "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
   }
 }
