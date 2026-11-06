@@ -3,27 +3,27 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (209-240s): Manzooma Academy outro. Ends with a fade to black.
-// Anchors (s): 210.2 great | 216.6 unit finished | 217.9 download scripts | 222.6 link | 224.6 get ready | 227.9 next lesson | 230.1 temp tables
+// SC06 (210-240s): Manzooma Academy outro — Module 14 at 100% (Triggers complete · Lesson 3 of 3 in Module 14)
+// Anchors: 211.0 excellent | 213.5 skills | 220.0 next lesson | 225.0 JSONB preview | 230.0 100% complete
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
-const SKILLS = ['WITH RECURSIVE ✓', 'Anchor + UNION ALL ✓', 'Termination ✓', 'Recursive Union ✓'];
+const SKILLS = ['Trigger Guard ✓', 'BEFORE/AFTER/INSTEAD OF ✓', 'NEW & OLD ✓', 'RETURN NULL ✓', 'Audit Automation ✓'];
 
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame();
   const card = prog(f, 0, 30);
-  const head = prog(f, t(210.4), 24);
-  const badge = pop(f, t(210.8));
-  const fill = prog(f, t(211.6), sec(4.8));
-  const modDone = prog(f, t(216.6), 20);
-  const res = prog(f, t(218.0), 24);
-  const next = prog(f, t(224.6), 28);
-  const code = typed("CREATE TEMP TABLE tmp AS\n  SELECT * FROM orders;\nCREATE VIEW v AS\n  SELECT * FROM tmp;", f, t(227.9), 0.55).split('\n');
-  const pct = Math.round(fill * 100);
+  const head = prog(f, t(211), 24);
+  const badge = pop(f, t(211.6));
+  const fill = prog(f, t(212.2), sec(4.8));
+  const modStart = prog(f, t(213.5), 20);
+  const res = prog(f, t(215), 24);
+  const next = prog(f, t(220), 28);
+  const code = typed("SELECT data->>'name' FROM products\nWHERE data @> '{\"category\": \"electronics\"}';", f, t(225), 0.45).split('\n');
+  const pct = Math.round(fill * 100); // 100% — Module 14 complete (Lesson 3 of 3)
 
   return (
-    <Stage dur={930} inFx="fade" outFx="black">
+    <Stage dur={900} inFx="fade" outFx="black">
       <div style={{position: 'absolute', left: 190, top: 100, width: 1540, height: 880, borderRadius: 34, background: 'rgba(30,41,59,0.62)', border: `2px solid ${C.border}`, boxShadow: '0 40px 120px rgba(2,6,23,.7)', opacity: card, transform: `translateY(${(1 - card) * 40}px)`}}>
         <div style={{position: 'absolute', left: 0, right: 0, top: 46, textAlign: 'center', opacity: head, transform: `translateY(${(1 - head) * 20}px)`}}>
           <div style={{display: 'inline-flex', alignItems: 'center', gap: 22}}>
@@ -44,8 +44,8 @@ export const Scene6: React.FC = () => {
         <div dir="ltr" style={{position: 'absolute', left: 90, right: 90, top: 170}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
-            <div style={{fontFamily: MONO, fontSize: 32, fontWeight: 700, color: C.green}}>
-              Lesson 36 Completed: <span style={{color: C.text}}>RECURSIVE CTEs &amp; Module 10 Mastered</span>
+            <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.green}}>
+              Lesson 60 Completed: <span style={{color: C.text}}>Triggers &amp; Trigger Functions (CREATE TRIGGER, BEFORE/AFTER/INSTEAD OF, FOR EACH ROW/STATEMENT, NEW/OLD/TG_OP, RETURN NULL Abort, Audit Automation, Module 14 Capstone) Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
@@ -54,37 +54,37 @@ export const Scene6: React.FC = () => {
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.text, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
-          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modDone > 0.5 ? C.green : C.muted}}>
-            Module 10 · Subqueries &amp; CTEs — {modDone > 0.5 ? 'Completed 100% ✓' : 'in progress'}
+          <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modStart > 0.5 ? C.green : C.muted}}>
+            Module 14 · Triggers &amp; Automation — {modStart > 0.5 ? 'COMPLETE ✓ · Lesson 3 of 3 · Trigger Functions, RETURN NULL Abort, Enterprise Audit Logging' : 'in progress'}
           </div>
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 16}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 364, display: 'flex', gap: 14, flexWrap: 'wrap', maxWidth: 1540}}>
           {SKILLS.map((s, i) => {
-            const p = pop(f, t(212.8 + i * 0.9));
+            const p = pop(f, t(214 + i * 0.5));
             return (
               <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
-                <Chip color={C.blue} style={{fontSize: 22}}>{s}</Chip>
+                <Chip color={C.blue} style={{fontSize: 18}}>{s}</Chip>
               </div>
             );
           })}
         </div>
 
-        <div dir="ltr" style={{position: 'absolute', left: 90, top: 440, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
+        <div dir="ltr" style={{position: 'absolute', left: 90, top: 460, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
           <Chip color={C.amber} style={{fontSize: 28, padding: '10px 26px'}}>
             <Mix>الشيتات والتمارين</Mix> <span style={{color: C.text}}>→ solutions.gomaaintelligence.me</span>
           </Chip>
         </div>
 
-        <div style={{position: 'absolute', left: 90, right: 90, top: 535, height: 290, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
+        <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.blue}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 37 · الوحدة الحادية عشرة</Mix>
-            <Mix style={{fontSize: 42, fontWeight: 700, color: C.text, display: 'block', marginTop: 10}}>الجداول المؤقتة وعروض البيانات TEMPORARY TABLES &amp; VIEWS</Mix>
+            <Mix style={{fontSize: 30, color: C.blue, fontWeight: 700, display: 'block'}}>الدرس القادم · 61</Mix>
+            <Mix style={{fontSize: 30, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>JSONB Data &amp; GIN Indexes — Containment (@&gt;), Key Extraction (-&gt;&gt;), GIN Indexing for Document Queries</Mix>
           </div>
-          <div dir="ltr" style={{width: 560, height: 210, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '20px 26px', fontFamily: MONO, fontSize: 24, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 20, marginBottom: 10}}>-- Lesson 37</div>
+          <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 14, color: C.text}}>
+            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 61 · JSONB Data &amp; GIN Indexes</div>
             {code.map((l, i) => (
-              <div key={i} style={{whiteSpace: 'pre', minHeight: 36}}>
+              <div key={i} style={{whiteSpace: 'pre', minHeight: 22}}>
                 <Sql text={l} />
                 {i === code.length - 1 ? <span style={{color: C.green}}>▌</span> : null}
               </div>

@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-36-recursive-cte",
+  "name": "manzooma-sql-lesson-60-triggers",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 36: WITH RECURSIVE CTEs and hierarchical data (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 60: Triggers & Trigger Functions (BEFORE/AFTER/INSTEAD OF, FOR EACH ROW, NEW/OLD, RETURN NULL, Audit Automation, Module 14 Completion) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L36-Recursive-CTE out/sql-l36-recursive-cte.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L60-Triggers out/sql-l60-triggers.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
