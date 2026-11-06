@@ -1,22 +1,24 @@
 {
-  "name": "manzooma-sql-lesson-49-expression-multicolumn-indexes",
+  "name": "ahmed-manzooma-sql-l48",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 49: Expression & Multi-Column Indexes (4:00, 1920x1080, 30fps)",
+  "description": "Ahmed x Manzooma - SQL Lesson 48: Ranking Functions (16:9, 4:00) - Remotion",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L49-Expression-MultiColumn-Indexes out/sql-l49-expression-multicolumn-indexes.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "sfx": "python3 scripts/generate_sfx.py",
+    "prep": "node scripts/prep.mjs", "check": "node scripts/check_layout.mjs",
+    "start": "node scripts/prep.mjs && remotion studio src/index.ts",
+    "render": "node scripts/prep.mjs && remotion render src/index.ts Ahmed-SQL-L48 out/ahmed_sql_lesson48.mp4 --codec h264 --concurrency 2"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "remotion": "^4.0.0"
+    "@remotion/cli": "4.0.300",
+    "@remotion/google-fonts": "4.0.300",
+    "@remotion/layout-utils": "4.0.300",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.300"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "19.0.0",
+    "typescript": "5.8.2"
   }
 }
