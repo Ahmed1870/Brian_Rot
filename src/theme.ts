@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 67;
-export const COMP_ID = 'SQL-L67-Performance-Security-Backup';
+export const LESSON = 68;
+export const COMP_ID = 'SQL-L68-Portfolio-Career-Readiness';
 
 export const C = {
   bg: '#0F172A',
@@ -26,6 +26,7 @@ export const C = {
   amber: '#F59E0B',
   red: '#EF4444',
   purple: '#A855F7',
+  gold: '#FBBF24',
 };
 
 export const SCENES = {

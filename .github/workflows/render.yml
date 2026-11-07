@@ -1,4 +1,4 @@
-name: Render SQL Lesson 67 Performance Security Backup
+name: Render SQL Lesson 68 Portfolio Career Readiness
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 67 only
+      - name: Guard - this repo must contain lesson 68 only
         run: |
-          grep -q "SQL-L67-Performance-Security-Backup" src/theme.ts
-          grep -q "SQL-L67-Performance-Security-Backup" package.json
-          test -f public/voiceover_lesson_67.mp3
+          grep -q "SQL-L68-Portfolio-Career-Readiness" src/theme.ts
+          grep -q "SQL-L68-Portfolio-Career-Readiness" package.json
+          test -f public/voiceover_lesson_68.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L67-Performance-Security-Backup out/sql-l67-performance-security-backup.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l67-performance-security-backup.mp4
+      - run: npx remotion render src/index.ts SQL-L68-Portfolio-Career-Readiness out/sql-l68-portfolio-career-readiness.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l68-portfolio-career-readiness.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l67-performance-security-backup
-          path: out/sql-l67-performance-security-backup.mp4
+          name: sql-l68-portfolio-career-readiness
+          path: out/sql-l68-portfolio-career-readiness.mp4
           if-no-files-found: error

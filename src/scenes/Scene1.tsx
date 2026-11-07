@@ -3,26 +3,25 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
 
-// SC01 (0-40s): Enterprise Performance Tuning &amp; Server Security Concept
-// PG16 engine wrapped in purple security shield; memory valves (blue) connect to green backup vault
-// Anchors (scene-local seconds):
-//   1.0 welcome | 6.0 Performance Tuning | 18.0 disaster recovery | 28.0 seal | 35.0 production-ready
+// SC01 (0-40s): Career Readiness & Portfolio Concept — Course Finale
+// Manzooma emblem → GitHub repo opens → green badge "Course Finale & Career Readiness Engine"
+// Anchors: 1.0 welcome | 6.0 GitHub | 18.0 career readiness | 28.0 seal | 35.0 finale
 const S = START.s1;
 const t = (g: number) => sec(g - S);
 
 export const Scene1: React.FC = () => {
   const f = useCurrentFrame();
   const editorP = clamp(lin(f, t(1.5), 14));
-  const engineP = pop(f, t(6));
-  const shieldP = pop(f, t(9));
+  const repoP = pop(f, t(6));
+  const badgeP = pop(f, t(14));
   const sealP = pop(f, t(28));
-  const prodP = pop(f, t(35));
+  const finaleP = pop(f, t(35));
 
   const pulse = 0.5 + 0.5 * Math.sin(f * 0.18);
 
   return (
     <Stage dur={1200} inFx="zoom" outFx="left">
-      <TopBadge text="ضبط أداء السيرفر وتأمين البيانات والنسخ الاحتياطي | Performance Tuning, Security &amp; Backup — Module 16" from={sec(2)} to={sec(18)} color={C.purple} />
+      <TopBadge text="إعداد البورتفوليو والتحضير لمقابلات العمل | SQL Portfolio &amp; Career Readiness — Course Finale 🎓" from={sec(2)} to={sec(18)} color={C.green} />
 
       {/* LEFT: Intro code editor */}
       <div style={{opacity: editorP}}>
@@ -31,26 +30,27 @@ export const Scene1: React.FC = () => {
           y={170}
           w={680}
           h={300}
-          title="admin_intro.sql · Performance, Security &amp; Backup (PostgreSQL 16)"
+          title="portfolio_intro.sh · GitHub deployment (Lesson 68 Finale)"
           lines={[
-            '-- Lesson 67 · Enterprise Administration',
-            '-- 3 pillars: tuning · security · backup',
+            '-- Lesson 68 · Course Finale',
+            '-- Portfolio & Career Readiness',
             '',
-            '-- 1) Memory tuning (postgresql.conf)',
-            "ALTER SYSTEM SET shared_buffers = '4GB';",
-            "ALTER SYSTEM SET work_mem = '64MB';",
+            '# Initialize portfolio repository',
+            'git init Manzooma-Store-V2-Capstone',
+            'cd Manzooma-Store-V2-Capstone',
             '',
-            '-- 2) Security (GRANT / REVOKE / RLS)',
-            'CREATE ROLE readonly_analyst WITH LOGIN;',
-            'GRANT SELECT ON ALL TABLES IN SCHEMA public;',
+            '# Professional structure',
+            '# /schema  /queries  /benchmarks',
+            '# /security  /docs  README.md',
             '',
-            '-- 3) Backup (pg_dump binary)',
-            'pg_dump -F c -b -f manzooma_v2_prod.dump',
+            '# Deploy to GitHub',
+            'git push origin main',
+            '# → Career ready: SQL Data Analyst',
           ]}
           start={t(1.5)}
           cps={0.55}
           size={15}
-          accent={C.purple}
+          accent={C.green}
           hl={4}
           hlColor={C.blue}
         />
@@ -58,205 +58,176 @@ export const Scene1: React.FC = () => {
 
       {/* Concept chips below editor */}
       <div style={{position: 'absolute', left: 80, top: 490, width: 680, opacity: clamp(lin(f, t(5), 14))}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ Enterprise administration golden rule</div>
+        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ Career readiness golden rule</div>
         <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>Memory Tuning</Chip>
-          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>RBAC Roles</Chip>
-          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>RLS Policies</Chip>
-          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>pg_dump Backup</Chip>
-          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>45s Recovery ✓</Chip>
+          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>GitHub Portfolio</Chip>
+          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>Technical Interviews</Chip>
+          <Chip color={C.amber} style={{fontSize: 16, padding: '4px 14px'}}>Think Aloud</Chip>
+          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>100% Career Ready ✓</Chip>
+          <Chip color={C.gold} style={{fontSize: 16, padding: '4px 14px'}}>Course Finale 🎓</Chip>
         </div>
       </div>
 
-      {/* Performance &amp; Security seal panel */}
-      <Win x={80} y={570} w={680} h={330} title="performance security engine ──► tuning + RBAC + backup (purple shield)" accent={C.purple} opacity={clamp(lin(f, t(9), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, right: 18, fontFamily: MONO, fontSize: 14, color: C.purple, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-          memory tuning → role locks → encrypted backup → disaster recovery
+      {/* Course Finale seal panel */}
+      <Win x={80} y={570} w={680} h={330} title="course finale engine ──► 68 lessons · 16 modules · 100% complete (green seal)" accent={C.green} opacity={clamp(lin(f, t(9), 14))}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, right: 18, fontFamily: MONO, fontSize: 14, color: C.green, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+          68 lessons mastered · 16 modules complete · SQL Professional Certified
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 38, display: 'flex', gap: 10}}>
-          <Chip color={C.purple} style={{fontSize: 13, padding: '4px 12px'}}>
-            <Check p={prodP} size={16} color={C.purple} /> Secured Engine
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>
+            <Check p={finaleP} size={16} color={C.green} /> Finale
           </Chip>
         </div>
 
         <svg width={640} height={220} style={{position: 'absolute', left: 20, top: 70}}>
-          {/* Memory tuning (left) */}
+          {/* 16 modules journey bar */}
           <g style={{opacity: clamp(pop(f, t(9)))}}>
-            <rect x={20} y={30} width={170} height={70} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={2.5} rx={8} />
-            <text x={105} y={55} fill={C.blue} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Memory Tuning</text>
-            <text x={105} y={75} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">shared_buffers · work_mem</text>
-            <text x={105} y={90} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">maintenance_work_mem</text>
+            <text x={320} y={20} fill={C.muted} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Module journey · all 16 modules mastered · Course Complete</text>
+            {Array.from({length: 16}, (_, i) => {
+              const x = 20 + i * 38;
+              return (
+                <g key={i}>
+                  <rect x={x} y={40} width={32} height={32} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={4} />
+                  <text x={x + 16} y={60} fill={C.green} fontSize={9} fontFamily={MONO} fontWeight={700} textAnchor="middle">{i + 1}</text>
+                </g>
+              );
+            })}
+            <text x={320} y={95} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ All 16 modules · 68 lessons · SQL Professional</text>
           </g>
 
-          {/* Arrow to engine core */}
-          <g style={{opacity: clamp(pop(f, t(11)))}}>
-            <line x1={192} y1={65} x2={250} y2={65} stroke={C.blue} strokeWidth={3} strokeDasharray="6 4" opacity={0.7} />
-            <polygon points="244,59 244,71 258,65" fill={C.blue} />
-          </g>
-
-          {/* PG16 engine with shield (center) */}
-          <g style={{opacity: clamp(engineP)}}>
-            <ellipse cx={325} cy={65} rx={70 + pulse * 6} ry={70 + pulse * 6} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={3} strokeDasharray="8 6" opacity={0.5} />
-            {/* Shield outline */}
-            <path d="M 325 25 L 365 40 L 365 80 Q 365 100 325 110 Q 285 100 285 80 L 285 40 Z" fill={`${C.purple}33`} stroke={C.purple} strokeWidth={3} style={{filter: `drop-shadow(0 0 ${10 + pulse * 6}px ${C.purple})`}} />
-            <text x={325} y={62} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">PostgreSQL 16</text>
-            <text x={325} y={78} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Engine + Shield</text>
-            <text x={325} y={92} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">manzooma_store_v2</text>
-          </g>
-
-          {/* Arrow to backup vault */}
-          <g style={{opacity: clamp(pop(f, t(13)))}}>
-            <line x1={365} y1={65} x2={420} y2={65} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" opacity={0.7} />
-            <polygon points="414,59 414,71 428,65" fill={C.green} />
-            <text x={392} y={55} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">pg_dump</text>
-          </g>
-
-          {/* Backup vault (right) */}
-          <g style={{opacity: clamp(shieldP)}}>
-            <rect x={430} y={30} width={170} height={70} fill={`${C.green}22`} stroke={C.green} strokeWidth={2.5} rx={8} />
-            <text x={515} y={55} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Backup Vault</text>
-            <text x={515} y={75} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">manzooma_v2_prod.dump</text>
-            <text x={515} y={90} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">encrypted · 248 MB</text>
-          </g>
-
-          {/* Bottom: 3 pillars */}
+          {/* Bottom: career readiness */}
           <g style={{opacity: clamp(sealP)}}>
-            <text x={325} y={150} fill={C.muted} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">3 Enterprise Administration Pillars</text>
-            {[
-              {label: 'Tuning', val: '60% faster', color: C.blue, x: 80},
-              {label: 'Security', val: '5 roles · RLS', color: C.purple, x: 240},
-              {label: 'Backup', val: '45s recovery', color: C.green, x: 400},
-            ].map((p, i) => (
-              <g key={i}>
-                <rect x={p.x} y={165} width={150} height={36} fill={`${p.color}22`} stroke={p.color} strokeWidth={2} rx={6} />
-                <text x={p.x + 75} y={180} fill={p.color} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">{p.label}</text>
-                <text x={p.x + 75} y={195} fill={C.text} fontSize={9} fontFamily={MONO} textAnchor="middle">{p.val}</text>
-              </g>
-            ))}
-            <text x={325} y={215} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Performance Tuning &amp; Enterprise Security Engine sealed</text>
+            <rect x={20} y={115} width={600} height={80} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 ${12 + pulse * 8}px ${C.green})`}} />
+            <text x={320} y={145} fill={C.green} fontSize={16} fontFamily={MONO} fontWeight={700} textAnchor="middle">Course Finale &amp; Career Readiness Engine</text>
+            <text x={320} y={168} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">GitHub Portfolio · Technical Interviews · 100% Career Ready</text>
+            <text x={320} y={186} fill={C.gold} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">🎓 SQL From Zero to Professional — Certified</text>
           </g>
         </svg>
 
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.purple, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span>tuning → shield → backup</span>
-          <span>Enterprise ✓</span>
+        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
+          <span>68 lessons · 16 modules</span>
+          <span>100% Complete 🎓</span>
         </div>
       </Win>
 
-      {/* RIGHT: Big visualization — 3-pillar administration pipeline */}
-      <Win x={800} y={170} w={1040} h={720} title="enterprise administration pipeline ──► 3 pillars (tuning · security · backup) protect PG16" accent={C.purple} opacity={clamp(lin(f, t(6), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, right: 18, fontFamily: MONO, fontSize: 16, color: C.purple, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-          Manzooma Store V2 · 3-pillar admin · memory tuning · RBAC + RLS · pg_dump encrypted backup
+      {/* RIGHT: GitHub repository visualization */}
+      <Win x={800} y={170} w={1040} h={720} title="github portfolio ──► Manzooma-Store-V2-Capstone · professional repository" accent={C.blue} opacity={clamp(lin(f, t(6), 14))}>
+        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, right: 18, fontFamily: MONO, fontSize: 16, color: C.blue, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+          github.com/ahmed-sql-analyst/Manzooma-Store-V2-Capstone · 142 stars · 38 forks
         </div>
 
         <div style={{position: 'absolute', right: 18, top: 38, display: 'flex', gap: 10}}>
-          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>3 pillars</Chip>
-          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{sealP > 0.5 ? 'secured ✓' : '...'}</Chip>
+          <Chip color={C.blue} style={{fontSize: 13, padding: '4px 12px'}}>5 folders</Chip>
+          <Chip color={C.green} style={{fontSize: 13, padding: '4px 12px'}}>{repoP > 0.5 ? 'live ✓' : '...'}</Chip>
         </div>
 
         <svg width={1000} height={610} style={{position: 'absolute', left: 20, top: 70}}>
-          {/* === Pillar 1: Memory Tuning (blue, top-left) === */}
-          <g style={{opacity: clamp(pop(f, t(6)))}}>
-            <rect x={20} y={10} width={300} height={180} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 8px ${C.blue}66)`}} />
-            <text x={170} y={35} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Pillar 1 · Memory Tuning</text>
-            {/* 4 memory bars */}
+          {/* Repository header */}
+          <g style={{opacity: clamp(repoP)}}>
+            <rect x={20} y={10} width={960} height={80} fill={`${C.blue}22`} stroke={C.blue} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 8px ${C.blue}66)`}} />
+            <text x={60} y={40} fill={C.blue} fontSize={16} fontFamily={MONO} fontWeight={700}>Manzooma-Store-V2-Capstone</text>
+            <text x={60} y={62} fill={C.muted} fontSize={11} fontFamily={MONO}>Enterprise PostgreSQL 16 capstone: 15-table schema, analytics pipeline, tuning, security &amp; backup</text>
+            <text x={60} y={80} fill={C.amber} fontSize={10} fontFamily={MONO}>★ 142</text>
+            <text x={130} y={80} fill={C.muted} fontSize={10} fontFamily={MONO}>⑂ 38 forks</text>
+            <text x={220} y={80} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700}>● main branch</text>
+          </g>
+
+          {/* README.md preview (top-left) */}
+          <g style={{opacity: clamp(pop(f, t(10)))}}>
+            <rect x={20} y={110} width={460} height={220} fill={`${C.deep}cc`} stroke={C.blue} strokeWidth={2.5} rx={10} />
+            <rect x={20} y={110} width={460} height={28} fill={C.blue} rx={10} />
+            <text x={40} y={129} fill={C.bg} fontSize={12} fontFamily={MONO} fontWeight={700}>README.md</text>
+            <text x={40} y={160} fill={C.blue} fontSize={14} fontFamily={MONO} fontWeight={700}># Manzooma Store V2 — Enterprise SQL Capstone</text>
+            <text x={40} y={185} fill={C.text} fontSize={11} fontFamily={MONO}>## Business Problem</text>
+            <text x={40} y={205} fill={C.muted} fontSize={10} fontFamily={MONO}>E-commerce analytics for millions of transactions</text>
+            <text x={40} y={225} fill={C.text} fontSize={11} fontFamily={MONO}>## Data Architecture (ERD)</text>
+            <text x={40} y={245} fill={C.muted} fontSize={10} fontFamily={MONO}>15 relational tables · 3NF normalized</text>
+            <text x={40} y={265} fill={C.text} fontSize={11} fontFamily={MONO}>## Performance Benchmarks</text>
+            <text x={40} y={285} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700}>Query: 10min → 0.4s (1500× speedup)</text>
+            <text x={40} y={305} fill={C.text} fontSize={11} fontFamily={MONO}>## Security &amp; Backup</text>
+            <text x={40} y={325} fill={C.muted} fontSize={10} fontFamily={MONO}>5 roles · 12 RLS · encrypted pg_dump</text>
+          </g>
+
+          {/* Folder structure (top-right) */}
+          <g style={{opacity: clamp(pop(f, t(12)))}}>
+            <rect x={500} y={110} width={480} height={220} fill={`${C.deep}cc`} stroke={C.purple} strokeWidth={2.5} rx={10} />
+            <text x={520} y={135} fill={C.purple} fontSize={13} fontFamily={MONO} fontWeight={700}>📁 Repository Structure</text>
             {[
-              {label: 'shared_buffers', val: '4GB', pct: 0.85, color: C.blue},
-              {label: 'work_mem', val: '64MB', pct: 0.6, color: C.amber},
-              {label: 'maintenance_work_mem', val: '512MB', pct: 0.7, color: C.purple},
-              {label: 'effective_cache_size', val: '12GB', pct: 0.75, color: C.green},
-            ].map((m, i) => (
+              {folder: '/schema', desc: 'DDL · constraints · ERD', color: C.blue, x: 520, y: 160},
+              {folder: '/queries', desc: 'CTEs · window · MV', color: C.purple, x: 520, y: 185},
+              {folder: '/benchmarks', desc: 'tuning · GIN/B-Tree', color: C.green, x: 520, y: 210},
+              {folder: '/security', desc: 'roles · RLS · pg_dump', color: C.amber, x: 520, y: 235},
+              {folder: '/docs', desc: 'README · ERD diagrams', color: C.blue, x: 520, y: 260},
+            ].map((fld, i) => (
               <g key={i}>
-                <text x={30} y={65 + i * 28} fill={C.text} fontSize={10} fontFamily={MONO} fontWeight={700}>{m.label}</text>
-                <rect x={30} y={70 + i * 28} width={200} height={10} fill={C.deep} stroke={C.border} strokeWidth={1} rx={2} />
-                <rect x={30} y={70 + i * 28} width={200 * m.pct} height={10} fill={m.color} rx={2} style={{filter: `drop-shadow(0 0 4px ${m.color})`}} />
-                <text x={290} y={80 + i * 28} fill={m.color} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">{m.val}</text>
+                <text x={fld.x} y={fld.y} fill={fld.color} fontSize={11} fontFamily={MONO} fontWeight={700}>{fld.folder}</text>
+                <text x={fld.x + 120} y={fld.y} fill={C.muted} fontSize={10} fontFamily={MONO}>{fld.desc}</text>
               </g>
             ))}
+            <text x={520} y={295} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700}>✓ 35 files · 68 commits · professional documentation</text>
+            <text x={520} y={315} fill={C.gold} fontSize={10} fontFamily={MONO}>🎓 Manzooma SQL Masterclass Certified</text>
           </g>
 
-          {/* === Pillar 2: Security &amp; RBAC (purple, top-center) === */}
-          <g style={{opacity: clamp(pop(f, t(10)))}}>
-            <rect x={340} y={10} width={320} height={180} fill={`${C.purple}22`} stroke={C.purple} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 8px ${C.purple}66)`}} />
-            <text x={500} y={35} fill={C.purple} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Pillar 2 · Security &amp; RBAC</text>
-            {/* Shield icon */}
-            <path d="M 500 50 L 540 65 L 540 105 Q 540 125 500 135 Q 460 125 460 105 L 460 65 Z" fill={`${C.purple}33`} stroke={C.purple} strokeWidth={2} />
-            <text x={500} y={95} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Least</text>
-            <text x={500} y={110} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Privilege</text>
-            {/* Roles listed */}
-            <text x={500} y={155} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">GRANT · REVOKE · CREATE POLICY</text>
-            <text x={500} y={172} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">5 roles · 12 RLS policies</text>
-          </g>
-
-          {/* === Pillar 3: Backup &amp; Recovery (green, top-right) === */}
-          <g style={{opacity: clamp(pop(f, t(14)))}}>
-            <rect x={680} y={10} width={300} height={180} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 8px ${C.green}66)`}} />
-            <text x={830} y={35} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Pillar 3 · Backup &amp; Recovery</text>
-            {/* Vault icon */}
-            <rect x={770} y={50} width={120} height={80} fill={`${C.green}33`} stroke={C.green} strokeWidth={2.5} rx={8} style={{filter: `drop-shadow(0 0 8px ${C.green}66)`}} />
-            <circle cx={830} cy={90} r={20} fill={`${C.deep}cc`} stroke={C.green} strokeWidth={2} />
-            <line x1={820} y1={90} x2={840} y2={90} stroke={C.green} strokeWidth={2} />
-            <line x1={830} y1={80} x2={830} y2={100} stroke={C.green} strokeWidth={2} />
-            <text x={830} y={150} fill={C.green} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">pg_dump · pg_restore</text>
-            <text x={830} y={170} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">248 MB · 45s recovery</text>
-          </g>
-
-          {/* === PG16 engine at center (bottom) === */}
+          {/* Career roles (bottom) */}
           <g style={{opacity: clamp(pop(f, t(18)))}}>
-            <line x1={170} y1={190} x2={420} y2={250} stroke={C.blue} strokeWidth={2} strokeDasharray="4 3" opacity={0.5} />
-            <line x1={500} y1={190} x2={420} y2={250} stroke={C.purple} strokeWidth={2} strokeDasharray="4 3" opacity={0.5} />
-            <line x1={830} y1={190} x2={580} y2={250} stroke={C.green} strokeWidth={2} strokeDasharray="4 3" opacity={0.5} />
-
-            {/* Engine + shield */}
-            <ellipse cx={500} cy={300} rx={140 + pulse * 8} ry={140 + pulse * 8} fill={`${C.purple}11`} stroke={C.purple} strokeWidth={3} strokeDasharray="8 6" opacity={0.4} />
-            <rect x={380} y={240} width={240} height={120} fill={`${C.deep}cc`} stroke={C.purple} strokeWidth={4} rx={18} style={{filter: `drop-shadow(0 0 ${12 + pulse * 10}px ${C.purple})`}} />
-            <text x={500} y={285} fill={C.purple} fontSize={18} fontFamily={MONO} fontWeight={700} textAnchor="middle">PostgreSQL 16</text>
-            <text x={500} y={307} fill={C.text} fontSize={13} fontFamily={MONO} textAnchor="middle">Server + Shield</text>
-            <text x={500} y={325} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">3-pillar protected</text>
-            <text x={500} y={345} fill={C.muted} fontSize={9} fontFamily={MONO} textAnchor="middle">manzooma_store_v2</text>
+            <text x={500} y={360} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">Career-Ready Roles · 100% Prepared</text>
+            {[
+              {role: 'SQL Data Analyst', color: C.blue, x: 50},
+              {role: 'Database Engineer', color: C.purple, x: 280},
+              {role: 'Data Engineer', color: C.amber, x: 510},
+              {role: 'BI Developer', color: C.green, x: 740},
+            ].map((r, i) => {
+              const p = clamp(pop(f, t(20 + i * 0.5)));
+              return (
+                <g key={i} style={{opacity: clamp(p), transform: `translate(0, ${(1 - p) * 20}px)`}}>
+                  <rect x={r.x} y={380} width={200} height={60} fill={`${r.color}22`} stroke={r.color} strokeWidth={2.5} rx={10} style={{filter: `drop-shadow(0 0 6px ${r.color}66)`}} />
+                  <text x={r.x + 100} y={410} fill={r.color} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">{r.role}</text>
+                  <text x={r.x + 100} y={428} fill={C.green} fontSize={10} fontFamily={MONO} textAnchor="middle">✓ ready</text>
+                </g>
+              );
+            })}
           </g>
 
           {/* Result banner */}
           {sealP > 0.5 ? (
             <g style={{opacity: clamp(pop(f, t(28)))}}>
-              <rect x={150} y={420} width={700} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
-              <text x={500} y={450} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Enterprise Admin Sealed · 60% faster queries · 45s recovery · 100% secured</text>
+              <rect x={150} y={470} width={700} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
+              <text x={500} y={500} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Portfolio Sealed · GitHub live · 100% career ready · SQL Professional Certified 🎓</text>
             </g>
           ) : null}
 
           {/* Status text */}
-          <text x={500} y={500} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">
-            {f < t(6) ? 'PG16 server unconfigured · no protection' :
-              f < t(28) ? 'applying 3 pillars: tuning · security · backup...' :
-              '✓ server tuned · roles locked · backup vaulted · production-ready'}
+          <text x={500} y={555} fill={C.muted} fontSize={12} fontFamily={MONO} textAnchor="middle">
+            {f < t(6) ? 'preparing portfolio repository...' :
+              f < t(28) ? 'deploying to GitHub · documenting architecture...' :
+              '✓ portfolio live · career ready · course complete'}
           </text>
         </svg>
 
         <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 14, fontWeight: 700, paddingTop: 6, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.blue}}>tuning</span>
-          <span style={{color: C.purple}}>security</span>
-          <span style={{color: C.green}}>backup ✓</span>
+          <span style={{color: C.blue}}>GitHub repo</span>
+          <span style={{color: C.green}}>100% career ready 🎓</span>
         </div>
       </Win>
 
       {/* Seal badge bottom-left */}
       <div style={{position: 'absolute', left: 80, top: 920, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.purple}`, borderRadius: 14, background: `${C.purple}0d`}}>
-          <Check p={sealP} size={36} color={C.purple} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.purple, fontWeight: 700}}>Performance &amp; Security · Sealed ✓</div>
-        </div>
-      </div>
-
-      {/* Production chip bottom-right */}
-      <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(prodP)}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={prodP} size={36} color={C.green} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Backup Vault · 45s ✓</div>
+          <Check p={sealP} size={36} color={C.green} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Portfolio · Sealed ✓</div>
         </div>
       </div>
 
-      <Caption text="shared_buffers ──► GRANT/REVOKE ──► RLS ──► pg_dump ──► WAL ──► pg_hba.conf ──► Enterprise ✓" from={t(20)} to={sec(38)} tone="ok" />
+      {/* Finale chip bottom-right */}
+      <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(finaleP)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.gold}`, borderRadius: 14, background: `${C.gold}0d`}}>
+          <Check p={finaleP} size={36} color={C.gold} />
+          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.gold, fontWeight: 700}}>Course Finale 🎓</div>
+        </div>
+      </div>
+
+      <Caption text="GitHub portfolio ──► README ──► ERD ──► benchmarks ──► technical interviews ──► career ready ──► 100% 🎓" from={t(20)} to={sec(38)} tone="ok" />
     </Stage>
   );
 };

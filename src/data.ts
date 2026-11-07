@@ -1,106 +1,96 @@
-// manzooma_store_v2 — Lesson 67 dataset (Performance Tuning, Security & Backup)
+// Manzooma Store V2 Capstone — Lesson 68 dataset (Portfolio & Career Readiness)
 
-/** Memory tuning parameters for postgresql.conf. */
-export const MEMORY_PARAMS = [
-  {name: 'shared_buffers', value: '4GB', pct: 25, color: 'blue', desc: '25% of total RAM · shared cache'},
-  {name: 'work_mem', value: '64MB', pct: 60, color: 'amber', desc: 'per-sort/hash work_mem'},
-  {name: 'maintenance_work_mem', value: '512MB', pct: 75, color: 'purple', desc: 'VACUUM · CREATE INDEX'},
-  {name: 'effective_cache_size', value: '12GB', pct: 75, color: 'green', desc: 'planner hint · 75% of RAM'},
-];
-
-/** Security roles & permissions. */
-export const SECURITY_ROLES = [
-  {name: 'readonly_analyst', privileges: 'SELECT', tables: 'all tables in public', color: 'blue', canWrite: false, canAdmin: false},
-  {name: 'db_admin', privileges: 'ALL', tables: 'all schemas', color: 'purple', canWrite: true, canAdmin: true},
-  {name: 'app_user', privileges: 'SELECT, INSERT, UPDATE', tables: 'store_orders, store_order_items', color: 'amber', canWrite: true, canAdmin: false},
-  {name: 'audit_viewer', privileges: 'SELECT (audit_logs)', tables: 'store_audit_logs only', color: 'green', canWrite: false, canAdmin: false},
-];
-
-/** Administration commands for Scene 3. */
-export const ADMIN_COMMANDS = [
-  "-- Step 1: create roles with least privilege",
-  "CREATE ROLE readonly_analyst WITH LOGIN PASSWORD 'Sec#2026';",
-  "CREATE ROLE db_admin WITH LOGIN PASSWORD 'Adm#2026' SUPERUSER;",
-  "",
-  "-- Step 2: grant table-level permissions",
-  "GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_analyst;",
-  "REVOKE DELETE ON store_orders FROM app_user;",
-  "",
-  "-- Step 3: enable Row-Level Security on sensitive tables",
-  "ALTER TABLE store_orders ENABLE ROW LEVEL SECURITY;",
-  "CREATE POLICY orders_isolation ON store_orders",
-  "  USING (customer_id = current_setting('app.user_id')::int);",
-  "",
-  "-- Step 4: encrypted binary backup",
-  "pg_dump -U postgres -F c -b -v -f manzooma_backup.dump manzooma_store_v2",
-];
-
-/** Backup & restore commands. */
-export const BACKUP_RESTORE = [
-  '-- Backup (compressed binary dump)',
-  "pg_dump -U postgres -F c -b -v \\",
-  "  -f /backups/manzooma_v2_prod.dump \\",
-  '  manzooma_store_v2',
-  '',
-  '-- Restore (instant disaster recovery)',
-  'pg_restore -U postgres -d manzooma_store_v2 \\',
-  '  -v -j 4 /backups/manzooma_v2_prod.dump',
-  '',
-  '-- Schedule daily at 02:00 AM via pg_cron',
-  "SELECT cron.schedule('nightly_backup', '0 2 * * *',",
-  "  $$pg_dump -U postgres -F c -f /backups/manzooma_v2_$(date +%F).dump manzooma_store_v2$$);",
-];
-
-/** WAL & pg_hba.conf configuration for Scene 4. */
-export const WAL_CONFIG = [
-  '-- postgresql.conf · Write-Ahead Logging',
-  "wal_level = 'replica'",
-  'max_wal_size = 2GB',
-  'min_wal_size = 256MB',
-  'checkpoint_timeout = 5min',
-  "archive_mode = on",
-  "archive_command = 'test ! -f /archive/%f && cp %p /archive/%f'",
-  '',
-  '-- pg_hba.conf · client authentication rules',
-  '# TYPE  DATABASE            USER               ADDRESS          METHOD',
-  'host    manzooma_store_v2   readonly_analyst   10.0.0.0/8       scram-sha-256',
-  'host    manzooma_store_v2   db_admin           10.0.0.0/8       scram-sha-256',
-  'host    all                 all                0.0.0.0/0        reject',
-];
-
-/** pg_roles system catalog entries. */
-export const PG_ROLES_CATALOG = [
-  {rolname: 'postgres', rolsuper: true, rolcanlogin: true, color: 'purple'},
-  {rolname: 'db_admin', rolsuper: true, rolcanlogin: true, color: 'purple'},
-  {rolname: 'readonly_analyst', rolsuper: false, rolcanlogin: true, color: 'blue'},
-  {rolname: 'app_user', rolsuper: false, rolcanlogin: true, color: 'amber'},
-  {rolname: 'audit_viewer', rolsuper: false, rolcanlogin: true, color: 'green'},
-];
-
-/** Enterprise deployment stats for Scene 5. */
-export const ENTERPRISE_TUNING = {
-  beforeMs: 2400,
-  afterMs: 960,
-  speedupPct: 60,
-  recoverySeconds: 45,
-  backupSizeMb: 248,
-  encryptedDump: 'manzooma_v2_prod.dump',
-  rlsPoliciesActive: 12,
-  rolesCount: 5,
+/** GitHub portfolio repository structure. */
+export const GITHUB_REPO = {
+  name: 'Manzooma-Store-V2-Capstone',
+  owner: 'ahmed-sql-analyst',
+  url: 'github.com/ahmed-sql-analyst/Manzooma-Store-V2-Capstone',
+  stars: 142,
+  forks: 38,
+  description: 'Enterprise PostgreSQL 16 capstone: 15-table schema, analytics pipeline, performance tuning, security & backup',
+  folders: [
+    {name: '/schema', desc: 'DDL scripts · constraints · ERD', files: 8, color: 'blue'},
+    {name: '/queries', desc: 'CTEs · window functions · materialized views', files: 12, color: 'purple'},
+    {name: '/benchmarks', desc: 'Performance tuning results · GIN/B-Tree', files: 6, color: 'green'},
+    {name: '/security', desc: 'Roles · RLS · pg_dump scripts', files: 5, color: 'amber'},
+    {name: '/docs', desc: 'README.md · ERD diagrams · architecture', files: 4, color: 'blue'},
+  ],
+  readme: {
+    title: 'Manzooma Store V2 — Enterprise SQL Capstone',
+    sections: ['Business Problem', 'Data Architecture (ERD)', 'DDL Schema (15 tables)', 'Analytics Pipeline', 'Performance Benchmarks (10min → 0.4s)', 'Security & Backup Strategy', 'Career Readiness Notes'],
+  },
 };
 
-/** Enterprise tuning code for Scene 5. */
-export const ENTERPRISE_TUNING_CODE = [
-  '-- Lesson 67 · Enterprise Tuning & Security on manzooma_store_v2',
-  '',
-  '-- Memory tuning (postgresql.conf)',
-  "ALTER SYSTEM SET shared_buffers = '4GB';",
-  "ALTER SYSTEM SET work_mem = '64MB';",
-  "ALTER SYSTEM SET effective_cache_size = '12GB';",
-  "SELECT pg_reload_conf();",
-  '',
-  '-- Encrypted binary backup export',
-  "pg_dump -U admin_user -F c -b -f /backups/manzooma_v2_prod.dump manzooma_store_v2",
-  '',
-  '-- Result: 60% faster queries · 45s disaster recovery · 100% secured',
+/** Technical interview skills evaluated. */
+export const INTERVIEW_SKILLS = [
+  {skill: 'Performance Tuning', detail: 'shared_buffers · work_mem · EXPLAIN ANALYZE', color: 'blue', mastery: 95},
+  {skill: 'Window Functions', detail: 'LAG · LEAD · NTILE · SUM OVER', color: 'purple', mastery: 92},
+  {skill: 'CTE Optimization', detail: 'Multi-stage CTEs · Materialized Views', color: 'green', mastery: 90},
+  {skill: 'Index Selection', detail: 'B-Tree vs GIN vs GiST trade-offs', color: 'amber', mastery: 88},
+  {skill: 'Normalization', detail: '1NF · 2NF · 3NF · ERD design', color: 'blue', mastery: 94},
+  {skill: 'Security & RLS', detail: 'GRANT/REVOKE · Row-Level Security', color: 'purple', mastery: 87},
 ];
+
+/** Think Aloud live coding steps. */
+export const THINK_ALOUD_STEPS = [
+  {step: 1, title: 'Clarify Requirements', desc: 'Understand the business question', color: 'amber', icon: '?'},
+  {step: 2, title: 'Structure CTEs', desc: 'Break into modular stages', color: 'blue', icon: 'CTE'},
+  {step: 3, title: 'Write Clean Code', desc: 'Readable · commented · typed', color: 'green', icon: '</>'},
+  {step: 4, title: 'Discuss Complexity', desc: 'Time · memory · index choice', color: 'purple', icon: 'O(n)'},
+  {step: 5, title: 'Optimize Indexes', desc: 'B-Tree vs GIN · avoid Seq Scan', color: 'green', icon: '⚡'},
+];
+
+/** Live coding solution query. */
+export const LIVE_CODING_QUERY = [
+  '-- Interview Question: Top 5 products by monthly revenue growth',
+  'WITH monthly_sales AS (',
+  '  SELECT date_trunc(\'month\', o.order_date) AS month,',
+  '         p.product_name, SUM(oi.quantity * oi.unit_price) AS revenue',
+  '  FROM store_orders o',
+  '  JOIN store_order_items oi ON oi.order_id = o.order_id',
+  '  JOIN store_products p ON p.product_id = oi.product_id',
+  '  GROUP BY 1, 2',
+  '),',
+  'growth AS (',
+  '  SELECT product_name, month, revenue,',
+  '         LAG(revenue) OVER (PARTITION BY product_name ORDER BY month) AS prev_rev',
+  '  FROM monthly_sales',
+  ')',
+  'SELECT product_name, month, revenue,',
+  '       ROUND((revenue - prev_rev) / NULLIF(prev_rev, 0) * 100, 1) AS growth_pct',
+  'FROM growth',
+  'WHERE prev_rev IS NOT NULL',
+  'ORDER BY growth_pct DESC',
+  'LIMIT 5;',
+];
+
+/** Senior evaluation radar criteria. */
+export const EVALUATION_CRITERIA = [
+  {criterion: 'Scalable Queries', score: 95, color: 'green', detail: 'Index Scan · no Seq Scan'},
+  {criterion: 'Memory Safety', score: 90, color: 'blue', detail: 'work_mem · no disk spill'},
+  {criterion: 'FK Integrity', score: 92, color: 'purple', detail: 'ON DELETE RESTRICT/CASCADE'},
+  {criterion: 'Index Awareness', score: 88, color: 'amber', detail: 'B-Tree vs GIN vs GiST'},
+  {criterion: 'Architectural Thinking', score: 94, color: 'green', detail: '3NF · ERD · schema design'},
+];
+
+/** Career readiness deployment stats. */
+export const CAREER_READINESS = {
+  gitPushCmd: 'git push origin main',
+  repoFiles: 35,
+  repoCommits: 68,
+  querySpeedup: '10min → 0.4s',
+  speedupFactor: '1500×',
+  roles: ['SQL Data Analyst', 'Database Engineer', 'Data Engineer', 'BI Developer'],
+  readinessPct: 100,
+};
+
+/** Course completion stats for graduation. */
+export const COURSE_STATS = {
+  totalLessons: 68,
+  totalModules: 16,
+  totalHours: 45,
+  totalQueries: 850,
+  totalExercises: 320,
+  certification: 'SQL From Zero to Professional — Certified',
+  completionPct: 100,
+};
