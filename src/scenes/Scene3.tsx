@@ -1,140 +1,101 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {PIPELINE_CTE_CODE, REFRESH_CODE} from '../data';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, clamp, lin, lerp, pop, sec} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner, CodeLine, Window } from "../components/common";
+import { C, eb, eio, eo, prog, typed, useT, win } from "../lib";
 
-// SC03 (85-130s): Materialized View Caching & Refresh Strategy
-// Code editor writes CREATE MATERIALIZED VIEW mv_executive_summary AS WITH ...
-// Result panel glows green; REFRESH CONCURRENTLY activates with zero-downtime animation
-// Anchors (scene-local seconds):
-//   86.0 CREATE MATERIALIZED VIEW | 92.0 CTE pipeline | 100.0 REFRESH | 105.0 CONCURRENTLY | 110.0 zero-downtime | 120.0 production-ready
-const S = START.s3;
-const t = (g: number) => sec(g - S);
+const PURPLE = "#A855F7";
+type Lv = { k: string; c: string; y: number; x: number; a: number; on: number; prev: [boolean, boolean, boolean] };
+const LEVELS: Lv[] = [
+  { k: "SERIALIZABLE", c: C.green, y: 190, x: 1080, a: 111.3, on: 116.1, prev: [true, true, true] },
+  { k: "REPEATABLE READ", c: PURPLE, y: 350, x: 1040, a: 101.7, on: 108.2, prev: [true, true, true] },
+  { k: "READ COMMITTED", c: C.blue, y: 510, x: 1000, a: 94.7, on: 96.3, prev: [true, false, false] },
+];
+const ANOM = ["Dirty", "Non-Rep", "Phantom"];
+const CW = 770, CH = 140;
 
 export const Scene3: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(86), 14));
-  const mvP = pop(f, t(86));
-  const refP = pop(f, t(100));
-  const concP = pop(f, t(105));
-  const prodP = pop(f, t(120));
-
-  const pulse = 0.5 + 0.5 * Math.sin(f * 0.17);
-  // Refresh animation: rotating arrows + progress bar
-  const refreshProg = clamp(lin(f, t(105), sec(6)));
-  // Cache fill animation
-  const cacheFill = clamp(lin(f, t(100), sec(8)));
+  const t = useT();
+  const lvl = t < 108.2 ? "READ COMMITTED" : t < 116.1 ? "REPEATABLE READ" : "SERIALIZABLE";
+  const setLine = t < 107.4 ? typed("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;", t, 89.8, 93.2) : t < 115.3 ? typed("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;", t, 107.4, 109.4) : typed("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;", t, 115.3, 117.0);
+  const comment = t > 116.6 ? "-- strict sequential equivalence" : t > 109.6 ? "-- stable reports, no phantoms" : t > 96.8 ? "-- default level" : "";
+  const begin = typed("BEGIN;", t, 86.9, 87.8);
+  const typing = (t > 86.9 && t < 93.3) || (t > 107.4 && t < 109.5) || (t > 115.3 && t < 117.1);
+  const activeIdx = lvl === "SERIALIZABLE" ? 0 : lvl === "REPEATABLE READ" ? 1 : 2;
+  const slider = eio(t, 121.1, 127.0);
 
   return (
-    <Stage dur={1350} inFx="left" outFx="up">
-      <TopBadge text="الصياغة المتقدمة وحفظ المخرجات | CREATE MATERIALIZED VIEW · REFRESH CONCURRENTLY (Module 16)" from={sec(2)} to={sec(40)} color={C.green} />
-
-      {/* LEFT: Big DDL pipeline editor (CTEs + CREATE MATERIALIZED VIEW) */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={170}
-          w={1100}
-          h={560}
-          title="mv_executive_summary.sql · CREATE MATERIALIZED VIEW + 3-CTE pipeline (PostgreSQL 16)"
-          lines={PIPELINE_CTE_CODE}
-          start={t(86)}
-          cps={0.6}
-          size={14}
-          accent={C.green}
-          hl={1}
-          hlColor={C.green}
-        />
-      </div>
-
-      {/* Concept chips below editor */}
-      <div style={{position: 'absolute', left: 80, top: 745, width: 1100, opacity: clamp(mvP)}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 8}}>◆ Materialized view golden rule</div>
-        <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>CREATE MATERIALIZED VIEW</Chip>
-          <Chip color={C.blue} style={{fontSize: 14, padding: '4px 12px'}}>3 chained CTEs</Chip>
-          <Chip color={C.purple} style={{fontSize: 14, padding: '4px 12px'}}>LAG · SUM OVER</Chip>
-          <Chip color={C.amber} style={{fontSize: 14, padding: '4px 12px'}}>CASE WHEN growth_pct</Chip>
-          <Chip color={C.green} style={{fontSize: 14, padding: '4px 12px'}}>cached on disk ✓</Chip>
+    <AbsoluteFill>
+      {t > 86.6 && (
+        <div style={{ opacity: eo(t, 86.6, 87.3), transform: `translateX(${(1 - eo(t, 86.6, 87.4)) * -100}px)` }}>
+          <Window x={70} y={190} w={900} h={300} title="isolation_level.sql" glow={typing ? 1 : 0}>
+            <div style={{ position: "absolute", left: 26, top: 20 }}>
+              <CodeLine text={begin} fs={24} caret={t < 88.0} />
+            </div>
+            <div style={{ position: "absolute", left: 26, top: 66 }}>
+              <CodeLine text={setLine} fs={22} caret={typing && t > 89.8} />
+            </div>
+            <div style={{ position: "absolute", left: 26, top: 114 }}>
+              <CodeLine text={comment} fs={20} />
+            </div>
+            {t > 90.7 && t < 94.6 && (
+              <div style={{ position: "absolute", left: 26, top: 170, fontFamily: AR, fontWeight: 700, fontSize: 28, color: C.dim, direction: "rtl", opacity: win(t, 90.7, 94.6, 0.3) }}>
+                فور كتابة <span style={{ fontFamily: MONO, color: C.blue }}>BEGIN</span> نحدد مستوى العزل
+              </div>
+            )}
+          </Window>
         </div>
-      </div>
+      )}
 
-      {/* Production-ready bar */}
-      <div style={{position: 'absolute', left: 80, top: 870, width: 1100, opacity: clamp(prodP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '12px 22px', border: `3px solid ${C.green}`, borderRadius: 16, background: `${C.green}0d`, boxShadow: `0 0 24px ${C.green}33`}}>
-          <Check p={prodP} size={40} color={C.green} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>Materialized View · Cached · REFRESH CONCURRENTLY ✓ zero-downtime executive reporting</div>
+      {/* ladder */}
+      {LEVELS.map((l, i) => {
+        const e = eb(t, 90.2 + (2 - i) * 0.4, 90.9 + (2 - i) * 0.4);
+        if (e <= 0) return null;
+        const on = i === activeIdx && t >= l.on;
+        const reached = t >= l.on;
+        return (
+          <div key={l.k} style={{ position: "absolute", left: l.x, top: l.y, width: CW, height: CH, opacity: Math.min(1, e * 1.4) * (reached ? 1 : 0.5), transform: `translateX(${(1 - Math.min(1, e)) * 160}px)`, borderRadius: 22, background: `${l.c}${on ? "26" : "10"}`, border: `${on ? 5 : 2.5}px solid ${on ? l.c : `${l.c}88`}`, boxShadow: on ? `0 0 20px ${l.c}77` : "none", padding: "14px 26px" }}>
+            <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 32, color: l.c }}>{l.k}{i === 2 ? "  (default)" : ""}</div>
+            <div style={{ display: "flex", gap: 14, marginTop: 14 }}>
+              {ANOM.map((an, k) => (
+                <div key={an} style={{ flex: 1, height: 52, borderRadius: 12, background: l.prev[k] ? `${C.green}22` : `${C.red}16`, border: `2px solid ${l.prev[k] ? C.green : `${C.red}99`}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 20, lineHeight: "48px", color: l.prev[k] ? C.green : C.red }}>
+                  {an} {l.prev[k] ? "✓" : "✕"}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {/* shield pointer */}
+      {t > 96.3 && (
+        <div style={{ position: "absolute", left: LEVELS[activeIdx].x - 52, top: LEVELS[activeIdx].y + 46, width: 50, fontFamily: MONO, fontWeight: 700, fontSize: 40, color: LEVELS[activeIdx].c, opacity: prog(t, 96.3, 96.8) }}>
+          ▶
         </div>
-      </div>
+      )}
 
-      {/* RIGHT: Materialized View caching visualization */}
-      <Win x={1200} y={170} w={640} h={720} title="materialized view cache ──► green = cached · amber = refreshing · red = stale" accent={C.green} opacity={clamp(lin(f, t(90), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, right: 18, fontFamily: MONO, fontSize: 16, color: C.green, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-          mv_executive_summary · disk-cached · sub-ms queries
+      {/* performance vs isolation */}
+      {win(t, 121.1, 128.8, 0.4) > 0 && (
+        <div style={{ position: "absolute", left: 70, top: 560, width: 900, opacity: win(t, 121.1, 128.8, 0.4) }}>
+          <div style={{ fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.text, direction: "rtl", textAlign: "center" }}>مرونة بين الأداء وقوة العزل</div>
+          <div style={{ position: "relative", marginTop: 30, height: 14, borderRadius: 7, background: `linear-gradient(90deg, ${C.blue}, ${PURPLE}, ${C.green})` }}>
+            <div style={{ position: "absolute", left: `${slider * 100}%`, top: -13, marginLeft: -20, width: 40, height: 40, borderRadius: 20, background: C.text, border: `4px solid ${C.amber}` }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, fontFamily: MONO, fontWeight: 700, fontSize: 24 }}>
+            <span style={{ color: C.blue }}>◀ PERFORMANCE</span>
+            <span style={{ color: C.green }}>ISOLATION STRENGTH ▶</span>
+          </div>
         </div>
+      )}
 
-        <div style={{position: 'absolute', right: 18, top: 38, display: 'flex', gap: 8}}>
-          <Chip color={C.green} style={{fontSize: 12, padding: '4px 10px'}}>{cacheFill > 0.95 ? 'cached ✓' : 'caching...'}</Chip>
-        </div>
-
-        <svg width={600} height={620} style={{position: 'absolute', left: 18, top: 70}}>
-          {/* MV disk icon (big) */}
-          <g style={{opacity: clamp(mvP)}}>
-            <circle cx={300} cy={80} r={50 + pulse * 4} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} style={{filter: `drop-shadow(0 0 ${10 + pulse * 6}px ${C.green})`}} />
-            <text x={300} y={75} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">MATERIALIZED</text>
-            <text x={300} y={92} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">VIEW</text>
-            <text x={300} y={145} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">mv_executive_summary · 38.6 MB on disk</text>
-          </g>
-
-          {/* Cache fill bar */}
-          <g style={{opacity: clamp(mvP)}}>
-            <text x={300} y={180} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">cache fill progress</text>
-            <rect x={50} y={190} width={500} height={20} fill={C.deep} stroke={C.border} strokeWidth={1.5} rx={4} />
-            <rect x={50} y={190} width={500 * cacheFill} height={20} fill={C.green} rx={4} style={{filter: `drop-shadow(0 0 6px ${C.green})`}} />
-            <text x={300} y={225} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{Math.round(cacheFill * 100)}% cached · {Math.round(cacheFill * 12)} months of KPIs</text>
-          </g>
-
-          {/* REFRESH CONCURRENTLY visualization */}
-          <g style={{opacity: clamp(refP)}}>
-            <text x={300} y={270} fill={C.amber} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">REFRESH MATERIALIZED VIEW CONCURRENTLY</text>
-
-            {/* Refresh icon (rotating arrows) */}
-            <g transform={`translate(300, 320) rotate(${refreshProg * 360})`}>
-              <path d="M -25 0 A 25 25 0 1 1 18 18" fill="none" stroke={C.amber} strokeWidth={4} strokeLinecap="round" />
-              <polygon points="18,18 22,10 12,12" fill={C.amber} />
-            </g>
-            <text x={300} y={370} fill={C.amber} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">refreshing in background...</text>
-            <text x={300} y={388} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">no read locks · queries continue serving</text>
-
-            {/* Refresh progress bar */}
-            <rect x={100} y={410} width={400} height={16} fill={C.deep} stroke={C.amber} strokeWidth={1.5} rx={4} />
-            <rect x={100} y={410} width={400 * refreshProg} height={16} fill={C.amber} rx={4} style={{filter: `drop-shadow(0 0 6px ${C.amber})`}} />
-            <text x={300} y={445} fill={C.amber} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">{Math.round(refreshProg * 100)}% · {Math.round(refreshProg * 8)}s of 8s</text>
-          </g>
-
-          {/* CONCURRENTLY indicator */}
-          <g style={{opacity: clamp(concP)}}>
-            <rect x={100} y={475} width={400} height={60} fill={`${C.green}22`} stroke={C.green} strokeWidth={2.5} rx={10} />
-            <text x={300} y={500} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">CONCURRENTLY ✓</text>
-            <text x={300} y={520} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">queries served without interruption</text>
-          </g>
-
-          {/* Result: zero-downtime */}
-          <g style={{opacity: clamp(prodP)}}>
-            <rect x={50} y={555} width={500} height={50} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
-            <text x={300} y={585} fill={C.green} fontSize={12} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ zero-downtime refresh · executive reports always live</text>
-          </g>
-        </svg>
-
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 12, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.green}}>cached · 38.6 MB</span>
-          <span style={{color: C.amber}}>REFRESH CONCURRENTLY</span>
-          <span style={{color: C.green}}>zero-downtime ✓</span>
-        </div>
-      </Win>
-
-      <Caption text="CREATE MATERIALIZED VIEW ──► CTE pipeline ──► disk cache ──► REFRESH CONCURRENTLY ──► zero-downtime ✓" from={t(95)} to={sec(44)} tone="ok" />
-    </Stage>
+      <Banner x={70} y={900} w={1780} a={94.6} b={101.4} color={C.blue} fs={25}>
+        Default ──► Read Committed Guarantees Committed Data Only
+      </Banner>
+      <Banner x={70} y={900} w={1780} a={101.8} b={111.0} color={PURPLE} fs={25}>
+        SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+      </Banner>
+      <Banner x={70} y={900} w={1780} a={111.4} b={128.8} color={C.green} fs={24}>
+        Serializable ──► Highest Isolation Level (Guarantees Strict Sequential Execution)
+      </Banner>
+    </AbsoluteFill>
   );
 };

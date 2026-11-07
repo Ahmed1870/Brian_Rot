@@ -1,243 +1,138 @@
-import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, START} from '../theme';
-import {HASH_AGG_STATS, PARALLEL_WORKERS} from '../data';
-import {Caption, Check, Chip, Editor, Mix, Stage, TopBadge, Win, Warn, clamp, lin, lerp, pop, sec} from '../kit';
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { AR, MONO } from "../theme";
+import { Banner, CodeLine } from "../components/common";
+import { C, eb, eo, fmt, prog, typed, useT, win } from "../lib";
 
-// SC04 (130-170s): PostgreSQL 16 Parallel Workers & work_mem Hash Aggregation
-// 4 parallel workers split the 12.6M-row aggregation; hash aggregation runs in work_mem (no disk spill)
-// Anchors (scene-local seconds):
-//   131.0 parallel query | 136.0 workers | 140.0 hash agg | 145.0 work_mem | 150.0 no disk spill | 155.0 seal
-const S = START.s4;
-const t = (g: number) => sec(g - S);
-
-const colorOf = (k: string) => (k === 'blue' ? C.blue : k === 'purple' ? C.purple : C.green);
+const PURPLE = "#A855F7";
+const LX = [70, 990];
+const LY = 170, LW = 860, LH = 600;
+const ACC: [string, number][] = [["A-101", 1200], ["A-102", 850], ["A-103", 2300], ["A-104", 640]];
 
 export const Scene4: React.FC = () => {
-  const f = useCurrentFrame();
-  const editorP = clamp(lin(f, t(131), 14));
-  const parP = pop(f, t(131));
-  const workP = pop(f, t(136));
-  const hashP = pop(f, t(140));
-  const memP = pop(f, t(145));
-  const spillP = pop(f, t(150));
-  const sealP = pop(f, t(155));
-
-  const pulse = 0.5 + 0.5 * Math.sin(f * 0.17);
-  // Worker processing progress (each worker fills its bar)
-  const workProg = clamp(lin(f, t(136), sec(10)));
-  // Hash aggregation progress
-  const hashProg = clamp(lin(f, t(140), sec(8)));
+  const t = useT();
+  const snapAct = win(t, 137.8, 150.8, 0.4);
+  const ssiAct = win(t, 151.0, 169.9, 0.4);
+  const laneOp = (i: number) => eo(t, 131.0 + i * 0.4, 132.2 + i * 0.4) * (1 - (i === 0 ? ssiAct : snapAct) * 0.5);
+  const flash = t > 147.0 && t < 147.7 ? 1 - prog(t, 147.0, 147.7) : 0;
+  const drift = (i: number) => (t > 148.2 ? Math.floor((t - 148.2) * (7 + i * 3)) * (i % 2 === 0 ? 5 : -3) : 0);
+  const abort = eb(t, 156.2, 156.8);
+  const err = eb(t, 158.8, 159.5);
+  const retryLines = [
+    "for attempt in range(3):",
+    "    try:",
+    "        run_transaction()",
+    "        break",
+    "    except SerializationFailure:  # 40001",
+    "        continue",
+  ];
 
   return (
-    <Stage dur={1200} inFx="zoom" outFx="morph">
-      <TopBadge text="هندسة المحرك الداخلية | Parallel Query Execution · work_mem Hash Aggregation (Module 16)" from={sec(2)} to={sec(38)} color={C.purple} />
-
-      {/* LEFT: Engine internals code editor */}
-      <div style={{opacity: editorP}}>
-        <Editor
-          x={80}
-          y={170}
-          w={680}
-          h={300}
-          title="engine_internals.sql · parallel execution settings (PostgreSQL 16)"
-          lines={[
-            '-- Enable parallel query execution',
-            'SET max_parallel_workers = 8;',
-            'SET max_parallel_workers_per_gather = 4;',
-            'SET work_mem = \'64MB\';',
-            'SET enable_hashagg = on;',
-            '',
-            '-- Verify parallel plan for analytics pipeline',
-            'EXPLAIN ANALYZE',
-            '  SELECT date_trunc(\'month\', order_date),',
-            '         SUM(total_amount)',
-            '  FROM store_orders GROUP BY 1;',
-            '',
-            '-- Plan: Gather · 4 Parallel Workers · Hash Aggregate',
-          ]}
-          start={t(131)}
-          cps={0.55}
-          size={14}
-          accent={C.purple}
-          hl={5}
-          hlColor={C.purple}
-        />
+    <AbsoluteFill>
+      <div style={{ position: "absolute", left: 560, top: 112, width: 800, height: 50, borderRadius: 999, border: `2px solid ${C.blue}77`, background: "#0B1B33", textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "46px", color: C.blue, opacity: win(t, 130.8, 169.9, 0.6) }}>
+        PostgreSQL 16 · MVCC Snapshot Engine
       </div>
 
-      {/* Concept chips below editor */}
-      <div style={{position: 'absolute', left: 80, top: 490, width: 680, opacity: clamp(parP)}}>
-        <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.muted, marginBottom: 10}}>◆ Parallel execution golden rule</div>
-        <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-          <Chip color={C.blue} style={{fontSize: 16, padding: '4px 14px'}}>4 Parallel Workers</Chip>
-          <Chip color={C.purple} style={{fontSize: 16, padding: '4px 14px'}}>Hash Aggregation</Chip>
-          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>work_mem 64MB</Chip>
-          <Chip color={C.green} style={{fontSize: 16, padding: '4px 14px'}}>no disk spill ✓</Chip>
+      {[0, 1].map((i) => {
+        const c = i === 0 ? C.blue : PURPLE;
+        const act = i === 0 ? snapAct : ssiAct;
+        return (
+          <div key={i} style={{ position: "absolute", left: LX[i] + (i === 0 ? -1 : 1) * (1 - eo(t, 131.0 + i * 0.4, 132.4 + i * 0.4)) * 300, top: LY, width: LW, height: LH, opacity: laneOp(i), borderRadius: 28, background: `linear-gradient(170deg, ${c}${act > 0 ? "1E" : "0E"}, ${C.card2})`, border: `${act > 0 ? 4 : 2}px solid ${act > 0 ? c : C.line}`, boxShadow: act > 0 ? `0 0 20px ${c}55` : "none", overflow: "hidden" }}>
+            <div style={{ position: "absolute", left: 40, top: 24, fontFamily: MONO, fontWeight: 700, fontSize: 38, color: c }}>{i === 0 ? "Snapshot Isolation" : "Serializable · SSI"}</div>
+            <div style={{ position: "absolute", left: 40, top: 76, fontFamily: AR, fontWeight: 700, fontSize: 27, color: C.text, direction: "rtl" }}>{i === 0 ? "لقطة مجمدة بدون تعطيل القراءة" : "كشف التضارب وإلغاء معاملة"}</div>
+
+            {i === 0 && (
+              <>
+                {/* live table */}
+                <div style={{ position: "absolute", left: 40, top: 140, width: 380, height: 300, borderRadius: 18, background: "#0B1222", border: `2.5px solid ${C.amber}`, opacity: eo(t, 132.8, 133.6) }}>
+                  <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.amber, margin: "8px 0 0 16px" }}>live table · changing</div>
+                  {ACC.map(([id, v], k) => (
+                    <div key={id} style={{ position: "absolute", left: 14, top: 48 + k * 60, width: 352, height: 50, borderRadius: 10, background: `${C.amber}18`, border: `2px solid ${C.amber}77`, display: "flex", justifyContent: "space-between", padding: "0 14px", fontFamily: MONO, fontWeight: 700, fontSize: 21, lineHeight: "46px", color: C.text }}>
+                      <span>{id}</span>
+                      <span style={{ color: C.amber }}>{fmt(v + drift(k))}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* snapshot */}
+                {t > 147.0 && (
+                  <div style={{ position: "absolute", left: 440, top: 140, width: 380, height: 300, borderRadius: 18, background: "#0B1222", border: `3px solid ${C.blue}`, boxShadow: `0 0 18px ${C.blue}66`, opacity: prog(t, 147.0, 147.6) }}>
+                    <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 19, color: C.blue, margin: "8px 0 0 16px" }}>snapshot · frozen ❄</div>
+                    {ACC.map(([id, v], k) => (
+                      <div key={id} style={{ position: "absolute", left: 14, top: 48 + k * 60, width: 352, height: 50, borderRadius: 10, background: `${C.blue}18`, border: `2px solid ${C.blue}77`, display: "flex", justifyContent: "space-between", padding: "0 14px", fontFamily: MONO, fontWeight: 700, fontSize: 21, lineHeight: "46px", color: C.text }}>
+                        <span>{id}</span>
+                        <span style={{ color: "#7DD3FC" }}>{fmt(v)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {flash > 0 && <div style={{ position: "absolute", left: 0, top: 0, width: LW, height: LH, background: "#fff", opacity: flash * 0.6 }} />}
+                {t > 138.2 && (
+                  <div style={{ position: "absolute", left: 40, top: 470, padding: "8px 24px", borderRadius: 999, border: `2.5px solid ${C.blue}`, background: `${C.blue}18`, fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.blue, opacity: prog(t, 138.2, 138.8) }}>MVCC · reads never block</div>
+                )}
+                {t > 148.2 && (
+                  <div style={{ position: "absolute", left: 40, top: 530, width: 780, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: C.green, opacity: prog(t, 148.2, 148.8) }}>
+                    transaction keeps reading from the snapshot ✓
+                  </div>
+                )}
+              </>
+            )}
+
+            {i === 1 && (
+              <>
+                {t > 151.6 && (
+                  <>
+                    {[{ n: "Tx A", c: C.blue, x: 40 }, { n: "Tx B", c: PURPLE, x: 440 }].map((tx, k) => (
+                      <div key={tx.n} style={{ position: "absolute", left: tx.x, top: 140, width: 380, height: 90, borderRadius: 16, background: `${tx.c}18`, border: `3px solid ${k === 1 && abort > 0.5 ? C.red : tx.c}`, opacity: k === 1 && abort > 0.5 ? 0.5 : prog(t, 151.6, 152.2), textAlign: "center" }}>
+                        <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 28, color: k === 1 && abort > 0.5 ? C.red : tx.c, marginTop: 8 }}>{tx.n}</div>
+                        <div style={{ fontFamily: MONO, fontSize: 18, color: C.dim }}>{k === 1 && abort > 0.5 ? "cancelled ✕" : "reads & writes"}</div>
+                      </div>
+                    ))}
+                    <div style={{ position: "absolute", left: 40, top: 250, width: 780, height: 70, borderRadius: 16, background: `${PURPLE}16`, border: `2.5px dashed ${PURPLE}`, textAlign: "center", fontFamily: MONO, fontWeight: 700, fontSize: 24, lineHeight: "64px", color: PURPLE, opacity: prog(t, 153.2, 153.8) }}>
+                      SSI · conflict check {t > 155.7 ? "⚠ cycle" : "…"}
+                    </div>
+                  </>
+                )}
+                {err > 0 && (
+                  <div style={{ position: "absolute", left: 40, top: 340, width: 780, height: 80, borderRadius: 16, background: `${PURPLE}22`, border: `3px solid ${PURPLE}`, opacity: Math.min(1, err * 1.4), transform: `scale(${0.9 + 0.1 * Math.min(1, err)})`, padding: "8px 18px" }}>
+                    <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 18, color: PURPLE }}>ERROR: 40001: could not serialize</div>
+                    <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 18, color: PURPLE }}>access due to concurrent update</div>
+                  </div>
+                )}
+                {t > 160.6 && (
+                  <div style={{ position: "absolute", left: 40, top: 436, width: 780, height: 150, borderRadius: 16, background: "#0B1222", border: `2.5px solid ${C.green}`, padding: "6px 18px", opacity: prog(t, 160.6, 161.1) }}>
+                    {retryLines.map((s, k) => {
+                      const txt = typed(s, t, 160.8 + k * 0.9, 161.6 + k * 0.9);
+                      return txt.length > 0 ? (
+                        <div key={k} style={{ position: "absolute", left: 18, top: 6 + k * 23 }}>
+                          <CodeLine text={txt} fs={16} />
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+
+      {win(t, 132.4, 137.4, 0.4) > 0 && (
+        <div style={{ position: "absolute", left: 560, top: 790, width: 800, textAlign: "center", opacity: win(t, 132.4, 137.4, 0.4), fontFamily: AR, fontWeight: 900, fontSize: 36, color: C.text, direction: "rtl" }}>
+          كواليس <span style={{ color: C.blue, fontFamily: MONO }}>PostgreSQL 16</span>
         </div>
-      </div>
-
-      {/* Hash aggregation benchmark */}
-      <Win x={80} y={570} w={680} h={330} title="benchmark ──► in-memory hash agg vs disk spill (sub-second)" accent={C.green} opacity={clamp(lin(f, t(145), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, right: 18, fontFamily: MONO, fontSize: 14, color: C.green, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-          12.6M rows · 4 workers · 64MB work_mem · {HASH_AGG_STATS.executionMs}ms · 0 disk writes
+      )}
+      {t > 164.2 && (
+        <div style={{ position: "absolute", left: 990, top: 790, width: 860, textAlign: "center", fontFamily: AR, fontWeight: 900, fontSize: 32, color: C.green, direction: "rtl", opacity: prog(t, 164.2, 164.8) }}>
+          Retry Loop في التطبيق ↻
         </div>
+      )}
 
-        <div style={{position: 'absolute', right: 18, top: 38, display: 'flex', gap: 8}}>
-          <Chip color={C.red} style={{fontSize: 12, padding: '4px 10px'}}>disk spill ✗</Chip>
-          <Chip color={C.green} style={{fontSize: 12, padding: '4px 10px'}}>{HASH_AGG_STATS.executionMs}ms ✓</Chip>
-        </div>
-
-        <svg width={640} height={220} style={{position: 'absolute', left: 18, top: 70}}>
-          {/* Disk spill bar (red, slow) */}
-          <g style={{opacity: clamp(pop(f, t(145)))}}>
-            <text x={20} y={20} fill={C.red} fontSize={11} fontFamily={MONO} fontWeight={700}>disk spill (work_mem too small) · slow</text>
-            <rect x={20} y={28} width={500} height={28} fill={`${C.red}22`} stroke={C.red} strokeWidth={2.5} rx={6} strokeDasharray="6 4" opacity={0.6} />
-            <text x={270} y={47} fill={C.red} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">2400ms · writes to temp files · disk I/O bottleneck</text>
-          </g>
-
-          {/* In-memory hash agg bar (green, fast) */}
-          <g style={{opacity: clamp(pop(f, t(146)))}}>
-            <text x={20} y={85} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700}>in-memory hash aggregation (work_mem 64MB) · fast</text>
-            <rect x={20} y={93} width={20} height={28} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={4} style={{filter: `drop-shadow(0 0 8px ${C.green})`}} />
-            <text x={60} y={112} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700}>{HASH_AGG_STATS.executionMs}ms · ✓ all in memory</text>
-          </g>
-
-          {/* Memory utilization gauge */}
-          <g style={{opacity: clamp(pop(f, t(148)))}}>
-            <text x={20} y={150} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700}>work_mem · {HASH_AGG_STATS.workMemMB}MB · {HASH_AGG_STATS.memoryUtil}% utilized</text>
-            <rect x={20} y={160} width={500} height={22} fill={C.deep} stroke={C.purple} strokeWidth={1.5} rx={4} />
-            <rect x={20} y={160} width={500 * (HASH_AGG_STATS.memoryUtil / 100)} height={22} fill={C.purple} rx={4} style={{filter: `drop-shadow(0 0 6px ${C.purple}88)`}} />
-            <text x={270} y={175} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">{HASH_AGG_STATS.workMemMB}MB · {HASH_AGG_STATS.hashBuckets} hash buckets · 0 spills ✓</text>
-          </g>
-
-          {/* Footer */}
-          <g style={{opacity: clamp(sealP)}}>
-            <rect x={20} y={195} width={500} height={20} fill={`${C.green}22`} stroke={C.green} strokeWidth={2} rx={6} />
-            <text x={270} y={210} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ 6.3× speedup · production-ready · zero disk I/O</text>
-          </g>
-        </svg>
-      </Win>
-
-      {/* RIGHT: 4 parallel workers visualization */}
-      <Win x={800} y={170} w={1040} h={730} title="parallel execution engine ──► 4 workers split 12.6M rows · hash aggregation in work_mem" accent={C.blue} opacity={clamp(lin(f, t(136), 14))}>
-        <div dir="ltr" style={{position: 'absolute', left: 18, top: 12, right: 18, fontFamily: MONO, fontSize: 16, color: C.blue, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-          PostgreSQL 16 parallel query · 4 workers · 12.6M rows → in-memory hash aggregation · {HASH_AGG_STATS.executionMs}ms
-        </div>
-
-        <div style={{position: 'absolute', right: 18, top: 38, display: 'flex', gap: 8}}>
-          <Chip color={C.blue} style={{fontSize: 12, padding: '4px 10px'}}>4 workers</Chip>
-          <Chip color={C.amber} style={{fontSize: 12, padding: '4px 10px'}}>{workProg > 0.05 && workProg < 0.99 ? 'processing...' : 'idle'}</Chip>
-          <Chip color={C.green} style={{fontSize: 12, padding: '4px 10px'}}>{workProg > 0.95 ? 'aggregated ✓' : '...'}</Chip>
-        </div>
-
-        <svg width={1000} height={620} style={{position: 'absolute', left: 20, top: 70}}>
-          {/* Source table (top) */}
-          <g style={{opacity: clamp(parP)}}>
-            <rect x={350} y={20} width={300} height={60} fill={`${C.amber}22`} stroke={C.amber} strokeWidth={3} rx={10} />
-            <text x={500} y={45} fill={C.amber} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">store_orders · 12.6M rows</text>
-            <text x={500} y={65} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">to be aggregated by month</text>
-          </g>
-
-          {/* Splitter arrow (Gather node) */}
-          <g style={{opacity: clamp(parP)}}>
-            <rect x={400} y={100} width={200} height={36} fill={`${C.purple}33`} stroke={C.purple} strokeWidth={2.5} rx={8} />
-            <text x={500} y={123} fill={C.purple} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">Gather · parallel split</text>
-            <line x1={500} y1={80} x2={500} y2={100} stroke={C.purple} strokeWidth={2} strokeDasharray="4 3" opacity={0.6} />
-          </g>
-
-          {/* 4 worker nodes (parallel) */}
-          {PARALLEL_WORKERS.map((w, i) => {
-            const color = colorOf(w.color);
-            const x = 80 + i * 220;
-            const wP = clamp(pop(f, t(136 + i * 0.4)));
-            // Each worker's progress bar
-            const wProg = clamp(workProg - i * 0.05);
-            return (
-              <g key={i} style={{opacity: clamp(wP)}}>
-                {/* Connector from Gather */}
-                <line x1={500} y1={136} x2={x + 100} y2={180} stroke={color} strokeWidth={2} strokeDasharray="4 3" opacity={0.5} />
-                <polygon points={`${x + 95},174 ${x + 105},174 ${x + 100},184`} fill={color} />
-
-                {/* Worker box */}
-                <rect x={x} y={185} width={200} height={180} fill={`${color}22`} stroke={color} strokeWidth={2.5} rx={10} style={{filter: `drop-shadow(0 0 6px ${color}66)`}} />
-                <text x={x + 100} y={210} fill={color} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">{w.name}</text>
-                <text x={x + 100} y={230} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">worker #{w.id}</text>
-
-                {/* Rows assigned */}
-                <text x={x + 100} y={258} fill={C.text} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{w.rows}</text>
-                <text x={x + 100} y={275} fill={C.muted} fontSize={10} fontFamily={MONO} textAnchor="middle">rows assigned</text>
-
-                {/* Progress bar */}
-                <rect x={x + 20} y={290} width={160} height={14} fill={C.deep} stroke={color} strokeWidth={1} rx={3} />
-                <rect x={x + 20} y={290} width={160 * wProg} height={14} fill={color} rx={3} style={{filter: `drop-shadow(0 0 4px ${color})`}} />
-                <text x={x + 100} y={324} fill={color} fontSize={10} fontFamily={MONO} fontWeight={700} textAnchor="middle">{Math.round(wProg * 100)}% · {w.status}</text>
-
-                {/* Mini hash buckets visualization */}
-                <g>
-                  {Array.from({length: 6}, (_, bi) => {
-                    const filled = wProg > (bi + 1) / 6;
-                    return (
-                      <rect key={bi} x={x + 20 + bi * 28} y={345} width={22} height={14} fill={filled ? color : C.deep} stroke={color} strokeWidth={1} rx={2} />
-                    );
-                  })}
-                </g>
-              </g>
-            );
-          })}
-
-          {/* Merge arrows down to hash aggregation */}
-          <g style={{opacity: clamp(hashP)}}>
-            {PARALLEL_WORKERS.map((_, i) => {
-              const x = 80 + i * 220 + 100;
-              return (
-                <line key={i} x1={x} y1={365} x2={500} y2={420} stroke={C.green} strokeWidth={2} strokeDasharray="4 3" opacity={0.5} />
-              );
-            })}
-            <polygon points="494,414 506,414 500,424" fill={C.green} />
-          </g>
-
-          {/* Hash aggregation node (green, center) */}
-          <g style={{opacity: clamp(hashP)}}>
-            <rect x={300} y={420} width={400} height={80} fill={`${C.green}33`} stroke={C.green} strokeWidth={3} rx={12} style={{filter: `drop-shadow(0 0 ${10 + pulse * 6}px ${C.green})`}} />
-            <text x={500} y={450} fill={C.green} fontSize={14} fontFamily={MONO} fontWeight={700} textAnchor="middle">Hash Aggregation · work_mem 64MB</text>
-            <text x={500} y={472} fill={C.text} fontSize={11} fontFamily={MONO} textAnchor="middle">8192 hash buckets · merges worker partial results</text>
-            <text x={500} y={490} fill={C.green} fontSize={11} fontFamily={MONO} fontWeight={700} textAnchor="middle">{HASH_AGG_STATS.executionMs}ms · 0 disk writes ✓</text>
-          </g>
-
-          {/* Result: aggregated output */}
-          <g style={{opacity: clamp(sealP)}}>
-            <line x1={500} y1={500} x2={500} y2={530} stroke={C.green} strokeWidth={3} strokeDasharray="6 4" opacity={0.7} />
-            <polygon points="494,524 506,524 500,538" fill={C.green} />
-            <rect x={250} y={540} width={500} height={60} fill={`${C.green}22`} stroke={C.green} strokeWidth={3} rx={10} style={{filter: `drop-shadow(0 0 12px ${C.green})`}} />
-            <text x={500} y={568} fill={C.green} fontSize={13} fontFamily={MONO} fontWeight={700} textAnchor="middle">✓ Aggregated Output · 12 months · sub-second</text>
-            <text x={500} y={588} fill={C.text} fontSize={10} fontFamily={MONO} textAnchor="middle">4 workers · in-memory hash · zero disk spill · production-ready</text>
-          </g>
-        </svg>
-
-        <div dir="ltr" style={{position: 'absolute', left: 18, right: 18, bottom: 12, height: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 13, fontWeight: 700, paddingTop: 4, borderTop: '1px solid ' + C.border, background: C.deep}}>
-          <span style={{color: C.blue}}>4 parallel workers</span>
-          <span style={{color: C.purple}}>work_mem 64MB</span>
-          <span style={{color: C.green}}>{HASH_AGG_STATS.executionMs}ms ✓</span>
-        </div>
-      </Win>
-
-      {/* Seal badge bottom-left */}
-      <div style={{position: 'absolute', left: 80, top: 920, opacity: clamp(sealP)}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.blue}`, borderRadius: 14, background: `${C.blue}0d`}}>
-          <Check p={sealP} size={36} color={C.blue} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.blue, fontWeight: 700}}>Parallel Workers · Sealed ✓</div>
-        </div>
-      </div>
-
-      {/* work_mem badge bottom-right */}
-      <div style={{position: 'absolute', right: 80, top: 920, opacity: clamp(pop(f, t(160)))}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px', border: `2px solid ${C.green}`, borderRadius: 14, background: `${C.green}0d`}}>
-          <Check p={pop(f, t(160))} size={36} color={C.green} />
-          <div dir="ltr" style={{fontFamily: MONO, fontSize: 18, color: C.green, fontWeight: 700}}>work_mem · {HASH_AGG_STATS.executionMs}ms ✓</div>
-        </div>
-      </div>
-
-      <Caption text="Parallel Workers ──► 4 workers ──► 12.6M rows ──► Hash Aggregation ──► work_mem ──► no disk spill ──► sub-second ✓" from={t(150)} to={sec(40)} tone="ok" />
-    </Stage>
+      <Banner x={70} y={850} w={1780} a={137.8} b={150.8} color={C.blue} fs={24}>
+        Snapshot Isolation (MVCC) ──► Freezes Data State at Transaction Start
+      </Banner>
+      <Banner x={70} y={850} w={1780} a={151.2} b={169.8} color={PURPLE} fs={24}>
+        Serialization Failure (40001) ──► Requires Client-Side Retry Logic
+      </Banner>
+    </AbsoluteFill>
   );
 };

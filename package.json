@@ -1,22 +1,23 @@
 {
-  "name": "manzooma-sql-lesson-66-analytics-pipeline",
+  "name": "manzooma-sql-lesson-55-isolation-levels",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 66: End-to-End Analytics Pipeline (Multi-Stage CTEs, Window Functions, CASE WHEN, CLV, MRR, Churn Rate, CREATE MATERIALIZED VIEW, REFRESH CONCURRENTLY, PostgreSQL 16 Parallel Workers, work_mem Hash Aggregation, Executive KPI Dashboard, Module 16 50% Progress) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma SQL From Zero to Professional - Lesson 55: Isolation Levels and Concurrency Anomalies",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L66-Analytics-Pipeline out/sql-l66-analytics-pipeline.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "generate-audio": "node scripts/generate-audio.cjs",
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "render": "npm run generate-audio && remotion render src/index.ts SQL-L55-IsolationLevels out/sql-l55-isolation-levels.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "^4.0.0"
+    "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
   }
 }
