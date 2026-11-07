@@ -1,0 +1,360 @@
+{
+ "fps": 30,
+ "width": 1920,
+ "height": 1080,
+ "duration": 240,
+ "lesson": {
+  "num": "50",
+  "label": "LESSON 50 \u00b7 SQL From Zero to Professional"
+ },
+ "scenes": [
+  {
+   "id": "SC01",
+   "start": 0,
+   "end": 39.87
+  },
+  {
+   "id": "SC02",
+   "start": 39.87,
+   "end": 84.94
+  },
+  {
+   "id": "SC03",
+   "start": 84.94,
+   "end": 129.94
+  },
+  {
+   "id": "SC04",
+   "start": 129.94,
+   "end": 169.91
+  },
+  {
+   "id": "SC05",
+   "start": 169.91,
+   "end": 208.93
+  },
+  {
+   "id": "SC06",
+   "start": 208.93,
+   "end": 240.0
+  }
+ ],
+ "transitions": [
+  {
+   "at": 39.87,
+   "dur": 1.1,
+   "type": "zoom"
+  },
+  {
+   "at": 84.94,
+   "dur": 1.1,
+   "type": "slide"
+  },
+  {
+   "at": 129.94,
+   "dur": 1.1,
+   "type": "vslide"
+  },
+  {
+   "at": 169.91,
+   "dur": 1.1,
+   "type": "expand"
+  },
+  {
+   "at": 208.93,
+   "dur": 1.1,
+   "type": "slidedown"
+  }
+ ],
+ "voice": [
+  [
+   0.2,
+   39.57
+  ],
+  [
+   41.14,
+   84.64
+  ],
+  [
+   86.16,
+   129.64
+  ],
+  [
+   131.26,
+   169.61
+  ],
+  [
+   171.14,
+   208.63
+  ],
+  [
+   210.24,
+   235.5
+  ]
+ ],
+ "music": {
+  "base": 0.12,
+  "duck": 0.08,
+  "outroStart": 208.93,
+  "outroFadeStart": 236.5,
+  "outroFadeEnd": 240,
+  "bedEnd": 208.93,
+  "fadeBlack": [
+   238.6,
+   240
+  ]
+ },
+ "cues": {
+  "sc01": {
+   "badge": [
+    1.2,
+    17.2
+   ],
+   "tag": [
+    21.2,
+    37.2
+   ],
+   "branch": 5.2,
+   "opt": 17.2
+  },
+  "sc02": {
+   "tag1": [
+    42.14,
+    60.14
+   ],
+   "tag2": [
+    64.14,
+    82.14
+   ],
+   "typeT": 45.14,
+   "analyze": 52.14,
+   "guard": 60.14,
+   "timing": 70.14
+  },
+  "sc03": {
+   "tag1": [
+    88.16,
+    106.16
+   ],
+   "tag2": [
+    110.16,
+    126.16
+   ],
+   "typeT": 87.16,
+   "arrows": 90.16,
+   "rows": 100.16,
+   "stale": 115.16
+  },
+  "sc04": {
+   "tag1": [
+    132.26,
+    148.26
+   ],
+   "tag2": [
+    152.26,
+    166.26
+   ],
+   "typeT": 133.26,
+   "hit": 135.26,
+   "read": 145.26
+  },
+  "sc05": {
+   "tag1": [
+    172.14,
+    188.14
+   ],
+   "tag2": [
+    192.14,
+    208.33
+   ],
+   "typeT": 175.14,
+   "idx": 182.14,
+   "drop": 190.14,
+   "seal": 206.43
+  },
+  "sc06": {
+   "header": 209.13,
+   "badge": 215.24,
+   "next": 220.24,
+   "nextPulse": 229.4,
+   "sheets": 222.24,
+   "linkPulse": 226.24,
+   "progress": [
+    210.53,
+    215.53
+   ]
+  }
+ },
+ "sfx": [
+  {
+   "t": 1.2,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 5.2,
+   "file": "rewrite.wav",
+   "vol": 0.5
+  },
+  {
+   "t": 21.2,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 39.17,
+   "file": "whoosh.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 42.14,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 45.14,
+   "file": "typing_m.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 52.14,
+   "file": "scan.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 60.14,
+   "file": "shield.wav",
+   "vol": 0.5
+  },
+  {
+   "t": 64.14,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 70.14,
+   "file": "stretch.wav",
+   "vol": 0.45
+  },
+  {
+   "t": 84.24,
+   "file": "whoosh.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 87.16,
+   "file": "typing_m.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 88.16,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 90.16,
+   "file": "extract.wav",
+   "vol": 0.5
+  },
+  {
+   "t": 100.16,
+   "file": "blocksnap.wav",
+   "vol": 0.5
+  },
+  {
+   "t": 110.16,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 115.16,
+   "file": "crash.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 129.24,
+   "file": "whoosh.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 132.26,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 133.26,
+   "file": "typing_m.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 135.26,
+   "file": "drop.wav",
+   "vol": 0.5
+  },
+  {
+   "t": 145.26,
+   "file": "disksnap.wav",
+   "vol": 0.6
+  },
+  {
+   "t": 152.26,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 169.21,
+   "file": "whoosh.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 172.14,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 175.14,
+   "file": "typing_m.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 182.14,
+   "file": "typing_s.wav",
+   "vol": 0.35
+  },
+  {
+   "t": 190.14,
+   "file": "leap.wav",
+   "vol": 0.55
+  },
+  {
+   "t": 192.14,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 206.43,
+   "file": "stamp.wav",
+   "vol": 0.7
+  },
+  {
+   "t": 208.23,
+   "file": "whoosh.wav",
+   "vol": 0.4
+  },
+  {
+   "t": 215.24,
+   "file": "cash.wav",
+   "vol": 0.45
+  },
+  {
+   "t": 220.24,
+   "file": "tick.wav",
+   "vol": 0.3
+  },
+  {
+   "t": 222.24,
+   "file": "tick.wav",
+   "vol": 0.3
+  }
+ ]
+}
