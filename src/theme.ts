@@ -11,8 +11,8 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 65;
-export const COMP_ID = 'SQL-L65-Capstone-Schema-Architecture';
+export const LESSON = 66;
+export const COMP_ID = 'SQL-L66-Analytics-Pipeline';
 
 export const C = {
   bg: '#0F172A',

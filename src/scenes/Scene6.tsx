@@ -3,20 +3,20 @@ import {useCurrentFrame} from 'remotion';
 import {C, MONO, START} from '../theme';
 import {Check, Chip, Mix, Sql, Stage, clamp, pop, prog, sec, typed} from '../kit';
 
-// SC06 (210-240s): Manzooma Academy outro — Module 16 at 25% (Capstone Schema Architecture complete)
-// Skills: ERD ✓, 1NF/2NF/3NF ✓, DDL ✓, FK/CHECK/UNIQUE ✓, pg_class ✓, B-Tree FK ✓
-// Next lesson 66: End-to-End Analytics Pipeline (خطوط التحليل والتقارير التنفيذية)
-// Anchors: 211.0 excellent | 213.5 skills | 220.0 next lesson | 225.0 capstone preview | 230.0 25% complete
+// SC06 (210-240s): Manzooma Academy outro — Module 16 at 50% (Analytics Pipeline Mastered)
+// Skills: CTEs ✓, Window Functions ✓, CASE WHEN ✓, Materialized View ✓, Parallel Workers ✓, work_mem ✓
+// Next lesson 67: Server Performance Tuning, Security & Backup/Restore
+// Anchors: 211.0 excellent | 213.5 skills | 220.0 next lesson | 225.0 preview | 230.0 50% complete
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
 const SKILLS = [
-  'ERD Architecture ✓',
-  '1NF · 2NF · 3NF ✓',
-  'DDL Constraints ✓',
-  'FK · RESTRICT · CASCADE ✓',
-  'CHECK · UNIQUE ✓',
-  'pg_class · B-Tree FK ✓',
+  'Multi-Stage CTEs ✓',
+  'Window Functions ✓',
+  'CASE WHEN KPIs ✓',
+  'Materialized View ✓',
+  'Parallel Workers ✓',
+  'work_mem Hash Agg ✓',
 ];
 
 export const Scene6: React.FC = () => {
@@ -29,12 +29,12 @@ export const Scene6: React.FC = () => {
   const res = prog(f, t(215), 24);
   const next = prog(f, t(220), 28);
   const code = typed(
-    "-- Lesson 66 · End-to-End Analytics Pipeline\nWITH order_pipeline AS (\n  SELECT date_trunc('day', order_date) AS day,\n         COUNT(*) AS orders, SUM(total_amount) AS revenue\n  FROM store_orders GROUP BY 1\n)\nSELECT * FROM order_pipeline ORDER BY day DESC;",
+    "-- Lesson 67 · Server Performance Tuning & Security\n-- 1. Performance: shared_buffers, effective_cache_size\nSET shared_buffers = '4GB';\nSET effective_cache_size = '12GB';\n\n-- 2. Backup: daily base backup + WAL archiving\npg_basebackup -D /var/backups/pg -X stream\n\n-- 3. Security: SSL + role-based access\nALTER SYSTEM SET ssl = on;",
     f,
     t(225),
     0.42,
   ).split('\n');
-  const pct = Math.round(fill * 25); // 25% — Module 16 just started (Lesson 1 of N in Module 16)
+  const pct = Math.round(fill * 50); // 50% — Module 16 half-way (Lesson 2 of N in Module 16)
 
   return (
     <Stage dur={900} inFx="fade" outFx="black">
@@ -59,17 +59,17 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', alignItems: 'center', gap: 20, transform: `scale(${0.9 + 0.1 * badge})`, transformOrigin: 'left center', opacity: clamp(badge)}}>
             <Check p={badge} size={64} />
             <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.green}}>
-              Lesson 65 Completed: <span style={{color: C.text}}>Manzooma Store V2 Capstone Architecture (ERD, 1NF/2NF/3NF Normalization, DDL Constraints, PRIMARY KEY/FOREIGN KEY, ON DELETE RESTRICT/CASCADE, CHECK/UNIQUE, PostgreSQL 16 Shared Schema, pg_class Catalog, B-Tree FK Indexes, 15-table Capstone Deployment, Module 16 Launch) Mastered</span>
+              Lesson 66 Completed: <span style={{color: C.text}}>End-to-End Analytics Pipeline (Multi-Stage CTEs, Window Functions, CASE WHEN, CLV/MRR/Churn, CREATE MATERIALIZED VIEW, REFRESH CONCURRENTLY, PostgreSQL 16 Parallel Workers, work_mem Hash Aggregation, Executive KPI Dashboard, Module 16 50% Capstone Seal) Mastered</span>
             </div>
           </div>
           <div style={{marginTop: 30, display: 'flex', alignItems: 'center', gap: 28}}>
             <div style={{flex: 1, height: 28, borderRadius: 14, background: C.deep, overflow: 'hidden', border: `2px solid ${C.green}`}}>
-              <div style={{width: `${fill * 25}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14, boxShadow: `0 0 12px ${C.green}`}} />
+              <div style={{width: `${fill * 50}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 14, boxShadow: `0 0 12px ${C.green}`}} />
             </div>
             <div style={{fontFamily: MONO, fontSize: 36, fontWeight: 700, color: C.green, width: 130, textAlign: 'right'}}>{pct}%</div>
           </div>
           <div style={{marginTop: 12, fontFamily: MONO, fontSize: 22, color: modStart > 0.5 ? C.green : C.muted}}>
-            Module 16 · Capstone Project &amp; Portfolio — {modStart > 0.5 ? 'IN PROGRESS · Lesson 1 of Module 16 · ERD Architecture, Normalization, DDL Constraints, Referential Integrity, B-Tree FK Indexes, 15-table Schema Deployment' : 'in progress'}
+            Module 16 · Capstone Project &amp; Portfolio — {modStart > 0.5 ? 'IN PROGRESS · Lesson 2 of Module 16 · Multi-Stage CTEs, Window Functions, CLV/MRR/Churn, Materialized View, REFRESH CONCURRENTLY, Parallel Workers, work_mem Hash Aggregation, Executive KPI Dashboard' : 'in progress'}
           </div>
         </div>
 
@@ -78,7 +78,7 @@ export const Scene6: React.FC = () => {
             const p = pop(f, t(214 + i * 0.4));
             return (
               <div key={s} style={{opacity: clamp(p), transform: `translateY(${(1 - clamp(p)) * 18}px)`}}>
-                <Chip color={i < 2 ? C.blue : i < 4 ? C.amber : i < 5 ? C.purple : C.green} style={{fontSize: 18}}>{s}</Chip>
+                <Chip color={i < 2 ? C.blue : i < 4 ? C.purple : i < 5 ? C.amber : C.green} style={{fontSize: 18}}>{s}</Chip>
               </div>
             );
           })}
@@ -92,11 +92,11 @@ export const Scene6: React.FC = () => {
 
         <div style={{position: 'absolute', left: 90, right: 90, top: 540, height: 310, borderRadius: 26, background: C.deep, border: `2px solid ${C.green}`, opacity: next, transform: `translateY(${(1 - next) * 60}px)`, display: 'flex', alignItems: 'center', padding: '0 46px', gap: 40}}>
           <div style={{flex: 1}}>
-            <Mix style={{fontSize: 30, color: C.green, fontWeight: 700, display: 'block'}}>الدرس القادم · 66 · الوحدة 16 (مستمرة)</Mix>
-            <Mix style={{fontSize: 28, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>بناء خطوط التحليل والتقارير التنفيذية المعقدة — End-to-End Analytics Pipeline</Mix>
+            <Mix style={{fontSize: 30, color: C.green, fontWeight: 700, display: 'block'}}>الدرس القادم · 67 · الوحدة 16 (مستمرة)</Mix>
+            <Mix style={{fontSize: 28, fontWeight: 700, color: C.text, display: 'block', marginTop: 10, lineHeight: 1.3}}>ضبط أداء السيرفر وتأمين البيانات وتصدير النسخ الاحتياطية — Performance Tuning, Security &amp; Backup/Restore</Mix>
           </div>
           <div dir="ltr" style={{width: 600, height: 250, borderRadius: 18, background: C.bg, border: `2px solid ${C.border}`, padding: '18px 24px', fontFamily: MONO, fontSize: 12, color: C.text}}>
-            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 66 · End-to-End Analytics Pipeline</div>
+            <div style={{color: '#64748B', fontSize: 13, marginBottom: 8}}>-- Lesson 67 · Performance Tuning, Security &amp; Backup/Restore</div>
             {code.map((l, i) => (
               <div key={i} style={{whiteSpace: 'pre', minHeight: 18}}>
                 <Sql text={l} />

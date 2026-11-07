@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-65-capstone-schema-architecture",
+  "name": "manzooma-sql-lesson-66-analytics-pipeline",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 65: Manzooma Store V2 Capstone Architecture (ERD, 1NF/2NF/3NF Normalization, DDL Constraints, ON DELETE RESTRICT/CASCADE, CHECK, UNIQUE, PostgreSQL 16 Shared Schema, pg_class Catalog, B-Tree FK Indexes, 15-table Capstone Deployment, Module 16 Launch) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 66: End-to-End Analytics Pipeline (Multi-Stage CTEs, Window Functions, CASE WHEN, CLV, MRR, Churn Rate, CREATE MATERIALIZED VIEW, REFRESH CONCURRENTLY, PostgreSQL 16 Parallel Workers, work_mem Hash Aggregation, Executive KPI Dashboard, Module 16 50% Progress) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L65-Capstone-Schema-Architecture out/sql-l65-capstone-schema-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L66-Analytics-Pipeline out/sql-l66-analytics-pipeline.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
