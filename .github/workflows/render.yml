@@ -1,28 +1,26 @@
-name: Render SQL Lesson 68 Portfolio Career Readiness
+name: Render SQL Lesson 62 (Ahmed x Manzooma)
 on:
   push:
     branches: [main]
   workflow_dispatch:
+concurrency:
+  group: render-main
+  cancel-in-progress: true
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 68 only
-        run: |
-          grep -q "SQL-L68-Portfolio-Career-Readiness" src/theme.ts
-          grep -q "SQL-L68-Portfolio-Career-Readiness" package.json
-          test -f public/voiceover_lesson_68.mp3
-          test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npx remotion render src/index.ts SQL-L68-Portfolio-Career-Readiness out/sql-l68-portfolio-career-readiness.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l68-portfolio-career-readiness.mp4
+      - run: npm install --no-audit --no-fund
+      - run: npm run render
+      - name: Verify video exists
+        run: test -s out/ahmed_sql_lesson62.mp4 && ls -lh out/
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l68-portfolio-career-readiness
-          path: out/sql-l68-portfolio-career-readiness.mp4
+          name: ahmed_sql_lesson62
+          path: out/ahmed_sql_lesson62.mp4
           if-no-files-found: error
