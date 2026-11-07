@@ -1,23 +1,22 @@
 {
-  "name": "manzooma-sql-lesson-55-isolation-levels",
+  "name": "manzooma-sql-lesson-67-performance-security-backup",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma SQL From Zero to Professional - Lesson 55: Isolation Levels and Concurrency Anomalies",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 67: Performance Tuning, Security & Backup/Restore (shared_buffers, work_mem, maintenance_work_mem, GRANT/REVOKE, CREATE ROLE, Row-Level Security, CREATE POLICY, pg_dump, pg_restore, Write-Ahead Logging, pg_hba.conf, pg_roles, Module 16 75% Progress) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "generate-audio": "node scripts/generate-audio.cjs",
-    "studio": "remotion studio src/index.ts",
-    "typecheck": "tsc --noEmit",
-    "render": "npm run generate-audio && remotion render src/index.ts SQL-L55-IsolationLevels out/sql-l55-isolation-levels.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts SQL-L67-Performance-Security-Backup out/sql-l67-performance-security-backup.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.250",
-    "@remotion/google-fonts": "4.0.250",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.250"
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
-    "typescript": "5.5.4"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }
