@@ -1,4 +1,4 @@
-name: Render SQL Lesson 64 PostgreSQL Extensions
+name: Render SQL Lesson 65 Capstone Schema Architecture
 on:
   push:
     branches: [main]
@@ -9,20 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain lesson 64 only
+      - name: Guard - this repo must contain lesson 65 only
         run: |
-          grep -q "SQL-L64-PostgreSQL-Extensions" src/theme.ts
-          grep -q "SQL-L64-PostgreSQL-Extensions" package.json
-          test -f public/voiceover_lesson_64.mp3
+          grep -q "SQL-L65-Capstone-Schema-Architecture" src/theme.ts
+          grep -q "SQL-L65-Capstone-Schema-Architecture" package.json
+          test -f public/voiceover_lesson_65.mp3
           test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
-      - run: npx remotion render src/index.ts SQL-L64-PostgreSQL-Extensions out/sql-l64-postgresql-extensions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/sql-l64-postgresql-extensions.mp4
+      - run: npx remotion render src/index.ts SQL-L65-Capstone-Schema-Architecture out/sql-l65-capstone-schema-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l65-capstone-schema-architecture.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: sql-l64-postgresql-extensions
-          path: out/sql-l64-postgresql-extensions.mp4
+          name: sql-l65-capstone-schema-architecture
+          path: out/sql-l65-capstone-schema-architecture.mp4
           if-no-files-found: error

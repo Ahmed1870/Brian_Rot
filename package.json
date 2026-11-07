@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-sql-lesson-64-postgresql-extensions",
+  "name": "manzooma-sql-lesson-65-capstone-schema-architecture",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 64: PostgreSQL Extensions — PostGIS, pg_trgm & pgcrypto (CREATE EXTENSION, Trigram Fuzzy %, Blowfish crypt(), ST_Distance Spatial, pg_extension Catalog, GiST/GIN Index Scan, Module 15 100% Completion Seal) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | SQL From Zero to Professional - Lesson 65: Manzooma Store V2 Capstone Architecture (ERD, 1NF/2NF/3NF Normalization, DDL Constraints, ON DELETE RESTRICT/CASCADE, CHECK, UNIQUE, PostgreSQL 16 Shared Schema, pg_class Catalog, B-Tree FK Indexes, 15-table Capstone Deployment, Module 16 Launch) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L64-PostgreSQL-Extensions out/sql-l64-postgresql-extensions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts SQL-L65-Capstone-Schema-Architecture out/sql-l65-capstone-schema-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
