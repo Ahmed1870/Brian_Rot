@@ -1,12 +1,12 @@
 {
-  "name": "manzooma-lesson-50",
+  "name": "ahmed-sql-l61",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma - SQL From Zero to Professional - Lesson 50 - EXPLAIN & EXPLAIN ANALYZE (Remotion, 2D)",
+  "description": "Manzooma — SQL From Zero to Professional — Lesson 61 (JSON & JSONB)",
   "scripts": {
     "start": "remotion studio src/index.ts",
     "generate-audio": "node scripts/generate-audio.cjs",
-    "render": "remotion render src/index.ts Monzoma-SQL-L50 out/Lesson50_EXPLAIN-ANALYZE.mp4",
+    "render": "npm run generate-audio && remotion render src/index.ts Ahmed-SQL-L61 out/ahmed_sql_lesson61.mp4 --codec h264 --concurrency 2",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,30 +1,22 @@
+import { loadFont as loadCairo } from '@remotion/google-fonts/Cairo';
+import { loadFont as loadMono } from '@remotion/google-fonts/IBMPlexMono';
+
 export const C = {
   bg: '#0F172A',
-  bg2: '#0B1222',
   card: '#1E293B',
-  card2: '#273449',
+  cardDeep: '#172033',
   line: '#334155',
+  client: '#38BDF8',
+  db: '#10B981',
+  opt: '#F59E0B',
+  accent: '#EF4444',
+  purple: '#A855F7',
   text: '#F8FAFC',
-  dim: '#94A3B8',
-  mute: '#64748B',
-  accent: '#38BDF8',
-  accent2: '#0EA5E9',
-  red: '#EF4444',
-  redDeep: '#7F1D1D',
-  green: '#34D399',
-  amber: '#FBBF24',
-  violet: '#A78BFA',
-  pink: '#F472B6',
+  muted: '#94A3B8',
 };
 
-export const FONT_AR = '"Cairo", "Tajawal", "DejaVu Sans", sans-serif';
-export const FONT_MONO = '"JetBrains Mono", "DejaVu Sans Mono", monospace';
+const cairo = loadCairo('normal', { weights: ['400', '700', '900'], subsets: ['arabic', 'latin'] });
+const mono = loadMono('normal', { weights: ['400', '600'], subsets: ['latin'] });
 
-export const W = 1920;
-export const H = 1080;
-
-// Lesson 04 data-type palette
-export const K = {txt: '#38BDF8', num: '#10B981', bool: '#F59E0B', err: '#EF4444'};
-
-// DDL palette (lesson 09)
-export const D = {code: '#38BDF8', cat: '#10B981', key: '#F59E0B', err: '#EF4444', fn: '#34D399', str: '#A7F3D0', num: '#F472B6', cmt: '#64748B'};
+export const FONT_AR = `${cairo.fontFamily}, sans-serif`;
+export const FONT_MONO = `${mono.fontFamily}, monospace`;

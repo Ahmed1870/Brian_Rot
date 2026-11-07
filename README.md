@@ -1,15 +1,10 @@
-# Manzooma - SQL From Zero to Professional - Lesson 50: EXPLAIN & EXPLAIN ANALYZE
+# Manzooma — Lesson 61: JSON & JSONB
+Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s).
+Composition ID: `Ahmed-SQL-L61` · Output: `out/ahmed_sql_lesson61.mp4` (names live in `package.json` "render" + `src/Root.tsx`).
 
-Remotion project, composition ID `Monzoma-SQL-L50`, 1920x1080 @ 30fps, 7200 frames (240 s), strictly 2D.
-Render output: `out/Lesson50_EXPLAIN-ANALYZE.mp4` (ID and file name live in `package.json` -> `render`).
+    npm install
+    npm run generate-audio   # SFX + music (needed once for local preview)
+    npm start                # Remotion Studio
+    npm run render           # renders out/ahmed_sql_lesson61.mp4
 
-## Run on Termux
-```bash
-termux-setup-storage
-pkg install -y unzip git nodejs
-cd ~ && rm -rf ~/video-project
-unzip -o ~/storage/downloads/Lesson50_EXPLAIN-ANALYZE.zip
-cd video-project
-bash deploy.sh
-```
-Preview first: `DRY_RUN=1 bash deploy.sh`. `deploy.sh` aborts if the ID in package.json and src/Root.tsx differ, and retries the push up to 5 times.
+Voiceover: `public/voiceover_lesson_61.mp3` (already has ~1.1 s lead-in, starts at frame 0). Cue times: `src/timeline.json`.
