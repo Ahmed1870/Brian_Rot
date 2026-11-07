@@ -1,10 +1,9 @@
-# Manzooma — Lesson 31: Window Functions & PARTITION BY
-Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s).
-Composition ID: `Ahmed-SQL-L31` · Output: `out/ahmed_sql_lesson31.mp4` (names live in `package.json` "render" + `src/Root.tsx`).
+# Manzooma | SQL From Zero to Professional - Lesson 64 - PostgreSQL Extensions (PostGIS, pg_trgm & pgcrypto)
 
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/ahmed_sql_lesson31.mp4
+- Composition id: `SQL-L64-PostgreSQL-Extensions` - 1920x1080, 30fps, 7200 frames (4:00)
+- Output: `out/sql-l64-postgresql-extensions.mp4` - artifact `sql-l64-postgresql-extensions`
+- Scene boundaries: 0 | 1200 | 2550 | 3900 | 5100 | 6300 | 7200
+- Voiceover: public/voiceover_lesson_64.mp3 (240.039s) - the ONLY file in public/
 
-Voiceover: `public/voiceover_lesson_31.mp3` (already has ~1.1 s lead-in, starts at frame 0). Cue times: `src/timeline.json`.
+    npm install && npm start
+    npm run build
