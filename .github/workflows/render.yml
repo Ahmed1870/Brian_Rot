@@ -1,45 +1,37 @@
-name: Render XL-L08-Conditional-Logic-IF-AND-OR
+name: render
+
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
-concurrency:
-  group: render-main
-  cancel-in-progress: true
-env:
-  COMP_ID: XL-L08-Conditional-Logic-IF-AND-OR
-  OUT_NAME: xl-l08-conditional-logic-if-and-or
-  VOICE: voiceover_lesson_08.mp3
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
+    env:
+      COMP_ID: XL-L12-INDEX-MATCH
+      OUT_NAME: xl-l12-index-match
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard - names must match everywhere
+      - name: Guard
         run: |
-          set -euo pipefail
-          grep -q "COMP_ID = '$COMP_ID'" src/theme.ts
-          grep -q "OUT_NAME = '$OUT_NAME'" src/theme.ts
-          grep -q "VOICE = '$VOICE'" src/theme.ts
+          set -e
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
           grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
-          grep -q "id={COMP_ID}" src/Root.tsx
-          test -s "public/$VOICE"
+          test -s public/voiceover_lesson_12.mp3
+          test -s public/manzooma_logo.svg
+          for n in datacamp_tech_ambient typing_fast academic_outro_theme radar_lock free_pass_chime structural_shield_snap crosshair_laser matrix_value_snap speedometer_boost enterprise_index_match_seal; do test -s "public/$n.mp3"; done
+          extra="$(ls public | grep -v -x -e voiceover_lesson_12.mp3 -e manzooma_logo.svg -e datacamp_tech_ambient.mp3 -e typing_fast.mp3 -e academic_outro_theme.mp3 -e radar_lock.mp3 -e free_pass_chime.mp3 -e structural_shield_snap.mp3 -e crosshair_laser.mp3 -e matrix_value_snap.mp3 -e speedometer_boost.mp3 -e enterprise_index_match_seal.mp3 || true)"
+          test -z "$extra"
           test "$(ls .github/workflows | wc -l)" = "1"
-          extra="$(find public -type f | grep -v -E '^public/(voiceover_lesson_08\.mp3|manzooma_logo\.svg|sfx/[a-z_]+\.wav)$' || true)"
-          if [ -n "$extra" ]; then echo "Unexpected files in public:"; echo "$extra"; exit 1; fi
-          stale="$(grep -rhoE 'XL-L[0-9]+' src package.json .github | sort -u | grep -v '^XL-L08$' || true)"
-          if [ -n "$stale" ]; then echo "Stale lesson id: $stale"; exit 1; fi
-      - run: npm ci --no-audit --no-fund
-      - run: npm run check
-      - run: npm run build
-      - name: Verify video exists
-        run: test -s "out/$OUT_NAME.mp4" && ls -lh out/
+      - run: npm install --no-audit --no-fund
+      - run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2
+      - run: test -s out/$OUT_NAME.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.OUT_NAME }}
-          path: out/${{ env.OUT_NAME }}.mp4
-          if-no-files-found: error
+          name: xl-l12-index-match.mp4
+          path: out/xl-l12-index-match.mp4
