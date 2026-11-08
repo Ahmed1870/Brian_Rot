@@ -1,10 +1,3 @@
-# Manzooma — Lesson 61: JSON & JSONB
-Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s).
-Composition ID: `Ahmed-SQL-L61` · Output: `out/ahmed_sql_lesson61.mp4` (names live in `package.json` "render" + `src/Root.tsx`).
-
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/ahmed_sql_lesson61.mp4
-
-Voiceover: `public/voiceover_lesson_61.mp3` (already has ~1.1 s lead-in, starts at frame 0). Cue times: `src/timeline.json`.
+# Manzooma | Excel From Zero to Professional — Lesson 01
+Excel 365 Interface & Workspace Customization. Remotion 4 (pure 2D), 1920x1080, 30fps, 7200 frames (4:00).
+Render happens on GitHub Actions (.github/workflows/render.yml).

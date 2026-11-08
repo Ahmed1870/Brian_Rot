@@ -1,4 +1,4 @@
-name: Render video
+name: Render Excel Lesson 01 Interface Workspace
 on:
   push:
     branches: [main]
@@ -9,13 +9,22 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Guard - this repo must contain Excel lesson 01 only
+        run: |
+          grep -q "XL-L01-Excel-Interface-Workspace" src/theme.ts
+          grep -q "XL-L01-Excel-Interface-Workspace" package.json
+          test -f public/voiceover_lesson_01.mp3
+          test -f public/manzooma_logo.svg
+          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
+          test "$(ls public | wc -l)" = "8"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run render
+      - run: npm install
+      - run: npx remotion render src/index.ts XL-L01-Excel-Interface-Workspace out/xl-l01-excel-interface-workspace.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l01-excel-interface-workspace.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: Ahmed-SQL-L61
-          path: out/*.mp4
+          name: xl-l01-excel-interface-workspace
+          path: out/xl-l01-excel-interface-workspace.mp4
           if-no-files-found: error

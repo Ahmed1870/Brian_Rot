@@ -1,2 +1,5 @@
-node_modules
-out
+node_modules/
+out/
+.cache/
+.DS_Store
+*.log

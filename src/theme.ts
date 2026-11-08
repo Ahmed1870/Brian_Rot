@@ -1,22 +1,46 @@
-import { loadFont as loadCairo } from '@remotion/google-fonts/Cairo';
-import { loadFont as loadMono } from '@remotion/google-fonts/IBMPlexMono';
+import {loadFont as loadArabic} from '@remotion/google-fonts/IBMPlexSansArabic';
+import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
+import {loadFont as loadUI} from '@remotion/google-fonts/OpenSans';
+
+const ar = loadArabic('normal', {weights: ['400', '600', '700'], subsets: ['arabic', 'latin']});
+const mono = loadMono('normal', {weights: ['400', '700'], subsets: ['latin']});
+const ui = loadUI('normal', {weights: ['400', '600', '700'], subsets: ['latin']});
+
+export const FONT = `${ar.fontFamily}, 'Segoe UI', Tahoma, sans-serif`;
+export const MONO = `${mono.fontFamily}, Consolas, 'Courier New', monospace`;
+// Excel chrome font (Segoe UI substitute: Open Sans) and cell font (Calibri substitute: Carlito, loaded from src/fonts)
+export const UIFONT = `${ui.fontFamily}, 'Segoe UI', Arial, sans-serif`;
+export const CELLFONT = `Carlito, Calibri, ${ui.fontFamily}, Arial, sans-serif`;
+
+export const FPS = 30;
+export const W = 1920;
+export const H = 1080;
+export const TOTAL_FRAMES = 7200;
+export const LESSON = 1;
+export const COMP_ID = 'XL-L01-Excel-Interface-Workspace';
+export const VOICE_FILE = 'voiceover_lesson_01.mp3';
+export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {
   bg: '#0F172A',
   card: '#1E293B',
-  cardDeep: '#172033',
-  line: '#334155',
-  client: '#38BDF8',
-  db: '#10B981',
-  opt: '#F59E0B',
-  accent: '#EF4444',
-  purple: '#A855F7',
-  text: '#F8FAFC',
+  deep: '#0B1222',
+  border: '#334155',
   muted: '#94A3B8',
+  text: '#F8FAFC',
+  blue: '#38BDF8',
+  green: '#10B981',
+  amber: '#F59E0B',
+  red: '#EF4444',
+  purple: '#A855F7',
+  gold: '#FBBF24',
 };
 
-const cairo = loadCairo('normal', { weights: ['400', '700', '900'], subsets: ['arabic', 'latin'] });
-const mono = loadMono('normal', { weights: ['400', '600'], subsets: ['latin'] });
-
-export const FONT_AR = `${cairo.fontFamily}, sans-serif`;
-export const FONT_MONO = `${mono.fontFamily}, monospace`;
+// Scene starts (absolute seconds in the voiceover), taken from the real silence gaps of the mp3:
+// gaps at 40.9-43.4 | 78.4-80.4 | 120.3-123.1 | 159.9-162.6 | 198.0-198.7  (cut = middle of each gap)
+export const START = {s1: 0, s2: 42.1, s3: 79.4, s4: 121.7, s5: 161.3, s6: 198.4};
+const fr = (s: number) => Math.round(s * FPS);
+const starts = [START.s1, START.s2, START.s3, START.s4, START.s5, START.s6].map(fr);
+const ends = [...starts.slice(1), TOTAL_FRAMES];
+const mk = (i: number) => ({from: starts[i], dur: ends[i] - starts[i]});
+export const SCENES = {s1: mk(0), s2: mk(1), s3: mk(2), s4: mk(3), s5: mk(4), s6: mk(5)};
