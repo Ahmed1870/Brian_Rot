@@ -1,10 +1,12 @@
 {
-  "name": "manzooma-excel-lesson-09",
+  "name": "manzooma-excel-lesson-17-unique-sort-sortby",
   "version": "1.0.0",
   "private": true,
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 17: UNIQUE, SORT, SORTBY Dynamic Array Functions (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L09-Aggregate-IFS-Functions out/excel-lesson-09-aggregate-ifs.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts XL-L17-Unique-Sort-SortBy out/xl-l17-unique-sort-sortby.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
@@ -14,7 +16,7 @@
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "typescript": "5.6.3"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }
