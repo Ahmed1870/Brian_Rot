@@ -1,10 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-02",
+  "name": "excel-l06-cell-references",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L02-Data-Types-Number-Formats out/excel-lesson-02-data-types.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "build": "remotion render src/index.ts XL-L06-Cell-References out/excel-l06-cell-references.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
@@ -15,6 +16,6 @@
   },
   "devDependencies": {
     "@types/react": "18.3.12",
-    "typescript": "5.6.3"
+    "typescript": "^5.5.0"
   }
 }

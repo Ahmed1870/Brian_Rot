@@ -1,46 +1,30 @@
-import {loadFont as loadLato} from "@remotion/google-fonts/Lato";
-import {loadFont as loadPlex} from "@remotion/google-fonts/IBMPlexSansArabic";
-import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
+// ===== Lesson identity (single source of truth: COMP_ID is used by Root.tsx) =====
+export const COMP_ID = 'XL-L06-Cell-References';
+export const LESSON_NN = '06';
+export const OUT_NAME = 'excel-l06-cell-references';
+export const VOICE_FILE = 'voiceover_lesson_06.mp3';
+export const LOGO_FILE = 'manzooma_logo.svg';
 
-// ── Lesson identity (single source of truth: every name below is derived from it) ──
-export const LESSON = 2;
-export const COMP_ID = "XL-L02-Data-Types-Number-Formats";
-export const OUT_NAME = "excel-lesson-02-data-types";
-export const VOICE_FILE = "voiceover_lesson_02.mp3";
-export const LOGO_FILE = "manzooma-logo.svg";
-
+// ===== Video spec (from the lesson plan) =====
 export const FPS = 30;
-export const WIDTH = 1920;
-export const HEIGHT = 1080;
-export const DURATION = 7200;
+export const W = 1920;
+export const H = 1080;
+export const DUR = 7200; // 240s = exact mp3 duration
+export const RENDER_SCALE = 2; // 1920x1080 design space -> 3840x2160 output (plan spec). Use --scale=1 for 1080p.
 
-const lato = loadLato("normal", {weights: ["400", "700"], subsets: ["latin"]});
-const plex = loadPlex("normal", {weights: ["400", "600", "700"], subsets: ["arabic", "latin"]});
-const mono = loadMono("normal", {weights: ["400", "700"], subsets: ["latin"]});
-
-export const F = {
-  ui: `${lato.fontFamily}, "Segoe UI", Calibri, sans-serif`,
-  ar: `${plex.fontFamily}, "Segoe UI", sans-serif`,
-  mono: `${mono.fontFamily}, Consolas, monospace`,
+// ===== Stage palette (plan) =====
+export const COL = {
+  slate: '#0F172A', panel: '#1E293B', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B',
+  purple: '#A855F7', red: '#EF4444', text: '#F8FAFC', muted: '#94A3B8',
 };
 
-// ── Excel 365 (Windows, modern look) layout grid, in NATIVE px. The whole window is drawn
-// at 1280x656 and scaled by S=1.5 to 1920x984; the remaining 96px is the caption strip. ──
-export const M = {
-  S: 1.5, W: 1280, H: 656, capH: 96,
-  titleH: 32, tabsTop: 32, tabsH: 28,
-  ribTop: 60, ribH: 92,
-  fbTop: 152, fbH: 28,
-  hdrTop: 180, hdrH: 20, rowH: 20, colW: 64, rowHdrW: 32,
-  gridTop: 200, sheetTabsTop: 606, sheetTabsH: 26, statusTop: 632, statusH: 24,
-  visRows: 20, visCols: 19,
+// ===== Excel 365 (Windows, modern) metrics at 100% zoom, logical px. Same for every lesson. =====
+export const XL = {
+  scale: 1.5, winW: 1248, winH: 560, winX: 24, winY: 100,
+  titleH: 32, tabsH: 28, ribbonH: 88, fbarH: 24, colHdrH: 20, rowH: 20, colW: 64,
+  rowHdrW: 30, sheetBarH: 24, statusH: 24, vscroll: 17, visRows: 16,
+  green: '#217346', greenSoft: '#D2E8DB', tint: 'rgba(33,115,70,0.12)',
+  grid: '#E1E1E1', hdrBg: '#F3F3F3', hdrText: '#444444', chrome: '#F3F3F3', chromeLine: '#D1D1D1',
+  titleBg: '#F3F3F3', // modern light title bar (change here if a green title bar is wanted)
+  refColors: ['#2F6FEB', '#E5484D', '#8E4EC6', '#12A150', '#E5A000'],
 };
-
-export const C = {
-  green: "#107C41", greenDark: "#0B5A2E", greenLine: "#217346",
-  ribbon: "#FAFAFA", chrome: "#F3F3F3", line: "#D6D6D6", grid: "#E1E1E1", hdr: "#F2F2F2", hdrTxt: "#444444",
-  txt: "#262626", sel: "#D3E9DD",
-  slate: "#0F172A", slate2: "#1E293B", ink: "#F8FAFC",
-  blue: "#38BDF8", emerald: "#10B981", amber: "#F59E0B", purple: "#A855F7", red: "#EF4444", yellow: "#FACC15",
-};
-export const SFX_FILE = "sfx_lesson_02.mp3";

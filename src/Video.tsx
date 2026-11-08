@@ -1,36 +1,116 @@
-import {AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame} from "remotion";
-import type {ReactNode} from "react";
-import {SCENE_START} from "./anchors";
-import {Sc1} from "./scenes/Sc1";
-import {Sc2} from "./scenes/Sc2";
-import {Sc3} from "./scenes/Sc3";
-import {Sc4} from "./scenes/Sc4";
-import {Sc5} from "./scenes/Sc5";
-import {Sc6} from "./scenes/Sc6";
-import {C, SFX_FILE, VOICE_FILE} from "./theme";
-import {eo, prog} from "./kit";
+import React from 'react';
+import {AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame} from 'remotion';
+import {COL, FPS, VOICE_FILE} from './theme';
+import {Caption, CycleRow, ExcelFrame, ExcelWindow, FONT, KeyCap, Logo, StageBg, Tone, TopBadge, View, ease, fade, pg} from './kit';
+import {SCENE_END, SCENE_START} from './sync';
+import {s1, s2, s3, s4, s5, T3, T5} from './scenes_all';
+import {Closing} from './closing';
 
-const SCENES = [Sc1, Sc2, Sc3, Sc4, Sc5, Sc6];
+type Build = (t: number) => {v: View; zoom: number; zx: number; zy: number};
+const BUILD: Build[] = [s1, s2, s3, s4, s5];
+const PRE = 15;
+const PREROLL = [0, 0, PRE, PRE, PRE, PRE];
+const ENTER = ['none', 'none', 'right', 'below', 'expand', 'fade'];
+const EXIT = ['none', 'left', 'up', 'fade', 'fade', 'none'];
 
-/** Calm 2D scene entrance + dip-to-slate exit (slide / zoom per plan transitions). */
-const Shell = ({i, dur, children}: {i: number; dur: number; children: ReactNode}) => {
-  const f = useCurrentFrame();
-  const k = eo(prog(f, 0, 12));
-  const out = i === 5 ? 1 - prog(f, dur - 50, 50) : 1 - prog(f, dur - 6, 6);
-  const tx = i === 1 ? (1 - k) * 60 : 0;
-  const ty = i === 2 ? (1 - k) * -36 : i === 4 ? (1 - k) * 30 : 0;
-  const sc = i === 3 ? 0.97 + 0.03 * k : i === 4 ? 0.98 + 0.02 * k : 1;
-  return <div style={{position: "absolute", inset: 0, opacity: (i === 0 ? 1 : k) * out, transform: `translate(${tx}px, ${ty}px) scale(${sc})`}}>{children}</div>;
+const fx = (i: number, f: number, dur: number) => {
+  const pin = ease(pg(f, 0, PRE)), pout = ease(pg(f, dur - PRE, dur));
+  let tx = 0, ty = 0, sc = 1, op = 1;
+  if (PREROLL[i] > 0) {
+    if (ENTER[i] === 'right') tx = (1 - pin) * 1920;
+    if (ENTER[i] === 'below') ty = (1 - pin) * 1080;
+    if (ENTER[i] === 'expand') { sc = 0.94 + 0.06 * pin; op = pin; }
+    if (ENTER[i] === 'fade') op = pin;
+  }
+  if (EXIT[i] === 'left') tx = -pout * 1920;
+  if (EXIT[i] === 'up') ty = -pout * 1080;
+  if (EXIT[i] === 'fade') { op *= 1 - pout; sc *= 1 + 0.03 * pout; }
+  return {tx, ty, sc, op};
 };
 
-export const Video = () => (
-  <AbsoluteFill style={{background: C.slate}}>
-    <Audio src={staticFile(VOICE_FILE)} />
-    <Audio src={staticFile(SFX_FILE)} />
-    {SCENES.map((S, i) => (
-      <Sequence key={i} from={SCENE_START[i]} durationInFrames={SCENE_START[i + 1] - SCENE_START[i]}>
-        <Shell i={i} dur={SCENE_START[i + 1] - SCENE_START[i]}><S /></Shell>
+const ExcelScene: React.FC<{i: number}> = ({i}) => {
+  const f = useCurrentFrame();
+  const dur = SCENE_END[i] * FPS - SCENE_START[i] * FPS + PREROLL[i];
+  const t = (f - PREROLL[i]) / FPS;
+  const {v, zoom, zx, zy} = BUILD[i](t);
+  const e = fx(i, f, dur);
+  return (
+    <ExcelFrame tx={e.tx} ty={e.ty} sc={e.sc} op={e.op} zoom={zoom} zx={zx} zy={zy}>
+      <ExcelWindow v={v}/>
+    </ExcelFrame>
+  );
+};
+const ClosingScene: React.FC = () => {
+  const f = useCurrentFrame();
+  const o = ease(pg(f, 0, PRE));
+  return <div style={{position: 'absolute', inset: 0, opacity: o}}><Closing t={(f - PRE) / FPS}/></div>;
+};
+
+// ---------- on-screen typography (outside the artwork) ----------
+const CAPS: {a: number; b: number; text: string; tone: Tone; tag?: {t: string; tone: Tone}}[] = [
+  {a: 22, b: 38, text: 'Relative Reference (A1) ──► Shifts Automatically Upon Copying', tone: 'red', tag: {t: 'Red Shift Alert', tone: 'red'}},
+  {a: 42, b: 60, text: 'Absolute Lock ($A$1) ──► Press F4 to Freeze Both Column & Row', tone: 'green'},
+  {a: 64, b: 82, text: 'Formula: =C2*$H$1 ──► H1 Remains 100% Fixed Across All Rows', tone: 'green', tag: {t: 'Locked', tone: 'green'}},
+  {a: 88, b: 106, text: 'A$1 ──► Fixed Row (Allows Horizontal Shift)', tone: 'blue'},
+  {a: 110, b: 128, text: '$A1 ──► Fixed Column (Allows Vertical Shift)', tone: 'purple'},
+  {a: 132, b: 148, text: 'Single Formula Matrix ──► Write Once: =$B5*C$4', tone: 'amber'},
+  {a: 152, b: 168, text: 'Master Rule ──► Fix Column B for Percentages ($B5) & Fix Row 4 for Categories (C$4)', tone: 'green'},
+  {a: 172, b: 188, text: 'Enterprise Reference Locking ──► Absolute Lock for 50,000 Sales Commission Calculations', tone: 'blue'},
+  {a: 192, b: 208, text: 'Zero Shift Errors ──► Flawless Formula Propagation Across Enterprise Models', tone: 'green', tag: {t: 'Verified', tone: 'green'}},
+];
+type Hint = {a: number; b: number; keys: string[]; press: number[]; cyc?: string[]};
+const S = SCENE_START;
+const ST4 = ['A1', '$A$1', 'A$1', '$A1'];
+const HINTS: Hint[] = [
+  {a: S[1] + 10.5, b: S[1] + 21, keys: ['F4'], press: [S[1] + 12.2], cyc: ['H1', '$H$1']},
+  {a: S[2] + 11.5, b: S[2] + 15.4, keys: ['F4'], press: T3.g1.map((x) => S[2] + x), cyc: ST4},
+  {a: S[2] + 14.4, b: S[2] + 15.8, keys: ['Ctrl', '`'], press: [S[2] + 15.0]},
+  {a: S[2] + 22.5, b: S[2] + 26.4, keys: ['F4'], press: T3.g2.map((x) => S[2] + x), cyc: ST4},
+  {a: S[2] + 31.0, b: S[2] + 37.9, keys: ['F4'], press: T3.g3.map((x) => S[2] + x), cyc: ST4},
+  {a: S[4] + T5.ctrlDown1 - 0.5, b: S[4] + T5.ctrlDown1 + 1.2, keys: ['Ctrl', '↓'], press: [S[4] + T5.ctrlDown1]},
+  {a: S[4] + T5.home - 0.5, b: S[4] + T5.home + 1.2, keys: ['Ctrl', 'Home'], press: [S[4] + T5.home]},
+  {a: S[4] + T5.ctrlDown2 - 0.5, b: S[4] + T5.ctrlDown2 + 1.2, keys: ['Ctrl', '↓'], press: [S[4] + T5.ctrlDown2]},
+  {a: S[4] + T5.ctrlShiftUp - 0.5, b: S[4] + T5.ctrlShiftUp + 1.2, keys: ['Ctrl', 'Shift', '↑'], press: [S[4] + T5.ctrlShiftUp]},
+];
+const KeyLayer: React.FC<{T: number}> = ({T}) => {
+  const h = HINTS.find((x) => T >= x.a && T <= x.b);
+  if (!h) return null;
+  const o = fade(T * FPS, h.a * FPS, h.b * FPS, 8);
+  const down = h.press.some((p) => T >= p && T <= p + 0.28);
+  const n = h.press.filter((p) => T >= p).length;
+  return (
+    <div style={{position: 'absolute', right: 48, top: 976, height: 88, display: 'flex', alignItems: 'center', gap: 26, opacity: o}}>
+      {h.cyc ? <CycleRow states={h.cyc} idx={n % h.cyc.length} c={COL.amber}/> : null}
+      <div style={{display: 'flex', gap: 10}}>{h.keys.map((k) => <KeyCap key={k} label={k} down={down} w={k.length > 2 ? 132 : 88}/>)}</div>
+    </div>
+  );
+};
+
+export const Video: React.FC = () => {
+  const f = useCurrentFrame();
+  const T = f / FPS;
+  const hideStage = 1 - pg(f, 6285, 6300);
+  return (
+    <AbsoluteFill style={{backgroundColor: COL.slate, overflow: 'hidden'}}>
+      <Audio src={staticFile(VOICE_FILE)}/>
+      <StageBg/>
+      <div style={{position: 'absolute', left: 48, top: 16, opacity: hideStage}}><Logo h={68}/></div>
+      <div style={{position: 'absolute', right: 48, top: 14, textAlign: 'right', opacity: hideStage}}>
+        <div dir="ltr" style={{fontFamily: FONT.ar, fontSize: 20, color: COL.muted}}>Excel From Zero to Professional</div>
+        <div dir="ltr" style={{fontFamily: FONT.ar, fontWeight: 700, fontSize: 34, color: COL.text}}>Lesson 06</div>
+      </div>
+      {BUILD.map((_, i) => (
+        <Sequence key={i} from={SCENE_START[i] * FPS - PREROLL[i]} durationInFrames={(SCENE_END[i] - SCENE_START[i]) * FPS + PREROLL[i]}>
+          <ExcelScene i={i}/>
+        </Sequence>
+      ))}
+      <Sequence from={SCENE_START[5] * FPS - PRE} durationInFrames={(SCENE_END[5] - SCENE_START[5]) * FPS + PRE}>
+        <ClosingScene/>
       </Sequence>
-    ))}
-  </AbsoluteFill>
-);
+      <TopBadge f={f} a={60} b={540} ar="المراجع النسبية والمطلقة والمختلطة" en="Relative, Absolute & Mixed References"/>
+      {CAPS.map((c) => <Caption key={c.a} f={f} a={c.a * FPS} b={c.b * FPS} text={c.text} tone={c.tone} tag={c.tag}/>)}
+      <KeyLayer T={T}/>
+      <div style={{position: 'absolute', inset: 0, background: '#000', opacity: pg(f, 7140, 7200), pointerEvents: 'none'}}/>
+    </AbsoluteFill>
+  );
+};
