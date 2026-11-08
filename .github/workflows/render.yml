@@ -1,30 +1,45 @@
-name: Render Excel Lesson 01 Interface Workspace
+name: Render XL-L03-Freeze-Panes-Window-Controls
 on:
   push:
     branches: [main]
   workflow_dispatch:
+concurrency:
+  group: render-main
+  cancel-in-progress: true
+env:
+  COMP_ID: XL-L03-Freeze-Panes-Window-Controls
+  OUT_NAME: xl-l03-freeze-panes-window-controls
+  VOICE: voiceover_lesson_03.mp3
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 01 only
-        run: |
-          grep -q "XL-L01-Excel-Interface-Workspace" src/theme.ts
-          grep -q "XL-L01-Excel-Interface-Workspace" package.json
-          test -f public/voiceover_lesson_01.mp3
-          test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "8"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npx remotion render src/index.ts XL-L01-Excel-Interface-Workspace out/xl-l01-excel-interface-workspace.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l01-excel-interface-workspace.mp4
+      - name: Guard - names must match everywhere
+        run: |
+          set -euo pipefail
+          grep -q "COMP_ID = '$COMP_ID'" src/theme.ts
+          grep -q "OUT_NAME = '$OUT_NAME'" src/theme.ts
+          grep -q "VOICE = '$VOICE'" src/theme.ts
+          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
+          grep -q "id={COMP_ID}" src/Root.tsx
+          test -s "public/$VOICE"
+          test "$(ls .github/workflows | wc -l)" = "1"
+          extra="$(find public -type f | grep -v -E '^public/(voiceover_lesson_03\.mp3|manzooma_logo\.svg|sfx/[a-z_]+\.wav)$' || true)"
+          if [ -n "$extra" ]; then echo "Unexpected files in public:"; echo "$extra"; exit 1; fi
+          stale="$(grep -rhoE 'XL-L[0-9]+' src package.json .github | sort -u | grep -v '^XL-L03$' || true)"
+          if [ -n "$stale" ]; then echo "Stale lesson id: $stale"; exit 1; fi
+      - run: npm install --no-audit --no-fund
+      - run: npm run check
+      - run: npm run build
+      - name: Verify video exists
+        run: test -s "out/$OUT_NAME.mp4" && ls -lh out/
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l01-excel-interface-workspace
-          path: out/xl-l01-excel-interface-workspace.mp4
+          name: ${{ env.OUT_NAME }}
+          path: out/${{ env.OUT_NAME }}.mp4
           if-no-files-found: error
