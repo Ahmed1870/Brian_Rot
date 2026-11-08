@@ -1,77 +1,22 @@
-// Manzooma — Lesson 15: Dynamic Arrays Engine, Spill Range, # Operator, #SPILL! Error, @ Operator.
+import type {CellD} from "./kit";
+import {C} from "./theme";
 
-/* ------------------------------------------------------------------ pricing table (Scenes 1, 2, 4) */
-export const PRICING_HEAD = ['Product', 'Qty', 'Price', 'Total'];
-export type PriceRow = {product: string; qty: number; price: number};
-export const PRICING: PriceRow[] = [
-  {product: 'Wireless Mouse',  qty: 3, price: 350},
-  {product: 'USB-C Cable',     qty: 5, price: 120},
-  {product: 'Laptop Stand',    qty: 2, price: 900},
-  {product: 'Office Chair',    qty: 1, price: 3200},
-  {product: 'Notebook A5',     qty: 8, price: 45},
-  {product: 'Desk Lamp',       qty: 2, price: 650},
-  {product: 'Monitor 24"',     qty: 1, price: 4800},
-  {product: 'Keyboard',        qty: 4, price: 750},
-  {product: 'Webcam HD',       qty: 2, price: 1100},
+export const int = (n: number) => Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+export const usd = (n: number) => "$" + int(n);
+export type Row = [string, string, number];
+// first 16 rows of tbl_Sales2026 (50,000 rows in the file). Product A / Cairo values stay inside [1,200 .. 145,000].
+export const ROWS: Row[] = [
+  ["Cairo", "Product A", 12500], ["Alexandria", "Product B", 8300], ["Cairo", "Product B", 64200], ["Giza", "Product A", 15400],
+  ["Cairo", "Product A", 1200], ["Mansoura", "Product C", 9700], ["Cairo East", "Product A", 52000], ["Cairo", "Product C", 81000],
+  ["Tanta", "Product B", 4300], ["Cairo", "Product A", 145000], ["Alexandria", "Product A", 23100], ["Cairo West", "Product B", 67500],
+  ["Giza", "Product C", 38800], ["Cairo", "Product B", 5600], ["Cairo", "Product A", 33000], ["Alexandria", "Product C", 71200],
 ];
-// Extra rows used when Scene 2 demonstrates dynamic expansion
-export const PRICING_EXTRA: PriceRow[] = [
-  {product: 'USB Hub',     qty: 3, price: 420},
-  {product: 'Mouse Pad',   qty: 5, price: 80},
-];
-
-export type CCell = {t: string; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
-
-/** Pricing table cell. opts.expanded adds 2 extra rows (Scene 2 dynamic expansion). */
-export const pricingCell = (r: number, c: number, opts?: {expanded?: boolean}): CCell | undefined => {
-  const rows = opts?.expanded ? [...PRICING, ...PRICING_EXTRA] : PRICING;
-  if (r === 1) {
-    if (c < 1 || c > 4) return undefined;
-    const al: 'l' | 'r' = (c >= 2 && c <= 4) ? 'r' : 'l';
-    return {t: PRICING_HEAD[c - 1], b: true, bg: '#E2EFDA', al};
-  }
-  const row = rows[r - 2];
-  if (!row || c < 1 || c > 4) return undefined;
-  switch (c) {
-    case 1: return {t: row.product};
-    case 2: return {t: String(row.qty), al: 'r'};
-    case 3: return {t: 'EGP ' + row.price.toLocaleString('en-US'), al: 'r'};
-    case 4: return {t: 'EGP ' + (row.qty * row.price).toLocaleString('en-US'), al: 'r'};
-  }
+export const W = [100, 90, 92, 28, 150, 132, 120, 90];
+export const tbl = (hl?: (i: number, r: Row) => string | undefined): CellD[] => {
+  const o: CellD[] = ["Branch", "Product", "Revenue"].map((t, i) => ({r: 1, c: i + 1, t, bold: true, color: "#fff", bg: C.green, a: i === 2 ? ("r" as const) : ("l" as const)}));
+  ROWS.forEach((r, i) => {
+    const bg = hl?.(i, r) ?? (i % 2 ? "#EAF4EE" : undefined);
+    o.push({r: i + 2, c: 1, t: r[0], bg}, {r: i + 2, c: 2, t: r[1], bg}, {r: i + 2, c: 3, t: usd(r[2]), a: "r", bg});
+  });
+  return o;
 };
-
-/** How many data rows the pricing table has (for spill range height calculations). */
-export const pricingRowCount = (expanded?: boolean) => expanded ? PRICING.length + PRICING_EXTRA.length : PRICING.length;
-
-/* ------------------------------------------------------------------ big sales (Scene 5) */
-const SALE_PRODUCTS = [
-  ['Wireless Mouse', 'Accessories', 350],
-  ['USB-C Cable', 'Accessories', 120],
-  ['Laptop Stand', 'Office', 900],
-  ['Office Chair', 'Furniture', 3200],
-  ['Notebook A5', 'Stationery', 45],
-  ['Desk Lamp', 'Office', 650],
-  ['Monitor 24"', 'Electronics', 4800],
-  ['Keyboard', 'Accessories', 750],
-] as const;
-const SALE_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
-
-export type SaleRow = {id: string; branch: string; product: string; qty: number; price: number; total: number};
-
-export const sale = (n: number): SaleRow => {
-  const h = (n * 2654435761) >>> 0;
-  const p = SALE_PRODUCTS[(h >>> 3) % SALE_PRODUCTS.length];
-  const qty = 1 + ((h >>> 9) % 6);
-  return {
-    id: `ORD-${1000 + n}`,
-    branch: SALE_BRANCHES[(h >>> 13) % SALE_BRANCHES.length],
-    product: p[0],
-    qty,
-    price: p[2],
-    total: qty * p[2],
-  };
-};
-
-export const BIG_ROWS = 50000;
-export const BIG_LAST = BIG_ROWS + 1;
-export const fmtInt = (n: number) => n.toLocaleString('en-US');
