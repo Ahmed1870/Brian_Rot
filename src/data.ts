@@ -1,110 +1,59 @@
-// Manzooma — Lesson 17: UNIQUE, SORT, SORTBY.
-// Three datasets drive the lesson:
-//   1. Sales with duplicate customers (Scene 1, 2, 4)
-//   2. Sales reps with totals + tenure (Scene 3)
-//   3. Big 50,000-row file (Scene 5)
+import {XL} from './theme';
+import {Cell, Cur, Geo, Rect, Sel, colName, ease, lerp, pg} from './kit';
 
-/* ------------------------------------------------------------------ sales (Scenes 1, 2, 4) */
-export const SALES_HEAD = ['OrderID', 'Customer', 'Product', 'Amount'];
-export type SaleRow = {id: string; customer: string; product: string; amount: number};
-// Customers deliberately repeat so UNIQUE has work to do.
-export const SALES: SaleRow[] = [
-  {id: 'ORD-001', customer: 'Ahmed',   product: 'Mouse',    amount: 350},
-  {id: 'ORD-002', customer: 'Sara',    product: 'Cable',    amount: 120},
-  {id: 'ORD-003', customer: 'Ahmed',   product: 'Stand',    amount: 900},
-  {id: 'ORD-004', customer: 'Omar',    product: 'Chair',    amount: 3200},
-  {id: 'ORD-005', customer: 'Sara',    product: 'Notebook', amount: 45},
-  {id: 'ORD-006', customer: 'Mona',    product: 'Lamp',     amount: 650},
-  {id: 'ORD-007', customer: 'Ahmed',   product: 'Monitor',  amount: 4800},
-  {id: 'ORD-008', customer: 'Khaled',  product: 'Keyboard', amount: 750},
-  {id: 'ORD-009', customer: 'Sara',    product: 'Webcam',   amount: 1100},
-];
-// Customer "Omar", "Mona", "Khaled" each appear exactly once → exactly_once=TRUE isolates them.
-export const UNIQUE_CUSTOMERS = ['Ahmed', 'Sara', 'Omar', 'Mona', 'Khaled'];
-export const EXACTLY_ONCE_CUSTOMERS = ['Omar', 'Mona', 'Khaled'];
-// SORT(UNIQUE(B2:B10)) — alphabetically sorted unique customer list.
-export const SORTED_UNIQUE_CUSTOMERS = [...UNIQUE_CUSTOMERS].sort();
-// SORT(A2:D10, 4, -1) — sales sorted by Amount descending.
-export const SORTED_BY_AMOUNT_DESC = [...SALES].sort((a, b) => b.amount - a.amount);
-
-export type CCell = {t: string; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
-
-/** Sales table cell. opts.mode controls what's shown:
- *  'raw' = original | 'sortedDesc' = sorted by Amount desc | 'sortedUnique' = spilled sorted unique list */
-export const salesCell = (r: number, c: number, mode: 'raw' | 'sortedDesc' = 'raw'): CCell | undefined => {
-  if (r === 1) {
-    if (c < 1 || c > 4) return undefined;
-    const al: 'l' | 'r' = (c === 4) ? 'r' : 'l';
-    return {t: SALES_HEAD[c - 1], b: true, bg: '#E2EFDA', al};
-  }
-  const rows = mode === 'sortedDesc' ? SORTED_BY_AMOUNT_DESC : SALES;
-  const row = rows[r - 2];
-  if (!row || c < 1 || c > 4) return undefined;
-  switch (c) {
-    case 1: return {t: row.id};
-    case 2: return {t: row.customer};
-    case 3: return {t: row.product};
-    case 4: return {t: 'EGP ' + row.amount.toLocaleString('en-US'), al: 'r'};
-  }
+export const PRODUCTS = ['Laptop', 'Mobile', 'Tablet', 'Printer', 'Monitor', 'Keyboard', 'Router', 'Camera'];
+export const REGIONS = ['Cairo', 'Giza', 'Alex', 'Tanta', 'Aswan', 'Luxor', 'Mansoura', 'Suez'];
+const S8 = [12500, 8400, 15200, 6900, 9800, 11300, 7600, 13400];
+export const sales = (r: number) => (r <= 9 ? S8[r - 2] : 50 * (100 + ((r * 37) % 200)));
+export const tax = (r: number) => Math.round((sales(r) * 14) / 100);
+export const comm = (r: number) => Math.round((sales(r) * 4) / 100);
+export const prod = (r: number) => PRODUCTS[(r - 2) % 8];
+export const reg = (r: number) => REGIONS[(r * 3 + 1) % 8];
+export const IN = '#FFF2CC';
+export const INC = '#7F6000';
+export const hdrC = (t: string): Cell => ({t, b: true, bg: XL.green, col: '#fff', al: 'l'});
+export const band = (r: number) => (r % 2 === 1 ? '#E2EFDA' : undefined);
+export const one = (r: number, c: number): Sel => ({r1: r, c1: c, r2: r, c2: c, ar: r, ac: c});
+export const rng = (r1: number, c1: number, r2: number, c2: number, ar = r1, ac = c1): Sel => ({r1, c1, r2, c2, ar, ac});
+const R0: Rect = {x: 0, y: 0, w: XL.colW, h: XL.rowH};
+export const rr = (g: Geo, r: number, c: number): Rect => g.cell(r, c) ?? R0;
+export const ctr = (g: Geo, r: number, c: number) => {
+  const q = rr(g, r, c);
+  return {x: q.x + q.w * 0.45, y: q.y + q.h * 0.5};
 };
-
-/* ------------------------------------------------------------------ sales reps (Scene 3) */
-export const REPS_HEAD = ['RepName', 'Region'];
-export type Rep = {name: string; region: string; total: number; tenure: number};
-export const REPS: Rep[] = [
-  {name: 'Yasser',  region: 'Cairo',       total: 45000, tenure: 5},
-  {name: 'Laila',   region: 'Alexandria', total: 52000, tenure: 3},
-  {name: 'Tarek',   region: 'Giza',        total: 52000, tenure: 7},
-  {name: 'Nour',    region: 'Tanta',       total: 38000, tenure: 2},
-];
-// SORTBY(RepName, TotalSales DESC, Tenure ASC):
-// Laila(52000,3) and Tarek(52000,7) tie on sales → tenure ASC → Laila first.
-export const SORTBY_RESULT = ['Laila', 'Tarek', 'Yasser', 'Nour'];
-
-export const repCell = (r: number, c: number): CCell | undefined => {
-  if (r === 1) {
-    if (c < 1 || c > 2) return undefined;
-    return {t: REPS_HEAD[c - 1], b: true, bg: '#E2EFDA', al: 'l'};
-  }
-  const rep = REPS[r - 2];
-  if (!rep || c < 1 || c > 2) return undefined;
-  switch (c) {
-    case 1: return {t: rep.name};
-    case 2: return {t: rep.region};
-  }
+export const hp = (g: Geo, r: number, c: number) => {
+  const q = rr(g, r, c);
+  return {x: q.x + q.w - 1, y: q.y + q.h - 1};
 };
-
-/* ------------------------------------------------------------------ big sales (Scene 5) */
-const BIG_PRODUCTS = ['Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5', 'Desk Lamp', 'Monitor 24"', 'Keyboard'];
-const BIG_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
-
-export type BigSale = {id: string; product: string; branch: string; qty: number; total: number};
-
-export const bigSale = (n: number): BigSale => {
-  const h = (n * 2654435761) >>> 0;
-  const product = BIG_PRODUCTS[(h >>> 3) % BIG_PRODUCTS.length];
-  const qty = 1 + ((h >>> 9) % 6);
-  return {
-    id: `ORD-${1000 + n}`,
-    product,
-    branch: BIG_BRANCHES[(h >>> 13) % BIG_BRANCHES.length],
-    qty,
-    total: qty * [350, 120, 900, 3200, 45, 650, 4800, 750][(h >>> 3) % 8],
-  };
+/** cursor keyframes: [t, x, y, kind?]; moves eased between keys, holds when two keys share a position */
+export type K = [number, number, number, ('arrow' | 'cross')?];
+export const path = (t: number, ks: K[]): Cur => {
+  if (t <= ks[0][0]) return {x: ks[0][1], y: ks[0][2], k: ks[0][3]};
+  for (let i = 1; i < ks.length; i++) {
+    if (t <= ks[i][0]) {
+      const a = ks[i - 1], b = ks[i];
+      const p = ease(pg(t, a[0], b[0]));
+      return {x: lerp(a[1], b[1], p), y: lerp(a[2], b[2], p), k: p > 0.5 ? b[3] : a[3]};
+    }
+  }
+  const l = ks[ks.length - 1];
+  return {x: l[1], y: l[2], k: l[3]};
 };
+export const fmtN = (x: number) => x.toLocaleString('en-US', {maximumFractionDigits: 2});
+const sumRange = (f: (r: number) => number, a: number, b: number) => {
+  let s = 0;
+  for (let r = a; r <= b; r++) s += f(r);
+  return s;
+};
+export const SUM_TAX_1001 = sumRange(tax, 2, 1001);
+export const SUM_COMM_50K = sumRange(comm, 2, 50001);
+export const hwFor = (lastRow: number) => (lastRow >= 10000 ? 42 : lastRow >= 1000 ? 36 : XL.rowHdrW);
 
-export const BIG_ROWS = 50000;
-export const BIG_LAST = BIG_ROWS + 1;
-export const fmtInt = (n: number) => n.toLocaleString('en-US');
-
-// Pre-computed unique products sorted by total revenue (descending) — for Scene 5 executive ranking.
-export const PRODUCT_RANKING = [
-  {product: 'Monitor 24"',  total: 9600000},
-  {product: 'Office Chair', total: 6400000},
-  {product: 'Laptop Stand', total: 1800000},
-  {product: 'Keyboard',     total: 1500000},
-  {product: 'Desk Lamp',    total: 1300000},
-  {product: 'Wireless Mouse', total: 700000},
-  {product: 'USB-C Cable',   total: 240000},
-  {product: 'Notebook A5',   total: 90000},
-];
+// matrix lesson data
+export const CATS = ['Laptop', 'Mobile', 'Tablet', 'Printer', 'Monitor', 'Router', 'Camera', 'Speaker', 'Headset', 'Scanner'];
+export const PRICE = [120, 180, 240, 300, 360, 420, 480, 540, 600, 660];
+export const RATE = [5, 10, 15, 20, 25];
+export const TIER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'VIP'];
+export const mv = (r: number, c: number) => (PRICE[c - 2] * RATE[r - 5]) / 100;
+export const MAT_SUM = (() => { let s = 0; for (let r = 5; r <= 9; r++) for (let c = 2; c <= 11; c++) s += mv(r, c); return s; })();
+export const fx2 = (c: number, r: number) => `${colName(c)}${r}`;
