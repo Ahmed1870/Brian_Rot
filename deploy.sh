@@ -1,65 +1,95 @@
 #!/usr/bin/env bash
-# Swap deploy for Lesson 06 (XL-L06-Cell-References). Env: DRY_RUN SKIP_NPM KEEP_EXTRA WORK_DIR REPO_URL BRANCH COMMIT_MSG
+# Swap System deploy — wipes the old lesson, pushes this one to the fixed repo.
+# Env: DRY_RUN SKIP_NPM KEEP_EXTRA WORK_DIR REPO_URL BRANCH COMMIT_MSG
 set -euo pipefail
-COMP_ID="XL-L06-Cell-References"; OUT_NAME="excel-l06-cell-references"; NN="06"
+
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_URL="${REPO_URL:-https://github.com/Ahmed1870/Brian_Rot.git}"
 BRANCH="${BRANCH:-main}"
-WORK_DIR="${WORK_DIR:-$HOME/Brian_Rot}"
-COMMIT_MSG="${COMMIT_MSG:-Lesson ${NN}: Cell References (${COMP_ID})}"
-SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-say() { echo "▶ $*"; }
-die() { echo "✖ $*" >&2; exit 1; }
+WORK_DIR="${WORK_DIR:-$HOME/Brian_Rot_work}"
+DRY_RUN="${DRY_RUN:-0}"
+SKIP_NPM="${SKIP_NPM:-0}"
+KEEP_EXTRA="${KEEP_EXTRA:-0}"
 
-say "1/7 sync repo"
+log() { echo "▶ $*"; }
+die() { echo "✗ $*" >&2; exit 1; }
+const() { sed -n "s/^export const $1 = \"\(.*\)\";/\1/p" "$SRC/src/theme.ts" | head -n1; }
+
+COMP_ID="$(const COMP_ID)"
+OUT_NAME="$(const OUT_NAME)"
+VOICE_FILE="$(const VOICE_FILE)"
+LOGO_FILE="$(const LOGO_FILE)"
+LESSON_NO="$(const LESSON_NO)"
+[[ "$COMP_ID" =~ ^XL-L[0-9]{2}-[A-Za-z0-9-]+$ ]] || die "COMP_ID غير صالح في theme.ts: '$COMP_ID'"
+[[ "${COMP_ID:4:2}" == "$LESSON_NO" ]] || die "رقم الدرس في COMP_ID لا يطابق LESSON_NO"
+[[ "$OUT_NAME" == "$(echo "$COMP_ID" | tr 'A-Z' 'a-z')" ]] || die "OUT_NAME لازم يساوي COMP_ID بحروف صغيرة"
+[[ "$VOICE_FILE" == "voiceover_lesson_${LESSON_NO}.mp3" ]] || die "اسم الفويس غير مطابق لرقم الدرس"
+COMMIT_MSG="${COMMIT_MSG:-Lesson ${LESSON_NO}: ${COMP_ID}}"
+
+# ── 1) sync repo ─────────────────────────────────────────────
+log "sync: $REPO_URL ($BRANCH) → $WORK_DIR"
 if [ -d "$WORK_DIR/.git" ]; then
-  git -C "$WORK_DIR" fetch origin "$BRANCH" 2>/dev/null || true
-  git -C "$WORK_DIR" checkout -q "$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -b "$BRANCH"
-  git -C "$WORK_DIR" reset -q --hard "origin/$BRANCH" 2>/dev/null || true
+  git -C "$WORK_DIR" remote set-url origin "$REPO_URL"
+  git -C "$WORK_DIR" fetch origin "$BRANCH" 2>/dev/null && git -C "$WORK_DIR" checkout -q -B "$BRANCH" "origin/$BRANCH" || git -C "$WORK_DIR" checkout -q -B "$BRANCH"
 else
   mkdir -p "$(dirname "$WORK_DIR")"
-  git clone -q "$REPO_URL" "$WORK_DIR" 2>/dev/null || { mkdir -p "$WORK_DIR"; git -C "$WORK_DIR" init -q -b "$BRANCH"; git -C "$WORK_DIR" remote add origin "$REPO_URL"; }
-  git -C "$WORK_DIR" checkout -q "$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -b "$BRANCH"
+  git clone -q --branch "$BRANCH" "$REPO_URL" "$WORK_DIR" 2>/dev/null || { mkdir -p "$WORK_DIR"; git -C "$WORK_DIR" init -q -b "$BRANCH"; git -C "$WORK_DIR" remote add origin "$REPO_URL"; }
 fi
 
-say "2/7 wipe old project (keep .git and .github)"
-if [ "${KEEP_EXTRA:-0}" != "1" ]; then
+# ── 2) wipe everything except .git and .github ───────────────
+if [ "$KEEP_EXTRA" != "1" ]; then
+  log "wipe old project"
   find "$WORK_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
 fi
-say "3/7 remove old workflow"
 mkdir -p "$WORK_DIR/.github/workflows"
-rm -f "$WORK_DIR"/.github/workflows/*
+rm -rf "$WORK_DIR/.github/workflows/"* 2>/dev/null || true
 
-say "4/7 copy new project"
+# ── 3) copy new project ──────────────────────────────────────
+log "copy new project"
 (cd "$SRC" && tar cf - --exclude=node_modules --exclude=out --exclude=.git .) | (cd "$WORK_DIR" && tar xf -)
 
-say "5/7 name checks"
+# ── 4) name checks (stop before push on any mismatch) ────────
+log "name checks: $COMP_ID → out/$OUT_NAME.mp4"
 cd "$WORK_DIR"
-grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || die "theme.ts COMP_ID mismatch"
-grep -q "COMP_ID" src/Root.tsx || die "Root.tsx must use COMP_ID"
-grep -q "XL-L" src/Root.tsx && die "Root.tsx has a hard-coded lesson id"
-grep -q "XL-L${NN}-Cell-References" package.json || die "package.json COMP_ID mismatch"
-grep -q "out/${OUT_NAME}.mp4" package.json || die "package.json output name mismatch"
-WF=$(ls .github/workflows); [ "$(echo "$WF" | wc -l)" = "1" ] || die "need exactly one workflow file"
-grep -q "COMP_ID: ${COMP_ID}" ".github/workflows/$WF" || die "workflow COMP_ID mismatch"
-grep -q "OUT_NAME: ${OUT_NAME}" ".github/workflows/$WF" || die "workflow OUT_NAME mismatch"
-grep -q "name: ${OUT_NAME}" ".github/workflows/$WF" || die "artifact name must equal output name"
-test -s "public/voiceover_lesson_${NN}.mp3" || die "voiceover_lesson_${NN}.mp3 missing"
-grep -q "voiceover_lesson_${NN}.mp3" src/theme.ts || die "theme.ts voice name mismatch"
-BAD=$(ls public | grep -v -x -e "voiceover_lesson_${NN}.mp3" -e "manzooma_logo.svg" || true)
-[ -z "$BAD" ] || die "unexpected files in public: $BAD"
-OLD=$(grep -rEoh "(SQL|XL)-L[0-9]+[A-Za-z0-9-]*" src package.json .github 2>/dev/null | grep -v -x "$COMP_ID" || true)
-[ -z "$OLD" ] || die "old lesson id found: $(echo "$OLD" | sort -u | tr '\n' ' ')"
-OLDV=$(grep -rEoh "voiceover_lesson_[0-9]+" src package.json .github 2>/dev/null | grep -v -x "voiceover_lesson_${NN}" || true)
-[ -z "$OLDV" ] || die "old voiceover name found: $(echo "$OLDV" | sort -u | tr '\n' ' ')"
-echo "  names OK"
+chk() { grep -qF -- "$2" "$1" || die "$1 لا يحتوي '$2'"; }
+chk package.json "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4"
+chk .github/workflows/render.yml "COMP_ID: $COMP_ID"
+chk .github/workflows/render.yml "OUT_NAME: $OUT_NAME"
+chk .github/workflows/render.yml "out/\$OUT_NAME.mp4"
+chk .github/workflows/render.yml "name: $OUT_NAME.mp4"
+chk src/Root.tsx "id={COMP_ID}"
+grep -q "XL-L" src/Root.tsx && die "Root.tsx فيه معرّف درس مكتوب حرفياً"
+chk src/Video.tsx "VOICE_FILE"
+[ -s "public/$VOICE_FILE" ] || die "الفويس غير موجود: public/$VOICE_FILE"
+[ -s "public/$LOGO_FILE" ] || die "اللوجو غير موجود: public/$LOGO_FILE"
+ALLOWED=(-e "$VOICE_FILE" -e "$LOGO_FILE" -e datacamp_tech_ambient.mp3 -e ctrl_t_popup.mp3 -e digital_transform.mp3 -e typing_fast.mp3 -e total_row_pop.mp3 -e syntax_highlight.mp3 -e growth_pulse.mp3 -e auto_connect.mp3 -e enterprise_seal_shine.mp3 -e academic_outro_theme.mp3)
+for n in datacamp_tech_ambient ctrl_t_popup digital_transform typing_fast total_row_pop syntax_highlight growth_pulse auto_connect enterprise_seal_shine academic_outro_theme; do [ -s "public/$n.mp3" ] || die "ملف صوت ناقص: public/$n.mp3"; done
+EXTRA="$(ls public | grep -v -x "${ALLOWED[@]}" || true)"
+[ -z "$EXTRA" ] || die "ملفات زيادة في public: $EXTRA"
+[ "$(ls .github/workflows | wc -l | tr -d ' ')" = "1" ] || die "لازم workflow واحد فقط"
+SCAN=(--include=*.ts --include=*.tsx --include=*.json --include=*.yml --include=*.sh --exclude=deploy.sh --exclude-dir=node_modules --exclude-dir=.git --exclude=package-lock.json)
+grep -rIhoE "Monzoma-SQL[-A-Za-z0-9]*|SQL-L[0-9]{2}[-A-Za-z0-9]*" "${SCAN[@]}" . | grep -q . && die "فيه معرّف درس SQL قديم"
+BAD="$(grep -rIhoE "XL-L[0-9]{2}-[A-Za-z0-9-]+" "${SCAN[@]}" . | sort -u | grep -vx "$COMP_ID" || true)"
+[ -z "$BAD" ] || die "معرّف درس إكسل قديم/مختلف: $BAD"
+BAD="$(grep -rIhoE "xl-l[0-9]{2}-[a-z0-9-]+" "${SCAN[@]}" . | sort -u | grep -vx "$OUT_NAME" || true)"
+[ -z "$BAD" ] || die "اسم ملف ناتج قديم/مختلف: $BAD"
+BAD="$(grep -rIhoE "voiceover_lesson_[0-9]{2}" "${SCAN[@]}" . | sort -u | grep -vx "voiceover_lesson_${LESSON_NO}" || true)"
+[ -z "$BAD" ] || die "اسم فويس قديم/مختلف: $BAD"
+log "✓ الأسماء متطابقة"
 
-say "6/7 npm install + tsc"
-if [ "${SKIP_NPM:-0}" = "1" ]; then echo "  (skipped)"; else npm install --no-audit --no-fund && npx tsc --noEmit; fi
+# ── 5) install + typecheck ───────────────────────────────────
+if [ "$SKIP_NPM" != "1" ]; then
+  log "npm install"; npm install --no-audit --no-fund --loglevel=error
+  log "tsc --noEmit"; npx tsc --noEmit
+else
+  log "SKIP_NPM=1 → تخطي npm install و tsc"
+fi
 
-say "7/7 commit + push"
-git config user.name >/dev/null 2>&1 || git config user.name "Ahmed1870"
-git config user.email >/dev/null 2>&1 || git config user.email "ahmed1870@users.noreply.github.com"
+# ── 6) commit + push ─────────────────────────────────────────
+if [ "$DRY_RUN" = "1" ]; then log "DRY_RUN=1 → وقفت قبل commit/push"; exit 0; fi
 git add -A
-git commit -q --allow-empty -m "$COMMIT_MSG"
-if [ "${DRY_RUN:-0}" = "1" ]; then echo "  DRY_RUN: committed locally, not pushed"; else git push --force origin "$BRANCH"; fi
-echo "✔ done: ${COMP_ID}"
+GIT=(git -c user.name="${GIT_AUTHOR_NAME:-Ahmed Gomaa}" -c user.email="${GIT_AUTHOR_EMAIL:-ahmed@users.noreply.github.com}")
+"${GIT[@]}" commit -q -m "$COMMIT_MSG" || "${GIT[@]}" commit -q --allow-empty -m "$COMMIT_MSG"
+log "push --force origin $BRANCH"
+git push --force origin "HEAD:$BRANCH"
+log "✓ تم. الرندر هيبدأ على GitHub Actions (workflow: render) → artifact: $OUT_NAME.mp4"

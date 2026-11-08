@@ -1,10 +1,10 @@
 {
-  "name": "excel-l06-cell-references",
+  "name": "xl-l04-excel-tables",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L06-Cell-References out/excel-l06-cell-references.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2",
+    "build": "remotion render src/index.ts XL-L04-Excel-Tables out/xl-l04-excel-tables.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,7 +15,7 @@
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "typescript": "^5.5.0"
+    "@types/react": "^18.3.0",
+    "typescript": "^5.4.0"
   }
 }

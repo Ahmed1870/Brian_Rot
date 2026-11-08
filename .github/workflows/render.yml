@@ -1,52 +1,37 @@
-name: Render Lesson 06
+name: render
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
-
-env:
-  COMP_ID: XL-L06-Cell-References
-  OUT_NAME: excel-l06-cell-references
-  VOICE: voiceover_lesson_06.mp3
-  LOGO: manzooma_logo.svg
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
+    env:
+      COMP_ID: XL-L04-Excel-Tables
+      OUT_NAME: xl-l04-excel-tables
     steps:
       - uses: actions/checkout@v4
-
-      - name: Guard (names must match before rendering)
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || { echo "theme.ts COMP_ID mismatch"; exit 1; }
-          grep -q "XL-L06-Cell-References" package.json || { echo "package.json COMP_ID mismatch"; exit 1; }
-          grep -q "out/${OUT_NAME}.mp4" package.json || { echo "package.json output name mismatch"; exit 1; }
-          test -s "public/${VOICE}" || { echo "voiceover missing"; exit 1; }
-          test -s "public/${LOGO}" || { echo "logo missing"; exit 1; }
-          extra=$(ls public | grep -v -x -e "${VOICE}" -e "${LOGO}" || true)
-          [ -z "$extra" ] || { echo "unexpected files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow file"; exit 1; }
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Fonts (open Calibri substitute)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-crosextra-carlito
-
+      - name: Guard
+        run: |
+          set -e
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
+          test -s public/voiceover_lesson_04.mp3
+          test -s public/manzooma_logo.svg
+          for n in datacamp_tech_ambient ctrl_t_popup digital_transform typing_fast total_row_pop syntax_highlight growth_pulse auto_connect enterprise_seal_shine academic_outro_theme; do test -s "public/$n.mp3"; done
+          extra="$(ls public | grep -v -x -e voiceover_lesson_04.mp3 -e manzooma_logo.svg -e datacamp_tech_ambient.mp3 -e ctrl_t_popup.mp3 -e digital_transform.mp3 -e typing_fast.mp3 -e total_row_pop.mp3 -e syntax_highlight.mp3 -e growth_pulse.mp3 -e auto_connect.mp3 -e enterprise_seal_shine.mp3 -e academic_outro_theme.mp3 || true)"
+          test -z "$extra"
+          test "$(ls .github/workflows | wc -l)" = "1"
       - run: npm install --no-audit --no-fund
-
-      - name: Render
-        run: npx remotion render src/index.ts "${COMP_ID}" "out/${OUT_NAME}.mp4" --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2 --concurrency=4
-
-      - name: Verify output
-        run: test -s "out/${OUT_NAME}.mp4"
-
+      - run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2
+      - run: test -s out/$OUT_NAME.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: excel-l06-cell-references
-          path: out/excel-l06-cell-references.mp4
+          name: xl-l04-excel-tables.mp4
+          path: out/xl-l04-excel-tables.mp4

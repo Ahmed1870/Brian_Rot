@@ -1,30 +1,78 @@
-// ===== Lesson identity (single source of truth: COMP_ID is used by Root.tsx) =====
-export const COMP_ID = 'XL-L06-Cell-References';
-export const LESSON_NN = '06';
-export const OUT_NAME = 'excel-l06-cell-references';
-export const VOICE_FILE = 'voiceover_lesson_06.mp3';
-export const LOGO_FILE = 'manzooma_logo.svg';
+import {loadFont as loadAr} from "@remotion/google-fonts/IBMPlexSansArabic";
+import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
 
-// ===== Video spec (from the lesson plan) =====
+export const LESSON_NO = "04";
+export const COMP_ID = "XL-L04-Excel-Tables";
+export const OUT_NAME = "xl-l04-excel-tables";
+export const VOICE_FILE = "voiceover_lesson_04.mp3";
+export const LOGO_FILE = "manzooma_logo.svg";
+
 export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const DUR = 7200; // 240s = exact mp3 duration
-export const RENDER_SCALE = 2; // 1920x1080 design space -> 3840x2160 output (plan spec). Use --scale=1 for 1080p.
+export const DURATION = 7200;
 
-// ===== Stage palette (plan) =====
-export const COL = {
-  slate: '#0F172A', panel: '#1E293B', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B',
-  purple: '#A855F7', red: '#EF4444', text: '#F8FAFC', muted: '#94A3B8',
+// Unit 1 closes with lesson 5 (per the voiceover), so lesson 4 = 4/5
+export const UNIT_DONE = 4;
+export const UNIT_TOTAL = 5;
+export const UNIT_PROGRESS = UNIT_DONE / UNIT_TOTAL;
+
+export const FONT_AR = loadAr("normal", {
+  weights: ["400", "500", "600", "700"],
+  subsets: ["arabic", "latin"],
+} as never).fontFamily;
+export const FONT_MONO = loadMono("normal", {
+  weights: ["400", "700"],
+  subsets: ["latin"],
+} as never).fontFamily;
+export const MONO = `${FONT_MONO}, ${FONT_AR}, monospace`;
+
+export const C = {
+  bg: "#0F172A",
+  panel: "#1E293B",
+  line: "#334155",
+  blue: "#38BDF8",
+  green: "#10B981",
+  amber: "#F59E0B",
+  purple: "#A855F7",
+  red: "#EF4444",
+  text: "#F8FAFC",
+  mute: "#94A3B8",
 };
 
-// ===== Excel 365 (Windows, modern) metrics at 100% zoom, logical px. Same for every lesson. =====
-export const XL = {
-  scale: 1.5, winW: 1248, winH: 560, winX: 24, winY: 100,
-  titleH: 32, tabsH: 28, ribbonH: 88, fbarH: 24, colHdrH: 20, rowH: 20, colW: 64,
-  rowHdrW: 30, sheetBarH: 24, statusH: 24, vscroll: 17, visRows: 16,
-  green: '#217346', greenSoft: '#D2E8DB', tint: 'rgba(33,115,70,0.12)',
-  grid: '#E1E1E1', hdrBg: '#F3F3F3', hdrText: '#444444', chrome: '#F3F3F3', chromeLine: '#D1D1D1',
-  titleBg: '#F3F3F3', // modern light title bar (change here if a green title bar is wanted)
-  refColors: ['#2F6FEB', '#E5484D', '#8E4EC6', '#12A150', '#E5A000'],
+// Excel (Microsoft 365 desktop, light theme) palette
+export const X = {
+  green: "#107C41",
+  greenTint: "rgba(16,124,65,0.13)",
+  chrome: "#F3F3F3",
+  ribbon: "#FAFAFA",
+  border: "#D1D1D1",
+  hdr: "#E6E6E6",
+  hdrSel: "#CFCFCF",
+  grid: "#DCDCDC",
+  tblHdr: "#4EA72E",
+  tblBand: "#DCEBD5",
+  text: "#242424",
+  mute: "#616161",
 };
+
+// Fixed UI metrics (shared by every lesson)
+export const M = {
+  x: 60,
+  y: 92,
+  w: 1800,
+  titleH: 38,
+  tabsH: 34,
+  ribbonH: 112,
+  fbarH: 34,
+  hdrH: 24,
+  rowH: 24,
+  rowHdrW: 46,
+  rows: 24,
+  sheetH: 30,
+  statusH: 24,
+};
+export const RIBBON_Y = M.titleH + M.tabsH;
+export const GRID_Y = RIBBON_Y + M.ribbonH + M.fbarH + M.hdrH;
+export const WIN_H = GRID_Y + M.rows * M.rowH + M.sheetH + M.statusH;
+export const COLS: number[] = [112, 165, 125, 140, 130, 175, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80];
