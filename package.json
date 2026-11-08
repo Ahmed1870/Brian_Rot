@@ -1,11 +1,12 @@
 {
-  "name": "excel-l10-error-handling",
+  "name": "manzooma-excel-lesson-19-sequence-randarray-let",
   "version": "1.0.0",
   "private": true,
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 19: SEQUENCE, RANDARRAY, LET Dynamic Array & Performance Engine (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L10-Error-Handling out/excel-l10-error-handling.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2",
-    "typecheck": "tsc --noEmit"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts XL-L19-Sequence-RandArray-Let out/xl-l19-sequence-randarray-let.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
@@ -15,7 +16,7 @@
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "typescript": "^5.5.0"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }

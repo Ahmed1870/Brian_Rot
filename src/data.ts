@@ -1,59 +1,65 @@
-import {XL} from './theme';
-import {Cell, Cur, Geo, Rect, Sel, colName, ease, lerp, pg} from './kit';
+// Manzooma — Lesson 19: SEQUENCE, RANDARRAY, LET.
 
-export const PRODUCTS = ['Laptop', 'Mobile', 'Tablet', 'Printer', 'Monitor', 'Keyboard', 'Router', 'Camera'];
-export const REGIONS = ['Cairo', 'Giza', 'Alex', 'Tanta', 'Aswan', 'Luxor', 'Mansoura', 'Suez'];
-const S8 = [12500, 8400, 15200, 6900, 9800, 11300, 7600, 13400];
-export const sales = (r: number) => (r <= 9 ? S8[r - 2] : 50 * (100 + ((r * 37) % 200)));
-export const tax = (r: number) => Math.round((sales(r) * 14) / 100);
-export const comm = (r: number) => Math.round((sales(r) * 4) / 100);
-export const prod = (r: number) => PRODUCTS[(r - 2) % 8];
-export const reg = (r: number) => REGIONS[(r * 3 + 1) % 8];
-export const IN = '#FFF2CC';
-export const INC = '#7F6000';
-export const hdrC = (t: string): Cell => ({t, b: true, bg: XL.green, col: '#fff', al: 'l'});
-export const band = (r: number) => (r % 2 === 1 ? '#E2EFDA' : undefined);
-export const one = (r: number, c: number): Sel => ({r1: r, c1: c, r2: r, c2: c, ar: r, ac: c});
-export const rng = (r1: number, c1: number, r2: number, c2: number, ar = r1, ac = c1): Sel => ({r1, c1, r2, c2, ar, ac});
-const R0: Rect = {x: 0, y: 0, w: XL.colW, h: XL.rowH};
-export const rr = (g: Geo, r: number, c: number): Rect => g.cell(r, c) ?? R0;
-export const ctr = (g: Geo, r: number, c: number) => {
-  const q = rr(g, r, c);
-  return {x: q.x + q.w * 0.45, y: q.y + q.h * 0.5};
-};
-export const hp = (g: Geo, r: number, c: number) => {
-  const q = rr(g, r, c);
-  return {x: q.x + q.w - 1, y: q.y + q.h - 1};
-};
-/** cursor keyframes: [t, x, y, kind?]; moves eased between keys, holds when two keys share a position */
-export type K = [number, number, number, ('arrow' | 'cross')?];
-export const path = (t: number, ks: K[]): Cur => {
-  if (t <= ks[0][0]) return {x: ks[0][1], y: ks[0][2], k: ks[0][3]};
-  for (let i = 1; i < ks.length; i++) {
-    if (t <= ks[i][0]) {
-      const a = ks[i - 1], b = ks[i];
-      const p = ease(pg(t, a[0], b[0]));
-      return {x: lerp(a[1], b[1], p), y: lerp(a[2], b[2], p), k: p > 0.5 ? b[3] : a[3]};
-    }
+/* ------------------------------------------------------------------ products (Scene 1) */
+// Products list drives SEQUENCE-generated IDs.
+export const PRODUCTS = [
+  'Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5',
+  'Desk Lamp', 'Monitor 24"', 'Keyboard', 'Webcam HD', 'USB Hub',
+  'Mouse Pad', 'Headset', 'Speaker', 'Dock Station', 'Power Bank',
+];
+export const PRODUCT_INITIAL_COUNT = 10;
+export const PRODUCT_EXPANDED_COUNT = 15;
+
+export type CCell = {t: string; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
+
+/** Product table cell. opts.expanded adds 5 more products to show auto-expansion. */
+export const productCell = (r: number, c: number, opts?: {expanded?: boolean}): CCell | undefined => {
+  const count = opts?.expanded ? PRODUCT_EXPANDED_COUNT : PRODUCT_INITIAL_COUNT;
+  if (r === 1) {
+    if (c < 1 || c > 2) return undefined;
+    return {t: c === 1 ? 'OrderID' : 'Product', b: true, bg: '#E2EFDA', al: 'l'};
   }
-  const l = ks[ks.length - 1];
-  return {x: l[1], y: l[2], k: l[3]};
+  if (r < 2 || r > count + 1) return undefined;
+  if (c === 1) return {t: String(1000 + r - 1)}; // SEQUENCE-generated ID
+  if (c === 2) return {t: PRODUCTS[r - 2]};
+  return undefined;
 };
-export const fmtN = (x: number) => x.toLocaleString('en-US', {maximumFractionDigits: 2});
-const sumRange = (f: (r: number) => number, a: number, b: number) => {
-  let s = 0;
-  for (let r = a; r <= b; r++) s += f(r);
-  return s;
-};
-export const SUM_TAX_1001 = sumRange(tax, 2, 1001);
-export const SUM_COMM_50K = sumRange(comm, 2, 50001);
-export const hwFor = (lastRow: number) => (lastRow >= 10000 ? 42 : lastRow >= 1000 ? 36 : XL.rowHdrW);
 
-// matrix lesson data
-export const CATS = ['Laptop', 'Mobile', 'Tablet', 'Printer', 'Monitor', 'Router', 'Camera', 'Speaker', 'Headset', 'Scanner'];
-export const PRICE = [120, 180, 240, 300, 360, 420, 480, 540, 600, 660];
-export const RATE = [5, 10, 15, 20, 25];
-export const TIER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'VIP'];
-export const mv = (r: number, c: number) => (PRICE[c - 2] * RATE[r - 5]) / 100;
-export const MAT_SUM = (() => { let s = 0; for (let r = 5; r <= 9; r++) for (let c = 2; c <= 11; c++) s += mv(r, c); return s; })();
-export const fx2 = (c: number, r: number) => `${colName(c)}${r}`;
+/* ------------------------------------------------------------------ RANDARRAY deterministic samples (Scene 2) */
+// Pre-computed "random" integers between 100-500 for a 10x4 grid (deterministic for stable render).
+const rng = (n: number) => {
+  const h = (n * 2654435761) >>> 0;
+  return 100 + ((h >>> 5) % 401); // 100..500
+};
+export const RAND_GRID: number[][] = Array.from({length: 10}, (_, r) =>
+  Array.from({length: 4}, (_, c) => rng(r * 4 + c + 1))
+);
+
+/* ------------------------------------------------------------------ LET synergy (Scene 4) */
+// LET(Rows, 10, IDs, SEQUENCE(Rows,1,5001), Values, RANDARRAY(Rows,1,1000,5000,TRUE), HSTACK(IDs,Values))
+export const SYNERGY_ROWS = 10;
+export const SYNERGY_DATA: Array<{id: number; value: number}> = Array.from({length: SYNERGY_ROWS}, (_, i) => ({
+  id: 5001 + i,
+  value: 1000 + ((i * 2654435761 >>> 5) % 4001), // 1000..5000
+}));
+
+/* ------------------------------------------------------------------ big sales (Scene 5) */
+const BIG_PRODUCTS = ['Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5', 'Desk Lamp', 'Monitor 24"', 'Keyboard'];
+const BIG_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
+
+export type BigSale = {id: string; product: string; branch: string; qty: number; total: number; commission: number};
+
+export const bigSale = (n: number): BigSale => {
+  const h = (n * 2654435761) >>> 0;
+  const product = BIG_PRODUCTS[(h >>> 3) % BIG_PRODUCTS.length];
+  const qty = 1 + ((h >>> 9) % 6);
+  const price = [350, 120, 900, 3200, 45, 650, 4800, 750][(h >>> 3) % 8];
+  const total = qty * price;
+  // LET-based tiered commission: >5000 → 5%, >1000 → 3%, else 1%
+  const commission = total > 5000 ? total * 0.05 : total > 1000 ? total * 0.03 : total * 0.01;
+  return {id: `ORD-${5000 + n}`, product, branch: BIG_BRANCHES[(h >>> 13) % BIG_BRANCHES.length], qty, total, commission};
+};
+
+export const BIG_ROWS = 50000;
+export const BIG_LAST = BIG_ROWS + 1;
+export const fmtInt = (n: number) => n.toLocaleString('en-US');
