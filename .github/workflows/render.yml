@@ -33,7 +33,7 @@ jobs:
           if [ -n "$extra" ]; then echo "Unexpected files in public:"; echo "$extra"; exit 1; fi
           stale="$(grep -rhoE 'XL-L[0-9]+' src package.json .github | sort -u | grep -v '^XL-L08$' || true)"
           if [ -n "$stale" ]; then echo "Stale lesson id: $stale"; exit 1; fi
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npm run check
       - run: npm run build
       - name: Verify video exists
