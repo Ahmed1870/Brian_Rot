@@ -1,4 +1,4 @@
-name: Render Excel Lesson 24 Flash Fill TextToColumns RemoveDuplicates
+name: Render Excel Lesson 25 Formula Auditing
 on:
   push:
     branches: [main]
@@ -9,15 +9,14 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 24 only
+      - name: Guard - this repo must contain Excel lesson 25 only
         run: |
-          grep -q "XL-L24-FlashFill-TextToColumns-RemoveDuplicates" src/theme.ts
-          grep -q "XL-L24-FlashFill-TextToColumns-RemoveDuplicates" package.json
-          test -f public/voiceover_lesson_24.mp3
+          grep -q "XL-L25-Formula-Auditing" src/theme.ts
+          grep -q "XL-L25-Formula-Auditing" package.json
+          test -f public/voiceover_lesson_25.mp3
           test -f public/manzooma_logo.svg
           for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
           test "$(ls public | wc -l)" = "8"
-          # Refuse to render if a lockfile got committed (would cause MODULE_NOT_FOUND on Linux)
           test ! -f package-lock.json
       - uses: actions/setup-node@v4
         with:
@@ -32,10 +31,10 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L24-FlashFill-TextToColumns-RemoveDuplicates out/xl-l24-flashfill-texttocolumns-removeduplicates.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l24-flashfill-texttocolumns-removeduplicates.mp4
+      - run: npx remotion render src/index.ts XL-L25-Formula-Auditing out/xl-l25-formula-auditing.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l25-formula-auditing.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l24-flashfill-texttocolumns-removeduplicates
-          path: out/xl-l24-flashfill-texttocolumns-removeduplicates.mp4
+          name: xl-l25-formula-auditing
+          path: out/xl-l25-formula-auditing.mp4
           if-no-files-found: error

@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-24-flashfill-texttocolumns-removeduplicates",
+  "name": "manzooma-excel-lesson-25-formula-auditing",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 24: Flash Fill, Text to Columns, Remove Duplicates (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 25: Formula Auditing, Trace Precedents/Dependents, Evaluate Formula, Error Diagnostics (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L24-FlashFill-TextToColumns-RemoveDuplicates out/xl-l24-flashfill-texttocolumns-removeduplicates.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L25-Formula-Auditing out/xl-l25-formula-auditing.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

@@ -1,138 +1,117 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, SCENES, START} from '../theme';
+import {CIRCULAR_FORMULA} from '../data';
 import {
-  CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track, typed,
+  CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track,
 } from '../kit';
 
-// SC04: Static Tools vs Dynamic Arrays — single Excel window (NO split screen).
-// Phase 1 (130-145s): Static Flash Fill — user typed "Ahmed" before, now adds new row at bottom.
-//   The Flash Fill result column does NOT update → red X on the empty cell.
-// Phase 2 (145-170s): Switch to =TEXTSPLIT(A2, ",") / =UNIQUE(B2:B100)# — when new row added, dynamic formula auto-expands → green ✓.
-// The transformation happens on the SAME grid, showing the architectural difference.
+// SC04: Circular Reference detection + Remove Arrows sweep.
+// Phase 1 (130-145s): A1 = A1 + B1 (circular) → red warning banner + red arrows.
+// Phase 2 (145-170s): fix formula → press Remove Arrows → all arrows swept away cleanly.
 const S = START.s4;
 const t = (g: number) => sec(g - S);
 
-const colW = (c: number) => [0, 240, 160][c] ?? XL.colW;
+const colW = (c: number) => [0, 160, 160, 160][c] ?? XL.colW;
 
-// Source data grows: 3 rows initially, +1 new row added at 140s (static phase) and again at 150s (dynamic phase)
-const INITIAL_ROWS = ['Ahmed Ali - Cairo', 'Sara Mohamed - Giza', 'Omar Ibrahim - Cairo'];
-const FIRST_NAMES = ['Ahmed', 'Sara', 'Omar'];
-const NEW_ROW = 'Mona Saleh - Dokki';
-const NEW_FIRST = 'Mona';
+/** Circular reference warning banner (top of Excel, like Excel's real warning). */
+const CircularBanner: React.FC<{p: number}> = ({p}) => {
+  if (p <= 0.01) return null;
+  return (
+    <div style={{
+      position: 'absolute', left: 80, top: 130, right: 80, height: 36,
+      background: `${C.red}22`, border: `2px solid ${C.red}`, borderRadius: 8,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+      opacity: p, zIndex: 50, boxShadow: `0 4px 20px ${C.red}44`,
+      transform: `translateY(${(1 - p) * -20}px)`,
+    }}>
+      <svg width={22} height={22} viewBox="0 0 22 22"><path d="M11 2 L20 19 H2 Z" fill="none" stroke={C.red} strokeWidth={2} strokeLinejoin="round" /><line x1={11} y1={9} x2={11} y2={13} stroke={C.red} strokeWidth={2} strokeLinecap="round" /><circle cx={11} cy={16} r={1.2} fill={C.red} /></svg>
+      <span style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.red}}>Circular Reference Warning: A1 refers to itself — calculation frozen!</span>
+    </div>
+  );
+};
 
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame();
-  const cam = camLerp(CAM0, {fx: 320, fy: 260, z: 1.12}, prog(f, t(2), 30));
+  const cam = camLerp(CAM0, {fx: 320, fy: 300, z: 1.1}, prog(f, t(2), 30));
 
-  // Phase 1: static (130-148s). Phase 2: dynamic (148-170s).
-  const phase = f < t(148) ? 'static' : 'dynamic';
-  const staticNewRow = f >= t(140);
-  const staticFailP = staticNewRow ? prog(f, t(141), 12) : 0;
+  // Phase 1: circular reference
+  const circularP = prog(f, t(131), 12) * (1 - prog(f, t(140), 10));
+  // Phase 2: fixed + Remove Arrows
+  const fixedP = prog(f, t(140), 10);
+  const removeArrowsP = prog(f, t(145), 14);
+  const cleanP = prog(f, t(150), 12) * (1 - prog(f, t(170), 12));
 
-  const dynamicNewRow = f >= t(150);
-  const dynamicExpandP = dynamicNewRow ? prog(f, t(151), 12) : 0;
+  // Formula display: circular first, then fixed
+  const formula = fixedP > 0.3 ? '=B1+C1' : CIRCULAR_FORMULA;
+  const fbEdit = f >= t(131) && f < t(140.5);
 
-  // Formula display
-  const formula = phase === 'dynamic' ? typed('=TEXTSPLIT(A2, "-")', f, t(148), 1.5) : '';
-  const typingDone = f >= t(154);
-  const fbEdit = phase === 'dynamic' && f >= t(148) && f < t(155);
-
-  // Cursor: type formula in B2 (dynamic phase), press Enter
-  const b2 = cellCenter(2, 2, {colW});
+  // Cursor: A1 → formula bar → fix → Remove Arrows icon
+  const a1 = cellCenter(1, 1, {colW});
   const fbY = geo(1, 0, 1).fbTop + 14;
-  const a5 = cellCenter(5, 1, {colW}); // new row position
+  const removeArrowsIconX = 990;
+  const ribbonY = geo(1, 0, 1).rowsTop - 50;
   const pts = dwell([
-    {f: t(131), x: a5.x, y: a5.y},       // click A5 to add new row (static phase)
-    {f: t(140), x: a5.x, y: a5.y},       // type new data
-    {f: t(148), x: 200, y: fbY},         // formula bar (switch to dynamic)
-    {f: t(155), x: b2.x, y: b2.y},       // Enter on B2
-    {f: t(157), x: 900, y: 330},
+    {f: t(131), x: 200, y: fbY},
+    {f: t(140), x: a1.x, y: a1.y},
+    {f: t(145), x: removeArrowsIconX, y: ribbonY},
+    {f: t(147), x: 900, y: 330},
   ]);
   const cur = track(f, pts);
-  const clicks = [131, 148, 155];
-  const curHide = f > t(158);
+  const clicks = [131, 140, 145];
+  const curHide = f > t(148);
   const down = clicks.some((c) => f >= t(c) && f < t(c) + 4);
 
   return (
     <Stage dur={SCENES.s4.dur} inFx="fade" outFx="fade">
       <ExcelWindow cam={cam}>
         <ExcelApp
-          file="StaticVsDynamic.xlsx" nameBox={phase === 'dynamic' && typingDone ? 'B2' : 'A1'} formula={formula} fbEdit={fbEdit}
+          file="Circular_Ref.xlsx" nameBox="A1" formula={formula} fbEdit={fbEdit} tab="Formulas"
           cell={(r, c) => {
-            if (r === 1) {
-              if (c < 1 || c > 2) return undefined;
-              return {t: c === 1 ? 'Source' : phase === 'dynamic' ? 'TEXTSPLIT result' : 'Flash Fill (static)', b: true, bg: phase === 'dynamic' ? '#D1FAE5' : '#E2EFDA', al: 'l', color: phase === 'dynamic' ? '#107C41' : undefined};
-            }
-            // Column A: source data
-            if (c === 1) {
-              const allRows = (staticNewRow || dynamicNewRow) ? [...INITIAL_ROWS, NEW_ROW] : INITIAL_ROWS;
-              const idx = r - 2;
-              if (idx < 0 || idx >= allRows.length) return undefined;
-              const isNew = idx === allRows.length - 1 && (staticNewRow || dynamicNewRow);
-              return {t: allRows[idx], color: isNew ? '#92400E' : undefined, bg: isNew ? '#FEF3C7' : undefined};
-            }
-            // Column B: result
-            if (c === 2) {
-              const allNames = (staticNewRow || dynamicNewRow) ? [...FIRST_NAMES, NEW_FIRST] : FIRST_NAMES;
-              const idx = r - 2;
-              if (idx < 0 || idx >= allNames.length) return undefined;
-              if (phase === 'static') {
-                // Static: first 3 filled, new row (idx 3) empty → fail
-                if (idx < 3) return {t: allNames[idx], color: '#92400E'};
-                if (idx === 3 && staticFailP > 0) return undefined; // empty (Flash Fill didn't update)
-                return undefined;
+            if (r === 1 && c === 1) {
+              if (fixedP > 0.3) {
+                return {t: '250', al: 'r', color: '#107C41'};
               }
-              // Dynamic: all rows filled including new one
-              return {t: allNames[idx], color: '#107C41'};
+              return {t: '0', al: 'r', color: '#EF4444', bg: '#FEE2E2'};
             }
+            if (r === 1 && c === 2) return {t: '100', al: 'r'};
+            if (r === 1 && c === 3) return {t: '150', al: 'r'};
             return undefined;
           }} colW={colW}
-          sel={{r1: 2, c1: 2, r2: 2, c2: 2}} active={typingDone ? {r: 2, c: 2} : {r: 1, c: 1}}
+          sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}}
           thumb={0} thumbSize={0.55}
         >
-          {/* Red X on the empty static result cell (B5 — idx 3) */}
-          {phase === 'static' && staticFailP > 0 ? (
+          {/* Red circular arrow on A1 (during circular phase) */}
+          {circularP > 0.01 ? (
             <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 28}}>
-              <circle cx={cellCenter(5, 2, {colW}).x} cy={cellCenter(5, 2, {colW}).y} r={16} fill="none" stroke={C.red} strokeWidth={3} opacity={staticFailP} />
-              <line x1={cellCenter(5, 2, {colW}).x - 10} y1={cellCenter(5, 2, {colW}).y - 10} x2={cellCenter(5, 2, {colW}).x + 10} y2={cellCenter(5, 2, {colW}).y + 10} stroke={C.red} strokeWidth={3} opacity={staticFailP} />
-              <line x1={cellCenter(5, 2, {colW}).x + 10} y1={cellCenter(5, 2, {colW}).y - 10} x2={cellCenter(5, 2, {colW}).x - 10} y2={cellCenter(5, 2, {colW}).y + 10} stroke={C.red} strokeWidth={3} opacity={staticFailP} />
+              <path d={`M ${a1.x + 30} ${a1.y - 15} A 40 40 0 1 1 ${a1.x + 30} ${a1.y + 15}`} fill="none" stroke={C.red} strokeWidth={3} strokeDasharray="6 4" opacity={circularP} markerEnd="url(#circArrow)" />
+              <defs><marker id="circArrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill={C.red} /></marker></defs>
             </svg>
           ) : null}
-          {/* Green check on dynamic expanded cell */}
-          {phase === 'dynamic' && dynamicExpandP > 0 ? (
-            <Neon x={cellCenter(5, 2, {colW}).x - colW(2) / 2} y={cellCenter(5, 2, {colW}).y - XL.rowH / 2} w={colW(2)} h={XL.rowH} color={C.green} p={dynamicExpandP} label="Auto-expanded ✓" labelBelow />
+          {/* A1 highlight */}
+          <Neon x={a1.x - colW(1) / 2} y={a1.y - XL.rowH / 2} w={colW(1)} h={XL.rowH} color={fixedP > 0.3 ? C.green : C.red} p={prog(f, t(131), 10) * (1 - prog(f, t(170), 12))} label={fixedP > 0.3 ? 'Fixed ✓' : 'Circular!'} labelBelow />
+          {/* Remove Arrows sweep effect */}
+          {removeArrowsP > 0 && removeArrowsP < 1 ? (
+            <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 27}}>
+              <line x1={0} y1={geo(1, 0, 1).rowsTop + (geo(1, 0, 1).rowsBottom - geo(1, 0, 1).rowsTop) * removeArrowsP} x2={XL.W} y2={geo(1, 0, 1).rowsTop + (geo(1, 0, 1).rowsBottom - geo(1, 0, 1).rowsTop) * removeArrowsP} stroke={C.blue} strokeWidth={4} opacity={0.9} />
+            </svg>
           ) : null}
-          {/* Spill border on column B (dynamic) */}
-          {phase === 'dynamic' && typingDone ? (
-            <Neon x={cellCenter(2, 2, {colW}).x - colW(2) / 2} y={cellCenter(2, 2, {colW}).y - XL.rowH / 2} w={colW(2)} h={XL.rowH * (dynamicNewRow ? 4 : 3)} color={C.blue} p={prog(f, t(155), 12) * 0.4 * (1 - prog(f, t(170), 12))} label="TEXTSPLIT spill" labelBelow />
+          {/* Clean canvas border (after sweep) */}
+          {cleanP > 0.01 ? (
+            <Neon x={geo(1, 0, 1).rowW} y={geo(1, 0, 1).rowsTop} w={XL.W - geo(1, 0, 1).rowW - XL.vbar} h={geo(1, 0, 1).rowsBottom - geo(1, 0, 1).rowsTop} color={C.blue} p={cleanP * 0.2} label="Clean canvas" labelBelow />
           ) : null}
           {/* Click ripples */}
-          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} color={phase === 'dynamic' && c >= 148 ? C.green : C.red} />; })}
+          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} color={c === 145 ? C.blue : C.red} />; })}
           <Cursor x={cur.x} y={cur.y} down={down} hide={curHide} />
         </ExcelApp>
       </ExcelWindow>
 
-      {/* Bottom comparison badge */}
-      {phase === 'static' && staticFailP > 0.3 ? (
-        <div style={{position: 'absolute', left: 0, right: 0, top: 950, display: 'flex', justifyContent: 'center', opacity: staticFailP * (1 - prog(f, t(148), 8))}}>
-          <div style={{background: C.card, border: `2.5px solid ${C.red}`, borderRadius: 14, padding: '12px 32px', boxShadow: `0 0 0 6px ${C.red}22`, display: 'flex', alignItems: 'center', gap: 14}}>
-            <span style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.red}}>Static Tools ──► One-time cleanup, ZERO auto-refresh on new data</span>
-          </div>
-        </div>
-      ) : null}
-      {phase === 'dynamic' && dynamicExpandP > 0.3 ? (
-        <div style={{position: 'absolute', left: 0, right: 0, top: 950, display: 'flex', justifyContent: 'center', opacity: dynamicExpandP * (1 - prog(f, t(170), 12))}}>
-          <div style={{background: C.card, border: `2.5px solid ${C.green}`, borderRadius: 14, padding: '12px 32px', boxShadow: `0 0 0 6px ${C.green}22, 0 0 30px ${C.green}44`, display: 'flex', alignItems: 'center', gap: 14}}>
-            <svg width={28} height={28} viewBox="0 0 28 28"><polyline points="6,14 12,20 22,8" fill="none" stroke={C.green} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <span style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green}}>Dynamic Formulas ──► Auto-updating pipelines for live models</span>
-          </div>
-        </div>
-      ) : null}
+      {/* Circular reference banner */}
+      <CircularBanner p={circularP} />
 
-      <TopBadge text="Architectural Comparison ──► Static Tools vs Dynamic Array Formulas" from={t(131.0)} to={t(150.0)} />
-      {phase === 'static' && staticFailP < 0.3 ? <Caption text="Static Tools (Flash Fill / Remove Dupes) ──► One-time Cleanup, Zero Auto-Refresh" from={t(131.0)} to={t(145.0)} tone="danger" /> : null}
-      {phase === 'dynamic' && dynamicExpandP < 0.3 ? <Caption text="Dynamic Formulas (TEXTSPLIT / UNIQUE#) ──► Auto-Updating Pipelines for Live Models" from={t(150.0)} to={t(169.0)} tone="ok" /> : null}
+      <TopBadge text="Circular Reference Audit ──► Detect & Eliminate Calculation Loops" from={t(131.0)} to={t(150.0)} />
+      {cleanP < 0.01 ? <Caption text="Circular Reference Audit ──► Detect & Eliminate Calculation Loops that Freeze Calculations" from={t(131.0)} to={t(145.0)} tone="danger" /> : null}
+      {cleanP > 0.01 ? <Caption text="Clean Canvas ──► Remove Arrows Resets Auditing Visuals for Final Executive Reporting" from={t(150.0)} to={t(169.0)} tone="ok" /> : null}
     </Stage>
   );
 };

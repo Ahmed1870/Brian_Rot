@@ -3,16 +3,16 @@ import {Img, staticFile, useCurrentFrame} from 'remotion';
 import {C, LESSON, LOGO_FILE, MONO, SCENES, START, TOTAL_LESSONS, TOTAL_UNITS, UNIT} from '../theme';
 import {Check, Mix, Stage, clamp, pop, prog, sec} from '../kit';
 
-// SC06: Lesson 24 completion card — 24/76, Unit 5/14, next: Formula Auditing.
+// SC06: Lesson 25 completion card — 25/76, Unit 5/14, next: Unpivoting & Data Normalization.
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
 const SKILLS = [
-  {a: 'التعبئة السريعة Flash Fill', e: 'Ctrl + E · Pattern Recognition without Formulas · Static output', at: 212.5},
-  {a: 'تحويل النص إلى أعمدة Text to Columns', e: 'Delimited / Fixed Width · Step 3 Date Fixer (YMD/DMY/MDY)', at: 213.7},
-  {a: 'حذف التكرارات Remove Duplicates', e: 'Single/Multiple keys · Permanent destructive modification', at: 214.9},
-  {a: 'مقارنة الأدوات الساكنة بالديناميكية', e: 'Static one-time vs Dynamic auto-refresh (TEXTSPLIT / UNIQUE#)', at: 216.1},
-  {a: 'التطبيق المؤسسي', e: 'Clean & split 50,000 rows in <2ms · Enterprise data hygiene', at: 217.3},
+  {a: 'تتبع المراجع والمسبقات', e: 'Trace Precedents & Dependents · Vector arrows visualize data flow', at: 212.5},
+  {a: 'التقييم المباشر للمعادلات', e: 'Evaluate Formula · Step-by-step nested formula inspection', at: 213.7},
+  {a: 'نافذة المراقبة Watch Window', e: 'Floating monitor for KPI cells across multiple sheets', at: 214.9},
+  {a: 'تشخيص أخطاء 365', e: '#SPILL! (blocked) · #CALC! (empty) · #REF! (deleted) · #N/A', at: 216.1},
+  {a: 'المعالجة الآمنة', e: 'Prefer IFNA over blind IFERROR · Avoid hiding structural bugs', at: 217.3},
 ];
 
 export const Scene6: React.FC = () => {
@@ -43,7 +43,7 @@ export const Scene6: React.FC = () => {
         <div dir="ltr" style={{position: 'absolute', left: 60, top: 176, display: 'flex', alignItems: 'center', gap: 18}}>
           <Check p={badge} size={64} />
           <div style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color: C.text, opacity: clamp(badge), lineHeight: 1.3}}>
-            Lesson {String(LESSON).padStart(2, '0')} of {TOTAL_LESSONS} Completed:<br /><span style={{color: C.green}}>Rapid Data Hygiene Mastered (Unit {UNIT}/{TOTAL_UNITS})</span>
+            Lesson {String(LESSON).padStart(2, '0')} of {TOTAL_LESSONS} Completed:<br /><span style={{color: C.green}}>Formula Diagnostics Mastered (Unit {UNIT}/{TOTAL_UNITS})</span>
           </div>
         </div>
 
@@ -55,7 +55,7 @@ export const Scene6: React.FC = () => {
             <div style={{width: `${(fill / (LESSON / TOTAL_LESSONS)) * 100}%`, minWidth: fill > 0 ? 8 : 0, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, borderRadius: 13, boxShadow: `0 0 16px ${C.green}`}} />
           </div>
           <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: MONO, fontSize: 16, color: C.muted}}>
-            <span>Lesson 24 · {pct}%</span><span>76 lessons total</span>
+            <span>Lesson 25 · {pct}%</span><span>76 lessons total</span>
           </div>
         </div>
 
@@ -78,28 +78,34 @@ export const Scene6: React.FC = () => {
           <div style={{borderRadius: 24, background: C.card, border: `2px solid ${linkHot > 0.1 ? C.green : C.border}`, padding: '26px 32px', boxShadow: linkHot > 0.1 ? `0 0 ${30 * linkPulse}px ${C.green}88` : 'none'}}>
             <Mix style={{fontSize: 30, fontWeight: 700, color: C.text}}>الملفات والتدريبات</Mix>
             <div dir="ltr" style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.blue, marginTop: 14, wordBreak: 'break-all'}}>solutions.gomaaintelligence.me</div>
-            <Mix style={{fontSize: 22, color: C.muted, display: 'block', marginTop: 10}}>نزّل manzooma_sales_2026.xlsx وطبّق Flash Fill + Text to Columns + Remove Duplicates</Mix>
+            <Mix style={{fontSize: 22, color: C.muted, display: 'block', marginTop: 10}}>نزّل manzooma_sales_2026.xlsx وطبّق Formula Auditing بنفسك</Mix>
           </div>
         </div>
 
         <div style={{position: 'absolute', left: 1060, top: 330, width: 600, opacity: next, transform: `translateY(${(1 - next) * 30}px)`}}>
           <div style={{borderRadius: 24, background: C.card, border: `2px solid ${C.blue}`, padding: '24px 30px', boxShadow: `0 0 0 6px ${C.blue}22`}}>
-            <Mix style={{fontSize: 24, color: C.blue, fontWeight: 700}}>الدرس القادم · 25 من 76</Mix>
-            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 6}}>تدقيق المعادلات وتتبع المراجع</Mix>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginTop: 8}}>Formula Auditing · Trace Precedents · Error Checking</div>
+            <Mix style={{fontSize: 24, color: C.blue, fontWeight: 700}}>الدرس القادم · 26 من 76</Mix>
+            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 6}}>تغيير هيكل البيانات غير المنتظمة</Mix>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginTop: 8}}>Unpivoting &amp; Advanced Data Normalization</div>
             <svg width={540} height={120} viewBox="0 0 540 120" style={{marginTop: 16}}>
               <rect x={1} y={1} width={538} height={118} rx={10} fill="#fff" stroke="#334155" />
-              {/* Trace precedents arrows */}
-              <rect x={40} y={20} width={120} height={30} fill="rgba(56,189,248,0.2)" stroke={C.blue} strokeWidth={1.5} rx={4} />
-              <rect x={40} y={70} width={120} height={30} fill="rgba(56,189,248,0.2)" stroke={C.blue} strokeWidth={1.5} rx={4} />
-              <rect x={300} y={45} width={120} height={30} fill="rgba(16,185,129,0.2)" stroke={C.green} strokeWidth={1.5} rx={4} />
-              <path d="M160 35 L300 55" stroke={C.blue} strokeWidth={2} fill="none" markerEnd="url(#ah24)" />
-              <path d="M160 85 L300 65" stroke={C.blue} strokeWidth={2} fill="none" markerEnd="url(#ah24)" />
-              <defs><marker id="ah24" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill={C.blue} /></marker></defs>
-              <text x={460} y={65} fill={C.green} fontFamily="Consolas, monospace" fontSize={14} fontWeight={700}>result</text>
+              {/* Unpivot visual: wide table → tall table */}
+              <text x={30} y={35} fill="#242424" fontFamily="Consolas, monospace" fontSize={12} fontWeight={700}>Wide (pivoted):</text>
+              <rect x={30} y={42} width={140} height={22} fill="rgba(245,158,11,0.2)" stroke={C.amber} strokeWidth={1.5} rx={3} />
+              <rect x={170} y={42} width={60} height={22} fill="rgba(245,158,11,0.2)" stroke={C.amber} strokeWidth={1.5} rx={3} />
+              <rect x={30} y={66} width={140} height={22} fill="rgba(245,158,11,0.2)" stroke={C.amber} strokeWidth={1.5} rx={3} />
+              <rect x={170} y={66} width={60} height={22} fill="rgba(245,158,11,0.2)" stroke={C.amber} strokeWidth={1.5} rx={3} />
+              {/* Arrow */}
+              <path d="M260 60 L320 60" stroke={C.blue} strokeWidth={3} markerEnd="url(#ah25)" />
+              <defs><marker id="ah25" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill={C.blue} /></marker></defs>
+              {/* Tall (unpivoted) */}
+              <text x={350} y={35} fill="#242424" fontFamily="Consolas, monospace" fontSize={12} fontWeight={700}>Tall (normalized):</text>
+              <rect x={350} y={42} width={120} height={18} fill="rgba(16,185,129,0.2)" stroke={C.green} strokeWidth={1.5} rx={3} />
+              <rect x={350} y={62} width={120} height={18} fill="rgba(16,185,129,0.2)" stroke={C.green} strokeWidth={1.5} rx={3} />
+              <rect x={350} y={82} width={120} height={18} fill="rgba(16,185,129,0.2)" stroke={C.green} strokeWidth={1.5} rx={3} />
             </svg>
             <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: -8, transform: `scale(${0.8 + 0.2 * tag})`, opacity: clamp(tag)}}>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green, border: `2px solid ${C.green}`, borderRadius: 999, padding: '4px 16px', background: `${C.green}18`}}>AUDIT</div>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green, border: `2px solid ${C.green}`, borderRadius: 999, padding: '4px 16px', background: `${C.green}18`}}>UNPIVOT</div>
             </div>
           </div>
         </div>

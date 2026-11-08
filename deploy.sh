@@ -77,11 +77,8 @@ stale="$(grep -rEn "SQL-L[0-9]+|XL-L[0-9]{2}-[A-Za-z0-9-]+|voiceover_lesson_[0-9
 ok "name checks passed"
 
 # ---- 5) install + type check (never commit package-lock.json) ----
-# Remove any stray lockfile so GitHub Actions resolves fresh Linux-native deps.
 rm -f package-lock.json
-# Verify .gitignore actually ignores the lockfile (fail fast if someone removed it)
 grep -q '^package-lock.json$' .gitignore || { echo "❌ .gitignore missing 'package-lock.json' entry"; bad=1; }
-# Verify render.yml install step uses --no-package-lock (fail fast if regressed)
 grep -q 'no-package-lock' .github/workflows/render.yml || { echo "❌ render.yml install step must use --no-package-lock"; bad=1; }
 [ "$bad" = 0 ] || die "lockfile/install checks failed - nothing was pushed"
 ok "lockfile/install checks passed"
@@ -92,24 +89,20 @@ else
   npm install --no-audit --no-fund --no-package-lock
   npx tsc --noEmit
   ok "tsc passed"
-  # Final sweep: ensure no lockfile got generated during install above
   rm -f package-lock.json
 fi
 
 # ---- 6) commit + push (never commit package-lock.json) ----
 git config user.name >/dev/null 2>&1 || git config user.name "Ahmed Gomaa"
 git config user.email >/dev/null 2>&1 || git config user.email "ahmed@users.noreply.github.com"
-# Hard-delete lockfile right before staging so it never lands in the commit
 rm -f package-lock.json
 git add -A
-# Safety net: if lockfile somehow got staged, unstage & delete it
 git rm --cached -f package-lock.json 2>/dev/null || true
 rm -f package-lock.json
-# Final check: refuse to push if a lockfile is in the staged tree
 if git diff --cached --name-only | grep -q '^package-lock.json$'; then
   die "package-lock.json is staged - refusing to push (would cause MODULE_NOT_FOUND on Linux)"
 fi
-MSG="${COMMIT_MSG:-feat: render Excel course lesson $NN - Flash Fill, Text to Columns, Remove Duplicates (Rapid Data Hygiene) 4m exact}"
+MSG="${COMMIT_MSG:-feat: render Excel course lesson $NN - Formula Auditing, Trace Precedents/Dependents, Evaluate Formula, Error Diagnostics 4m exact}"
 git commit -q -m "$MSG" || echo "(nothing to commit)"
 if [ "$DRY_RUN" = 1 ]; then
   echo "🧪 DRY_RUN=1: would run: git push --force origin $BRANCH"
