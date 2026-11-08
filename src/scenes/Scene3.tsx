@@ -1,126 +1,118 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, SCENES, START} from '../theme';
-import {ERROR_CARDS} from '../data';
+import {MATRIX_3x3, TOCOL_RESULT, WRAPCOLS_RESULT} from '../data';
 import {
-  CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track,
+  CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track, typed,
 } from '../kit';
 
-// SC03: Error Diagnostics — #SPILL!, #CALC!, #REF! + IFERROR vs IFNA comparison.
-// Single Excel window. Three error cards appear one after another, then a comparison badge.
+// SC03: TOCOL + WRAPCOLS — typed formulas on the same grid.
+// Phase 1 (85-100s): type =TOCOL(B2:D4, 1), matrix flattens into single column (blue).
+// Phase 2 (100-130s): type =WRAPCOLS(A2#, 3), column wraps back into 3-column grid (green).
 const S = START.s3;
 const t = (g: number) => sec(g - S);
 
-const colW = (c: number) => [0, 160, 200, 160, 160, 200][c] ?? XL.colW;
-
-/** Error card showing the error code, cause, and fix. */
-const ErrorCard: React.FC<{x: number; y: number; error: {code: string; color: string; title: string; desc: string; fix: string; fixColor: string}; p: number; resolvedP: number}> = ({x, y, error, p, resolvedP}) => {
-  if (p <= 0.01) return null;
-  return (
-    <div style={{
-      position: 'absolute', left: x, top: y, width: 460, opacity: p,
-      transform: `scale(${0.9 + 0.1 * p}) translateY(${(1 - p) * 20}px)`, zIndex: 35,
-    }}>
-      <div style={{
-        background: 'rgba(30,41,59,0.95)', border: `2.5px solid ${error.color}`,
-        borderRadius: 12, padding: '16px 20px',
-        boxShadow: `0 0 0 6px ${error.color}22, 0 8px 30px rgba(2,6,23,0.6), 0 0 30px ${error.color}44`,
-      }}>
-        {/* Error code */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8}}>
-          <div style={{fontFamily: MONO, fontSize: 32, fontWeight: 700, color: error.color, textShadow: `0 0 12px ${error.color}88`}}>{error.code}</div>
-          <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.text}}>{error.title}</div>
-        </div>
-        {/* Cause */}
-        <div style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 10}}>Cause: {error.desc}</div>
-        {/* Fix (appears when resolved) */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, opacity: resolvedP}}>
-          <svg width={24} height={24} viewBox="0 0 24 24"><circle cx={12} cy={12} r={10} fill={`${error.fixColor}22`} stroke={error.fixColor} strokeWidth={2.5} /><polyline points="7,12 11,16 17,9" fill="none" stroke={error.fixColor} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <span style={{fontFamily: MONO, fontSize: 16, fontWeight: 700, color: error.fixColor}}>Fix: {error.fix}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
+const colW = (c: number) => [0, 100, 100, 100, 120, 100, 100, 100][c] ?? XL.colW;
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const cam = camLerp(CAM0, {fx: 460, fy: 280, z: 1.05}, prog(f, t(2), 30));
+  const cam = camLerp(CAM0, {fx: 380, fy: 260, z: 1.1}, prog(f, t(2), 30));
 
-  // Three error cards appear sequentially
-  const card1P = prog(f, t(86), 12) * (1 - prog(f, t(95), 8));     // #SPILL!
-  const card2P = prog(f, t(95), 12) * (1 - prog(f, t(105), 8));    // #CALC!
-  const card3P = prog(f, t(105), 12) * (1 - prog(f, t(115), 8));   // #REF!
-  // Resolution progress for each
-  const resolve1P = prog(f, t(92), 12);
-  const resolve2P = prog(f, t(101), 12);
-  const resolve3P = prog(f, t(111), 12);
+  // Phase control
+  const phase2 = f >= t(100);
+  const tocolTyped = typed('=TOCOL(B2:D4, 1)', f, t(86), 1.2);
+  const tocolDone = f >= t(95);
+  const tocolSpillP = tocolDone ? prog(f, t(95.5), 14) : 0;
 
-  // IFERROR vs IFNA comparison badge (115s+)
-  const comparisonP = prog(f, t(115), 14) * (1 - prog(f, t(130), 12));
+  const wrapTyped = phase2 ? typed('=WRAPCOLS(B2#, 3)', f, t(101), 1.2) : '';
+  const wrapDone = f >= t(110);
+  const wrapSpillP = wrapDone ? prog(f, t(110.5), 14) : 0;
 
-  // Cursor: moves between error cells
+  const fbEdit = (f >= t(86) && f < t(95.5)) || (phase2 && f >= t(101) && f < t(110.5));
+
+  // Cursor: formula bar → Enter (TOCOL), then formula bar → Enter (WRAPCOLS)
+  const fbY = geo(1, 0, 1).fbTop + 14;
+  const f2 = cellCenter(2, 5, {colW});
+  const f6 = cellCenter(6, 5, {colW});
   const pts = dwell([
-    {f: t(85), x: 700, y: 330},
-    {f: t(95), x: 800, y: 360},
-    {f: t(105), x: 750, y: 380},
+    {f: t(86), x: 200, y: fbY},
+    {f: t(95), x: f2.x, y: f2.y},
+    {f: t(101), x: 200, y: fbY},
+    {f: t(110), x: f6.x, y: f6.y},
+    {f: t(112), x: 900, y: 330},
   ]);
   const cur = track(f, pts);
-  const curHide = f > t(116);
+  const clicks = [95, 110];
+  const curHide = f > t(113);
+  const down = clicks.some((c) => f >= t(c) && f < t(c) + 4);
 
   return (
     <Stage dur={SCENES.s3.dur} inFx="fade" outFx="fade">
       <ExcelWindow cam={cam}>
         <ExcelApp
-          file="Error_Diagnostics.xlsx" nameBox="A1" formula="" tab="Formulas"
+          file="Reshaping.xlsx" nameBox={phase2 ? 'F2' : 'E2'} formula={phase2 ? wrapTyped : tocolTyped} fbEdit={fbEdit}
           cell={(r, c) => {
-            // Show error cells in the grid
-            if (c === 2 && r === 3) return {t: '#SPILL!', color: '#EF4444', bg: '#FEE2E2'};
-            if (c === 2 && r === 5) return {t: '#CALC!', color: '#92400E', bg: '#FEF3C7'};
-            if (c === 2 && r === 7) return {t: '#REF!', color: '#EF4444', bg: '#FEE2E2'};
-            if (r === 1 && c === 2) return {t: 'Formula Result', b: true, bg: '#E2EFDA', al: 'l'};
+            // Source matrix B2:D4 (columns 2-4, rows 2-4)
+            if (c >= 2 && c <= 4 && r >= 2 && r <= 4) {
+              if (r === 1 || c === 1) return undefined;
+              const val = MATRIX_3x3[r - 2][c - 2];
+              return {t: String(val), al: 'c'};
+            }
+            if (r === 1 && c >= 2 && c <= 4) return {t: `Col ${c - 1}`, b: true, bg: '#E2EFDA', al: 'c'};
+            if (c === 1 && r >= 2 && r <= 4) return {t: `Row ${r - 1}`, b: true, bg: '#E2EFDA', al: 'l'};
+
+            // TOCOL result (column E, rows 2-10)
+            if (c === 5) {
+              if (r === 1) return {t: 'TOCOL', b: true, bg: '#DBEAFE', al: 'c', color: '#1E40AF'};
+              const idx = r - 2;
+              if (idx < TOCOL_RESULT.length && tocolSpillP > idx / TOCOL_RESULT.length) {
+                return {t: String(TOCOL_RESULT[idx]), al: 'c', color: '#1E40AF'};
+              }
+              return undefined;
+            }
+            // WRAPCOLS result (columns F-H, rows 2-4)
+            if (phase2 && c >= 6 && c <= 8) {
+              if (r === 1) return {t: c === 6 ? 'WRAPCOLS' : '', b: true, bg: '#D1FAE5', al: 'c', color: '#107C41'};
+              const rowIdx = r - 2;
+              const colIdx = c - 6;
+              if (rowIdx < 3 && colIdx < 3 && wrapSpillP > rowIdx / 3) {
+                return {t: String(WRAPCOLS_RESULT[rowIdx][colIdx]), al: 'c', color: '#107C41'};
+              }
+              return undefined;
+            }
             return undefined;
           }} colW={colW}
-          sel={{r1: 3, c1: 2, r2: 3, c2: 2}} active={{r: 3, c: 2}}
+          sel={phase2 ? {r1: 2, c1: 6, r2: 2, c2: 6} : {r1: 2, c1: 5, r2: 2, c2: 5}}
+          active={phase2 ? {r: 2, c: 6} : {r: 2, c: 5}}
           thumb={0} thumbSize={0.55}
         >
-          {/* Highlight error cells */}
-          <Neon x={cellCenter(3, 2, {colW}).x - colW(2) / 2} y={cellCenter(3, 2, {colW}).y - XL.rowH / 2} w={colW(2)} h={XL.rowH} color={C.red} p={card1P > 0.3 ? 0.5 : 0} />
-          <Neon x={cellCenter(5, 2, {colW}).x - colW(2) / 2} y={cellCenter(5, 2, {colW}).y - XL.rowH / 2} w={colW(2)} h={XL.rowH} color={C.amber} p={card2P > 0.3 ? 0.5 : 0} />
-          <Neon x={cellCenter(7, 2, {colW}).x - colW(2) / 2} y={cellCenter(7, 2, {colW}).y - XL.rowH / 2} w={colW(2)} h={XL.rowH} color={C.red} p={card3P > 0.3 ? 0.5 : 0} />
-          <Cursor x={cur.x} y={cur.y} hide={curHide} />
+          {/* Source matrix highlight */}
+          <Neon x={cellCenter(2, 2, {colW}).x - colW(2) / 2} y={cellCenter(2, 2, {colW}).y - XL.rowH / 2} w={colW(2) + colW(3) + colW(4)} h={XL.rowH * 3} color={C.amber} p={prog(f, t(86), 12) * 0.3 * (1 - prog(f, t(130), 12))} label="Source matrix" labelBelow />
+          {/* TOCOL result border */}
+          {tocolSpillP > 0.05 ? (
+            <Neon x={cellCenter(2, 5, {colW}).x - colW(5) / 2} y={cellCenter(2, 5, {colW}).y - XL.rowH / 2} w={colW(5)} h={XL.rowH * 9} color={C.blue} p={tocolSpillP * (1 - prog(f, t(130), 12))} label="=TOCOL (flattened)" labelBelow />
+          ) : null}
+          {/* WRAPCOLS result border */}
+          {wrapSpillP > 0.05 ? (
+            <Neon x={cellCenter(2, 6, {colW}).x - colW(6) / 2} y={cellCenter(2, 6, {colW}).y - XL.rowH / 2} w={colW(6) + colW(7) + colW(8)} h={XL.rowH * 3} color={C.green} p={wrapSpillP * (1 - prog(f, t(130), 12))} label="=WRAPCOLS (reshaped)" labelBelow />
+          ) : null}
+          {/* Click ripples */}
+          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} color={c === 95 ? C.blue : C.green} />; })}
+          <Cursor x={cur.x} y={cur.y} down={down} hide={curHide} />
         </ExcelApp>
       </ExcelWindow>
 
-      {/* Error cards overlay (right side) */}
-      <ErrorCard x={1140} y={150} error={ERROR_CARDS[0]} p={card1P} resolvedP={resolve1P} />
-      <ErrorCard x={1140} y={150} error={ERROR_CARDS[1]} p={card2P} resolvedP={resolve2P} />
-      <ErrorCard x={1140} y={150} error={ERROR_CARDS[2]} p={card3P} resolvedP={resolve3P} />
-
-      {/* IFERROR vs IFNA comparison badge (bottom) */}
-      {comparisonP > 0.01 ? (
-        <div style={{position: 'absolute', left: 0, right: 0, top: 945, display: 'flex', justifyContent: 'center', opacity: comparisonP}}>
-          <div style={{display: 'flex', gap: 20, alignItems: 'center'}}>
-            {/* IFERROR (bad) */}
-            <div style={{background: C.card, border: `2px solid ${C.red}`, borderRadius: 12, padding: '12px 28px', boxShadow: `0 0 0 6px ${C.red}22`}}>
-              <div style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 4}}>Blind wrapping:</div>
-              <div style={{fontFamily: MONO, fontSize: 20, fontWeight: 700, color: C.red, textDecoration: 'line-through'}}>IFERROR(formula, "")</div>
-              <div style={{fontFamily: MONO, fontSize: 14, color: C.red, marginTop: 4}}>hides #REF! structural bugs ✗</div>
-            </div>
-            <span style={{fontFamily: MONO, fontSize: 28, color: C.text, fontWeight: 700}}>vs</span>
-            {/* IFNA (good) */}
-            <div style={{background: C.card, border: `2.5px solid ${C.purple}`, borderRadius: 12, padding: '12px 28px', boxShadow: `0 0 0 6px ${C.purple}22, 0 0 30px ${C.purple}44`}}>
-              <div style={{fontFamily: MONO, fontSize: 16, color: C.muted, marginBottom: 4}}>Targeted wrapping:</div>
-              <div style={{fontFamily: MONO, fontSize: 20, fontWeight: 700, color: C.purple}}>IFNA(formula, "Not Found")</div>
-              <div style={{fontFamily: MONO, fontSize: 14, color: C.purple, marginTop: 4}}>catches #N/A only, exposes #REF! ✓</div>
-            </div>
-          </div>
+      {/* Bottom formula badge */}
+      <div style={{position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', opacity: clamp(prog(f, t(86), 12) * (1 - prog(f, t(130), 12)))}}>
+        <div style={{display: 'flex', gap: 20, alignItems: 'center', background: 'rgba(11,18,34,0.95)', border: `2px solid ${C.border}`, borderRadius: 12, padding: '10px 20px'}}>
+          <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: phase2 ? C.muted : C.blue, opacity: phase2 ? 0.5 : 1}}>=TOCOL(B2:D4, 1) → 1 vector</div>
+          <span style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>│</span>
+          <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: phase2 ? C.green : C.muted, opacity: phase2 ? 1 : 0.5}}>=WRAPCOLS(B2#, 3) → 3×3 grid</div>
         </div>
-      ) : null}
+      </div>
 
-      <TopBadge text="Modern Error Audit ──► #SPILL! (Blocked) & #CALC! (Empty Array) & #REF! (Deleted)" from={t(86.0)} to={t(115.0)} />
-      {comparisonP < 0.01 ? <Caption text="Modern Error Audit ──► #SPILL! (Blocked Array Path) & #CALC! (Empty Dynamic Array Result)" from={t(86.0)} to={t(110.0)} tone="danger" /> : null}
-      {comparisonP > 0.01 ? <Caption text="Safe Error Handling ──► Prefer IFNA Over Blind IFERROR to Avoid Hiding Structural Bug (#REF!)" from={t(115.0)} to={t(129.0)} /> : null}
+      <TopBadge text="=TOCOL(Array, 1) ──► Flattens Matrix into Single Vector (Ignores Blanks)" from={t(86.0)} to={t(100.0)} />
+      {phase2 ? <Caption text="=WRAPCOLS(Vector, 3) ──► Reshapes Single Vectors Back into Multi-Column Grids" from={t(100.0)} to={t(129.0)} tone="ok" /> : null}
     </Stage>
   );
 };
