@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-26-unpivoting-datareshaping",
+  "name": "manzooma-excel-lesson-27-data-merge-linking",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 26: Unpivoting & Advanced Data Normalization (Power Query, TOCOL, WRAPCOLS, HSTACK) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 27: Data Merge & Linking (VSTACK, HSTACK, Power Query, Data Model) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L26-Unpivoting-DataReshaping out/xl-l26-unpivoting-datareshaping.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L27-DataMerge-Linking out/xl-l27-datamerge-linking.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

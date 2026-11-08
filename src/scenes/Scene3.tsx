@@ -1,118 +1,137 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, MONO, SCENES, START} from '../theme';
-import {MATRIX_3x3, TOCOL_RESULT, WRAPCOLS_RESULT} from '../data';
+import {DATA_MODEL_TABLES} from '../data';
 import {
-  CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track, typed,
+  CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, clamp, dwell, geo, prog, sec, track,
 } from '../kit';
 
-// SC03: TOCOL + WRAPCOLS — typed formulas on the same grid.
-// Phase 1 (85-100s): type =TOCOL(B2:D4, 1), matrix flattens into single column (blue).
-// Phase 2 (100-130s): type =WRAPCOLS(A2#, 3), column wraps back into 3-column grid (green).
+// SC03: Merge Queries + Data Model — single Excel window with Data Model diagram overlay.
+// Phase 1 (85-100s): Merge Queries dialog linking Sales ↔ Products via SKU.
+// Phase 2 (100-130s): Data Model Diagram View — 1-to-Many relationships (purple arrows).
 const S = START.s3;
 const t = (g: number) => sec(g - S);
 
-const colW = (c: number) => [0, 100, 100, 100, 120, 100, 100, 100][c] ?? XL.colW;
+const colW = (c: number) => [0, 120, 200, 100][c] ?? XL.colW;
+
+/** Data Model Diagram View overlay (Power Pivot) — receives frame as prop. */
+const DataModelDiagramFixed: React.FC<{f: number; p: number; relP: number; compressP: number}> = ({f, p, relP, compressP}) => {
+  if (p <= 0.01) return null;
+  return (
+    <div style={{
+      position: 'absolute', left: 300, top: 130, width: 980, height: 620,
+      background: '#1E293B', border: `2px solid ${C.purple}`, boxShadow: `0 12px 40px rgba(0,0,0,0.6), 0 0 30px ${C.purple}44`,
+      borderRadius: 7, opacity: p, zIndex: 40, overflow: 'hidden', transform: `scale(${0.95 + 0.05 * p})`,
+    }}>
+      <div style={{height: 32, background: C.purple, display: 'flex', alignItems: 'center', paddingLeft: 12}}>
+        <span style={{fontFamily: 'Segoe UI, sans-serif', fontSize: 12.5, color: '#fff', fontWeight: 600}}>Data Model — Diagram View (Power Pivot)</span>
+      </div>
+      <div style={{position: 'relative', width: '100%', height: 'calc(100% - 32px)'}}>
+        {DATA_MODEL_TABLES.map((tbl, i) => (
+          <div key={i} style={{
+            position: 'absolute', left: tbl.x, top: tbl.y, width: 200,
+            background: '#0F172A', border: `2px solid ${tbl.color}`, borderRadius: 8, padding: '12px 14px',
+            boxShadow: `0 4px 16px rgba(0,0,0,0.4), 0 0 20px ${tbl.color}44`,
+          }}>
+            <div style={{fontFamily: MONO, fontSize: 16, fontWeight: 700, color: tbl.color, marginBottom: 6}}>{tbl.name}</div>
+            <div style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginBottom: 4}}>Key: {tbl.key}</div>
+            <div style={{fontFamily: MONO, fontSize: 12, color: C.text}}>{tbl.rows.toLocaleString()} rows</div>
+            <div style={{position: 'absolute', right: -8, top: '50%', width: 16, height: 16, borderRadius: 8, background: tbl.color, boxShadow: `0 0 10px ${tbl.color}`}} />
+          </div>
+        ))}
+        <svg width={980} height={588} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+          <defs>
+            <marker id="rel-arrow-f" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+              <path d="M0,0 L12,6 L0,12 L4,6 Z" fill={C.purple} />
+            </marker>
+          </defs>
+          <line x1={400} y1={240} x2={700} y2={300} stroke={C.purple} strokeWidth={3} strokeDasharray="8 4" opacity={relP * 0.9} markerEnd={relP > 0.5 ? 'url(#rel-arrow-f)' : undefined} />
+          <text x={520} y={260} fill={C.purple} fontFamily="Consolas, monospace" fontSize={13} fontWeight={700} opacity={relP}>1:N</text>
+          <line x1={400} y1={440} x2={700} y2={340} stroke={C.purple} strokeWidth={3} strokeDasharray="8 4" opacity={relP * 0.9} markerEnd={relP > 0.5 ? 'url(#rel-arrow-f)' : undefined} />
+          <text x={520} y={420} fill={C.purple} fontFamily="Consolas, monospace" fontSize={13} fontWeight={700} opacity={relP}>1:N</text>
+        </svg>
+        {compressP > 0.01 ? (
+          <div style={{
+            position: 'absolute', right: 20, bottom: 20, background: `${C.green}22`, border: `2px solid ${C.green}`,
+            borderRadius: 8, padding: '10px 16px', opacity: compressP, transform: `scale(${0.9 + 0.1 * compressP})`,
+          }}>
+            <div style={{fontFamily: MONO, fontSize: 14, fontWeight: 700, color: C.green, marginBottom: 4}}>File Size Reduction</div>
+            <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
+              <span style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color: C.green}}>-90%</span>
+              <span style={{fontFamily: MONO, fontSize: 14, color: C.text}}>vs VLOOKUP duplicates</span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const cam = camLerp(CAM0, {fx: 380, fy: 260, z: 1.1}, prog(f, t(2), 30));
+  const cam = camLerp(CAM0, {fx: 420, fy: 280, z: 1.0}, prog(f, t(2), 30));
 
-  // Phase control
-  const phase2 = f >= t(100);
-  const tocolTyped = typed('=TOCOL(B2:D4, 1)', f, t(86), 1.2);
-  const tocolDone = f >= t(95);
-  const tocolSpillP = tocolDone ? prog(f, t(95.5), 14) : 0;
+  // Phase 1: Merge Queries dialog (85-100s)
+  const mergeP = prog(f, t(86), 14) * (1 - prog(f, t(100), 8));
+  // Phase 2: Data Model diagram (100-130s)
+  const dmP = prog(f, t(100), 12) * (1 - prog(f, t(130), 12));
+  const relP = prog(f, t(105), 16) * (1 - prog(f, t(130), 12));
+  const compressP = prog(f, t(115), 14) * (1 - prog(f, t(130), 12));
 
-  const wrapTyped = phase2 ? typed('=WRAPCOLS(B2#, 3)', f, t(101), 1.2) : '';
-  const wrapDone = f >= t(110);
-  const wrapSpillP = wrapDone ? prog(f, t(110.5), 14) : 0;
-
-  const fbEdit = (f >= t(86) && f < t(95.5)) || (phase2 && f >= t(101) && f < t(110.5));
-
-  // Cursor: formula bar → Enter (TOCOL), then formula bar → Enter (WRAPCOLS)
-  const fbY = geo(1, 0, 1).fbTop + 14;
-  const f2 = cellCenter(2, 5, {colW});
-  const f6 = cellCenter(6, 5, {colW});
+  // Cursor
+  const dataTabX = 580;
+  const ribbonY = geo(1, 0, 1).rowsTop - 50;
   const pts = dwell([
-    {f: t(86), x: 200, y: fbY},
-    {f: t(95), x: f2.x, y: f2.y},
-    {f: t(101), x: 200, y: fbY},
-    {f: t(110), x: f6.x, y: f6.y},
-    {f: t(112), x: 900, y: 330},
+    {f: t(86), x: dataTabX, y: ribbonY},
+    {f: t(100), x: dataTabX, y: ribbonY},
+    {f: t(102), x: 900, y: 330},
   ]);
   const cur = track(f, pts);
-  const clicks = [95, 110];
-  const curHide = f > t(113);
-  const down = clicks.some((c) => f >= t(c) && f < t(c) + 4);
+  const clicks = [86, 100];
+  const curHide = f > t(103);
 
   return (
     <Stage dur={SCENES.s3.dur} inFx="fade" outFx="fade">
       <ExcelWindow cam={cam}>
         <ExcelApp
-          file="Reshaping.xlsx" nameBox={phase2 ? 'F2' : 'E2'} formula={phase2 ? wrapTyped : tocolTyped} fbEdit={fbEdit}
-          cell={(r, c) => {
-            // Source matrix B2:D4 (columns 2-4, rows 2-4)
-            if (c >= 2 && c <= 4 && r >= 2 && r <= 4) {
-              if (r === 1 || c === 1) return undefined;
-              const val = MATRIX_3x3[r - 2][c - 2];
-              return {t: String(val), al: 'c'};
-            }
-            if (r === 1 && c >= 2 && c <= 4) return {t: `Col ${c - 1}`, b: true, bg: '#E2EFDA', al: 'c'};
-            if (c === 1 && r >= 2 && r <= 4) return {t: `Row ${r - 1}`, b: true, bg: '#E2EFDA', al: 'l'};
-
-            // TOCOL result (column E, rows 2-10)
-            if (c === 5) {
-              if (r === 1) return {t: 'TOCOL', b: true, bg: '#DBEAFE', al: 'c', color: '#1E40AF'};
-              const idx = r - 2;
-              if (idx < TOCOL_RESULT.length && tocolSpillP > idx / TOCOL_RESULT.length) {
-                return {t: String(TOCOL_RESULT[idx]), al: 'c', color: '#1E40AF'};
-              }
-              return undefined;
-            }
-            // WRAPCOLS result (columns F-H, rows 2-4)
-            if (phase2 && c >= 6 && c <= 8) {
-              if (r === 1) return {t: c === 6 ? 'WRAPCOLS' : '', b: true, bg: '#D1FAE5', al: 'c', color: '#107C41'};
-              const rowIdx = r - 2;
-              const colIdx = c - 6;
-              if (rowIdx < 3 && colIdx < 3 && wrapSpillP > rowIdx / 3) {
-                return {t: String(WRAPCOLS_RESULT[rowIdx][colIdx]), al: 'c', color: '#107C41'};
-              }
-              return undefined;
-            }
-            return undefined;
-          }} colW={colW}
-          sel={phase2 ? {r1: 2, c1: 6, r2: 2, c2: 6} : {r1: 2, c1: 5, r2: 2, c2: 5}}
-          active={phase2 ? {r: 2, c: 6} : {r: 2, c: 5}}
+          file="DataModel.xlsx" nameBox="A1" formula="" tab="Data"
+          cell={() => undefined}
+          sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}}
           thumb={0} thumbSize={0.55}
         >
-          {/* Source matrix highlight */}
-          <Neon x={cellCenter(2, 2, {colW}).x - colW(2) / 2} y={cellCenter(2, 2, {colW}).y - XL.rowH / 2} w={colW(2) + colW(3) + colW(4)} h={XL.rowH * 3} color={C.amber} p={prog(f, t(86), 12) * 0.3 * (1 - prog(f, t(130), 12))} label="Source matrix" labelBelow />
-          {/* TOCOL result border */}
-          {tocolSpillP > 0.05 ? (
-            <Neon x={cellCenter(2, 5, {colW}).x - colW(5) / 2} y={cellCenter(2, 5, {colW}).y - XL.rowH / 2} w={colW(5)} h={XL.rowH * 9} color={C.blue} p={tocolSpillP * (1 - prog(f, t(130), 12))} label="=TOCOL (flattened)" labelBelow />
+          {/* Merge Queries dialog (phase 1) */}
+          {mergeP > 0.01 ? (
+            <div style={{
+              position: 'absolute', left: 400, top: 200, width: 600, height: 320,
+              background: '#fff', border: `2px solid ${C.blue}`, boxShadow: `0 12px 40px rgba(0,0,0,0.6), 0 0 30px ${C.blue}44`,
+              borderRadius: 8, opacity: mergeP, zIndex: 40, padding: '20px 24px', transform: `scale(${0.95 + 0.05 * mergeP})`,
+            }}>
+              <div style={{fontFamily: 'Segoe UI, sans-serif', fontSize: 14, fontWeight: 700, color: '#1B1B1B', marginBottom: 16}}>Merge Queries</div>
+              <div style={{display: 'flex', gap: 20, alignItems: 'center', marginBottom: 16}}>
+                <div style={{flex: 1, background: '#F3F3F3', border: '1px solid #CFCFCF', borderRadius: 4, padding: '12px'}}>
+                  <div style={{fontFamily: 'Segoe UI, sans-serif', fontSize: 12, fontWeight: 700, color: '#1B1B1B', marginBottom: 6}}>Sales Table</div>
+                  <div style={{fontFamily: 'Consolas, monospace', fontSize: 13, color: C.blue, fontWeight: 700}}>SKU: PRD-001</div>
+                </div>
+                <svg width={30} height={20} viewBox="0 0 30 20"><path d="M2 10h22M22 4l6 6-6 6" fill="none" stroke={C.purple} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <div style={{flex: 1, background: '#F3F3F3', border: '1px solid #CFCFCF', borderRadius: 4, padding: '12px'}}>
+                  <div style={{fontFamily: 'Segoe UI, sans-serif', fontSize: 12, fontWeight: 700, color: '#1B1B1B', marginBottom: 6}}>Products Table</div>
+                  <div style={{fontFamily: 'Consolas, monospace', fontSize: 13, color: C.green, fontWeight: 700}}>SKU: PRD-001</div>
+                </div>
+              </div>
+              <div style={{fontFamily: 'Segoe UI, sans-serif', fontSize: 13, color: '#5E5E5E'}}>Join via SKU key column (replaces XLOOKUP)</div>
+            </div>
           ) : null}
-          {/* WRAPCOLS result border */}
-          {wrapSpillP > 0.05 ? (
-            <Neon x={cellCenter(2, 6, {colW}).x - colW(6) / 2} y={cellCenter(2, 6, {colW}).y - XL.rowH / 2} w={colW(6) + colW(7) + colW(8)} h={XL.rowH * 3} color={C.green} p={wrapSpillP * (1 - prog(f, t(130), 12))} label="=WRAPCOLS (reshaped)" labelBelow />
-          ) : null}
+          {/* Data Model diagram (phase 2) */}
+          <DataModelDiagramFixed f={f} p={dmP} relP={relP} compressP={compressP} />
           {/* Click ripples */}
-          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} color={c === 95 ? C.blue : C.green} />; })}
-          <Cursor x={cur.x} y={cur.y} down={down} hide={curHide} />
+          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} color={C.purple} />; })}
+          <Cursor x={cur.x} y={cur.y} hide={curHide} />
         </ExcelApp>
       </ExcelWindow>
 
-      {/* Bottom formula badge */}
-      <div style={{position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', opacity: clamp(prog(f, t(86), 12) * (1 - prog(f, t(130), 12)))}}>
-        <div style={{display: 'flex', gap: 20, alignItems: 'center', background: 'rgba(11,18,34,0.95)', border: `2px solid ${C.border}`, borderRadius: 12, padding: '10px 20px'}}>
-          <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: phase2 ? C.muted : C.blue, opacity: phase2 ? 0.5 : 1}}>=TOCOL(B2:D4, 1) → 1 vector</div>
-          <span style={{fontFamily: MONO, fontSize: 18, color: C.muted}}>│</span>
-          <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: phase2 ? C.green : C.muted, opacity: phase2 ? 1 : 0.5}}>=WRAPCOLS(B2#, 3) → 3×3 grid</div>
-        </div>
-      </div>
-
-      <TopBadge text="=TOCOL(Array, 1) ──► Flattens Matrix into Single Vector (Ignores Blanks)" from={t(86.0)} to={t(100.0)} />
-      {phase2 ? <Caption text="=WRAPCOLS(Vector, 3) ──► Reshapes Single Vectors Back into Multi-Column Grids" from={t(100.0)} to={t(129.0)} tone="ok" /> : null}
+      <TopBadge text="Power Query Merge & Data Model ──► Relational Architecture" from={t(86.0)} to={t(110.0)} />
+      {compressP > 0.01 ? <Caption text="Data Model Architecture ──► Creates 1-to-Many Relationships Across Tables without VLOOKUP Duplication" from={t(110.0)} to={t(129.0)} /> : null}
+      {compressP < 0.01 && mergeP > 0.01 ? <Caption text="Power Query Merge ──► Joins Related Tables via Key Columns (In-Engine Lookup Replacement)" from={t(86.0)} to={t(100.0)} /> : null}
     </Stage>
   );
 };

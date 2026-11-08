@@ -1,9 +1,9 @@
-// Sound effects for Lesson 26 — Unpivoting & Data Reshaping.
+// Sound effects for Lesson 27 — Data Merge & Linking.
 // 6 SFX files enforced. Map:
-//   structural_split → whoosh | power_query_open → chime
-//   unpivot_collapse_snap → pop | matrix_flatten → whoosh
-//   vector_wrap_snap → pop | reshaping_pipeline_flow → whoosh
-//   flat_table_matrix_lock → chime | enterprise_unpivot_seal → chime
+//   matrix_stack_snap → pop      | append_queries_sound → whoosh
+//   folder_refresh_snap → pop     | merge_join_chime → chime
+//   datamodel_relationship_lock → key | tool_switch_chime → key
+//   engine_synergy_snap → pop    | enterprise_integration_seal → chime
 //   academic_outro → chime
 import React from 'react';
 import {Audio, Sequence, staticFile} from 'remotion';
@@ -14,19 +14,19 @@ const cue = (file: string, vol: number, dur: number, times: number[]): Cue[] => 
 
 const CUES: Cue[] = [
   ...cue('sfx_whoosh.mp3', 0.28, 0.75, [START.s2, START.s3, START.s4, START.s5, START.s6].map((s) => s - 0.25)),
-  // SC01: structural split
-  ...cue('sfx_whoosh.mp3', 0.32, 0.6, [6.0]),
+  // SC01: matrix stack snap (VSTACK + HSTACK)
+  ...cue('sfx_pop.mp3', 0.4, 0.3, [6.0, 18.0]),
   ...cue('sfx_pop.mp3', 0.3, 0.3, [3.0, 10.0]),
-  // SC02: power query open + unpivot collapse
-  ...cue('sfx_chime.mp3', 0.35, 1.0, [42.0]),
-  ...cue('sfx_pop.mp3', 0.4, 0.3, [55.0]),
-  // SC03: matrix flatten + vector wrap
-  ...cue('sfx_whoosh.mp3', 0.32, 0.5, [90.0]),
-  ...cue('sfx_pop.mp3', 0.4, 0.3, [100.0]),
-  // SC04: reshaping pipeline flow + flat table lock
-  ...cue('sfx_whoosh.mp3', 0.32, 0.6, [135.0]),
-  ...cue('sfx_chime.mp3', 0.4, 1.5, [145.0]),
-  // SC05: enterprise unpivot seal
+  // SC02: append queries + folder refresh
+  ...cue('sfx_whoosh.mp3', 0.35, 0.5, [45.0]),
+  ...cue('sfx_pop.mp3', 0.4, 0.3, [65.0]),
+  // SC03: merge join + datamodel lock
+  ...cue('sfx_chime.mp3', 0.4, 1.5, [90.0]),
+  ...cue('sfx_key.mp3', 0.45, 0.2, [110.0]),
+  // SC04: tool switch + engine synergy
+  ...cue('sfx_key.mp3', 0.4, 0.2, [135.0]),
+  ...cue('sfx_pop.mp3', 0.4, 0.3, [145.0]),
+  // SC05: enterprise integration seal
   ...cue('sfx_whoosh.mp3', 0.3, 0.5, [175.0]),
   ...cue('sfx_chime.mp3', 0.4, 1.5, [190.0]),
   // SC06: academic outro
