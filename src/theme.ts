@@ -1,61 +1,49 @@
-// Lesson identity: every name in the project is derived from these values.
-export const LESSON_NUM = "05";
-export const COMP_ID = "XL-L05-AutoFilter-Sort";
-export const OUT_NAME = "xl-l05-autofilter-sort";
-export const VOICE_FILE = "voiceover_lesson_05.mp3";
-export const LOGO_FILE = "manzooma_logo.svg";
-export const XLSX_NAME = "manzooma_sales_2026.xlsx";
+import {loadFont as loadArabic} from '@remotion/google-fonts/IBMPlexSansArabic';
+import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
+import {loadFont as loadUI} from '@remotion/google-fonts/OpenSans';
 
-// Video spec (change WIDTH/HEIGHT here only; the UI scales from S).
+const ar = loadArabic('normal', {weights: ['400', '600', '700'], subsets: ['arabic', 'latin']});
+const mono = loadMono('normal', {weights: ['400', '700'], subsets: ['latin']});
+const ui = loadUI('normal', {weights: ['400', '600', '700'], subsets: ['latin']});
+
+export const FONT = `${ar.fontFamily}, 'Segoe UI', Tahoma, sans-serif`;
+export const MONO = `${mono.fontFamily}, Consolas, 'Courier New', monospace`;
+export const UIFONT = `${ui.fontFamily}, 'Segoe UI', Arial, sans-serif`;
+export const CELLFONT = `Carlito, Calibri, ${ui.fontFamily}, Arial, sans-serif`;
+
 export const FPS = 30;
-export const WIDTH = 1920;
-export const HEIGHT = 1080;
-export const DURATION = 7200;
-
-// Layout: a Slate caption strip on top, the Excel window below.
-export const STRIP_H = 72;
-export const S = 1.25; // Excel logical px -> output px
-export const WIN_W = WIDTH / S; // 1536
-export const WIN_H = (HEIGHT - STRIP_H) / S; // 806.4
-
-// Excel metrics in logical px (Microsoft 365 desktop, Windows, 100%).
-export const M = {
-  titleBar: 30,
-  tabs: 30,
-  ribbon: 94,
-  formula: 28,
-  colHdr: 20,
-  rowHdr: 40,
-  rowH: 20,
-  colW: 64,
-  sheetBar: 28,
-  statusBar: 24,
-};
-export const GRID_TOP = M.titleBar + M.tabs + M.ribbon + M.formula + M.colHdr; // body top
-export const BODY_H = WIN_H - GRID_TOP - M.sheetBar - M.statusBar;
-export const NSLOT = Math.ceil(BODY_H / M.rowH);
+export const W = 1920;
+export const H = 1080;
+export const TOTAL_FRAMES = 7200;
+export const LESSON = 15;
+export const TOTAL_LESSONS = 76;
+export const UNIT = 4;
+export const TOTAL_UNITS = 14;
+export const COMP_ID = 'XL-L15-Dynamic-Arrays-Spill';
+export const VOICE_FILE = 'voiceover_lesson_15.mp3';
+export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {
-  slate: "#0F172A",
-  slate2: "#1E293B",
-  text: "#F8FAFC",
-  blue: "#38BDF8",
-  green: "#10B981",
-  amber: "#F59E0B",
-  purple: "#A855F7",
-  red: "#EF4444",
-  gold: "#FBBF24",
-  // Excel light UI
-  xGreen: "#107C41",
-  xGreenDark: "#0B5A2E",
-  xSel: "rgba(16,124,65,0.14)",
-  chrome: "#F3F3F3",
-  ribbon: "#F9F9F9",
-  line: "#D6D6D6",
-  grid: "#DCDCDC",
-  hdr: "#F2F2F2",
-  hdrSel: "#CFE5D8",
-  ink: "#1F1F1F",
-  inkSoft: "#605E5C",
-  filtBlue: "#0563C1",
+  bg: '#0F172A',
+  card: '#1E293B',
+  deep: '#0B1222',
+  border: '#334155',
+  muted: '#94A3B8',
+  text: '#F8FAFC',
+  blue: '#38BDF8',
+  green: '#10B981',
+  amber: '#F59E0B',
+  red: '#EF4444',
+  purple: '#A855F7',
+  gold: '#FBBF24',
+  cyan: '#06B6D4',
 };
+
+// Scene starts (absolute seconds on the voiceover timeline). 239.987s total.
+// SC01: 0-40 | SC02: 40-85 | SC03: 85-130 | SC04: 130-170 | SC05: 170-210 | SC06: 210-240
+export const START = {s1: 0, s2: 40, s3: 85, s4: 130, s5: 170, s6: 210};
+const fr = (s: number) => Math.round(s * FPS);
+const starts = [START.s1, START.s2, START.s3, START.s4, START.s5, START.s6].map(fr);
+const ends = [...starts.slice(1), TOTAL_FRAMES];
+const mk = (i: number) => ({from: starts[i], dur: ends[i] - starts[i]});
+export const SCENES = {s1: mk(0), s2: mk(1), s3: mk(2), s4: mk(3), s5: mk(4), s6: mk(5)};

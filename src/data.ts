@@ -1,62 +1,77 @@
-import type { Cell } from "./kit";
+// Manzooma — Lesson 15: Dynamic Arrays Engine, Spill Range, # Operator, #SPILL! Error, @ Operator.
 
-export const BRANCHES = ["Cairo", "Cairo Maadi", "Cairo Nasr City", "Alex", "Giza", "Mansoura"];
-export const PRODUCTS: [string, number][] = [
-  ["Laptop X1", 24500], ["Laptop X2", 18900], ["Phone S5", 12500], ["Tablet T3", 6800],
-  ["Monitor 24", 3900], ["Printer P2", 2300], ["Router R7", 1450], ["Keyboard K1", 850],
+/* ------------------------------------------------------------------ pricing table (Scenes 1, 2, 4) */
+export const PRICING_HEAD = ['Product', 'Qty', 'Price', 'Total'];
+export type PriceRow = {product: string; qty: number; price: number};
+export const PRICING: PriceRow[] = [
+  {product: 'Wireless Mouse',  qty: 3, price: 350},
+  {product: 'USB-C Cable',     qty: 5, price: 120},
+  {product: 'Laptop Stand',    qty: 2, price: 900},
+  {product: 'Office Chair',    qty: 1, price: 3200},
+  {product: 'Notebook A5',     qty: 8, price: 45},
+  {product: 'Desk Lamp',       qty: 2, price: 650},
+  {product: 'Monitor 24"',     qty: 1, price: 4800},
+  {product: 'Keyboard',        qty: 4, price: 750},
+  {product: 'Webcam HD',       qty: 2, price: 1100},
 ];
-export const HEAD = ["Order ID", "Date", "Store Branch", "Product", "Units", "Unit Price", "Total Revenue", "MoM %"];
-export const WIDTHS = [84, 80, 126, 96, 60, 92, 124, 88];
-export const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// Extra rows used when Scene 2 demonstrates dynamic expansion
+export const PRICING_EXTRA: PriceRow[] = [
+  {product: 'USB Hub',     qty: 3, price: 420},
+  {product: 'Mouse Pad',   qty: 5, price: 80},
+];
 
-export type Row = {
-  n: number; id: string; date: string; branch: string; product: string;
-  units: number; price: number; rev: number; mom: number;
+export type CCell = {t: string; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
+
+/** Pricing table cell. opts.expanded adds 2 extra rows (Scene 2 dynamic expansion). */
+export const pricingCell = (r: number, c: number, opts?: {expanded?: boolean}): CCell | undefined => {
+  const rows = opts?.expanded ? [...PRICING, ...PRICING_EXTRA] : PRICING;
+  if (r === 1) {
+    if (c < 1 || c > 4) return undefined;
+    const al: 'l' | 'r' = (c >= 2 && c <= 4) ? 'r' : 'l';
+    return {t: PRICING_HEAD[c - 1], b: true, bg: '#E2EFDA', al};
+  }
+  const row = rows[r - 2];
+  if (!row || c < 1 || c > 4) return undefined;
+  switch (c) {
+    case 1: return {t: row.product};
+    case 2: return {t: String(row.qty), al: 'r'};
+    case 3: return {t: 'EGP ' + row.price.toLocaleString('en-US'), al: 'r'};
+    case 4: return {t: 'EGP ' + (row.qty * row.price).toLocaleString('en-US'), al: 'r'};
+  }
 };
 
-const h = (a: number, b: number): number => {
-  let x = Math.imul(a + 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35);
-  x ^= x >>> 15; x = Math.imul(x, 0x2c1b3c6d); x ^= x >>> 12; x = Math.imul(x, 0x297a2d39); x ^= x >>> 15;
-  return (x >>> 0) / 4294967296;
-};
+/** How many data rows the pricing table has (for spill range height calculations). */
+export const pricingRowCount = (expanded?: boolean) => expanded ? PRICING.length + PRICING_EXTRA.length : PRICING.length;
 
-export const rowOf = (i: number): Row => {
-  const p = PRODUCTS[Math.floor(h(i, 2) * PRODUCTS.length)];
-  const units = 1 + Math.floor(h(i, 3) * 9);
+/* ------------------------------------------------------------------ big sales (Scene 5) */
+const SALE_PRODUCTS = [
+  ['Wireless Mouse', 'Accessories', 350],
+  ['USB-C Cable', 'Accessories', 120],
+  ['Laptop Stand', 'Office', 900],
+  ['Office Chair', 'Furniture', 3200],
+  ['Notebook A5', 'Stationery', 45],
+  ['Desk Lamp', 'Office', 650],
+  ['Monitor 24"', 'Electronics', 4800],
+  ['Keyboard', 'Accessories', 750],
+] as const;
+const SALE_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
+
+export type SaleRow = {id: string; branch: string; product: string; qty: number; price: number; total: number};
+
+export const sale = (n: number): SaleRow => {
+  const h = (n * 2654435761) >>> 0;
+  const p = SALE_PRODUCTS[(h >>> 3) % SALE_PRODUCTS.length];
+  const qty = 1 + ((h >>> 9) % 6);
   return {
-    n: i, id: "INV-" + (1001 + i),
-    date: ((i * 7) % 28 + 1) + "-" + MON[(i * 5 + 1) % 12] + "-26",
-    branch: BRANCHES[Math.floor(h(i, 1) * BRANCHES.length)],
-    product: p[0], units, price: p[1], rev: units * p[1],
-    mom: Math.round(h(i, 4) * 30) - 15,
+    id: `ORD-${1000 + n}`,
+    branch: SALE_BRANCHES[(h >>> 13) % SALE_BRANCHES.length],
+    product: p[0],
+    qty,
+    price: p[2],
+    total: qty * p[2],
   };
 };
 
-export const GREEN_MIN = 40000;
-export const RED_MAX = 5000;
-export const fillOf = (rev: number): "green" | "red" | null => (rev >= GREEN_MIN ? "green" : rev <= RED_MAX ? "red" : null);
-export const trendOf = (mom: number): "up" | "side" | "down" => (mom >= 5 ? "up" : mom <= -5 ? "down" : "side");
-export const num = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-export const pct = (m: number): string => (m > 0 ? "+" : "") + m + "%";
-
-export const cellsOf = (r: Row, colored: boolean): Cell[] => {
-  const f = colored ? fillOf(r.rev) : null;
-  return [
-    { v: r.id }, { v: r.date, al: "r" }, { v: r.branch }, { v: r.product },
-    { v: r.units, al: "r" }, { v: num(r.price), al: "r" },
-    { v: num(r.rev), al: "r", fill: f === "green" ? "#C6EFCE" : f === "red" ? "#FFC7CE" : undefined, fg: f === "green" ? "#006100" : f === "red" ? "#9C0006" : undefined },
-    { v: pct(r.mom), al: "r", icon: trendOf(r.mom) },
-  ];
-};
-export const headCells = (): Cell[] => HEAD.map((t, i) => ({ v: t, b: true, fill: "#E2EFDA", al: i >= 4 ? "r" : "l" }));
-
-export const SMALL = Array.from({ length: 40 }, (_, i) => rowOf(i));
-
-export const BIG_N = 50000;
-let _big: Row[] | null = null;
-export const bigRows = (): Row[] => (_big ??= Array.from({ length: BIG_N }, (_, i) => rowOf(i)));
-let _bigSorted: Row[] | null = null;
-export const bigSorted = (): Row[] =>
-  (_bigSorted ??= [...bigRows()].sort((a, b) => (a.branch < b.branch ? -1 : a.branch > b.branch ? 1 : b.rev - a.rev || a.n - b.n)));
-export const sortRows = (rows: Row[]): Row[] =>
-  [...rows].sort((a, b) => (a.branch < b.branch ? -1 : a.branch > b.branch ? 1 : b.rev - a.rev || a.n - b.n));
+export const BIG_ROWS = 50000;
+export const BIG_LAST = BIG_ROWS + 1;
+export const fmtInt = (n: number) => n.toLocaleString('en-US');
