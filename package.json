@@ -1,11 +1,12 @@
 {
-  "name": "xl-l04-excel-tables",
+  "name": "manzooma-excel-lesson-11-vlookup-architecture",
   "version": "1.0.0",
   "private": true,
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 11: VLOOKUP Syntax, Exact Matching & Structural Limitations (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L04-Excel-Tables out/xl-l04-excel-tables.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2",
-    "typecheck": "tsc --noEmit"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts XL-L11-VLOOKUP-Architecture out/xl-l11-vlookup-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
@@ -15,7 +16,7 @@
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.0",
+    "@types/react": "^18.3.3",
     "typescript": "^5.4.0"
   }
 }

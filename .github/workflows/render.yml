@@ -1,37 +1,30 @@
-name: render
-
+name: Render Excel Lesson 11 VLOOKUP Architecture
 on:
-  workflow_dispatch:
   push:
     branches: [main]
-
+  workflow_dispatch:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-    env:
-      COMP_ID: XL-L04-Excel-Tables
-      OUT_NAME: xl-l04-excel-tables
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Guard - this repo must contain Excel lesson 11 only
+        run: |
+          grep -q "XL-L11-VLOOKUP-Architecture" src/theme.ts
+          grep -q "XL-L11-VLOOKUP-Architecture" package.json
+          test -f public/voiceover_lesson_11.mp3
+          test -f public/manzooma_logo.svg
+          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
+          test "$(ls public | wc -l)" = "8"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard
-        run: |
-          set -e
-          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
-          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
-          test -s public/voiceover_lesson_04.mp3
-          test -s public/manzooma_logo.svg
-          for n in datacamp_tech_ambient ctrl_t_popup digital_transform typing_fast total_row_pop syntax_highlight growth_pulse auto_connect enterprise_seal_shine academic_outro_theme; do test -s "public/$n.mp3"; done
-          extra="$(ls public | grep -v -x -e voiceover_lesson_04.mp3 -e manzooma_logo.svg -e datacamp_tech_ambient.mp3 -e ctrl_t_popup.mp3 -e digital_transform.mp3 -e typing_fast.mp3 -e total_row_pop.mp3 -e syntax_highlight.mp3 -e growth_pulse.mp3 -e auto_connect.mp3 -e enterprise_seal_shine.mp3 -e academic_outro_theme.mp3 || true)"
-          test -z "$extra"
-          test "$(ls .github/workflows | wc -l)" = "1"
-      - run: npm install --no-audit --no-fund
-      - run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --scale=2
-      - run: test -s out/$OUT_NAME.mp4
+      - run: npm install
+      - run: npx remotion render src/index.ts XL-L11-VLOOKUP-Architecture out/xl-l11-vlookup-architecture.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l11-vlookup-architecture.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l04-excel-tables.mp4
-          path: out/xl-l04-excel-tables.mp4
+          name: xl-l11-vlookup-architecture
+          path: out/xl-l11-vlookup-architecture.mp4
+          if-no-files-found: error
