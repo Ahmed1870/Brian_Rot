@@ -1,22 +1,21 @@
 {
-  "name": "manzooma-excel-lesson-19-sequence-randarray-let",
+  "name": "xl-l08-conditional-logic-if-and-or",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 19: SEQUENCE, RANDARRAY, LET Dynamic Array & Performance Engine (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma Excel Masterclass - Lesson 08 (Remotion)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L19-Sequence-RandArray-Let out/xl-l19-sequence-randarray-let.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "build": "remotion render src/index.ts XL-L08-Conditional-Logic-IF-AND-OR out/xl-l08-conditional-logic-if-and-or.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "check": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/cli": "4.0.300",
+    "@remotion/google-fonts": "4.0.300",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "^4.0.0"
+    "remotion": "4.0.300"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "18.3.12",
+    "typescript": "5.8.2"
   }
 }
