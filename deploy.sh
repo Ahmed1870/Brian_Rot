@@ -70,7 +70,8 @@ else
   echo "SKIP_NPM set: npm install and tsc skipped"
 fi
 
-# 6) commit + push
+# 6) commit + push (never commit a lockfile made on Termux: CI must resolve its own Linux tree)
+rm -f package-lock.json
 git add -A
 git -c user.name="${GIT_AUTHOR_NAME:-manzooma-bot}" -c user.email="${GIT_AUTHOR_EMAIL:-bot@manzooma.local}" commit -q -m "$COMMIT_MSG" || echo "nothing to commit"
 if [ -n "${DRY_RUN:-}" ]; then echo "DRY_RUN set: not pushing"; exit 0; fi

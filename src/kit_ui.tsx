@@ -197,3 +197,85 @@ export const FindDialog: React.FC<{ x: number; y: number; t: number; find: strin
     <DBtn x={16} y={176} w={92} label="Replace All" press={press === "all" ? 1 : 0} /><DBtn x={112} y={176} w={76} label="Replace" /><DBtn x={192} y={176} w={76} label="Find All" /><DBtn x={272} y={176} w={84} label="Find Next" /><DBtn x={360} y={176} w={80} label="Close" />
   </Dialog>
 );
+
+// ---------- formula-entry helpers (shared by every function lesson) ----------
+export type Seg = { t: string; c?: string; bg?: string; b?: boolean };
+export const CellEditor: React.FC<{ x: number; y: number; segs: Seg[]; minW?: number }> = ({ x, y, segs, minW = 70 }) => {
+  const len = segs.reduce((a, s) => a + s.t.length, 0);
+  return (
+    <div style={{ position: "absolute", left: x - 1, top: y - 1, width: Math.max(minW, len * 7.4 + 12), height: 22, background: "#fff", border: `2px solid ${C.xGreen}`, boxSizing: "border-box", padding: "0 3px", display: "flex", alignItems: "center", fontFamily: F.cell, fontSize: 14.67, whiteSpace: "pre", zIndex: 25 }}>
+      {segs.map((s, i) => <span key={i} style={{ color: s.c ?? C.ink, background: s.bg, fontWeight: s.b ? 700 : 400, borderRadius: 3, boxShadow: s.bg ? `0 0 10px ${s.bg}` : undefined }}>{s.t}</span>)}
+      <span style={{ borderLeft: "1px solid #000", height: 15, marginLeft: 1 }} />
+    </div>
+  );
+};
+// Colour the arguments of a typed function call (Excel colours referenced ranges).
+export const argSegs = (text: string, colors: string[]): Seg[] => {
+  const out: Seg[] = []; let cur = ""; let arg = -1; let q = false; let depth = 0;
+  const flush = (): void => { if (cur) out.push({ t: cur, c: arg >= 0 ? colors[Math.min(arg, colors.length - 1)] : undefined }); cur = ""; };
+  for (const ch of text) {
+    if (ch === '"') q = !q;
+    if (!q && ch === "(") { depth++; cur += ch; if (depth === 1) { flush(); arg = 0; } continue; }
+    if (!q && ch === ")") { depth--; }
+    if (!q && ch === "," && depth === 1) { flush(); out.push({ t: ",", c: undefined }); arg++; continue; }
+    cur += ch;
+  }
+  flush();
+  return out;
+};
+export const argIndex = (text: string): number => {
+  let q = false, depth = 0, n = 0;
+  for (const ch of text) { if (ch === '"') q = !q; if (q) continue; if (ch === "(") depth++; else if (ch === ")") depth--; else if (ch === "," && depth === 1) n++; }
+  return n;
+};
+export const FuncTip: React.FC<{ x: number; y: number; name: string; params: string[]; active: number }> = ({ x, y, name, params, active }) => (
+  <div style={{ position: "absolute", left: x, top: y, background: "#fff", border: "1px solid #8A8A8A", padding: "3px 8px", fontFamily: F.ui, fontSize: 12.5, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,.25)", zIndex: 26, color: C.ink }}>
+    <span>{name}(</span>
+    {params.map((p, i) => <span key={i}><span style={{ fontWeight: i === active ? 700 : 400, textDecoration: i === active ? "underline" : "none" }}>{p}</span>{i < params.length - 1 ? ", " : ""}</span>)}
+    <span>)</span>
+  </div>
+);
+export const ErrTag: React.FC<{ x: number; y: number; t: number }> = ({ x, y, t }) => (
+  t <= 0 ? null : (
+    <svg width="18" height="18" viewBox="0 0 18 18" style={{ position: "absolute", left: x, top: y + 1, opacity: t, zIndex: 24 }}>
+      <path d="M9 1 L17 9 L9 17 L1 9 Z" fill="#F2C94C" stroke="#9A7B00" strokeWidth="1" /><text x="9" y="13" fontSize="11" fontWeight="700" textAnchor="middle" fill="#333" fontFamily="Arial">!</text>
+    </svg>
+  )
+);
+export const Shield: React.FC<{ x: number; y: number; t: number; label: string; color: string }> = ({ x, y, t, label, color }) => (
+  t <= 0 ? null : (
+    <div style={{ position: "absolute", left: x, top: y, opacity: t, transform: `scale(${0.7 + 0.3 * t})`, transformOrigin: "0 0", zIndex: 45, display: "flex", alignItems: "center", gap: 12, background: C.slate, border: `2px solid ${color}`, borderRadius: 14, padding: "8px 16px", boxShadow: `0 0 22px ${color}` }}>
+      <svg width="40" height="46" viewBox="0 0 40 46"><path d="M20 2 L37 8 V22 C37 33 29 41 20 44 C11 41 3 33 3 22 V8 Z" fill={`${color}33`} stroke={color} strokeWidth="2.5" /><path d="M12 23 L18 29 L29 16" fill="none" stroke={C.text} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      <span style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 18, color: C.text, whiteSpace: "nowrap" }}>{label}</span>
+    </div>
+  )
+);
+export const KpiCard: React.FC<{ x: number; y: number; label: string; value: string; color: string; t: number; flash?: number }> = ({ x, y, label, value, color, t, flash = 0 }) => (
+  t <= 0 ? null : (
+    <div style={{ position: "absolute", left: x, top: y, width: 168, opacity: t, transform: `translateY(${(1 - t) * 10}px)`, background: C.slate, border: `2px solid ${color}`, borderRadius: 12, padding: "8px 14px", boxShadow: `0 0 ${10 + 22 * flash}px ${color}`, zIndex: 40 }}>
+      <div style={{ fontFamily: F.ui, fontWeight: 600, fontSize: 12, color: "#94A3B8", letterSpacing: 1 }}>{label}</div>
+      <div style={{ fontFamily: F.mono, fontWeight: 700, fontSize: 26, color: C.text, marginTop: 2 }}>{value}</div>
+    </div>
+  )
+);
+// Boolean logic matrix: shows how * (AND) and + (OR) combine two TRUE/FALSE columns.
+export const LogicMatrix: React.FC<{ x: number; y: number; t: number; f: number; mode: "and" | "or"; rows: { branch: string; amount: number }[]; color: string }> = ({ x, y, t, f, mode, rows, color }) => {
+  if (t <= 0) return null;
+  const cell = (w: number, txt: string, c?: string, b?: boolean): React.ReactNode => <div style={{ width: w, textAlign: "center", color: c ?? C.text, fontWeight: b ? 700 : 400 }}>{txt}</div>;
+  return (
+    <div style={{ position: "absolute", left: x, top: y, width: 400, opacity: t, background: C.slate, border: `2px solid ${color}`, borderRadius: 12, padding: "8px 10px", boxShadow: `0 0 18px ${color}88`, fontFamily: F.mono, fontSize: 11.5, zIndex: 40 }}>
+      <div style={{ display: "flex", color: "#94A3B8", marginBottom: 4 }}>{cell(66, "Branch")}{cell(56, "Amount")}{cell(100, "Branch=Cairo")}{cell(100, mode === "and" ? "Amount>5000" : "Branch=Alex")}{cell(40, mode === "and" ? "×" : "+", color, true)}</div>
+      {rows.map((r, i) => {
+        const a = r.branch === "Cairo"; const b = mode === "and" ? r.amount > 5000 : r.branch === "Alex";
+        const res = mode === "and" ? Number(a) * Number(b) : Number(a) + Number(b);
+        const ap = prog(f, 12 + i * 6, 10);
+        return (
+          <div key={i} style={{ display: "flex", height: 22, alignItems: "center", opacity: ap, background: res > 0 ? "rgba(16,185,129,.18)" : "transparent", borderRadius: 4 }}>
+            {cell(66, r.branch)}{cell(56, num0(r.amount))}{cell(100, a ? "TRUE" : "FALSE", a ? C.green : "#F87171")}{cell(100, b ? "TRUE" : "FALSE", b ? C.green : "#F87171")}{cell(40, String(res), res > 0 ? C.green : "#F87171", true)}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+const num0 = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");

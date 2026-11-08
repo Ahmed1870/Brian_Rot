@@ -154,6 +154,12 @@ export const RIBBON: Record<string, RGroup[]> = {
     { id: "editing", label: "Editing", cols: [Sx(["autosum", "AutoSum", "sum", true], ["fillb", "Fill", "fill", true], ["clearb", "Clear", "eraser", true]), L("sortfilter", "Sort &\nFilter", "sort", true), L("findsel", "Find &\nSelect", "find", true)] },
     { id: "analysis", label: "Analysis", cols: [L("analyze", "Analyze\nData", "analyze")] },
   ],
+  formulas: [
+    { id: "funclib", label: "Function Library", cols: [L("insfn", "Insert\nFunction", "sum"), L("autosum2", "AutoSum", "sum", true), L("recent", "Recently\nUsed", "generic", true), L("fin", "Financial", "dollar", true), L("logical", "Logical", "valid", true), L("text", "Text", "align", true), L("datetime", "Date &\nTime", "table", true), L("lookup", "Lookup &\nReference", "find", true), L("math", "Math &\nTrig", "analyze", true), L("morefn", "More\nFunctions", "generic", true)] },
+    { id: "names", label: "Defined Names", cols: [L("namemgr", "Name\nManager", "table"), Sx(["defname", "Define Name", "generic", true], ["useform", "Use in Formula", "generic", true], ["createsel", "Create from Selection", "generic"])] },
+    { id: "audit", label: "Formula Auditing", cols: [Sx(["traceprec", "Trace Precedents", "generic"], ["tracedep", "Trace Dependents", "generic"], ["rmarrows", "Remove Arrows", "generic", true]), Sx(["showf", "Show Formulas", "generic"], ["errchk", "Error Checking", "valid", true], ["evalf", "Evaluate Formula", "generic"]), L("watch", "Watch\nWindow", "find")] },
+    { id: "calc", label: "Calculation", cols: [L("calcopt", "Calculation\nOptions", "refresh", true), Sx(["calcnow", "Calculate Now", "refresh"], ["calcsheet", "Calculate Sheet", "refresh"])] },
+  ],
   data: [
     { id: "gettransform", label: "Get & Transform Data", cols: [L("getdata", "Get\nData", "get", true), Sx(["csv", "From Text/CSV", "csv"], ["web", "From Web", "web"], ["range", "From Table/Range", "table"]), Sx(["recent", "Recent Sources", "generic"], ["existing", "Existing Connections", "generic"])] },
     { id: "queries", label: "Queries & Connections", cols: [L("refreshall", "Refresh\nAll", "refresh", true), Sx(["qc", "Queries & Connections", "generic"], ["props", "Properties", "generic"], ["links", "Edit Links", "generic"])] },
@@ -250,6 +256,7 @@ export const TitleBar: React.FC<{ file: string }> = ({ file }) => (
     </div>
   </div>
 );
+export const TAB_NAME: Record<string, string> = { home: "Home", insert: "Insert", formulas: "Formulas", data: "Data" };
 export const TABS = ["File", "Home", "Insert", "Page Layout", "Formulas", "Data", "Review", "View", "Automate", "Help"];
 export const TabsRow: React.FC<{ active: string; hot?: { tab: string; color: string; t: number } }> = ({ active, hot }) => {
   let x = 10;
@@ -296,7 +303,9 @@ export type GridProps = {
   sel?: { c1: number; c2: number; s1: number; s2: number } | null;
   fbtns?: FBtn[]; cellFx?: (id: string | number, c: number) => string | undefined;
   marching?: { c1: number; c2: number; s1: number; s2: number } | null; frame?: number; hiRows?: (string | number)[];
+  lines?: boolean; boxes?: Box[];
 };
+export type Box = { c1: number; c2: number; s1: number; s2: number; color: string; t?: number; fill?: string; dash?: boolean; w?: number };
 const Btn: React.FC<{ b: FBtn; w: number }> = ({ b, w }) => (
   <div style={{ position: "absolute", left: w - 18, top: 2, width: 16, height: 16, boxSizing: "border-box", border: "1px solid #A0A0A0", background: b.state === "open" ? "#CFE5D8" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${b.t})`, transformOrigin: "center", opacity: Math.min(1, b.t * 1.4) }}>
     <Icon k={b.state === "on" ? "filteron" : "chev"} s={b.state === "on" ? 12 : 10} />
@@ -321,6 +330,12 @@ export const Grid: React.FC<GridProps> = (p) => {
       </div>
       {/* rows */}
       <div style={{ position: "absolute", left: 0, top: M.colHdr, width: WIN_W, height: 4000, overflow: "visible" }}>
+        {p.lines ? (
+          <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: NSLOT * M.rowH }}>
+            {cols.map((c, i) => <div key={"v" + i} style={{ position: "absolute", left: colX(cols, i) + c.w - 1, top: 0, width: 1, height: NSLOT * M.rowH, background: C.grid }} />)}
+            {Array.from({ length: NSLOT }, (_, s) => <div key={"l" + s} style={{ position: "absolute", left: M.rowHdr, top: (s + 1) * M.rowH - 1, width: WIN_W - M.rowHdr, height: 1, background: C.grid }} />)}
+          </div>
+        ) : null}
         {p.fixedHdr ? Array.from({ length: NSLOT }, (_, s) => (
           <div key={"h" + s} style={{ position: "absolute", left: 0, top: s * M.rowH, width: M.rowHdr, height: M.rowH, boxSizing: "border-box", borderRight: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, background: selS(s) ? C.hdrSel : C.hdr, color: selS(s) ? C.xGreenDark : "#444", ...tx(13, { fontFamily: F.cell }), display: "flex", alignItems: "center", justifyContent: "center" }}>{s + 1}</div>
         )) : null}
@@ -334,9 +349,10 @@ export const Grid: React.FC<GridProps> = (p) => {
               ) : null}
               {cols.map((c, ci) => {
                 const cell = r.cells[ci];
+                if (p.lines && !cell) return null;
                 const fx = p.cellFx?.(r.id, ci);
                 return (
-                  <div key={ci} style={{ position: "absolute", left: colX(cols, ci), top: 0, width: c.w, height: M.rowH, boxSizing: "border-box", borderRight: `1px solid ${C.grid}`, borderBottom: `1px solid ${C.grid}`, backgroundColor: cell?.fill ?? (hi ? "#FFF6D6" : "#fff"), backgroundImage: fx ? `linear-gradient(${fx}, ${fx})` : undefined, color: cell?.fg ?? C.ink, fontFamily: F.cell, fontSize: 14.67, fontWeight: cell?.b ? 700 : 400, padding: "0 3px", display: "flex", alignItems: "center", justifyContent: cell?.icon ? "space-between" : cell?.al === "r" ? "flex-end" : cell?.al === "c" ? "center" : "flex-start", whiteSpace: "nowrap", overflow: "hidden" }}>
+                  <div key={ci} style={{ position: "absolute", left: colX(cols, ci), top: 0, width: c.w, height: M.rowH, boxSizing: "border-box", borderRight: p.lines ? undefined : `1px solid ${C.grid}`, borderBottom: p.lines ? undefined : `1px solid ${C.grid}`, backgroundColor: cell?.fill ?? (hi ? "#FFF6D6" : p.lines ? undefined : "#fff"), backgroundImage: fx ? `linear-gradient(${fx}, ${fx})` : undefined, color: cell?.fg ?? C.ink, fontFamily: F.cell, fontSize: 14.67, fontWeight: cell?.b ? 700 : 400, padding: "0 3px", display: "flex", alignItems: "center", justifyContent: cell?.icon ? "space-between" : cell?.al === "r" ? "flex-end" : cell?.al === "c" ? "center" : "flex-start", whiteSpace: "nowrap", overflow: "hidden" }}>
                     {cell?.icon ? <Arrow kind={cell.icon} /> : null}
                     <span>{cell ? String(cell.v) : ""}</span>
                   </div>
@@ -350,6 +366,11 @@ export const Grid: React.FC<GridProps> = (p) => {
         {/* range selection + active cell */}
         {p.sel ? <div style={{ position: "absolute", ...box(p.sel), top: box(p.sel).top - M.colHdr, background: C.xSel, border: `2px solid ${C.xGreen}`, boxSizing: "border-box", pointerEvents: "none" }} /> : null}
         {p.marching ? <div style={{ position: "absolute", ...box(p.marching), top: box(p.marching).top - M.colHdr, boxSizing: "border-box", border: "2px dashed #107C41", opacity: 0.9, backgroundImage: "none", outline: `1px dashed #fff`, transform: `translate(${((p.frame ?? 0) % 6) * 0}px,0)` }} /> : null}
+        {(p.boxes ?? []).map((b, i) => {
+          const t = b.t ?? 1; if (t <= 0.02) return null;
+          const x = colX(cols, b.c1), w = colX(cols, b.c2 + 1) - x, y = b.s1 * M.rowH, h = (b.s2 - b.s1 + 1) * M.rowH;
+          return <div key={"bx" + i} style={{ position: "absolute", left: x - 1, top: y - 1, width: w + 1, height: h + 1, border: `${b.w ?? 2}px ${b.dash ? "dashed" : "solid"} ${b.color}`, boxShadow: `0 0 ${6 + 8 * t}px ${b.color}`, background: b.fill, opacity: t, boxSizing: "border-box", zIndex: 2, pointerEvents: "none" }} />;
+        })}
         {p.active ? (
           <div style={{ position: "absolute", left: colX(cols, p.active.c) - 1, top: p.active.slot * M.rowH - 1, width: cols[p.active.c].w + 1, height: M.rowH + 1, border: `2px solid ${C.xGreen}`, boxSizing: "border-box", pointerEvents: "none", background: p.sel ? "#fff" : "transparent", zIndex: 1 }}>
             {!p.sel ? <div style={{ position: "absolute", right: -5, bottom: -5, width: 6, height: 6, background: C.xGreen, border: "1px solid #fff" }} /> : null}
@@ -408,7 +429,7 @@ export const Excel: React.FC<ExcelProps> = (p) => {
         <Grid {...p.grid} />
         <FormulaBar name={p.nameBox} value={p.formula} editing={p.editing} />
         <Ribbon tab={p.tab} glow={p.glow} />
-        <TabsRow active={p.tab === "home" ? "Home" : p.tab === "data" ? "Data" : "Home"} hot={p.hotTab} />
+        <TabsRow active={TAB_NAME[p.tab] ?? "Home"} hot={p.hotTab} />
         <TitleBar file={p.file} />
         <SheetBar sheets={p.sheets ?? ["Sales", "Branches"]} active={p.sheet ?? "Sales"} />
         <StatusBar left={p.statusLeft} stats={p.stats} />

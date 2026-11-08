@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "remotion render src/index.ts XL-L05-AutoFilter-Sort out/xl-l05-autofilter-sort.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L16-FILTER-Function out/xl-l16-filter-function.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "studio": "remotion studio src/index.ts",
     "tsc": "tsc --noEmit"
   },

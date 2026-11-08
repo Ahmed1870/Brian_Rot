@@ -1,238 +1,311 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
 import { A1, A2, A3, A4, A5, A6 } from "./sync";
-import { BIG_N, BRANCHES, SMALL, WIDTHS, bigRows, bigSorted, cellsOf, fillOf, headCells, num, sortRows, trendOf, type Row } from "./data";
-import { Excel, F, buildCols, camAt, cellCenter, colX, path, prog, ribbonPos, slotY, stack, typed, lerp, type Cam, type FBtn, type GRow } from "./kit";
-import { Cursor, FilterMenu, Logo, FindDialog, KeyCaps, MsgBox, Neon, SceneFx, SortDialog, SubPanel, TopStrip, type FItem } from "./kit_ui";
-import { C, GRID_TOP, HEIGHT, XLSX_NAME, WIN_W } from "./theme";
+import { BIG_N, SALES, andRows, bigRows, isAlex, isCairo, num, orRows, sumAmt, vipRows, type Sale } from "./data";
+import { Excel, F, buildCols, camAt, colX, lerp, prog, slotY, typed, type Box, type Col, type GRow, type Cell } from "./kit";
+import { CellEditor, ErrTag, FuncTip, KeyCaps, KpiCard, LogicMatrix, Logo, Neon, SceneFx, Shield, TopStrip, argIndex, argSegs, type Seg } from "./kit_ui";
+import { C, XLSX_NAME } from "./theme";
 
-const cols = buildCols(WIDTHS);
-const TOTALW = WIDTHS.reduce((a, b) => a + b, 0);
-const headRow: GRow = { id: "head", hdr: 1, cells: headCells(), slot: 0, h: 1, head: true };
-const mk = (list: Row[], colored: boolean, slots: number[], hs: number[], hdr: (r: Row, i: number) => number, tweak?: (r: Row, cells: ReturnType<typeof cellsOf>) => void): GRow[] => [
-  headRow,
-  ...list.map((r, i) => { const cells = cellsOf(r, colored); if (tweak) tweak(r, cells); return { id: r.n, hdr: hdr(r, i), cells, slot: slots[i], h: hs[i] }; }),
-];
-const arrowBtns = (f: number, from: number, openCol = -1, onCols: number[] = []): FBtn[] =>
-  cols.slice(0, 8).map((_, c) => ({ c, t: prog(f, from + c * 3, 10), state: onCols.includes(c) ? "on" : c === openCol ? "open" : "off" }));
-const win = (a: number, b: number, f: number, r = 8): number => prog(f, a, r) * (1 - prog(f, b, r)); // 0->1->0 window
-const uniq = (xs: string[]): string[] => Array.from(new Set(xs));
-const at = (cc: number, slot: number): { x: number; y: number } => cellCenter(cols, cc, slot);
-const Chip: React.FC<{ x: number; y: number; text: string; color: string; t: number }> = ({ x, y, text, color, t }) => (
-  t <= 0 ? null : <div style={{ position: "absolute", left: x, top: y, opacity: t, transform: `translateY(${(1 - t) * 8}px)`, background: C.slate, color: C.text, border: `2px solid ${color}`, borderRadius: 8, padding: "6px 12px", boxShadow: `0 0 14px ${color}88`, fontFamily: F.ui, fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", zIndex: 45 }}>{text}</div>
+const BLUE = "#2B7CD3", AMB = "#B45309", PUR = "#7E22CE";
+const W = [70, 68, 78, 90, 70, 22, 70, 68, 78, 90, 70, 22, 70, 68, 78, 90, 70];
+const cols = buildCols(W);
+const HEAD = ["Order ID", "Date", "Branch", "Product", "Amount"];
+const badge = "Lesson 16 / 76 · Unit 4 / 14";
+const win = (a: number, b: number, f: number, r = 8): number => prog(f, a, r) * (1 - prog(f, b, r));
+const cellsAt = (c0: number, vals: (string | number)[], head?: boolean, al: string[] = ["l", "r", "l", "l", "r"]): Cell[] => {
+  const arr: Cell[] = [];
+  vals.forEach((v, i) => { arr[c0 + i] = { v, b: head, fill: head ? "#E2EFDA" : undefined, al: al[i] === "r" ? "r" : "l" }; });
+  return arr;
+};
+const saleVals = (s: Sale): (string | number)[] => [s.id, s.date, s.branch, s.product, num(s.amount)];
+const hdrRow = (id: string, c0: number): GRow => ({ id, hdr: 1, cells: cellsAt(c0, HEAD, true), slot: 0, h: 1 });
+const srcRows = (): GRow[] => [hdrRow("hd0", 0), ...SALES.slice(0, 30).map((s, i) => ({ id: "a" + i, hdr: i + 2, cells: cellsAt(0, saleVals(s)), slot: i + 1, h: 1 }))];
+const spill = (pre: string, list: Sale[], c0: number, hs: (i: number) => number): GRow[] => list.map((s, i) => ({ id: pre + i, hdr: 0, cells: cellsAt(c0, saleVals(s)), slot: i + 1, h: hs(i) }));
+const ctr = (c: number, slot: number): { x: number; y: number } => ({ x: colX(cols, c), y: slotY(slot) });
+const Chip: React.FC<{ x: number; y: number; text: string; color: string; t: number; strike?: boolean }> = ({ x, y, text, color, t, strike }) => (
+  t <= 0 ? null : <div style={{ position: "absolute", left: x, top: y, opacity: t, transform: `translateY(${(1 - t) * 8}px)`, background: C.slate, color: C.text, border: `2px solid ${color}`, borderRadius: 8, padding: "6px 12px", boxShadow: `0 0 14px ${color}88`, fontFamily: F.ui, fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", zIndex: 45, textDecoration: strike ? "line-through" : "none" }}>{text}</div>
 );
-const Fade: React.FC<{ f: number; dur: number; kind: "left" | "down" | "zoom" | "expand" | "fade"; children: React.ReactNode }> = ({ f, dur, kind, children }) => <SceneFx f={f} dur={dur} kind={kind}>{children}</SceneFx>;
+type SheetProps = { cam: ReturnType<typeof camAt>; tab?: string; nameBox: string; formula: string; editing?: boolean; rows: GRow[]; active: { c: number; slot: number }; boxes?: Box[]; cellFx?: (id: string | number, c: number) => string | undefined; cols?: Col[]; children?: React.ReactNode };
+const Sheet: React.FC<SheetProps> = (p) => (
+  <Excel cam={p.cam} file="manzooma_sales_2026.xlsx" tab={p.tab ?? "formulas"} nameBox={p.nameBox} formula={p.formula} editing={p.editing} statusLeft={p.editing ? "Enter" : "Ready"}
+    grid={{ cols: p.cols ?? cols, rows: p.rows, fixedHdr: true, lines: true, active: p.active, boxes: p.boxes, cellFx: p.cellFx }}>{p.children}</Excel>
+);
+const opSegs = (text: string, op: string, color: string): Seg[] => {
+  const i = text.indexOf(` ${op} `);
+  if (i < 0 || text.length <= i + 1) return [{ t: text }];
+  return [{ t: text.slice(0, i + 1) }, { t: op, bg: color, c: "#fff", b: true }, { t: text.slice(i + 2) }];
+};
+const Seal: React.FC<{ t: number; line1: string; line2: string }> = ({ t, line1, line2 }) => (
+  t <= 0 ? null : (
+    <div style={{ position: "absolute", right: 50, top: 300, width: 340, opacity: t, transform: `scale(${0.7 + 0.3 * t})`, zIndex: 60, textAlign: "center" }}>
+      <div style={{ width: 170, height: 170, margin: "0 auto", borderRadius: 85, background: `radial-gradient(circle, ${C.green}33, ${C.slate})`, border: `4px solid ${C.green}`, boxShadow: `0 0 40px ${C.green}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 92, color: C.green }}>✓</div>
+      <div style={{ marginTop: 12, background: C.slate, border: `1.5px solid ${C.green}`, borderRadius: 12, padding: "8px 12px", fontFamily: F.ui, fontWeight: 700, fontSize: 21, color: C.text }}>{line1}</div>
+      <div style={{ marginTop: 8, fontFamily: F.ar, fontWeight: 600, fontSize: 19, color: C.green, background: C.slate, borderRadius: 10, padding: "4px 10px" }}>{line2}</div>
+    </div>
+  )
+);
 
-// ================= SC01: AutoFilter =================
+// ================= SC01: FILTER anatomy =================
 export const Scene1: React.FC = () => {
   const f = useCurrentFrame(); const A = A1;
-  const keep = (r: Row) => r.branch === "Alex" || r.branch === "Cairo";
-  const vis = SMALL.map((r, i) => (keep(r) ? 1 : 1 - prog(f, 1040 + (i % 6) * 2, 22)));
-  const slots = stack(vis, 1);
-  const filtered = f >= 1040;
-  const kept = SMALL.filter(keep).length;
-  const x0 = colX(cols, 2), y0 = slotY(1);
-  const menuT = win(A.alt, 1040, f, 10);
-  const all = f < A.branches;
-  const items: FItem[] = uniq(BRANCHES.slice().sort()).map((b) => ({ label: b, checked: all || (b === "Alex" && f >= 985) || (b === "Cairo" && f >= 1000) }));
-  const cam: Cam = camAt(f, [{ f: 0, z: 1, cx: 768, cy: 403 }, { f: 470, z: 1, cx: 768, cy: 403 }, { f: 510, z: 1.6, cx: 1130, cy: 150 }, { f: 585, z: 1.6, cx: 1130, cy: 150 }, { f: 625, z: 1.35, cx: 430, cy: 270 }, { f: 880, z: 1.35, cx: 430, cy: 270 }, { f: 915, z: 1.45, cx: 440, cy: 420 }, { f: 1050, z: 1.45, cx: 440, cy: 420 }, { f: 1100, z: 1.2, cx: 430, cy: 330 }]);
-  const cur = path(f, [{ f: 930, x: 560, y: 520 }, { f: 968, x: x0 + 20, y: y0 + 222 }, { f: 985, x: x0 + 20, y: y0 + 244 }, { f: 1000, x: x0 + 20, y: y0 + 266 }, { f: 1030, x: x0 + 137, y: y0 + 388 }, { f: 1080, x: 700, y: 560 }]);
+  const FORMULA = '=FILTER(A2:E100, C2:C100="Cairo", "No Sales")';
+  const cairo = SALES.filter(isCairo);
+  const txt = typed(FORMULA, f, A.fn, 0.32);
+  const typing = f >= A.fn && f < A.flex + 4;
+  const done = f >= A.flex + 4;
+  const rank = (n: number): number => cairo.findIndex((s) => s.n === n);
+  const rows = [...srcRows(), hdrRow("hd1", 6), ...spill("sp", cairo, 6, (i) => (done ? prog(f, A.flex + 8 + i * 3, 8) : 0))];
+  const boxes: Box[] = [
+    { c1: 0, c2: 4, s1: 1, s2: 99, color: C.blue, dash: true, t: prog(f, A.arr, 10) * (1 - prog(f, A.flex, 10)) },
+    { c1: 2, c2: 2, s1: 1, s2: 99, color: C.amber, dash: true, t: prog(f, A.inc, 10) * (1 - prog(f, A.flex, 10)), w: 3 },
+    { c1: 6, c2: 10, s1: 1, s2: cairo.length, color: C.blue, t: done ? prog(f, A.flex + 8, 14) : 0, fill: "rgba(16,185,129,.10)", w: 3 },
+  ];
+  const shown = done ? FORMULA : typing ? txt : "";
+  const ap = (t: number): React.CSSProperties => ({ opacity: t, transform: `translateY(${(1 - t) * 10}px)` });
+  const chip = (bg: string, label: string, code: string, ar: string, t: number): React.ReactNode => (
+    <div style={{ ...ap(t), width: 230 }}>
+      <div style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 700, color: C.text, background: C.slate2, border: `2px solid ${bg}`, borderRadius: 8, padding: "7px 10px", boxShadow: `0 0 16px ${bg}`, whiteSpace: "nowrap" }}>{code}</div>
+      <div style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 14, color: bg, marginTop: 6 }}>{label}</div>
+      <div style={{ fontFamily: F.ar, fontSize: 14, color: "#CBD5E1", direction: "rtl", textAlign: "left" }}>{ar}</div>
+    </div>
+  );
   return (
-    <Fade f={f} dur={1200} kind="fade">
-      <Excel cam={cam} file="manzooma_sales_2026.xlsx" tab="home" glow={{ id: "sortfilter", color: C.blue, t: win(A.autofilter, 585, f, 12) }} nameBox={f >= 750 ? "C1" : "C4"} formula={f >= 750 ? "Store Branch" : SMALL[2].branch}
-        grid={{ cols, rows: mk(SMALL, false, slots, vis, (r) => r.n + 2), fixedHdr: !filtered, hdrBlue: filtered, active: f >= 750 ? { c: 2, slot: 0 } : { c: 2, slot: 3 }, fbtns: arrowBtns(f, A.ctrl + 10, menuT > 0 ? 2 : -1, filtered ? [2] : []) }}
-        statusLeft={filtered ? `${kept} of ${SMALL.length} records found` : "Ready"}>
-        <Neon x={colX(cols, 0)} y={slotY(0)} w={TOTALW} h={20} color={C.blue} t={win(A.ctrl + 10, 700, f, 12)} />
-        <FilterMenu x={x0} y={y0} t={menuT} col="Store Branch" items={items} allChecked={all} />
-        <Neon x={x0 + 8} y={y0 + 208 + 3 + 22} w={246} h={22} color={C.green} t={win(985, 1036, f, 8)} />
-        <Neon x={x0 + 8} y={y0 + 208 + 3 + 44} w={246} h={22} color={C.green} t={win(1000, 1036, f, 8)} />
-        {f >= 930 && f < 1085 ? <Cursor x={cur.x} y={cur.y} f={f} clicks={[968, 985, 1000, 1032]} /> : null}
-      </Excel>
-      <KeyCaps keys={["Ctrl", "Shift", "L"]} f={f} from={A.ctrl - 12} hold={75} />
-      <KeyCaps keys={["Alt", "↓"]} f={f} from={A.alt - 14} hold={60} accent={C.green} />
-      <TopStrip f={f} badge="Lesson 05 · Unit 1" lines={[{ from: 60, to: 540, text: "الفرز والتصفية المتقدمة والبحث المنظم | Advanced Sort, Filter & Wildcard Search", ar: true }, { from: 660, to: 1140, text: "Shortcut: Ctrl + Shift + L → Toggle AutoFilter | Alt + Down Arrow → Open Menu", color: C.blue }]} />
-    </Fade>
+    <SceneFx f={f} dur={1200} kind="fade">
+      <Sheet cam={camAt(f, [{ f: 0, z: 1, cx: 768, cy: 403 }, { f: 300, z: 1, cx: 768, cy: 403 }, { f: 345, z: 1.2, cx: 560, cy: 420 }, { f: 1200, z: 1.2, cx: 560, cy: 420 }])}
+        nameBox={f >= A.free ? "G2" : "A1"} formula={shown} editing={typing} rows={rows} active={f >= A.free ? { c: 6, slot: 1 } : { c: 0, slot: 0 }} boxes={boxes}
+        cellFx={(id, c) => { const s = String(id); if (s[0] !== "a" || c > 4) return undefined; const r = rank(Number(s.slice(1))); if (r < 0) return undefined; return `rgba(245,158,11,${prog(f, A.flex + 4 + r * 3, 14) * (1 - prog(f, A.flex + 60 + r * 3, 30)) * 0.45})`; }}>
+        {typing ? <CellEditor x={ctr(6, 1).x} y={ctr(6, 1).y} segs={argSegs(shown, [BLUE, AMB, PUR])} /> : null}
+        {typing ? <FuncTip x={ctr(6, 2).x} y={ctr(6, 2).y + 4} name="FILTER" params={["array", "include", "[if_empty]"]} active={argIndex(txt)} /> : null}
+        {f >= A.three - 20 && f < A.flex + 30 ? (
+          <div style={{ position: "absolute", left: ctr(6, 17).x - 8, top: ctr(6, 17).y, width: 780, background: "rgba(15,23,42,.94)", border: `1.5px solid ${C.blue}`, borderRadius: 14, padding: "14px 18px", zIndex: 40, opacity: win(A.three - 20, A.flex + 20, f, 12) }}>
+            <div style={{ fontFamily: F.mono, fontSize: 18, color: C.text, marginBottom: 10 }}>=FILTER( <span style={{ color: C.blue }}>array</span> , <span style={{ color: C.amber }}>include</span> , <span style={{ color: C.purple }}>[if_empty]</span> )</div>
+            <div style={{ display: "flex", gap: 14 }}>
+              {chip(C.blue, "array", "A2:E100", "النطاق اللي هتفلتره", prog(f, A.arr, 10))}
+              {chip(C.amber, "include", 'C2:C100="Cairo"', "شرط TRUE / FALSE لكل صف", prog(f, A.inc, 10))}
+              {chip(C.purple, "if_empty", '"No Sales"', "رسالة لو مفيش نتائج", prog(f, A.ife, 10))}
+            </div>
+          </div>
+        ) : null}
+      </Sheet>
+      <KeyCaps keys={["Enter"]} f={f} from={A.flex - 12} hold={45} accent={C.green} />
+      <TopStrip f={f} badge={badge} lines={[{ from: 60, to: 540, text: "الدرس 16 من 76 | الوحدة 4 من 14 → Dynamic FILTER Engine", ar: true }, { from: 660, to: 1140, text: "FILTER Syntax → =FILTER(array, include, [if_empty])", color: C.blue }]} />
+    </SceneFx>
   );
 };
 
-// ================= SC02: Multi-level sort =================
+// ================= SC02: AND / OR =================
 export const Scene2: React.FC = () => {
   const f = useCurrentFrame(); const A = A2;
-  const order = sortRows(SMALL);
-  const to = new Map(order.map((r, j) => [r.n, j]));
-  const e = SMALL.map((r) => prog(f, 950 + ((to.get(r.n) ?? 0) % 8) * 3, 70));
-  const slots = SMALL.map((r, i) => 1 + lerp(i, to.get(r.n) ?? i, e[i]));
-  const topIds = new Set<number>(); const seen = new Set<string>();
-  order.forEach((r) => { if (!seen.has(r.branch)) { seen.add(r.branch); topIds.add(r.n); } });
-  const tint = prog(f, 950, 20) * (1 - prog(f, 1290, 30)) * 0.3;
-  const dlgT = win(492, 945, f, 12);
-  const sp = ribbonPos("data", "sortbtn");
-  const cam: Cam = camAt(f, [{ f: 0, z: 1, cx: 768, cy: 403 }, { f: 380, z: 1, cx: 768, cy: 403 }, { f: 420, z: 1.6, cx: sp.x, cy: 150 }, { f: 480, z: 1.6, cx: sp.x, cy: 150 }, { f: 505, z: 1.45, cx: 768, cy: 340 }, { f: 945, z: 1.45, cx: 768, cy: 340 }, { f: 995, z: 1.25, cx: 480, cy: 340 }]);
-  const cur = path(f, [{ f: 400, x: 900, y: 450 }, { f: 470, x: sp.x, y: sp.y }, { f: 560, x: 649, y: 311 }, { f: 681, x: 959, y: 311 }, { f: 715, x: 531, y: 240 }, { f: 757, x: 649, y: 355 }, { f: 896, x: 959, y: 355 }, { f: 935, x: 922, y: 484 }, { f: 990, x: 700, y: 560 }]);
+  const T1 = '=FILTER(Data, (Branch="Cairo") * (Amount>5000))';
+  const T2 = '=FILTER(Data, (Branch="Cairo") + (Branch="Alex"))';
+  const t1 = typed(T1, f, 350, 0.35), t2 = typed(T2, f, 644, 0.4);
+  const e1 = f >= 350 && f < A.andl + 6, e2 = f >= 644 && f < A.orl + 6;
+  const d1 = f >= A.andl + 6, d2 = f >= A.orl + 6;
+  const rows = [...srcRows(), hdrRow("hd1", 6), hdrRow("hd2", 12), ...spill("sp", andRows, 6, (i) => (d1 ? prog(f, A.andl + 8 + i * 3, 8) : 0)), ...spill("so", orRows, 12, (i) => (d2 ? prog(f, A.orl + 8 + i * 2, 8) : 0))];
+  const boxes: Box[] = [
+    { c1: 6, c2: 10, s1: 1, s2: andRows.length, color: C.green, t: d1 ? prog(f, A.andl + 8, 14) : 0, fill: "rgba(16,185,129,.12)", w: 3 },
+    { c1: 12, c2: 16, s1: 1, s2: orRows.length, color: "#06B6D4", t: d2 ? prog(f, A.orl + 8, 14) : 0, fill: "rgba(6,182,212,.12)", w: 3 },
+  ];
+  const cur = e2 ? t2 : e1 ? t1 : d2 ? T2 : d1 ? T1 : "";
+  const sample = SALES.slice(0, 8);
   return (
-    <Fade f={f} dur={1350} kind="zoom">
-      <Excel cam={cam} file="manzooma_sales_2026.xlsx" tab={f >= A.data ? "data" : "home"} hotTab={{ tab: "Data", color: C.purple, t: win(A.data, 500, f, 10) }} glow={{ id: "sortbtn", color: C.purple, t: win(A.data + 12, 500, f, 10) }}
-        nameBox="C1" formula="Store Branch"
-        grid={{ cols, rows: mk(SMALL, false, slots, SMALL.map(() => 1), (r) => r.n + 2), fixedHdr: true, active: { c: 2, slot: 0 }, fbtns: arrowBtns(f, -20), cellFx: (id, c) => (f >= A.top && topIds.has(Number(id)) ? "rgba(245,158,11,.38)" : c === 2 ? `rgba(56,189,248,${tint})` : c === 6 ? `rgba(168,85,247,${tint})` : undefined) }}>
-        <SortDialog x={478} y={190} t={dlgT} l2={prog(f, A.add + 14, 16)} hi1={f >= A.l1 && f < A.add ? C.blue : undefined} hiO1={f >= A.az && f < A.add ? C.blue : undefined} hi2={f >= A.l2 ? C.purple : undefined} hiO2={f >= A.lts ? C.purple : undefined} add={f >= A.add + 4 && f < A.add + 14 ? 1 : 0} ok={f >= 938 && f < 946 ? 1 : 0} border={C.purple} />
-        {f >= 400 && f < 995 ? <Cursor x={cur.x} y={cur.y} f={f} clicks={[480, 722, 940]} /> : null}
-      </Excel>
-      <KeyCaps keys={["Alt", "A", "S", "S"]} f={f} from={A.altA - 12} hold={70} accent={C.purple} />
-      <TopStrip f={f} badge="Lesson 05 · Unit 1" lines={[{ from: 60, to: 600, text: "Custom Sort (Alt + A + SS) → Multi-Level Hierarchical Data Ordering", color: C.purple }, { from: 720, to: 1260, text: "Level 1: Branch (A-Z) → Level 2: Revenue (Largest to Smallest)", color: C.green }]} />
-    </Fade>
+    <SceneFx f={f} dur={1350} kind="zoom">
+      <Sheet cam={camAt(f, [{ f: 0, z: 1.2, cx: 640, cy: 430 }, { f: 1350, z: 1.2, cx: 640, cy: 430 }])}
+        nameBox={f >= 644 ? "M2" : f >= 340 ? "G2" : "A1"} formula={cur} editing={e1 || e2} rows={rows} active={f >= 644 ? { c: 12, slot: 1 } : f >= 340 ? { c: 6, slot: 1 } : { c: 0, slot: 0 }} boxes={boxes}>
+        <Chip x={ctr(6, 26).x} y={ctr(6, 26).y} text="Data = A2:E100  ·  Branch = C2:C100  ·  Amount = E2:E100" color={C.blue} t={win(A.logic, 560, f, 12)} />
+        {e1 ? <CellEditor x={ctr(6, 1).x} y={ctr(6, 1).y} segs={opSegs(t1, "*", "#D97706")} /> : null}
+        {e1 ? <FuncTip x={ctr(6, 2).x} y={ctr(6, 2).y + 4} name="FILTER" params={["array", "include", "[if_empty]"]} active={argIndex(t1)} /> : null}
+        {e2 ? <CellEditor x={ctr(12, 1).x} y={ctr(12, 1).y} segs={opSegs(t2, "+", "#0891B2")} /> : null}
+        {e2 ? <FuncTip x={ctr(12, 2).x} y={ctr(12, 2).y + 4} name="FILTER" params={["array", "include", "[if_empty]"]} active={argIndex(t2)} /> : null}
+        <LogicMatrix x={ctr(6, 14).x - 8} y={ctr(6, 14).y} t={win(A.and - 20, A.plus - 8, f, 12)} f={f - (A.and - 20)} mode="and" rows={sample} color={C.amber} />
+        <LogicMatrix x={ctr(6, 14).x - 8} y={ctr(6, 14).y} t={prog(f, A.plus - 8, 12)} f={f - (A.plus - 8)} mode="or" rows={sample} color="#06B6D4" />
+        <Chip x={ctr(6, 12).x} y={ctr(6, 12).y - 30} text={`AND → ${andRows.length} of ${SALES.filter(isCairo).length} Cairo rows are above 5,000`} color={C.amber} t={win(A.andl + 40, A.plus - 20, f, 12)} />
+        <Chip x={ctr(12, 25).x - 120} y={ctr(12, 25).y} text={`OR → ${SALES.filter(isCairo).length} Cairo + ${SALES.filter(isAlex).length} Alex = ${orRows.length} rows`} color="#06B6D4" t={prog(f, A.orl + 40, 12)} />
+      </Sheet>
+      <KeyCaps keys={["Enter"]} f={f} from={A.andl - 12} hold={40} accent={C.amber} />
+      <KeyCaps keys={["Enter"]} f={f} from={A.orl - 12} hold={40} accent="#06B6D4" />
+      <TopStrip f={f} badge={badge} lines={[{ from: 60, to: 600, text: "AND Logic (*) → Multiply Conditions: (Condition 1) * (Condition 2) Requires ALL True", color: C.amber }, { from: 720, to: 1260, text: "OR Logic (+) → Add Conditions: (Condition 1) + (Condition 2) Requires ANY True", color: "#06B6D4" }]} />
+    </SceneFx>
   );
 };
 
-// ================= SC03: Filter by color / icons =================
+// ================= SC03: #CALC! and if_empty =================
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame(); const A = A3;
-  const isG = (r: Row) => fillOf(r.rev) === "green"; const isD = (r: Row) => trendOf(r.mom) === "down";
-  const vis = SMALL.map((r, i) => {
-    const j = i % 5;
-    if (f < 800) return isG(r) ? 1 : 1 - prog(f, 625 + j * 2, 22);
-    if (f < 945) return isG(r) ? 1 : prog(f, 800 + j * 2, 25);
-    return isD(r) ? 1 : 1 - prog(f, 960 + j * 2, 22);
-  });
-  const slots = stack(vis, 1);
-  const act = (f >= 625 && f < 840) || f >= 945;
-  const nG = SMALL.filter(isG).length, nD = SMALL.filter(isD).length;
-  const gi = SMALL.findIndex((r) => fillOf(r.rev) === "green"), ri = SMALL.findIndex((r) => fillOf(r.rev) === "red");
-  const mG = win(A.click + 6, 598, f, 10), mH = win(A.icons + 6, 1000, f, 10);
-  const xG = colX(cols, 6) - 40, xH = colX(cols, 7) - 40, y0 = slotY(1);
-  const mom = uniq(SMALL.map((r) => r.mom).sort((a, b) => a - b).map((m) => m + "%")).slice(0, 6);
-  const rev = uniq(SMALL.map((r) => r.rev).sort((a, b) => a - b).map((m) => num(m))).slice(0, 6);
-  const cam: Cam = camAt(f, [{ f: 0, z: 1.2, cx: 430, cy: 330 }, { f: 1350, z: 1.2, cx: 430, cy: 330 }]);
-  const cur = path(f, [{ f: 440, x: 900, y: 450 }, { f: 462, x: at(6, 0).x + 44, y: at(6, 0).y }, { f: 520, x: xG + 100, y: y0 + 142 }, { f: 574, x: xG + 281, y: y0 + 167 }, { f: 700, x: 760, y: 520 }, { f: 880, x: at(7, 0).x + 24, y: at(7, 0).y }, { f: 915, x: xH + 100, y: y0 + 142 }, { f: 938, x: xH + 347, y: y0 + 167 }, { f: 1000, x: 760, y: 560 }]);
+  const Ta = '=FILTER(Data, Branch="Giza")';
+  const tb = '=FILTER(Data, Branch="Giza"';
+  const extra = typed(', "No Matching Records"', f, A.third + 10, 0.4);
+  const Tb = '=FILTER(Data, Branch="Giza", "No Matching Records")';
+  const ta = typed(Ta, f, A.nof - 14, 0.3);
+  const e1 = f >= A.nof - 14 && f < A.calc + 6;
+  const err = f >= A.calc + 6 && f < A.third;
+  const e2 = f >= A.third && f < A.nm + 8;
+  const ok = f >= A.nm + 8;
+  const edit2 = tb + extra + (extra.length >= 22 ? ")" : "");
+  const shown = ok ? Tb : e2 ? edit2 : err ? Ta : e1 ? ta : "";
+  const g = ctr(6, 1);
   return (
-    <Fade f={f} dur={1350} kind="left">
-      <Excel cam={cam} file="manzooma_sales_2026.xlsx" tab="data" nameBox="G1" formula="Total Revenue" statusLeft={act ? `${f < 800 ? nG : nD} of ${SMALL.length} records found` : "Ready"}
-        grid={{ cols, rows: mk(SMALL, true, slots, vis, (r) => r.n + 2), fixedHdr: !act, hdrBlue: act, active: { c: f >= A.icons ? 7 : 6, slot: 0 }, fbtns: arrowBtns(f, -20, mG > 0 ? 6 : mH > 0 ? 7 : -1, f >= 590 && f < 800 ? [6] : f >= 950 ? [7] : []) }}>
-        <Neon x={colX(cols, 6)} y={slotY(gi + 1)} w={108} h={20} color={C.green} t={win(A.green, 450, f, 10)} label="Green = High sales" />
-        <Neon x={colX(cols, 6)} y={slotY(ri + 1)} w={108} h={20} color={C.red} t={win(A.green + 30, 450, f, 10)} label="Red = Low sales" />
-        <FilterMenu x={xG} y={y0} t={mG} col="Total Revenue" kind="Number" items={rev.map((l) => ({ label: l, checked: true }))} allChecked hover={f >= 520 ? "color" : undefined}
-          sub={f >= 524 ? <SubPanel x={262} y={130} title="Filter by Cell Color" swatches={[{ c: "#C6EFCE", id: "green" }, { c: "#FFC7CE", id: "red" }, { c: "#FFFFFF", id: "nofill" }]} hover={f >= 565 ? "green" : undefined} /> : null} />
-        <FilterMenu x={xH} y={y0} t={mH} col="MoM %" kind="Number" items={mom.map((l) => ({ label: l, checked: true }))} allChecked hover={f >= 915 ? "color" : undefined}
-          sub={f >= 918 ? <SubPanel x={262} y={130} title="Filter by Cell Icon" icons={["up", "side", "down", "none"]} hover={f >= 926 ? "icon-down" : undefined} /> : null} />
-        <Neon x={xH + 270 + 64} y={y0 + 156} w={26} h={22} color={C.red} t={win(A.low, 1000, f, 10)} />
-        {(f >= 440 && f < 710) || (f >= 870 && f < 1010) ? <Cursor x={cur.x} y={cur.y} f={f} clicks={[A.click + 4, 576, A.icons + 6, 940]} /> : null}
-      </Excel>
-      <TopStrip f={f} badge="Lesson 05 · Unit 1" lines={[{ from: 90, to: 630, text: "Visual Filtering → Filter by Cell Color, Font Color & Icon Sets", color: C.green }, { from: 750, to: 1290, text: "Visual Speed → Instant Isolation of High-Risk or High-Profit Records", color: C.red }]} />
-    </Fade>
+    <SceneFx f={f} dur={1350} kind="left">
+      <Sheet cam={camAt(f, [{ f: 0, z: 1.3, cx: 500, cy: 340 }, { f: 1350, z: 1.3, cx: 500, cy: 340 }])}
+        nameBox={f >= A.nof - 30 ? "G2" : "A1"} formula={shown} editing={e1 || e2} rows={srcRows()} active={f >= A.nof - 30 ? { c: 6, slot: 1 } : { c: 0, slot: 0 }}>
+        <Neon x={ctr(2, 1).x} y={ctr(2, 1).y} w={78} h={27 * 20} color={C.blue} t={win(A.nof - 10, A.calc + 20, f, 10)} label="Branches here: Cairo · Alex · Mansoura · Aswan · Tanta" labelPos="top" />
+        {e1 ? <CellEditor x={g.x} y={g.y} segs={argSegs(ta, [BLUE, AMB])} /> : null}
+        {e1 ? <FuncTip x={g.x} y={g.y + 24} name="FILTER" params={["array", "include", "[if_empty]"]} active={argIndex(ta)} /> : null}
+        {e2 ? <CellEditor x={g.x} y={g.y} segs={argSegs(edit2, [BLUE, AMB, PUR])} /> : null}
+        {e2 && !ok ? <FuncTip x={g.x} y={g.y + 24} name="FILTER" params={["array", "include", "[if_empty]"]} active={Math.min(2, argIndex(edit2))} /> : null}
+        {err ? (
+          <div>
+            <div style={{ position: "absolute", left: g.x, top: g.y, width: 70, height: 20, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F.cell, fontSize: 14.67, color: C.ink, zIndex: 20 }}>#CALC!</div>
+            <Neon x={g.x} y={g.y} w={70} h={20} color={C.red} t={prog(f, A.calc + 6, 10)} />
+            <ErrTag x={g.x - 22} y={g.y} t={prog(f, A.calc + 14, 10)} />
+            <div style={{ position: "absolute", left: g.x + 90, top: g.y - 6, background: C.slate, color: C.text, border: `2px solid ${C.red}`, borderRadius: 8, padding: "6px 12px", boxShadow: `0 0 16px ${C.red}`, fontFamily: F.ui, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", zIndex: 45, opacity: prog(f, A.calc + 14, 10) }}>#CALC! → no rows matched "Giza"</div>
+          </div>
+        ) : null}
+        {ok ? (
+          <div>
+            <div style={{ position: "absolute", left: g.x + 3, top: g.y, height: 20, display: "flex", alignItems: "center", fontFamily: F.cell, fontSize: 14.67, fontWeight: 700, color: PUR, whiteSpace: "nowrap", zIndex: 20, opacity: prog(f, A.nm + 8, 10) }}>No Matching Records</div>
+            <Neon x={g.x} y={g.y} w={160} h={20} color={C.purple} t={prog(f, A.nm + 8, 12)} />
+          </div>
+        ) : null}
+        <Shield x={g.x + 200} y={g.y + 50} t={prog(f, A.gone, 14)} label="Native error shield — no IFERROR needed" color={C.purple} />
+        <Chip x={g.x} y={g.y + 130} text='=IFERROR( FILTER( ... ), "No Matching Records" )' color={C.red} t={prog(f, A.iferr, 12)} strike />
+        <Chip x={g.x} y={g.y + 176} text="✓  FILTER(…, [if_empty]) already handles it" color={C.green} t={prog(f, A.iferr + 24, 12)} />
+      </Sheet>
+      <KeyCaps keys={["Enter"]} f={f} from={A.calc - 12} hold={40} accent={C.red} />
+      <KeyCaps keys={["Enter"]} f={f} from={A.nm - 12} hold={40} accent={C.purple} />
+      <TopStrip f={f} badge={badge} lines={[{ from: 90, to: 630, text: "#CALC! Error Prevention → Triggers When No Records Match Filter Criteria", color: C.red }, { from: 750, to: 1290, text: "Parameter #3 [if_empty] → Returns Custom Text/Zero Natively Without IFERROR", color: C.purple }]} />
+    </SceneFx>
   );
 };
 
-// ================= SC04: Wildcards =================
+// ================= SC04: spill reference # =================
 export const Scene4: React.FC = () => {
   const f = useCurrentFrame(); const A = A4;
-  const isC = (r: Row) => r.branch.startsWith("Cairo");
-  const nC = SMALL.filter(isC).length;
-  const replaced = f >= 640;
-  const findTxt = f < 690 ? typed("Cairo*", f, 440, 0.25) : typed("A?1", f, 692, 0.2);
-  const replTxt = f < 690 ? typed("Cairo Main Branch", f, 560, 0.4) : "";
-  const dlgT = win(A.ctrlh + 6, 1180, f, 12);
-  const flash = replaced ? (1 - prog(f, 640, 60)) * 0.5 : 0;
-  const hi = SMALL.filter(isC).map((r) => r.n);
-  const cam: Cam = camAt(f, [{ f: 0, z: 1.1, cx: 698, cy: 340 }, { f: 1200, z: 1.1, cx: 698, cy: 340 }]);
-  const dx = 860, dy = 230;
+  const cairo = SALES.filter(isCairo), alex = SALES.filter(isAlex);
+  const S = '=SUM(INDEX(G2#,,5))';
+  const ts = typed(S, f, A.sum, 0.25);
+  const typingS = f >= A.sum && f < A.g2 + 6;
+  const shrink = prog(f, A.shr, 30);
+  const afterEnter = f >= A.shr - 4;
+  const F1 = (b: string): string => `=FILTER(A2:E100, C2:C100="${b}", "No Sales")`;
+  const n1 = (f - A.chg) * 0.3;
+  const nm = n1 < 0 ? "Cairo" : n1 < 5 ? "Cairo".slice(0, 5 - Math.floor(n1)) : "Alex".slice(0, Math.max(0, Math.floor((f - A.chg - 17) * 0.25)));
+  const editing2 = f >= A.chg && f < A.shr - 4;
+  const fedit = F1(nm);
+  const val = Math.round(lerp(sumAmt(cairo), sumAmt(alex), shrink));
+  const cnt = Math.round(lerp(cairo.length, alex.length, shrink));
+  const hs = (i: number): number => (i < alex.length ? 1 : afterEnter ? 1 - prog(f, A.shr + (14 - i) * 3, 10) : 1);
+  const list = (i: number): Sale => (afterEnter && i < alex.length ? alex[i] : cairo[i]);
+  const rows: GRow[] = [...srcRows(), hdrRow("hd1", 6), ...cairo.map((_, i) => ({ id: "sp" + i, hdr: 0, cells: cellsAt(6, saleVals(list(i))), slot: i + 1, h: hs(i) }))];
+  const kShown = f >= A.g2 + 6;
+  rows.push({ id: "k0", hdr: 0, slot: 0, h: 1, cells: ((): Cell[] => { const a: Cell[] = []; if (kShown) { a[12] = { v: "Total", b: true, fill: "#E2EFDA" }; a[13] = { v: "Rows", b: true, fill: "#E2EFDA", al: "r" }; } return a; })() });
+  rows.push({ id: "k1", hdr: 0, slot: 1, h: 1, cells: ((): Cell[] => { const a: Cell[] = []; if (kShown) { a[12] = { v: num(val), al: "r" }; a[13] = { v: cnt, al: "r" }; } return a; })() });
+  const boxes: Box[] = [
+    { c1: 6, c2: 10, s1: 1, s2: lerp(cairo.length, alex.length, shrink), color: C.blue, fill: "rgba(16,185,129,.08)", w: 3 },
+    { c1: 6, c2: 10, s1: 1, s2: lerp(cairo.length, alex.length, shrink) + 0.0, color: C.amber, dash: true, w: 3, t: win(A.hash, A.sum - 10, f, 12) * 0.9 + win(A.g2 - 20, A.g2 + 60, f, 10) },
+    { c1: 12, c2: 13, s1: 0, s2: 1, color: C.green, t: win(A.shr + 10, A.shr + 80, f, 10) + win(A.sumup, A.sumup + 70, f, 10) },
+  ];
+  const segs: Seg[] = ((): Seg[] => { const i = ts.indexOf("#"); return i < 0 ? [{ t: ts }] : [{ t: ts.slice(0, i) }, { t: "#", bg: "#D97706", c: "#fff", b: true }, { t: ts.slice(i + 1) }]; })();
+  const flash = win(A.shr + 10, A.shr + 90, f, 10) + win(A.kpi, A.kpi + 90, f, 10);
   return (
-    <Fade f={f} dur={1200} kind="down">
-      <Excel cam={cam} file="manzooma_sales_2026.xlsx" tab="home" glow={{ id: "findsel", color: C.amber, t: win(A.ctrlh - 20, 400, f, 12) }} nameBox="C1" formula="Store Branch"
-        grid={{ cols, rows: mk(SMALL, false, SMALL.map((_, i) => i + 1), SMALL.map(() => 1), (r) => r.n + 2, (r, cells) => { if (replaced && isC(r)) cells[2].v = "Cairo Main Branch"; }), fixedHdr: true, active: { c: 2, slot: 0 }, hiRows: f >= 500 && f < 640 ? hi : [], cellFx: (id, c) => (c === 2 && replaced && hi.includes(Number(id)) ? `rgba(16,185,129,${flash})` : undefined) }}>
-        <FindDialog x={dx} y={dy} t={dlgT} find={findTxt} repl={replTxt} focus={f < 560 || f >= 690 ? "find" : "repl"} hiFind={f >= A.star && f < 690 ? C.amber : f >= A.q ? C.blue : undefined} press={f >= 632 && f < 642 ? "all" : undefined} />
-        <Chip x={dx} y={dy + 262} text="*  matches any number of characters" color={C.amber} t={win(A.star, 680, f, 10)} />
-        <Chip x={dx} y={dy + 262} text="?  matches exactly one character" color={C.blue} t={win(A.q, 1150, f, 10)} />
-        <Chip x={dx} y={dy + 304} text="A?1  →  AB1 ✓   AC1 ✓   A71 ✓   A101 ✗" color={C.green} t={win(A.one, 1150, f, 10)} />
-        <MsgBox x={dx + 60} y={dy + 70} title="Microsoft Excel" text={`All done. We made ${nC} replacements.`} t={win(646, 684, f, 8)} />
-      </Excel>
-      <KeyCaps keys={["Ctrl", "H"]} f={f} from={A.ctrlh - 14} hold={60} accent={C.amber} />
-      <TopStrip f={f} badge="Lesson 05 · Unit 1" lines={[{ from: 60, to: 540, text: "Wildcard Mechanics → Asterisk (*) = Any Characters | Question Mark (?) = Single Char", color: C.amber }, { from: 660, to: 1140, text: "Smart Replace (Ctrl + H) → Mass Data Cleanup Without Distorting Structure", color: C.green }]} />
-    </Fade>
+    <SceneFx f={f} dur={1200} kind="down">
+      <Sheet cam={camAt(f, [{ f: 0, z: 1.2, cx: 640, cy: 430 }, { f: 1200, z: 1.2, cx: 640, cy: 430 }])}
+        nameBox={editing2 ? "G2" : typingS || kShown ? "M2" : "G2"} formula={editing2 ? fedit : typingS ? ts : kShown ? S : F1("Cairo")} editing={typingS || editing2} rows={rows}
+        active={kShown && !editing2 ? { c: 12, slot: 1 } : { c: 6, slot: 1 }} boxes={boxes}>
+        <Chip x={ctr(12, 4).x} y={ctr(12, 4).y} text="G2#  =  the whole spill range" color={C.amber} t={win(A.hash, A.sum - 10, f, 12)} />
+        {typingS ? <CellEditor x={ctr(12, 1).x} y={ctr(12, 1).y} segs={segs} /> : null}
+        {typingS ? <FuncTip x={ctr(12, 2).x} y={ctr(12, 2).y + 4} name={ts.includes("INDEX(") ? "INDEX" : "SUM"} params={ts.includes("INDEX(") ? ["array", "row_num", "[column_num]"] : ["number1", "[number2]", "..."]} active={ts.includes("INDEX(") ? Math.min(2, argIndex(ts.slice(ts.indexOf("INDEX")))) : 0} /> : null}
+        {editing2 ? <CellEditor x={ctr(6, 1).x} y={ctr(6, 1).y} segs={argSegs(fedit, [BLUE, AMB, PUR])} /> : null}
+        <KpiCard x={ctr(6, 18).x} y={ctr(6, 18).y} label="RECORDS" value={String(cnt)} color={C.green} t={prog(f, A.g2 + 14, 12)} flash={flash} />
+        <KpiCard x={ctr(6, 18).x + 190} y={ctr(6, 18).y} label="TOTAL AMOUNT" value={num(val)} color={C.blue} t={prog(f, A.g2 + 20, 12)} flash={flash} />
+      </Sheet>
+      <KeyCaps keys={["Enter"]} f={f} from={A.g2 - 12} hold={40} accent={C.amber} />
+      <KeyCaps keys={["Enter"]} f={f} from={A.shr - 18} hold={40} accent={C.green} />
+      <TopStrip f={f} badge={badge} lines={[{ from: 60, to: 540, text: "Dynamic Synergy → Link FILTER Output to Downstream Calculations using # Operator", color: C.amber }, { from: 660, to: 1140, text: "Real-time Recalculation → Summary KPI Cards Update Automatically as Filter Criteria Change", color: C.green }]} />
+    </SceneFx>
   );
 };
 
 // ================= SC05: 50,000 rows =================
+const W5 = [70, 66, 76, 84, 44, 70, 22, 70, 66, 76, 84, 44, 70];
+const cols5 = buildCols(W5);
 const VIEW = 26;
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame(); const A = A5;
-  const bottom = f >= 408 && f < 455;
+  const BIGF = '=FILTER(tbl_Sales2026, (tbl_Sales2026[Region]="Cairo") * (tbl_Sales2026[Total]>10000), "No VIP Sales")';
+  const all = bigRows(), vip = vipRows();
+  const bottom = f >= 420 && f < 470;
   const off = bottom ? BIG_N - VIEW : 0;
-  const src = f >= 565 ? bigSorted() : bigRows();
-  const view = src.slice(off, off + VIEW);
-  const doRepl = f >= 736;
-  const nL = bigRows().filter((r) => r.product.startsWith("Laptop")).length;
-  const tint = f >= 565 ? prog(f, 565, 15) * (1 - prog(f, 650, 30)) * 0.3 : 0;
-  const flash = doRepl ? (1 - prog(f, 736, 50)) * 0.45 : 0;
-  const rows = mk(view, false, view.map((_, k) => k + 1), view.map(() => 1), (_, k) => off + k + 2, (r, cells) => { if (doRepl && r.product.startsWith("Laptop")) cells[3].v = "Laptop Pro"; });
-  const rowsFix = rows.map((r) => ({ ...r, id: r.head ? r.id : "r" + String(r.id) }));
-  const last = view[view.length - 1];
+  const tf = typed(BIGF, f, A.formula + 4, 1.0);
+  const typing = f >= A.formula + 4 && f < A.ms + 6;
+  const done = f >= A.ms + 6;
+  const H = ["Order ID", "Date", "Region", "Product", "Units", "Total"];
+  const al = ["l", "r", "l", "l", "r", "r"];
+  const hd = (id: string, c0: number): GRow => ({ id, hdr: 1, cells: cellsAt(c0, H, true, al), slot: 0, h: 1 });
+  const rows: GRow[] = [hd("h0", 0), ...(done ? [hd("h1", 7)] : [])];
+  for (let k = 0; k < VIEW; k++) {
+    const r = all[off + k];
+    rows.push({ id: "s" + k, hdr: r.n + 2, slot: k + 1, h: 1, cells: cellsAt(0, [r.id, r.date, r.region, r.product, r.units, num(r.total)], false, al) });
+    if (done && !bottom) { const v = vip[k]; rows.push({ id: "v" + k, hdr: r.n + 2, slot: k + 1, h: prog(f, A.ms + 8 + k, 6), cells: cellsAt(7, [v.id, v.date, v.region, v.product, v.units, num(v.total)], false, al) }); }
+  }
+  const boxes: Box[] = [{ c1: 7, c2: 12, s1: 1, s2: VIEW + 1, color: C.blue, t: done ? prog(f, A.ms + 8, 14) : 0, fill: "rgba(16,185,129,.09)", w: 3 }];
   const count = Math.round(BIG_N * prog(f, A.file, 130));
-  const cam: Cam = camAt(f, [{ f: 0, z: 1.15, cx: 668, cy: 340 }, { f: 396, z: 1.15, cx: 668, cy: 340 }, { f: 406, z: 1.15, cx: 668, cy: 456 }, { f: 455, z: 1.15, cx: 668, cy: 456 }, { f: 465, z: 1.15, cx: 668, cy: 340 }, { f: 1200, z: 1.15, cx: 668, cy: 340 }]);
-  const dx = 860, dy = 230;
-  const seal = prog(f, A.result + 10, 26);
-  const thumb = GRID_TOP + (WIN_W > 0 ? ((HEIGHT / 1.25 - GRID_TOP - 70) * off) / BIG_N : 0);
+  const seal = prog(f, A.speed + 10, 26);
   return (
-    <Fade f={f} dur={1200} kind="expand">
-      <Excel cam={cam} file={XLSX_NAME} tab="home" nameBox={bottom ? "A50001" : "A1"} formula={bottom && last ? last.id : "Order ID"} statusLeft="Ready"
-        grid={{ cols, rows: rowsFix, fixedHdr: false, active: bottom ? { c: 0, slot: VIEW } : { c: 0, slot: 0 }, fbtns: arrowBtns(f, A.ctrl + 10), cellFx: (_, c) => (c === 2 ? `rgba(56,189,248,${tint})` : c === 6 ? `rgba(168,85,247,${tint})` : c === 3 && doRepl ? `rgba(16,185,129,${flash})` : undefined) }}>
-        <div style={{ position: "absolute", left: 0, top: slotY(1) - 1, width: WIN_W, height: 1, background: "#7F7F7F", zIndex: 5 }} />
-        <div style={{ position: "absolute", left: WIN_W - 14, top: GRID_TOP, width: 14, height: HEIGHT / 1.25 - GRID_TOP - 70, background: "#F3F3F3", borderLeft: "1px solid #D6D6D6" }}><div style={{ position: "absolute", left: 3, top: thumb - GRID_TOP, width: 8, height: 10, background: "#8A8A8A", borderRadius: 4 }} /></div>
-        <SortDialog x={478} y={190} t={win(515, 568, f, 10)} l2={prog(f, 530, 12)} hi1={C.blue} hi2={C.purple} hiO1={C.blue} hiO2={C.purple} ok={f >= 558 && f < 568 ? 1 : 0} border={C.purple} />
-        <FindDialog x={dx} y={dy} t={win(A.repl + 18, 800, f, 10)} find={typed("Laptop*", f, 612, 0.3)} repl={typed("Laptop Pro", f, 640, 0.3)} focus={f < 640 ? "find" : "repl"} hiFind={C.amber} press={f >= 730 && f < 740 ? "all" : undefined} />
-        <MsgBox x={dx + 60} y={dy + 70} title="Microsoft Excel" text={`All done. We made ${num(nL)} replacements.`} t={win(744, 800, f, 8)} />
+    <SceneFx f={f} dur={1200} kind="expand">
+      <Excel cam={camAt(f, [{ f: 0, z: 1.15, cx: 668, cy: 340 }, { f: 415, z: 1.15, cx: 668, cy: 340 }, { f: 425, z: 1.15, cx: 668, cy: 456 }, { f: 465, z: 1.15, cx: 668, cy: 456 }, { f: 475, z: 1.15, cx: 668, cy: 340 }, { f: 1200, z: 1.15, cx: 668, cy: 340 }])}
+        file={XLSX_NAME} tab="formulas" nameBox={bottom ? "A50001" : f >= A.formula ? "H2" : "A1"} formula={done ? BIGF : typing ? tf : bottom ? all[BIG_N - 1].id : "Order ID"} editing={typing} statusLeft={typing ? "Enter" : "Ready"}
+        grid={{ cols: cols5, rows, fixedHdr: false, lines: true, active: bottom ? { c: 0, slot: VIEW } : f >= A.formula ? { c: 7, slot: 1 } : { c: 0, slot: 0 }, boxes }}>
+        {typing ? <CellEditor x={colX(cols5, 7)} y={slotY(1)} segs={argSegs(tf, [BLUE, AMB, PUR])} /> : null}
+        {typing ? <FuncTip x={colX(cols5, 7)} y={slotY(2) + 4} name="FILTER" params={["array", "include", "[if_empty]"]} active={argIndex(tf)} /> : null}
+        <Chip x={colX(cols5, 7)} y={slotY(29) - 52} text={`Spilled: ${num(vip.length)} rows × 6 columns  (Cairo AND Total > 10,000)`} color={C.green} t={prog(f, A.ms + 40, 12)} />
       </Excel>
-      <div style={{ position: "absolute", right: 28, top: 92, background: "rgba(15,23,42,.92)", border: `1.5px solid ${C.blue}`, borderRadius: 12, padding: "8px 18px", fontFamily: F.mono, fontSize: 20, color: C.text, opacity: prog(f, A.file, 12), zIndex: 60 }}>Rows loaded: <span style={{ color: C.blue, fontWeight: 700 }}>{num(count)}</span></div>
-      {seal > 0 ? (
-        <div style={{ position: "absolute", right: 60, top: 300, width: 330, opacity: seal, transform: `scale(${0.7 + 0.3 * seal})`, zIndex: 60, textAlign: "center" }}>
-          <div style={{ width: 170, height: 170, margin: "0 auto", borderRadius: 85, background: `radial-gradient(circle, ${C.green}33, ${C.slate})`, border: `4px solid ${C.green}`, boxShadow: `0 0 40px ${C.green}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 92, color: C.green }}>✓</div>
-          <div style={{ marginTop: 12, background: C.slate, border: `1.5px solid ${C.green}`, borderRadius: 12, padding: "8px 12px", fontFamily: F.ui, fontWeight: 700, fontSize: 21, color: C.text }}>Enterprise Sort & Filter</div>
-          <div style={{ marginTop: 8, fontFamily: F.ar, fontWeight: 600, fontSize: 19, color: C.green, background: C.slate, borderRadius: 10, padding: "4px 10px" }}>{num(BIG_N)} صف · صفر أخطاء</div>
-        </div>
-      ) : null}
-      <KeyCaps keys={["Ctrl", "↓"]} f={f} from={392} hold={36} accent={C.blue} />
-      <KeyCaps keys={["Ctrl", "Shift", "L"]} f={f} from={A.ctrl - 4} hold={50} />
-      <KeyCaps keys={["Alt", "A", "S", "S"]} f={f} from={A.sort - 10} hold={45} accent={C.purple} />
-      <KeyCaps keys={["Ctrl", "H"]} f={f} from={A.repl + 6} hold={45} accent={C.amber} />
-      <TopStrip f={f} badge="Lesson 05 · Unit 1" lines={[{ from: 60, to: 540, text: "Enterprise Data Sorting → Sort & Filter 50,000 Sales Records Instantly", color: C.blue }, { from: 660, to: 1140, text: "Precision Extraction → Zero-Error Wildcard Replacement & Segment Isolation", color: C.green }]} />
-    </Fade>
+      <div style={{ position: "absolute", right: 28, top: 92, background: "rgba(15,23,42,.92)", border: `1.5px solid ${C.blue}`, borderRadius: 12, padding: "8px 18px", fontFamily: F.mono, fontSize: 19, color: C.text, opacity: prog(f, A.file, 12), zIndex: 60 }}>tbl_Sales2026 · <span style={{ color: C.blue, fontWeight: 700 }}>{num(count)}</span> rows</div>
+      <Seal t={seal} line1="Enterprise FILTER" line2={`${num(BIG_N)} صف · استخراج فوري`} />
+      <KeyCaps keys={["Ctrl", "↓"]} f={f} from={404} hold={34} accent={C.blue} />
+      <KeyCaps keys={["Enter"]} f={f} from={A.ms - 14} hold={40} accent={C.green} />
+      <TopStrip f={f} badge={badge} lines={[{ from: 60, to: 540, text: "Enterprise FILTER Deployment → Extract Multi-Condition Records Across 50,000 Sales Rows", color: C.blue }, { from: 660, to: 1140, text: "Instant Dynamic Filtering → High-Speed Data Extraction Across 50,000 Rows", color: C.green }]} />
+    </SceneFx>
   );
 };
 
 // ================= SC06: outro =================
 export const Scene6: React.FC = () => {
   const f = useCurrentFrame(); const A = A6;
-  const pr = prog(f, A.unit, 110);
-  const skills = ["AutoFilter shortcuts · Ctrl + Shift + L", "Multi-Level Custom Sort · Alt + A + SS", "Filter by Color & Icon Sets", "Wildcards * and ? in Ctrl + H"];
+  const pr = prog(f, 60, 110);
+  const skills = ["FILTER(array, include, [if_empty])", "AND (*) and OR (+) array logic", "if_empty → no #CALC! errors", "G2# spill reference + live KPIs"];
   const fadeOut = 1 - prog(f, 850, 50);
-  const card: React.CSSProperties = { background: "rgba(30,41,59,.72)", border: "1.5px solid rgba(148,163,184,.35)", borderRadius: 28, backdropFilter: "blur(6px)" };
+  const card: React.CSSProperties = { background: "rgba(30,41,59,.72)", border: "1.5px solid rgba(148,163,184,.35)", borderRadius: 28 };
   return (
     <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 20% 10%, #16324a 0%, ${C.slate} 55%)`, opacity: Math.min(prog(f, 0, 20), fadeOut) }}>
       <div style={{ position: "absolute", left: 90, top: 60, display: "flex", alignItems: "center", gap: 20, opacity: prog(f, 0, 20) }}>
         <Logo s={120} />
         <div><div style={{ fontFamily: F.ar, fontWeight: 700, fontSize: 46, color: C.text }}>منظومة أكاديمي | Manzooma Excel Masterclass</div><div style={{ fontFamily: F.ui, fontSize: 22, color: "#94A3B8", marginTop: 4 }}>Excel From Zero to Professional</div></div>
       </div>
-      <div style={{ ...card, position: "absolute", left: 90, top: 200, width: 1010, height: 680, padding: 44, boxSizing: "border-box", opacity: prog(f, 30, 20), transform: `translateY(${(1 - prog(f, 30, 20)) * 24}px)` }}>
-        <div style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 38, color: C.text }}>Lesson 05 · AutoFilter & Advanced Sort</div>
-        <div style={{ fontFamily: F.ar, fontSize: 28, color: "#CBD5E1", marginTop: 8 }}>اكتمل الدرس الخامس</div>
-        <div style={{ marginTop: 34, display: "flex", justifyContent: "space-between", fontFamily: F.ui, fontWeight: 600, fontSize: 24, color: C.text }}><span>Unit 1 · Architecture & Smart Interface Setup</span><span style={{ color: C.green }}>{Math.round(pr * 100)}%</span></div>
-        <div style={{ marginTop: 12, height: 26, borderRadius: 13, background: "#0B1220", overflow: "hidden", border: "1px solid #334155" }}><div style={{ width: `${pr * 100}%`, height: "100%", background: `linear-gradient(90deg, ${C.green}, #34D399)`, boxShadow: `0 0 18px ${C.green}` }} /></div>
-        <div style={{ marginTop: 34 }}>
-          {skills.map((s, i) => { const t = prog(f, 130 + i * 30, 16); return <div key={i} style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 22, opacity: t, transform: `translateX(${(1 - t) * 30}px)`, fontFamily: F.ui, fontSize: 30, color: C.text }}><span style={{ color: C.green, fontWeight: 700, fontSize: 34 }}>✓</span>{s}</div>; })}
+      <div style={{ ...card, position: "absolute", left: 90, top: 200, width: 1010, height: 700, padding: 44, boxSizing: "border-box", opacity: prog(f, 20, 20), transform: `translateY(${(1 - prog(f, 20, 20)) * 24}px)` }}>
+        <div style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 38, color: C.text }}>Lesson 16 · Dynamic FILTER Engine</div>
+        <div style={{ fontFamily: F.ar, fontSize: 28, color: "#CBD5E1", marginTop: 8, direction: "rtl", textAlign: "left" }}>الدرس السادس عشر | الوحدة الرابعة</div>
+        <div style={{ marginTop: 30, display: "flex", justifyContent: "space-between", fontFamily: F.ui, fontWeight: 600, fontSize: 24, color: C.text }}><span>Course progress · Lesson 16 of 76</span><span style={{ color: C.green }}>{Math.round(pr * (1600 / 76))}%</span></div>
+        <div style={{ marginTop: 12, height: 26, borderRadius: 13, background: "#0B1220", overflow: "hidden", border: "1px solid #334155" }}><div style={{ width: `${pr * (1600 / 76)}%`, height: "100%", background: `linear-gradient(90deg, ${C.green}, #34D399)`, boxShadow: `0 0 18px ${C.green}` }} /></div>
+        <div style={{ marginTop: 10, fontFamily: F.ui, fontSize: 20, color: "#94A3B8" }}>Unit 4 of 14 · Dynamic Arrays Engine · Lesson 2 of the unit</div>
+        <div style={{ marginTop: 28 }}>
+          {skills.map((s, i) => { const t = prog(f, 110 + i * 28, 16); return <div key={i} style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 20, opacity: t, transform: `translateX(${(1 - t) * 30}px)`, fontFamily: F.ui, fontSize: 29, color: C.text }}><span style={{ color: C.green, fontWeight: 700, fontSize: 34 }}>✓</span>{s}</div>; })}
         </div>
-        <div style={{ marginTop: 26, display: "flex", gap: 18, opacity: prog(f, A.sheet, 16) }}>
+        <div style={{ marginTop: 22, display: "flex", gap: 18, opacity: prog(f, A.sheet, 16) }}>
           <div style={{ background: C.slate, border: `1.5px solid ${C.blue}`, borderRadius: 12, padding: "10px 18px", fontFamily: F.mono, fontSize: 21, color: C.text }}>{XLSX_NAME}</div>
           <div style={{ background: C.slate, border: `1.5px solid ${C.green}`, borderRadius: 12, padding: "10px 18px", fontFamily: F.mono, fontSize: 21, color: C.green, opacity: prog(f, A.link, 16) }}>solutions.gomaaintelligence.me</div>
         </div>
       </div>
       <div style={{ position: "absolute", left: 1150, top: 200, width: 680, display: "flex", flexDirection: "column", gap: 30 }}>
-        <div style={{ ...card, height: 230, display: "flex", alignItems: "center", justifyContent: "center", gap: 28, opacity: prog(f, A.unit + 110, 20), transform: `scale(${0.85 + 0.15 * prog(f, A.unit + 110, 20)})` }}>
-          <div style={{ width: 130, height: 130, borderRadius: 65, background: `radial-gradient(circle, ${C.gold}, #B45309)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 76, color: C.slate, boxShadow: `0 0 40px ${C.gold}88` }}>✓</div>
-          <div style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 30, color: C.gold, lineHeight: "38px" }}>Unit 1 Fully Completed<div style={{ fontWeight: 500, fontSize: 21, color: "#CBD5E1" }}>Architecture & Smart Interface Setup Mastered</div></div>
+        <div style={{ ...card, height: 230, display: "flex", alignItems: "center", justifyContent: "center", gap: 28, opacity: prog(f, 190, 20), transform: `scale(${0.85 + 0.15 * prog(f, 190, 20)})` }}>
+          <div style={{ width: 130, height: 130, borderRadius: 65, background: `radial-gradient(circle, ${C.green}, #047857)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 76, color: C.slate, boxShadow: `0 0 40px ${C.green}88` }}>✓</div>
+          <div style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 30, color: C.green, lineHeight: "38px" }}>Dynamic FILTER Engine<div style={{ fontWeight: 500, fontSize: 21, color: "#CBD5E1" }}>Lesson 16 mastered</div></div>
         </div>
-        <div style={{ ...card, height: 420, padding: 34, boxSizing: "border-box", opacity: prog(f, A.next - 10, 20), transform: `translateY(${(1 - prog(f, A.next - 10, 20)) * 30}px)`, border: `1.5px solid ${C.blue}` }}>
-          <div style={{ fontFamily: F.ui, fontWeight: 600, fontSize: 22, color: C.blue, letterSpacing: 1 }}>NEXT · UNIT 2</div>
-          <div style={{ fontFamily: F.ar, fontWeight: 700, fontSize: 36, color: C.text, marginTop: 10, direction: "rtl", textAlign: "right", lineHeight: "50px" }}>الدرس 6: المراجع النسبية والمطلقة والمختلطة</div>
-          <div style={{ fontFamily: F.ui, fontWeight: 600, fontSize: 26, color: "#CBD5E1", marginTop: 8 }}>Cell References Mechanics</div>
-          <div style={{ marginTop: 22, display: "flex", gap: 12 }}>{["A1", "A$1", "$A1", "$A$1"].map((t) => <div key={t} style={{ flex: 1, height: 64, borderRadius: 8, background: "#fff", border: `2px solid ${C.xGreen}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F.cell, fontSize: 28, fontWeight: 700, color: C.ink }}>{t}</div>)}</div>
+        <div style={{ ...card, height: 440, padding: 34, boxSizing: "border-box", opacity: prog(f, A.l17 - 20, 20), transform: `translateY(${(1 - prog(f, A.l17 - 20, 20)) * 30}px)`, border: `1.5px solid ${C.blue}` }}>
+          <div style={{ fontFamily: F.ui, fontWeight: 600, fontSize: 22, color: C.blue, letterSpacing: 1 }}>NEXT · LESSON 17 · UNIT 4</div>
+          <div style={{ fontFamily: F.ar, fontWeight: 700, fontSize: 36, color: C.text, marginTop: 10, direction: "rtl", textAlign: "right", lineHeight: "50px" }}>الدرس 17: استخراج القيم الفريدة والفرز الديناميكي</div>
+          <div style={{ fontFamily: F.ui, fontWeight: 600, fontSize: 26, color: "#CBD5E1", marginTop: 8 }}>UNIQUE · SORT · SORTBY</div>
+          <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 10 }}>{["=UNIQUE(C2:C100)", "=SORT(E2:E100, -1)", "=SORTBY(A2:E100, E2:E100, -1)"].map((t) => <div key={t} style={{ height: 46, borderRadius: 8, background: "#fff", border: `2px solid ${C.xGreen}`, display: "flex", alignItems: "center", padding: "0 16px", fontFamily: F.cell, fontSize: 24, fontWeight: 700, color: C.ink }}>{t}</div>)}</div>
         </div>
       </div>
     </div>

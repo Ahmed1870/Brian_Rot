@@ -1,8 +1,8 @@
 // Lesson identity: every name in the project is derived from these values.
-export const LESSON_NUM = "05";
-export const COMP_ID = "XL-L05-AutoFilter-Sort";
-export const OUT_NAME = "xl-l05-autofilter-sort";
-export const VOICE_FILE = "voiceover_lesson_05.mp3";
+export const LESSON_NUM = "16";
+export const COMP_ID = "XL-L16-FILTER-Function";
+export const OUT_NAME = "xl-l16-filter-function";
+export const VOICE_FILE = "voiceover_lesson_16.mp3";
 export const LOGO_FILE = "manzooma_logo.svg";
 export const XLSX_NAME = "manzooma_sales_2026.xlsx";
 
