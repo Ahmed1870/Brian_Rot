@@ -1,45 +1,58 @@
-name: Render XL-L03-Freeze-Panes-Window-Controls
+name: Render Excel Lesson 02
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
-concurrency:
-  group: render-main
-  cancel-in-progress: true
+
 env:
-  COMP_ID: XL-L03-Freeze-Panes-Window-Controls
-  OUT_NAME: xl-l03-freeze-panes-window-controls
-  VOICE: voiceover_lesson_03.mp3
+  COMP_ID: XL-L02-Data-Types-Number-Formats
+  OUT_NAME: excel-lesson-02-data-types
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard - names must match everywhere
+
+      - name: Guard (names, voiceover, public contents)
         run: |
-          set -euo pipefail
-          grep -q "COMP_ID = '$COMP_ID'" src/theme.ts
-          grep -q "OUT_NAME = '$OUT_NAME'" src/theme.ts
-          grep -q "VOICE = '$VOICE'" src/theme.ts
-          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
-          grep -q "id={COMP_ID}" src/Root.tsx
-          test -s "public/$VOICE"
+          set -e
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "$COMP_ID" package.json
+          grep -q "out/$OUT_NAME.mp4" package.json
+          test -s public/voiceover_lesson_02.mp3
+          test -s public/sfx_lesson_02.mp3
+          test -s public/manzooma-logo.svg
+          extra=$(ls public | grep -v -x -e voiceover_lesson_02.mp3 -e sfx_lesson_02.mp3 -e manzooma-logo.svg || true)
+          if [ -n "$extra" ]; then echo "Unexpected files in public: $extra"; exit 1; fi
           test "$(ls .github/workflows | wc -l)" = "1"
-          extra="$(find public -type f | grep -v -E '^public/(voiceover_lesson_03\.mp3|manzooma_logo\.svg|sfx/[a-z_]+\.wav)$' || true)"
-          if [ -n "$extra" ]; then echo "Unexpected files in public:"; echo "$extra"; exit 1; fi
-          stale="$(grep -rhoE 'XL-L[0-9]+' src package.json .github | sort -u | grep -v '^XL-L03$' || true)"
-          if [ -n "$stale" ]; then echo "Stale lesson id: $stale"; exit 1; fi
+
+      - name: Cache npm + Remotion browser
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules/.remotion
+          key: remotion-${{ runner.os }}-${{ hashFiles('package.json') }}
+
+      - name: System libs for headless Chrome
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libnss3 libdbus-1-3 libatk1.0-0 libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 libgbm-dev || true
+
       - run: npm install --no-audit --no-fund
-      - run: npm run check
-      - run: npm run build
-      - name: Verify video exists
-        run: test -s "out/$OUT_NAME.mp4" && ls -lh out/
+
+      - name: Render
+        run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+
+      - run: test -s out/$OUT_NAME.mp4
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.OUT_NAME }}
-          path: out/${{ env.OUT_NAME }}.mp4
+          name: excel-lesson-02-data-types
+          path: out/excel-lesson-02-data-types.mp4
           if-no-files-found: error

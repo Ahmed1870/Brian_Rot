@@ -1,29 +1,46 @@
-export const W = 1920;
-export const H = 1080;
-export const FPS = 30;
-export const TOTAL = 7200; // 4:00 = mp3 duration 240.04s
-export const COMP_ID = 'XL-L03-Freeze-Panes-Window-Controls';
-export const OUT_NAME = 'xl-l03-freeze-panes-window-controls';
-export const VOICE = 'voiceover_lesson_03.mp3';
-export const LOGO = 'manzooma_logo.svg';
-export const FILE = 'manzooma_sales_2026.xlsx';
+import {loadFont as loadLato} from "@remotion/google-fonts/Lato";
+import {loadFont as loadPlex} from "@remotion/google-fonts/IBMPlexSansArabic";
+import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
 
-// Excel is drawn in logical px (like a ~1150x555 desktop window) and scaled by Z -> fixed metrics for all lessons
-export const Z = 1.6;
-export const WIN = {x: 40, y: 100, w: 1840, h: 888};
+// ── Lesson identity (single source of truth: every name below is derived from it) ──
+export const LESSON = 2;
+export const COMP_ID = "XL-L02-Data-Types-Number-Formats";
+export const OUT_NAME = "excel-lesson-02-data-types";
+export const VOICE_FILE = "voiceover_lesson_02.mp3";
+export const LOGO_FILE = "manzooma-logo.svg";
+
+export const FPS = 30;
+export const WIDTH = 1920;
+export const HEIGHT = 1080;
+export const DURATION = 7200;
+
+const lato = loadLato("normal", {weights: ["400", "700"], subsets: ["latin"]});
+const plex = loadPlex("normal", {weights: ["400", "600", "700"], subsets: ["arabic", "latin"]});
+const mono = loadMono("normal", {weights: ["400", "700"], subsets: ["latin"]});
+
+export const F = {
+  ui: `${lato.fontFamily}, "Segoe UI", Calibri, sans-serif`,
+  ar: `${plex.fontFamily}, "Segoe UI", sans-serif`,
+  mono: `${mono.fontFamily}, Consolas, monospace`,
+};
+
+// ── Excel 365 (Windows, modern look) layout grid, in NATIVE px. The whole window is drawn
+// at 1280x656 and scaled by S=1.5 to 1920x984; the remaining 96px is the caption strip. ──
+export const M = {
+  S: 1.5, W: 1280, H: 656, capH: 96,
+  titleH: 32, tabsTop: 32, tabsH: 28,
+  ribTop: 60, ribH: 92,
+  fbTop: 152, fbH: 28,
+  hdrTop: 180, hdrH: 20, rowH: 20, colW: 64, rowHdrW: 32,
+  gridTop: 200, sheetTabsTop: 606, sheetTabsH: 26, statusTop: 632, statusH: 24,
+  visRows: 20, visCols: 19,
+};
 
 export const C = {
-  bg: '#0F172A', panel: '#1E293B', line: '#334155', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B',
-  purple: '#A855F7', red: '#EF4444', text: '#F8FAFC', dim: '#94A3B8',
+  green: "#107C41", greenDark: "#0B5A2E", greenLine: "#217346",
+  ribbon: "#FAFAFA", chrome: "#F3F3F3", line: "#D6D6D6", grid: "#E1E1E1", hdr: "#F2F2F2", hdrTxt: "#444444",
+  txt: "#262626", sel: "#D3E9DD",
+  slate: "#0F172A", slate2: "#1E293B", ink: "#F8FAFC",
+  blue: "#38BDF8", emerald: "#10B981", amber: "#F59E0B", purple: "#A855F7", red: "#EF4444", yellow: "#FACC15",
 };
-// Excel (Microsoft 365, Windows, light) palette
-export const X = {
-  chrome: '#F3F3F3', ribbon: '#FAFAFA', line: '#D1D1D1', grid: '#DCDCDC', text: '#242424', dim: '#616161',
-  green: '#217346', gsel: '#D3E8DA', head: '#1F4E78',
-};
-export const M = {title: 32, tabs: 28, ribbon: 92, formula: 28, hdr: 20, rowW: 40, sheet: 28, status: 22, rowH: 20, sb: 14};
-
-export const SC = [
-  {from: 0, dur: 1200}, {from: 1200, dur: 1350}, {from: 2550, dur: 1350},
-  {from: 3900, dur: 1200}, {from: 5100, dur: 1200}, {from: 6300, dur: 900},
-];
+export const SFX_FILE = "sfx_lesson_02.mp3";

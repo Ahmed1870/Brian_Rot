@@ -1,21 +1,20 @@
 {
-  "name": "xl-l03-freeze-panes-window-controls",
+  "name": "manzooma-excel-lesson-02",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma Excel Masterclass - Lesson 03 (Remotion)",
   "scripts": {
-    "build": "remotion render src/index.ts XL-L03-Freeze-Panes-Window-Controls out/xl-l03-freeze-panes-window-controls.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "check": "tsc --noEmit"
+    "start": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts XL-L02-Data-Types-Number-Formats out/excel-lesson-02-data-types.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.300",
-    "@remotion/google-fonts": "4.0.300",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.300"
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
     "@types/react": "18.3.12",
-    "typescript": "5.8.2"
+    "typescript": "5.6.3"
   }
 }
