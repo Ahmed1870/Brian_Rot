@@ -1,110 +1,132 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, SCENES, START} from '../theme';
-import {cwP, prodCell, uniqSorted} from '../data';
-import type {CellV} from '../kit';
-import {CAM0, Caption, Chip, Cursor, ExcelApp, ExcelWindow, KeyBadge, Ripple, Stage, camLerp, dwell, prog, sec, track} from '../kit';
-import {CAM_SHEET, RangeFx, cellRect, center, typeIn} from '../l7';
-import {CellDrop, DvDialog} from '../dv';
+import {C, MONO, SCENES, START} from '../theme';
+import {PRODUCTS_SORTED_BY_QTY, SALES_RAW, SORTED_BY_AMOUNT_DESC, salesCell} from '../data';
+import {
+  CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track, typed,
+} from '../kit';
 
-// SC02: dynamic drop-down with F2#. Anchors (s): 51.6 UNIQUE+SORT | 56.9 spill | 59.9 Data Validation | 60.6 List | 62.6 =F2# | 64.8 hash | 67.5 open | 73.3 new row | 76.3 Gadgets | 77.8 list grows
+// SC02: SORT (internal) + SORTBY (external) — typed formulas on same grid.
+// Phase 1 (40-60s): type =SORT(tbl_Sales, 4, -1) → table reorders by Amount DESC (green).
+// Phase 2 (60-85s): type =SORTBY(Products, Quantity, -1) → names sort by external qty (purple).
 const S = START.s2;
 const t = (g: number) => sec(g - S);
-const G0 = {colW: cwP};
-const DX = 700, DY = 190;
-const FORM = '=SORT(UNIQUE(tbl_Products[Category]))';
+
+const colW = (c: number) => [0, 130, 110, 120, 100, 30, 160, 100][c] ?? XL.colW;
 
 export const Scene2: React.FC = () => {
   const f = useCurrentFrame();
-  const at = (g: number) => f >= t(g);
-  const within = (a: number, b: number) => at(a) && !at(b);
-  const cam = camLerp(CAM0, CAM_SHEET, prog(f, t(40.2), 50));
+  const cam = camLerp(CAM0, {fx: 480, fy: 280, z: 0.95}, prog(f, t(2), 30));
 
-  const grown = at(76.2);
-  const nRows = grown ? 10 : 9;
-  const spillN = at(56.9) ? uniqSorted(nRows).length : 0;
-  const list = uniqSorted(nRows);
+  // Phase 1: SORT
+  const sortTyped = typed('=SORT(A1:D11, 4, -1)', f, t(42), 1.2);
+  const sortDone = f >= t(50);
+  const sortP = sortDone ? prog(f, t(50.5), 16) : 0;
+  const sortFilled = Math.floor(sortP * SALES_RAW.length);
 
-  const f2 = center(cellRect(2, 6, G0)), h2r = cellRect(2, 8, G0), h2 = center(h2r), a11 = center(cellRect(11, 1, G0));
-  const arrow = {x: h2r.x + h2r.w + 10, y: h2r.y + 11};
-  const ditem = (i: number) => ({x: h2r.x + 50, y: h2r.y + h2r.h + 4 + i * 21 + 10});
-  const allowBox = {x: DX + 24 + 140, y: DY + 32 + 82 + 12};
-  const listItem = {x: DX + 24 + 100, y: DY + 32 + 108 + 3 * 22 + 11};
-  const srcBox = {x: DX + 24 + 210, y: DY + 32 + 136 + 12};
-  const okBtn = {x: DX + 470 - 190 + 43, y: DY + 32 + 342 + 13};
+  // Phase 2: SORTBY
+  const phase2 = f >= t(60);
+  const sortbyTyped = phase2 ? typed('=SORTBY(G2:G6, H2:H6, -1)', f, t(60.5), 1.2) : '';
+  const sortbyDone = f >= t(68);
+  const sortbyP = sortbyDone ? prog(f, t(68.5), 14) : 0;
+  const sortbyFilled = Math.floor(sortbyP * PRODUCTS_SORTED_BY_QTY.length);
+
+  const fbEdit = (f >= t(42) && f < t(50.5)) || (phase2 && f >= t(60.5) && f < t(68.5));
+  const formula = phase2 ? sortbyTyped : sortTyped;
+
+  // Cursor
+  const fbY = geo(1, 0, 1).fbTop + 14;
+  const a13 = cellCenter(13, 1, {colW}); // SORT result
+  const g13 = cellCenter(13, 7, {colW}); // SORTBY result
   const pts = dwell([
-    {f: t(39.88), x: 760, y: 520},
-    {f: t(51.2), x: f2.x, y: f2.y},
-    {f: t(56.8), x: f2.x, y: f2.y},
-    {f: t(57.1), x: h2.x, y: h2.y},
-    {f: t(60.0), x: h2.x, y: h2.y},
-    {f: t(60.4), x: allowBox.x, y: allowBox.y},
-    {f: t(60.9), x: listItem.x, y: listItem.y},
-    {f: t(61.7), x: srcBox.x, y: srcBox.y},
-    {f: t(66.2), x: okBtn.x, y: okBtn.y},
-    {f: t(67.3), x: arrow.x, y: arrow.y},
-    {f: t(69.0), x: ditem(1).x, y: ditem(1).y},
-    {f: t(72.9), x: a11.x, y: a11.y},
-    {f: t(77.2), x: arrow.x, y: arrow.y},
-    {f: t(80.0), x: ditem(3).x + 30, y: ditem(3).y},
-    {f: t(84.5), x: ditem(3).x + 30, y: ditem(3).y},
+    {f: t(42), x: 200, y: fbY},
+    {f: t(50), x: a13.x, y: a13.y},
+    {f: t(60.5), x: 200, y: fbY},
+    {f: t(68), x: g13.x, y: g13.y},
+    {f: t(70), x: 900, y: 330},
   ]);
   const cur = track(f, pts);
-  const clicks = [51.4, 57.2, 60.5, 61.8, 66.4, 67.5, 69.9, 73.1, 77.4];
+  const clicks = [42, 50, 60.5, 68];
+  const curHide = f > t(71);
+  const down = clicks.some((c) => f >= t(c) && f < t(c) + 4);
 
-  // typing states
-  const extra: Record<string, CellV> = {};
-  const tF2 = within(51.6, 56.9);
-  if (tF2) extra['2,6'] = {t: typeIn(FORM, f, t(51.6), sec(4.6)), al: 'l'};
-  const sel = within(73.1, 76.2);
-  const tA = typeIn('Smart Watch', f, t(73.3), sec(1.0)), tB = typeIn('Gadgets', f, t(74.5), sec(0.8)), tC = typeIn('3900', f, t(75.5), sec(0.4));
-  if (sel) { if (at(73.3)) extra['11,1'] = {t: tA, al: 'l'}; if (at(74.5)) { extra['11,1'] = {t: 'Smart Watch'}; extra['11,2'] = {t: tB, al: 'l'}; } if (at(75.5)) { extra['11,2'] = {t: 'Gadgets'}; extra['11,3'] = {t: tC, al: 'l'}; } }
-  const hChoice = at(69.9) ? 'Electronics' : '';
-  if (hChoice) extra['2,8'] = {t: hChoice};
-
-  let sx = {r1: 1, c1: 1, r2: 1, c2: 1}; let active = {r: 1, c: 1}; let nameBox = 'A1'; let formula = 'Product';
-  const pick = (r: number, c: number, nm: string, fm: string) => { sx = {r1: r, c1: c, r2: r, c2: c}; active = {r, c}; nameBox = nm; formula = fm; };
-  if (at(51.4)) pick(2, 6, 'F2', tF2 ? extra['2,6'].t : at(56.9) ? FORM : '');
-  if (at(57.2)) pick(2, 8, 'H2', hChoice);
-  if (at(69.9)) pick(2, 8, 'H2', 'Electronics');
-  if (at(73.1)) pick(11, 1, 'A11', within(73.3, 74.5) ? tA : '');
-  if (at(74.5)) pick(11, 2, 'B11', tB);
-  if (at(75.5)) pick(11, 3, 'C11', tC);
-  if (at(76.2)) pick(12, 1, 'A12', '');
-  if (at(77.2)) pick(2, 8, 'H2', 'Electronics');
-
-  const dlg = prog(f, t(59.9), 12) * (1 - prog(f, t(66.5), 8));
-  const srcText = typeIn('=F2#', f, t(62.6), sec(2.0));
-  const dropOpen = within(67.5, 70.0) || within(77.4, 83.6) ? 1 : 0;
-  const hiIdx = within(68.4, 69.9) ? 1 : -1;
-  const arrowP = (at(57.2) ? 1 : 0) * (at(66.4) ? 1 : 0);
-  const hashP = prog(f, t(64.8), 8) * (1 - prog(f, t(70.5), 10));
-  const newItem = within(77.6, 84.0) ? uniqSorted(10).indexOf('Gadgets') : -1;
-  const spillFx = prog(f, t(56.9), 10);
-  const newFx = prog(f, t(76.3), 10) * (1 - prog(f, t(79.5), 14));
-  const kP = prog(f, t(58.0), 6) * (1 - prog(f, t(59.9), 8));
-  const spillRect = {x: cellRect(2, 6, G0).x, y: cellRect(2, 6, G0).y, w: cwP(6), h: 21 * Math.max(1, spillN)};
+  const g0 = geo(1, 0, 1);
 
   return (
-    <Stage dur={SCENES.s2.dur} inFx="zoom" outFx="left">
+    <Stage dur={SCENES.s2.dur} inFx="fade" outFx="fade">
       <ExcelWindow cam={cam}>
-        <ExcelApp file="Orders" nameBox={nameBox} formula={formula} fbEdit={tF2 || sel} colW={cwP} cell={(r, c) => prodCell(r, c, nRows, spillN, extra)} sel={sx} active={active} thumb={0} thumbSize={0.55}>
-          <RangeFx rect={spillRect} color={C.blue} p={spillFx * (1 - hashP * 0)} fill={0.1} label="Spilled range" labelBelow />
-          <RangeFx rect={spillRect} color={C.amber} p={hashP} fill={0.2} label="F2#" labelBelow />
-          <RangeFx rect={cellRect(5, 6, G0)} color={C.green} p={newFx} fill={0.3} />
-          <RangeFx rect={cellRect(2, 8, G0)} color={C.amber} p={prog(f, t(57.3), 8) * (1 - prog(f, t(66.5), 8))} fill={0.1} label="Input cell" labelDx={146} />
-          <CellDrop rect={h2r} arrow={arrowP * (1 - 0)} list={list} open={dropOpen} hi={hiIdx} hiNew={newItem} />
-          <DvDialog x={DX} y={DY} p={dlg} tab="Settings" allow="List" source={srcText} focus="source" blink={Math.floor(f / 8) % 2 === 0} glow={at(64.8) ? 'source' : at(60.6) ? 'allow' : null} glowColor={at(64.8) ? C.amber : C.green} okHot={within(65.8, 66.5)} allowOpen={within(60.1, 60.9) ? 1 : 0} hiItem={within(60.1, 60.9) ? 'List' : null} />
-          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} />; })}
-          <Cursor x={cur.x} y={cur.y} down={clicks.some((c) => f >= t(c) && f < t(c) + 4)} />
+        <ExcelApp
+          file="Sorting.xlsx" nameBox={phase2 ? 'G13' : 'A13'} formula={formula} fbEdit={fbEdit}
+          cell={(r, c) => {
+            // Original table A1:D11 (source)
+            if (c <= 4 && r <= 11) return salesCell(r, c) as any;
+
+            // Source for SORTBY: G2:H6 (Product names + quantities)
+            if (c === 7 && r >= 2 && r <= 6) {
+              if (r === 2) return {t: PRODUCTS_SORTED_BY_QTY[r - 2].name};
+              // Wait, source should have headers
+              return {t: PRODUCTS_SORTED_BY_QTY[r - 2].name};
+            }
+            if (c === 8 && r >= 2 && r <= 6) {
+              return {t: String(PRODUCTS_SORTED_BY_QTY[r - 2].qty), al: 'r'};
+            }
+            // Headers for G:H
+            if (r === 1 && c === 7) return {t: 'Product', b: true, bg: '#E2EFDA', al: 'l'};
+            if (r === 1 && c === 8) return {t: 'Qty', b: true, bg: '#E2EFDA', al: 'r'};
+
+            // SORT result: A13 onwards (reordered table)
+            if (!phase2 && c <= 4 && r >= 13) {
+              if (r === 13) return salesCell(1, c) as any;
+              const idx = r - 14;
+              if (idx < sortFilled && idx < SORTED_BY_AMOUNT_DESC.length) {
+                const row = SORTED_BY_AMOUNT_DESC[idx];
+                return c === 1 ? {t: row.category, color: '#107C41'} : c === 2 ? {t: row.branch, color: '#107C41'} : c === 3 ? {t: row.customer, color: '#107C41'} : {t: row.amount.toLocaleString('en-US'), al: 'r', color: '#107C41'};
+              }
+              return undefined;
+            }
+
+            // SORTBY result: G13 onwards (sorted product names)
+            if (phase2 && c === 7 && r >= 13) {
+              if (r === 13) return {t: 'Product (Sorted)', b: true, bg: '#D1FAE5', al: 'l', color: '#107C41'};
+              const idx = r - 14;
+              if (idx < sortbyFilled && idx < PRODUCTS_SORTED_BY_QTY.length) {
+                return {t: PRODUCTS_SORTED_BY_QTY[idx].name, color: '#107C41'};
+              }
+              return undefined;
+            }
+            return undefined;
+          }} colW={colW}
+          sel={phase2 ? {r1: 13, c1: 7, r2: 13, c2: 7} : {r1: 13, c1: 1, r2: 13, c2: 1}}
+          active={phase2 ? {r: 13, c: 7} : {r: 13, c: 1}}
+          thumb={0} thumbSize={0.55}
+        >
+          {/* SORT result border */}
+          {!phase2 && sortP > 0.05 ? (
+            <Neon x={cellCenter(14, 1, {colW}).x - colW(1) / 2} y={cellCenter(14, 1, {colW}).y - XL.rowH / 2} w={colW(1) + colW(2) + colW(3) + colW(4)} h={XL.rowH * SALES_RAW.length} color={C.green} p={sortP * (1 - prog(f, t(85), 12))} label="=SORT (Amount DESC)" labelBelow />
+          ) : null}
+          {/* SORTBY result border */}
+          {phase2 && sortbyP > 0.05 ? (
+            <Neon x={cellCenter(14, 7, {colW}).x - colW(7) / 2} y={cellCenter(14, 7, {colW}).y - XL.rowH / 2} w={colW(7)} h={XL.rowH * PRODUCTS_SORTED_BY_QTY.length} color={C.purple} p={sortbyP * (1 - prog(f, t(85), 12))} label="=SORTBY (by external Qty)" labelBelow />
+          ) : null}
+          {/* Source highlight */}
+          <Neon x={cellCenter(1, 1, {colW}).x - colW(1) / 2} y={g0.rowsTop} w={colW(1) + colW(2) + colW(3) + colW(4)} h={XL.rowH * 11} color={C.amber} p={0.15} label="Source table" labelBelow />
+          {/* Click ripples */}
+          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} color={phase2 && c >= 60 ? C.purple : C.green} />; })}
+          <Cursor x={cur.x} y={cur.y} down={down} hide={curHide} />
         </ExcelApp>
       </ExcelWindow>
-      <KeyBadge keys={['Alt', 'A', 'V', 'V']} p={kP} />
-      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(51.5), 10) * (1 - prog(f, t(57.5), 10))}}><Chip color={C.blue}>UNIQUE + SORT ──► spills automatically</Chip></div>
-      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(64.8), 10) * (1 - prog(f, t(70.5), 10))}}><Chip color={C.amber}>=F2#  ──►  the whole spilled range</Chip></div>
-      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(73.0), 10)}}><Chip color={C.green}>New product added ──► list updates itself</Chip></div>
-      <Caption text="Dynamic Drop-down Lists ──► Set Source to Spilled Range Reference: =F2#" from={t(41.5)} to={t(59.8)} />
-      <Caption text="Zero Maintenance ──► Drop-down Options Expand Automatically as Source Arrays Grow" from={t(77.0)} to={t(84.4)} tone="ok" />
+
+      {/* Bottom formula badge */}
+      <div style={{position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', opacity: clamp(prog(f, t(42), 12) * (1 - prog(f, t(85), 12)))}}>
+        <div style={{display: 'flex', gap: 16, alignItems: 'center', background: 'rgba(11,18,34,0.95)', border: `2px solid ${C.border}`, borderRadius: 12, padding: '8px 18px'}}>
+          <span style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: phase2 ? C.muted : C.green, opacity: phase2 ? 0.5 : 1}}>=SORT(table, 4, -1) → internal sort</span>
+          <span style={{fontFamily: MONO, fontSize: 16, color: C.muted}}>│</span>
+          <span style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: phase2 ? C.purple : C.muted, opacity: phase2 ? 1 : 0.5}}>=SORTBY(names, qty, -1) → external sort</span>
+        </div>
+      </div>
+
+      <TopBadge text="Internal Sorting ──► =SORT(array, sort_index, sort_order) (Descending -1)" from={t(42.0)} to={t(60.0)} />
+      {phase2 ? <Caption text="External Array Sorting ──► =SORTBY(array, by_array1, sort_order1)" from={t(60.0)} to={t(84.0)} tone="ok" /> : null}
     </Stage>
   );
 };

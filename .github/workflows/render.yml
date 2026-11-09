@@ -1,4 +1,4 @@
-name: Render Excel Lesson 22 Data Validation Engine
+name: Render Excel Lesson 34 Unique Sort Engine
 on:
   push:
     branches: [main]
@@ -9,32 +9,32 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain this lesson only
+      - name: Guard - this repo must contain Excel lesson 34 only
         run: |
-          grep -q "XL-L22-Data-Validation-Engine" src/theme.ts
-          grep -q "XL-L22-Data-Validation-Engine" package.json
-          test -f public/voiceover_lesson_22.mp3
+          grep -q "XL-L34-Unique-Sort-Engine" src/theme.ts
+          grep -q "XL-L34-Unique-Sort-Engine" package.json
+          test -f public/voiceover_lesson_34.mp3
           test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime error alert scan shine ambient; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "13"
+          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
+          test "$(ls public | wc -l)" = "8"
+          test ! -f package-lock.json
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install
+      - name: Install dependencies (no lockfile, with retry)
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L22-Data-Validation-Engine out/xl-l22-data-validation-engine.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l22-data-validation-engine.mp4
+      - run: npx remotion render src/index.ts XL-L34-Unique-Sort-Engine out/xl-l34-unique-sort-engine.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l34-unique-sort-engine.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l22-data-validation-engine
-          path: out/xl-l22-data-validation-engine.mp4
+          name: xl-l34-unique-sort-engine
+          path: out/xl-l34-unique-sort-engine.mp4
           if-no-files-found: error

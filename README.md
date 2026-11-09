@@ -1,3 +1,3 @@
-# Manzooma | Excel From Zero to Professional — Lesson 22
-Data Validation and dynamic drop-down lists. Remotion 4, pure 2D, 1920x1080, 30fps, 7200 frames. Rendered on GitHub Actions.
-Sound effects: scripts/make_sfx.py
+# Manzooma | Excel From Zero to Professional — Lesson 34
+UNIQUE & SORT Engine (Dynamic Extraction, Sorting, Data Validation Dropdowns). Remotion 4 (pure 2D), 1920x1080, 30fps, 7200 frames (4:00).
+Render happens on GitHub Actions (.github/workflows/render.yml).
