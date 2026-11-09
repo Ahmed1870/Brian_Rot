@@ -1,60 +1,90 @@
-import type {CellD} from "./kit";
-import {C} from "./theme";
-import {rgba} from "./kit";
+// Manzooma — Lesson 37: Array Reshaping (TOCOL, TOROW, CHOOSECOLS, CHOOSEROWS).
 
-export const int = (n: number) => Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-export const usd = (n: number) => "$" + int(n);
-/** table block at (r0,c0). header=true draws a green table header row. numbers are right-aligned + comma formatted. */
-export const block = (r0: number, c0: number, rows: (string | number)[][], o: {hdr?: boolean; bg?: string; color?: string; show?: number} = {}): CellD[] => {
-  const out: CellD[] = [];
-  rows.forEach((row, i) => {
-    if (o.show !== undefined && i >= o.show) return;
-    row.forEach((v, j) => {
-      const isH = !!o.hdr && i === 0;
-      out.push({r: r0 + i, c: c0 + j, t: typeof v === "number" ? int(v) : v, a: typeof v === "number" ? "r" : "l", bold: isH, color: isH ? "#fff" : o.color, bg: isH ? C.green : o.bg ?? (i % 2 ? "#EAF4EE" : undefined)});
-    });
-  });
-  return out;
-};
-export const HDR = ["Product", "Units", "Revenue"];
-export const CAIRO = [["Laptop", 120, 54000], ["Phone", 300, 42000], ["Tablet", 80, 16000]];
-export const ALEX = [["Laptop", 95, 42750], ["Phone", 210, 29400], ["Mouse", 400, 8000]];
-export const GIZA = [["Tablet", 60, 12000], ["Phone", 150, 21000], ["Cable", 900, 13500]];
+/* ------------------------------------------------------------------ 2D matrix with blanks (Scene 1) */
+// 5x4 matrix with some blank cells
+export const MATRIX_2D: (string | null)[][] = [
+  ['Mouse',  '350',  null,   'Cairo'],
+  ['Cable',  null,   '120',  'Giza'],
+  ['Stand',  '900',  '1800', null],
+  [null,     'Chair','3200', 'Alex'],
+  ['Lamp',   '650',  null,   'Tanta'],
+];
+// TOCOL result (row-by-row, ignoring blanks): 9 non-blank values
+export const TOCOL_RESULT = MATRIX_2D.flat().filter((v) => v !== null);
 
-/* ───────── PivotTable data (illustrative; totals are consistent: commission = 5% of sales, margin = profit / sales) ───────── */
-export type PR = {n: string; s: number; p: number};
-export const BRN: PR[] = [{n: "Cairo", s: 4820000, p: 964000}, {n: "Alexandria", s: 3640000, p: 618800}, {n: "Giza", s: 2980000, p: 506600}, {n: "Mansoura", s: 1860000, p: 297600}, {n: "Tanta", s: 1250000, p: 187500}];
-export const REG: PR[] = [{n: "East", s: 5950000, p: 1190000}, {n: "West", s: 4210000, p: 715700}, {n: "North", s: 2860000, p: 457600}, {n: "South", s: 1530000, p: 211200}];
-export const PW = [176, 170, 150, 160, 150, 20, 64, 64, 64, 64, 64, 64];
-export const pct = (x: number) => (x * 100).toFixed(1) + "%";
-export type PO = {rows: PR[]; fac?: [number, number]; comm?: number; marg?: number; vr?: {a: number; b: number; name: string; solve: "early" | "late"; k: number} | null; flash?: number; vrColor?: string};
-const HB = "#DCE6F1";
-/** Builds the PivotTable cells at A3. comm/marg are 0..1 reveal progress of the calculated-field columns. */
-export const pvCells = (o: PO): {cells: CellD[]; total: number} => {
-  const fc = o.fac ?? [1, 1];
-  const rows = o.rows.map((r) => ({n: r.n, s: Math.round(r.s * fc[0]), p: Math.round(r.p * fc[1])}));
-  const vr = o.vr && o.vr.k > 0.5 ? o.vr : null;
-  const A = vr ? rows[vr.a] : null, B = vr ? rows[vr.b] : null;
-  const vs = A && B ? A.s - B.s : 0, vp = A && B ? A.p - B.p : 0;
-  const all = [...rows.map((r) => ({...r, v: false})), ...(vr ? [{n: vr.name, s: vs, p: vp, v: true}] : [])];
-  const ts = all.reduce((x, r) => x + r.s, 0), tp = all.reduce((x, r) => x + r.p, 0);
-  const cells: CellD[] = [];
-  const hdr = ["Row Labels", "Sum of Sales_Amount", "Sum of Net_Profit", "Sum of Commission", "Sum of Margin %"];
-  hdr.forEach((h, i) => { if (i === 3 && (o.comm ?? 0) <= 0.5) return; if (i === 4 && (o.marg ?? 0) <= 0.5) return; cells.push({r: 3, c: i + 1, t: h, bold: true, bg: HB, a: i ? "r" : "l"}); });
-  const line = (r: number, n: string, s: number, p: number, bold: boolean, v: boolean, i: number) => {
-    const bg = bold ? HB : v ? rgba(C.purple, 0.16 + 0.1 * Math.sin((o.flash ?? 0) * 6)) : undefined;
-    cells.push({r, c: 1, t: n, bold: bold || v, bg, color: v ? "#6B21A8" : undefined}, {r, c: 2, t: int(s), a: "r", bold, bg}, {r, c: 3, t: int(p), a: "r", bold, bg});
-    const ck = o.comm ?? 0, mk = o.marg ?? 0;
-    const fl = (k: number, col: string) => (k > 0.5 && k < 1 ? rgba(col, 0.4 * Math.sin(Math.PI * k)) : bg);
-    if (ck > 0.5) cells.push({r, c: 4, t: int(s * 0.05), a: "r", bold, bg: fl(ck, C.emerald)});
-    if (mk > 0.5) {
-      const m = v && vr!.solve === "early" ? (A!.p / A!.s) - (B!.p / B!.s) : p / s;
-      cells.push({r, c: 5, t: pct(m), a: "r", bold, bg: fl(mk, C.blue), color: v && vr!.solve === "early" ? "#B91C1C" : undefined});
-    }
-    void i;
-  };
-  all.forEach((r, i) => line(4 + i, r.n, r.s, r.p, false, r.v, i));
-  line(4 + all.length, "Grand Total", ts, tp, true, false, 0);
-  return {cells, total: 4 + all.length};
+/* ------------------------------------------------------------------ sales table (Scene 2 & 3) */
+export const SALES_TABLE = [
+  {id: 'ORD-001', name: 'Ahmed',  product: 'Mouse',   amount: 3200},
+  {id: 'ORD-002', name: 'Sara',   product: 'Cable',   amount: 850},
+  {id: 'ORD-003', name: 'Omar',   product: 'Monitor', amount: 6800},
+  {id: 'ORD-004', name: 'Mona',   product: 'Chair',   amount: 1200},
+  {id: 'ORD-005', name: 'Khaled', product: 'Stand',   amount: 900},
+  {id: 'ORD-006', name: 'Hana',   product: 'Lamp',    amount: 650},
+];
+// CHOOSECOLS(tbl_Sales, 1, 4, 2) → ID, Amount, Name
+export const CHOOSECOLS_RESULT = SALES_TABLE.map((r) => ({col1: r.id, col2: String(r.amount), col3: r.name}));
+// CHOOSEROWS(tbl_Sales, 1, 2, 3) → first 3 rows
+export const CHOOSEROWS_POS = SALES_TABLE.slice(0, 3);
+// CHOOSEROWS(tbl_Sales, -1) → last row
+export const CHOOSEROWS_NEG1 = [SALES_TABLE[SALES_TABLE.length - 1]];
+// CHOOSEROWS(tbl_Sales, 1, -1) → first and last
+export const CHOOSEROWS_1_NEG1 = [SALES_TABLE[0], SALES_TABLE[SALES_TABLE.length - 1]];
+
+/* ------------------------------------------------------------------ master pipeline (Scene 4) */
+// CHOOSECOLS(SORT(FILTER(tbl_Sales, Amount>1000), 3, -1), 1, 4, 3)
+// Filter Amount > 1000 → sort by amount DESC → choose cols 1 (ID), 4 (Amount), 3 (Product) → wait, col 2 is name
+// Actually: cols are 1=ID, 2=Name, 3=Product, 4=Amount → CHOOSECOLS(..., 1, 4, 3) = ID, Amount, Product
+export const PIPELINE_RESULT = SALES_TABLE
+  .filter((r) => r.amount > 1000)
+  .sort((a, b) => b.amount - a.amount)
+  .map((r) => ({id: r.id, amount: String(r.amount), product: r.product}));
+
+export type CCell = {t: string; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
+
+/* ------------------------------------------------------------------ sales cell helpers */
+export const salesHeader = ['OrderID', 'Name', 'Product', 'Amount'];
+export const salesCell = (r: number, c: number): CCell | undefined => {
+  if (r === 1) {
+    if (c < 1 || c > 4) return undefined;
+    const al: 'l' | 'r' = c === 4 ? 'r' : 'l';
+    return {t: salesHeader[c - 1], b: true, bg: '#E2EFDA', al};
+  }
+  const row = SALES_TABLE[r - 2];
+  if (!row || c < 1 || c > 4) return undefined;
+  switch (c) {
+    case 1: return {t: row.id};
+    case 2: return {t: row.name};
+    case 3: return {t: row.product};
+    case 4: return {t: row.amount.toLocaleString('en-US'), al: 'r'};
+  }
+  return undefined;
 };
-export const FIELDS = ["Date", "Branch", "Product", "Units", "Sales_Amount", "Net_Profit"];
+
+/* ------------------------------------------------------------------ matrix cell (Scene 1) */
+export const matrixCell = (r: number, c: number): CCell | undefined => {
+  if (r === 1) {
+    if (c < 2 || c > 5) return undefined;
+    return {t: `Col ${c - 1}`, b: true, bg: '#E2EFDA', al: 'c'};
+  }
+  if (r < 2 || r > 6 || c < 2 || c > 5) return undefined;
+  const val = MATRIX_2D[r - 2][c - 2];
+  return val ? {t: val, al: 'c'} : {t: '', bg: '#F9FAFB'};
+};
+
+/* ------------------------------------------------------------------ big sales (Scene 5) */
+const BIG_PRODUCTS = ['Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5', 'Desk Lamp', 'Monitor 24"', 'Keyboard'];
+const BIG_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
+
+export type BigSale = {id: string; product: string; branch: string; amount: number};
+
+export const bigSale = (n: number): BigSale => {
+  const h = (n * 2654435761) >>> 0;
+  const product = BIG_PRODUCTS[(h >>> 3) % BIG_PRODUCTS.length];
+  const branch = BIG_BRANCHES[(h >>> 13) % BIG_BRANCHES.length];
+  const amount = 100 + ((h >>> 9) % 14900);
+  return {id: `ORD-${5000 + n}`, product, branch, amount};
+};
+
+export const BIG_ROWS = 50000;
+export const BIG_LAST = BIG_ROWS + 1;
+export const fmtInt = (n: number) => n.toLocaleString('en-US');
