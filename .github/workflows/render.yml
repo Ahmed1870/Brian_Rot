@@ -1,47 +1,55 @@
-name: render
-
+name: Render XL-L14-XMATCH-2D-XLOOKUP
 on:
-  workflow_dispatch:
   push:
     branches: [main]
-
+  workflow_dispatch:
+concurrency:
+  group: render-main
+  cancel-in-progress: true
+env:
+  COMP_ID: XL-L14-XMATCH-2D-XLOOKUP
+  OUT_NAME: xl-l14-xmatch-2d-xlookup
+  VOICE: voiceover_lesson_14.mp3
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-    env:
-      COMP_ID: XL-L21-Date-Functions
-      OUT_NAME: xl-l21-date-functions
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard
+      - name: Guard - names must match everywhere
         run: |
-          set -e
-          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          set -euo pipefail
+          grep -q "COMP_ID = '$COMP_ID'" src/theme.ts
+          grep -q "OUT_NAME = '$OUT_NAME'" src/theme.ts
+          grep -q "VOICE = '$VOICE'" src/theme.ts
           grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
-          test -s public/voiceover_lesson_21.mp3
-          test -s public/manzooma_logo.svg
-          for n in datacamp_tech_ambient typing_fast academic_outro_theme calendar_snap holiday_skip_chime project_deadline_lock fraction_chime datedif_bug_alert spilled_calendar_snap schedule_update_chime enterprise_date_engine_seal; do test -s "public/$n.mp3"; done
-          extra="$(ls public | grep -v -x -e voiceover_lesson_21.mp3 -e manzooma_logo.svg -e datacamp_tech_ambient.mp3 -e typing_fast.mp3 -e academic_outro_theme.mp3 -e calendar_snap.mp3 -e holiday_skip_chime.mp3 -e project_deadline_lock.mp3 -e fraction_chime.mp3 -e datedif_bug_alert.mp3 -e spilled_calendar_snap.mp3 -e schedule_update_chime.mp3 -e enterprise_date_engine_seal.mp3 || true)"
-          test -z "$extra"
+          grep -q "id={COMP_ID}" src/Root.tsx
+          test -s "public/$VOICE"
           test "$(ls .github/workflows | wc -l)" = "1"
-      - name: Install dependencies
+          extra="$(find public -type f | grep -v -E '^public/(voiceover_lesson_14\.mp3|manzooma_logo\.svg|soundtrack_lesson_14\.wav)$' || true)"
+          if [ -n "$extra" ]; then echo "Unexpected files in public:"; echo "$extra"; exit 1; fi
+          stale="$(grep -rhoE 'XL-L[0-9]+' src package.json .github | sort -u | grep -v '^XL-L14$' || true)"
+          if [ -n "$stale" ]; then echo "Stale lesson id: $stale"; exit 1; fi
+      - name: Install dependencies (no lockfile, Linux-native packages)
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.261 || true
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.300 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/$OUT_NAME.mp4
+      - run: npm run check
+      - run: npm run build
+      - name: Verify video exists
+        run: test -s "out/$OUT_NAME.mp4" && ls -lh out/
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l21-date-functions.mp4
-          path: out/xl-l21-date-functions.mp4
+          name: ${{ env.OUT_NAME }}
+          path: out/${{ env.OUT_NAME }}.mp4
+          if-no-files-found: error

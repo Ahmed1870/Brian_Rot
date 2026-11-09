@@ -1,78 +1,29 @@
-import {loadFont as loadAr} from "@remotion/google-fonts/IBMPlexSansArabic";
-import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
-
-export const LESSON_NO = "21";
-export const COMP_ID = "XL-L21-Date-Functions";
-export const OUT_NAME = "xl-l21-date-functions";
-export const VOICE_FILE = "voiceover_lesson_21.mp3";
-export const LOGO_FILE = "manzooma_logo.svg";
-
-export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const DURATION = 7200;
+export const FPS = 30;
+export const TOTAL = 7200; // 4:00 = mp3 duration 240.04s
+export const COMP_ID = 'XL-L14-XMATCH-2D-XLOOKUP';
+export const OUT_NAME = 'xl-l14-xmatch-2d-xlookup';
+export const VOICE = 'voiceover_lesson_14.mp3';
+export const LOGO = 'manzooma_logo.svg';
+export const FILE = 'manzooma_sales_2026.xlsx';
 
-// Course progress: lesson 21 of 76 = 27.6% (per the plan)
-export const UNIT_DONE = 21;
-export const UNIT_TOTAL = 76;
-export const UNIT_PROGRESS = UNIT_DONE / UNIT_TOTAL;
-
-export const FONT_AR = loadAr("normal", {
-  weights: ["400", "500", "600", "700"],
-  subsets: ["arabic", "latin"],
-} as never).fontFamily;
-export const FONT_MONO = loadMono("normal", {
-  weights: ["400", "700"],
-  subsets: ["latin"],
-} as never).fontFamily;
-export const MONO = `${FONT_MONO}, ${FONT_AR}, monospace`;
+// Excel is drawn in logical px (like a ~1150x555 desktop window) and scaled by Z -> fixed metrics for all lessons
+export const Z = 1.6;
+export const WIN = {x: 40, y: 100, w: 1840, h: 888};
 
 export const C = {
-  bg: "#0F172A",
-  panel: "#1E293B",
-  line: "#334155",
-  blue: "#38BDF8",
-  green: "#10B981",
-  amber: "#F59E0B",
-  purple: "#A855F7",
-  red: "#EF4444",
-  text: "#F8FAFC",
-  mute: "#94A3B8",
+  bg: '#0F172A', panel: '#1E293B', line: '#334155', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B',
+  purple: '#A855F7', red: '#EF4444', text: '#F8FAFC', dim: '#94A3B8',
 };
-
-// Excel (Microsoft 365 desktop, light theme) palette
+// Excel (Microsoft 365, Windows, light) palette
 export const X = {
-  green: "#107C41",
-  greenTint: "rgba(16,124,65,0.13)",
-  chrome: "#F3F3F3",
-  ribbon: "#FAFAFA",
-  border: "#D1D1D1",
-  hdr: "#E6E6E6",
-  hdrSel: "#CFCFCF",
-  grid: "#DCDCDC",
-  tblHdr: "#4EA72E",
-  tblBand: "#DCEBD5",
-  text: "#242424",
-  mute: "#616161",
+  chrome: '#F3F3F3', ribbon: '#FAFAFA', line: '#D1D1D1', grid: '#DCDCDC', text: '#242424', dim: '#616161',
+  green: '#217346', gsel: '#D3E8DA', head: '#1F4E78',
 };
+export const M = {title: 32, tabs: 28, ribbon: 92, formula: 28, hdr: 20, rowW: 40, sheet: 28, status: 22, rowH: 20, sb: 14};
 
-// Fixed UI metrics (shared by every lesson)
-export const M = {
-  x: 60,
-  y: 92,
-  w: 1800,
-  titleH: 38,
-  tabsH: 34,
-  ribbonH: 112,
-  fbarH: 34,
-  hdrH: 24,
-  rowH: 24,
-  rowHdrW: 46,
-  rows: 24,
-  sheetH: 30,
-  statusH: 24,
-};
-export const RIBBON_Y = M.titleH + M.tabsH;
-export const GRID_Y = RIBBON_Y + M.ribbonH + M.fbarH + M.hdrH;
-export const WIN_H = GRID_Y + M.rows * M.rowH + M.sheetH + M.statusH;
-export const COLS: number[] = [160, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80];
+export const SC = [
+  {from: 0, dur: 1200}, {from: 1200, dur: 1350}, {from: 2550, dur: 1350},
+  {from: 3900, dur: 1200}, {from: 5100, dur: 1200}, {from: 6300, dur: 900},
+];
