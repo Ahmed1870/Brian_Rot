@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-34-unique-sort-engine",
+  "name": "manzooma-excel-lesson-35-filter-engine",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 34: UNIQUE & SORT Engine (Dynamic Extraction, Sorting, Data Validation) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 35: FILTER Engine & Multi-Criteria Filtering (Boolean AND/OR, #CALC! Shield, SORT+FILTER Chaining) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L34-Unique-Sort-Engine out/xl-l34-unique-sort-engine.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L35-Filter-Engine out/xl-l35-filter-engine.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

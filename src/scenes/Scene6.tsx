@@ -3,16 +3,15 @@ import {Img, staticFile, useCurrentFrame} from 'remotion';
 import {C, LESSON, LOGO_FILE, MONO, SCENES, START, TOTAL_LESSONS, TOTAL_UNITS, UNIT} from '../theme';
 import {Check, Mix, Stage, clamp, pop, prog, sec} from '../kit';
 
-// SC06: Lesson 34 completion card — 34/76, Unit 7/14, next: FILTER Engine.
 const S = START.s6;
 const t = (g: number) => sec(g - S);
 
 const SKILLS = [
-  {a: 'استخراج القيم الفريدة بـ UNIQUE', e: 'UNIQUE(array) · Zero manual Remove Duplicates', at: 212.5},
-  {a: 'الفرز الداخلي بـ SORT', e: 'SORT(array, sort_index, sort_order) · Ascending/Descending', at: 213.7},
-  {a: 'الفرز الخارجي بـ SORTBY', e: 'SORTBY(array, by_array, order) · Sort by external columns', at: 214.9},
-  {a: 'التركيب المعماري SORT(UNIQUE())', e: 'Combo formula + Data Validation =$F$2# · Auto-sync dropdowns', at: 216.1},
-  {a: 'العناصر النادرة والفرز المتعدد', e: 'exactly_once=TRUE · Multi-level SORTBY (2+ criteria)', at: 217.3},
+  {a: 'دالة التصفية الديناميكية FILTER', e: 'FILTER(array, include, [if_empty]) · Zero AutoFilter', at: 212.5},
+  {a: 'المنطق البوليني AND (*)', e: '(cond1) * (cond2) → [1,0] mask · Both must be TRUE', at: 213.7},
+  {a: 'المنطق البوليني OR (+)', e: '(cond1) + (cond2) → Either condition TRUE', at: 214.9},
+  {a: 'حماية خطأ #CALC!', e: '[if_empty] fallback argument → Clean output on no match', at: 216.1},
+  {a: 'السلسلة المعمارية SORT(FILTER())', e: 'Chained formula → Filtered + sorted report in 1 cell', at: 217.3},
 ];
 
 export const Scene6: React.FC = () => {
@@ -43,7 +42,7 @@ export const Scene6: React.FC = () => {
         <div dir="ltr" style={{position: 'absolute', left: 60, top: 176, display: 'flex', alignItems: 'center', gap: 18}}>
           <Check p={badge} size={64} />
           <div style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color: C.text, opacity: clamp(badge), lineHeight: 1.3}}>
-            Lesson {String(LESSON).padStart(2, '0')} of {TOTAL_LESSONS} Completed:<br /><span style={{color: C.green}}>UNIQUE & SORT Engine Mastered (Unit {UNIT}/{TOTAL_UNITS})</span>
+            Lesson {String(LESSON).padStart(2, '0')} of {TOTAL_LESSONS} Completed:<br /><span style={{color: C.green}}>FILTER Engine Mastered (Unit {UNIT}/{TOTAL_UNITS})</span>
           </div>
         </div>
 
@@ -78,25 +77,28 @@ export const Scene6: React.FC = () => {
           <div style={{borderRadius: 24, background: C.card, border: `2px solid ${linkHot > 0.1 ? C.green : C.border}`, padding: '26px 32px', boxShadow: linkHot > 0.1 ? `0 0 ${30 * linkPulse}px ${C.green}88` : 'none'}}>
             <Mix style={{fontSize: 30, fontWeight: 700, color: C.text}}>الملفات والتدريبات</Mix>
             <div dir="ltr" style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.blue, marginTop: 14, wordBreak: 'break-all'}}>solutions.gomaaintelligence.me</div>
-            <Mix style={{fontSize: 22, color: C.muted, display: 'block', marginTop: 10}}>نزّل manzooma_sales_2026.xlsx وطبّق UNIQUE + SORT + SORTBY</Mix>
+            <Mix style={{fontSize: 22, color: C.muted, display: 'block', marginTop: 10}}>نزّل manzooma_sales_2026.xlsx وطبّق FILTER + Boolean AND/OR</Mix>
           </div>
         </div>
 
         <div style={{position: 'absolute', left: 1060, top: 330, width: 600, opacity: next, transform: `translateY(${(1 - next) * 30}px)`}}>
           <div style={{borderRadius: 24, background: C.card, border: `2px solid ${C.blue}`, padding: '24px 30px', boxShadow: `0 0 0 6px ${C.blue}22`}}>
-            <Mix style={{fontSize: 24, color: C.blue, fontWeight: 700}}>الدرس القادم · 35 من 76</Mix>
-            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 6}}>دالة التصفية الديناميكية المتقدمة</Mix>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginTop: 8}}>FILTER Engine · Multi-Criteria Filtering</div>
+            <Mix style={{fontSize: 24, color: C.blue, fontWeight: 700}}>الدرس القادم · 36 من 76</Mix>
+            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 6}}>دوال إنشاء السلاسل الديناميكية</Mix>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginTop: 8}}>SEQUENCE & RANDARRAY Engine</div>
             <svg width={540} height={120} viewBox="0 0 540 120" style={{marginTop: 16}}>
               <rect x={1} y={1} width={538} height={118} rx={10} fill="#fff" stroke="#334155" />
-              <path d="M40 25 L500 25 L320 65 L320 105 L220 105 L220 65 Z" fill="rgba(56,189,248,0.15)" stroke={C.blue} strokeWidth={2.5} />
-              {Array.from({length: 10}, (_, i) => (
-                <circle key={i} cx={60 + i * 45} cy={45} r={5} fill={i % 3 === 0 ? C.green : i % 3 === 1 ? C.amber : C.red} opacity={0.7} />
+              <text x={30} y={40} fill="#242424" fontFamily="Consolas, monospace" fontSize={16} fontWeight={700}>SEQUENCE(5, 1, 1001, 1)</text>
+              {Array.from({length: 5}, (_, i) => (
+                <rect key={i} x={30} y={48 + i * 14} width={140} height={12} fill={i === 0 ? 'rgba(56,189,248,0.3)' : 'rgba(56,189,248,0.15)'} stroke={C.blue} strokeWidth={1} rx={2} />
               ))}
-              <circle cx={270} cy={90} r={6} fill={C.green} />
+              <text x={320} y={40} fill="#242424" fontFamily="Consolas, monospace" fontSize={16} fontWeight={700}>RANDARRAY(3, 3)</text>
+              {Array.from({length: 3}, (_, r) => Array.from({length: 3}, (_, c) => (
+                <rect key={r + '-' + c} x={320 + c * 60} y={48 + r * 22} width={56} height={18} fill="rgba(245,158,11,0.2)" stroke={C.amber} strokeWidth={1} rx={2} />
+              )))}
             </svg>
             <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: -8, transform: `scale(${0.8 + 0.2 * tag})`, opacity: clamp(tag)}}>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green, border: `2px solid ${C.green}`, borderRadius: 999, padding: '4px 16px', background: `${C.green}18`}}>FILTER</div>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green, border: `2px solid ${C.green}`, borderRadius: 999, padding: '4px 16px', background: `${C.green}18`}}>SEQUENCE</div>
             </div>
           </div>
         </div>

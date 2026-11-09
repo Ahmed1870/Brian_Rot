@@ -6,15 +6,12 @@ import {
   CAM0, Caption, Chip, ExcelApp, ExcelWindow, Neon, Stage, TopBadge, XL, camLerp, clamp, geo, prog, sec,
 } from '../kit';
 
-// SC05: Enterprise UNIQUE & SORT on 50,000 rows.
 const S = START.s5;
 const t = (g: number) => sec(g - S);
-
 const colW = (c: number) => [0, 110, 180, 130, 110][c] ?? XL.colW;
 
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
-
   let cam = CAM0;
   cam = camLerp(cam, {fx: 340, fy: 200, z: 1.35}, prog(f, t(173), 24));
   cam = camLerp(cam, CAM0, prog(f, t(180), 24));
@@ -32,7 +29,7 @@ export const Scene5: React.FC = () => {
   if (jumpBottom) scroll = {r: BIG_LAST - 19, c: 1};
 
   const sealP = prog(f, t(190), 18);
-  const statusLeft = opened ? (processed ? `${fmtInt(processedRows)} of 50,000 rows extracted & sorted` : '50,000 rows loaded') : 'Ready';
+  const statusLeft = opened ? (processed ? `${fmtInt(processedRows)} of 50,000 rows filtered` : '50,000 rows loaded') : 'Ready';
 
   const cell = (r: number, c: number) => {
     if (r === 1) {
@@ -45,6 +42,9 @@ export const Scene5: React.FC = () => {
     const s = bigSale(n);
     const isFilled = processedRows >= n;
     if (processed) {
+      // Show only Cairo + amount > 10000 (filtered)
+      const isMatch = s.branch === 'Cairo' && s.amount > 10000;
+      if (!isMatch) return undefined;
       switch (c) {
         case 1: return isFilled ? {t: s.id, color: '#107C41'} : {t: ''};
         case 2: return isFilled ? {t: s.product, color: '#107C41'} : {t: ''};
@@ -81,7 +81,7 @@ export const Scene5: React.FC = () => {
             </svg>
           ) : null}
           {processed ? (
-            <Neon x={g.rowW} y={g.rowsTop} w={colW(1) + colW(2) + colW(3) + colW(4)} h={g.rowsBottom - g.rowsTop} color={C.green} p={prog(f, t(178), 12) * 0.3 * (1 - prog(f, t(210), 12))} label="Extracted & sorted enterprise data" labelBelow />
+            <Neon x={g.rowW} y={g.rowsTop} w={colW(1) + colW(2) + colW(3) + colW(4)} h={g.rowsBottom - g.rowsTop} color={C.green} p={prog(f, t(178), 12) * 0.3 * (1 - prog(f, t(210), 12))} label="Filtered: Cairo + Amount > 10,000" labelBelow />
           ) : null}
         </ExcelApp>
       </ExcelWindow>
@@ -91,7 +91,7 @@ export const Scene5: React.FC = () => {
         <Chip color={C.green}>manzooma_sales_2026.xlsx</Chip>
       </div>
       <div style={{position: 'absolute', left: 560, top: 82, opacity: prog(f, t(173), 12) * (1 - prog(f, t(210), 12))}}>
-        <Chip color={C.blue}>UNIQUE & SORTBY · 50,000 rows · Real-time</Chip>
+        <Chip color={C.blue}>FILTER + SORT · 50,000 rows · Boolean AND</Chip>
       </div>
 
       <div style={{position: 'absolute', left: 1330, top: 320, width: 330, textAlign: 'center', opacity: sealP, transform: `scale(${0.7 + 0.3 * sealP})`}}>
@@ -100,12 +100,12 @@ export const Scene5: React.FC = () => {
           <circle cx={115} cy={115} r={86} fill="none" stroke={C.green} strokeWidth={2} strokeDasharray="6 6" />
           <polyline points="72,118 104,150 162,84" fill="none" stroke={C.green} strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <div style={{fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.green, marginTop: -6}}>UNIQUE/SORT VERIFIED</div>
+        <div style={{fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.green, marginTop: -6}}>FILTER ENGINE VERIFIED</div>
         <div style={{fontFamily: MONO, fontSize: 20, color: C.text}}>{`50,000 rows · <2ms`}</div>
       </div>
 
-      <TopBadge text="Enterprise Dynamic Sorting ──► Extract & Sort 50,000 Sales Records Instantly" from={t(171.0)} to={t(190.0)} />
-      <Caption text="High-Speed Performance ──► Real-Time UNIQUE & SORTBY Array Processing in <2ms" from={t(190.0)} to={t(209.0)} tone="ok" />
+      <TopBadge text="Enterprise Dynamic Filtering ──► Filter & Extract Multi-Criteria Records Across 50,000 Rows" from={t(171.0)} to={t(190.0)} />
+      <Caption text="Zero Latency Execution ──► Real-Time Boolean Array Filtering & Sorting in <2ms" from={t(190.0)} to={t(209.0)} tone="ok" />
     </Stage>
   );
 };
