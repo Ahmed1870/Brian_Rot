@@ -1,4 +1,4 @@
-name: Render Excel Lesson 37 Array Reshaping
+name: Render Excel Lesson 39 Filter Sortby Synergy
 on:
   push:
     branches: [main]
@@ -9,11 +9,11 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 37 only
+      - name: Guard - this repo must contain Excel lesson 39 only
         run: |
-          grep -q "XL-L37-ArrayReshaping" src/theme.ts
-          grep -q "XL-L37-ArrayReshaping" package.json
-          test -f public/voiceover_lesson_37.mp3
+          grep -q "XL-L39-FilterSortby" src/theme.ts
+          grep -q "XL-L39-FilterSortby" package.json
+          test -f public/voiceover_lesson_39.mp3
           test -f public/manzooma_logo.svg
           for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
           test "$(ls public | wc -l)" = "8"
@@ -31,10 +31,10 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L37-ArrayReshaping out/xl-l37-arrayreshaping.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l37-arrayreshaping.mp4
+      - run: npx remotion render src/index.ts XL-L39-FilterSortby out/xl-l39-filtersortby.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l39-filtersortby.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l37-arrayreshaping
-          path: out/xl-l37-arrayreshaping.mp4
+          name: xl-l39-filtersortby
+          path: out/xl-l39-filtersortby.mp4
           if-no-files-found: error

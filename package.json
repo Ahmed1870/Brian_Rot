@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-37-arrayreshaping",
+  "name": "manzooma-excel-lesson-39-filtersortby",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 37: Array Reshaping (TOCOL, TOROW, CHOOSECOLS, CHOOSEROWS) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 39: FILTER & SORTBY Synergy Engine (External Sort, Multi-Level, CHOOSECOLS Pipeline) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L37-ArrayReshaping out/xl-l37-arrayreshaping.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L39-FilterSortby out/xl-l39-filtersortby.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

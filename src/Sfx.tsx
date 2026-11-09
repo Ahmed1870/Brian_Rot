@@ -1,4 +1,4 @@
-// Sound effects for Lesson 37 — Array Reshaping Engine.
+// Sound effects for Lesson 39 — FILTER & SORTBY Synergy.
 import React from 'react';
 import {Audio, Sequence, staticFile} from 'remotion';
 import {FPS, START} from './theme';

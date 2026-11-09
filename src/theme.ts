@@ -15,12 +15,12 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 37;
+export const LESSON = 39;
 export const TOTAL_LESSONS = 76;
-export const UNIT = 7;
+export const UNIT = 8;
 export const TOTAL_UNITS = 14;
-export const COMP_ID = 'XL-L37-ArrayReshaping';
-export const VOICE_FILE = 'voiceover_lesson_37.mp3';
+export const COMP_ID = 'XL-L39-FilterSortby';
+export const VOICE_FILE = 'voiceover_lesson_39.mp3';
 export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {
