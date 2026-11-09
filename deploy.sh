@@ -1,73 +1,81 @@
 #!/usr/bin/env bash
-# Swap deploy for Lesson 20 (XL-L20-Text-Functions). Env: DRY_RUN SKIP_NPM KEEP_EXTRA WORK_DIR REPO_URL BRANCH COMMIT_MSG
+# Swap System deploy: replaces the repo content with this lesson project and force-pushes.
+# Env: DRY_RUN SKIP_NPM KEEP_EXTRA WORK_DIR REPO_URL BRANCH COMMIT_MSG
 set -euo pipefail
-COMP_ID="XL-L20-Text-Functions"; OUT_NAME="excel-l20-text-functions"; NN="20"
-REPO_URL="${REPO_URL:-https://github.com/Ahmed1870/Brian_Rot.git}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_URL="${REPO_URL:-https://github.com/Ahmed1870/Brian_Rot}"
 BRANCH="${BRANCH:-main}"
-WORK_DIR="${WORK_DIR:-$HOME/Brian_Rot}"
-COMMIT_MSG="${COMMIT_MSG:-Lesson ${NN}: Text Functions (${COMP_ID})}"
-SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-say() { echo "▶ $*"; }
-die() { echo "✖ $*" >&2; exit 1; }
+WORK_DIR="${WORK_DIR:-$HOME/manzooma-repo}"
+THEME="$HERE/src/theme.ts"
+COMP_ID="$(sed -n 's/^export const COMP_ID = "\(.*\)";/\1/p' "$THEME")"
+OUT_NAME="$(sed -n 's/^export const OUT_NAME = "\(.*\)";/\1/p' "$THEME")"
+NN="$(sed -n 's/^export const LESSON_NUM = "\(.*\)";/\1/p' "$THEME")"
+VOICE="voiceover_lesson_${NN}.mp3"
+COMMIT_MSG="${COMMIT_MSG:-Lesson ${NN}: ${COMP_ID}}"
+fail() { echo "DEPLOY STOPPED: $*" >&2; exit 1; }
 
-say "1/7 sync repo"
+# 1) naming checks on the NEW project (before touching the repo)
+[[ "$COMP_ID" =~ ^XL-L[0-9]{2}-[A-Za-z0-9-]+$ ]] || fail "COMP_ID '$COMP_ID' is invalid"
+[[ "$COMP_ID" == XL-L${NN}-* ]] || fail "COMP_ID does not match lesson number $NN"
+[[ "$OUT_NAME" =~ ^[a-z0-9-]+$ ]] || fail "OUT_NAME '$OUT_NAME' is invalid"
+grep -q "export const VOICE_FILE = \"$VOICE\"" "$THEME" || fail "VOICE_FILE is not $VOICE"
+[ -s "$HERE/public/$VOICE" ] || fail "public/$VOICE is missing"
+grep -q "COMP_ID" "$HERE/src/Root.tsx" || fail "Root.tsx does not use COMP_ID"
+grep -qE "XL-L[0-9]{2}|SQL-L[0-9]+" "$HERE/src/Root.tsx" && fail "Root.tsx has a hard-coded lesson id"
+grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" "$HERE/package.json" || fail "package.json build is not $COMP_ID -> out/$OUT_NAME.mp4"
+WF="$HERE/.github/workflows"
+[ "$(ls "$WF" | wc -l)" = "1" ] || fail "exactly one workflow file is required"
+grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" "$WF"/*.yml || fail "workflow render command mismatch"
+grep -q "name: $OUT_NAME\$" "$WF"/*.yml || fail "workflow artifact name must be $OUT_NAME"
+grep -q "test -s out/$OUT_NAME.mp4" "$WF"/*.yml || fail "workflow lacks test -s on the video"
+grep -q "no-package-lock" "$WF"/*.yml || fail "workflow install step must use --no-package-lock"
+if grep -rnE "SQL-L[0-9]+|XL-L[0-9]{2}-[A-Za-z0-9-]+" "$HERE/src" "$HERE/package.json" "$WF" | grep -v "$COMP_ID" | grep -q .; then
+  grep -rnE "SQL-L[0-9]+|XL-L[0-9]{2}-[A-Za-z0-9-]+" "$HERE/src" "$HERE/package.json" "$WF" | grep -v "$COMP_ID" >&2
+  fail "stale lesson id found (SQL or older Excel lesson)"
+fi
+if [ -z "${KEEP_EXTRA:-}" ]; then
+  extra="$(ls "$HERE/public" | grep -vxE "$VOICE|manzooma_logo.svg" || true)"
+  [ -z "$extra" ] || fail "unexpected files in public: $extra"
+fi
+echo "names OK: $COMP_ID -> out/$OUT_NAME.mp4 | $VOICE"
+
+# 2) sync repo
 if [ -d "$WORK_DIR/.git" ]; then
+  git -C "$WORK_DIR" remote set-url origin "$REPO_URL"
   git -C "$WORK_DIR" fetch origin "$BRANCH" 2>/dev/null || true
-  git -C "$WORK_DIR" checkout -q "$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -b "$BRANCH"
-  git -C "$WORK_DIR" reset -q --hard "origin/$BRANCH" 2>/dev/null || true
+  git -C "$WORK_DIR" checkout -B "$BRANCH" "origin/$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -B "$BRANCH"
 else
-  mkdir -p "$(dirname "$WORK_DIR")"
-  git clone -q "$REPO_URL" "$WORK_DIR" 2>/dev/null || { mkdir -p "$WORK_DIR"; git -C "$WORK_DIR" init -q -b "$BRANCH"; git -C "$WORK_DIR" remote add origin "$REPO_URL"; }
-  git -C "$WORK_DIR" checkout -q "$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -b "$BRANCH"
+  rm -rf "$WORK_DIR"
+  git clone "$REPO_URL" "$WORK_DIR" 2>/dev/null || { mkdir -p "$WORK_DIR"; git -C "$WORK_DIR" init -q; git -C "$WORK_DIR" remote add origin "$REPO_URL"; }
+  git -C "$WORK_DIR" checkout -B "$BRANCH"
 fi
 
-say "2/7 wipe old project (keep .git and .github)"
-if [ "${KEEP_EXTRA:-0}" != "1" ]; then
-  find "$WORK_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
-fi
-say "3/7 remove old workflow"
+# 3) wipe everything except .git and .github, drop old workflows, copy the new project
+find "$WORK_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
+rm -rf "$WORK_DIR/.github/workflows"
 mkdir -p "$WORK_DIR/.github/workflows"
-rm -f "$WORK_DIR"/.github/workflows/*
+cp -r "$HERE/src" "$HERE/public" "$WORK_DIR/"
+cp "$HERE/package.json" "$HERE/tsconfig.json" "$HERE/deploy.sh" "$HERE/.gitignore" "$WORK_DIR/"
+cp "$WF"/*.yml "$WORK_DIR/.github/workflows/"
 
-say "4/7 copy new project"
-(cd "$SRC" && tar cf - --exclude=node_modules --exclude=out --exclude=.git .) | (cd "$WORK_DIR" && tar xf -)
-
-say "5/7 name checks"
+# 4) name checks again on the copied repo
 cd "$WORK_DIR"
-grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || die "theme.ts COMP_ID mismatch"
-grep -q "COMP_ID" src/Root.tsx || die "Root.tsx must use COMP_ID"
-grep -q "XL-L" src/Root.tsx && die "Root.tsx has a hard-coded lesson id"
-grep -q "XL-L${NN}-Text-Functions" package.json || die "package.json COMP_ID mismatch"
-grep -q "out/${OUT_NAME}.mp4" package.json || die "package.json output name mismatch"
-WF=$(ls .github/workflows); [ "$(echo "$WF" | wc -l)" = "1" ] || die "need exactly one workflow file"
-grep -q "COMP_ID: ${COMP_ID}" ".github/workflows/$WF" || die "workflow COMP_ID mismatch"
-grep -q "OUT_NAME: ${OUT_NAME}" ".github/workflows/$WF" || die "workflow OUT_NAME mismatch"
-grep -q "name: ${OUT_NAME}" ".github/workflows/$WF" || die "artifact name must equal output name"
-test -s "public/voiceover_lesson_${NN}.mp3" || die "voiceover_lesson_${NN}.mp3 missing"
-grep -q "voiceover_lesson_${NN}.mp3" src/theme.ts || die "theme.ts voice name mismatch"
-BAD=$(ls public | grep -v -x -e "voiceover_lesson_${NN}.mp3" -e "manzooma_logo.svg" || true)
-[ -z "$BAD" ] || die "unexpected files in public: $BAD"
-OLD=$(grep -rEoh "(SQL|XL)-L[0-9]+[A-Za-z0-9-]*" src package.json .github 2>/dev/null | grep -v -x "$COMP_ID" || true)
-[ -z "$OLD" ] || die "old lesson id found: $(echo "$OLD" | sort -u | tr '\n' ' ')"
-OLDV=$(grep -rEoh "voiceover_lesson_[0-9]+" src package.json .github 2>/dev/null | grep -v -x "voiceover_lesson_${NN}" || true)
-[ -z "$OLDV" ] || die "old voiceover name found: $(echo "$OLDV" | sort -u | tr '\n' ' ')"
-RV=$(grep -o '"remotion": *"[^"]*"' package.json | sed 's/.*: *"//; s/"//')
-echo "$RV" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || die "remotion version must be pinned exactly (no ^ or ~): $RV"
-grep -Eq '"(remotion|@remotion/[^"]+)": *"[\^~]' package.json && die "remotion packages must not use ^ or ~"
-grep -q "no-package-lock" ".github/workflows/$WF" || die "render.yml Install step must use --no-package-lock"
-grep -q "compositor-linux-x64-gnu@${RV}" ".github/workflows/$WF" || die "render.yml compositor version must equal remotion version (${RV})"
-grep -qx "package-lock.json" .gitignore || die ".gitignore must list package-lock.json"
-echo "  names OK"
+[ "$(ls .github/workflows | wc -l)" = "1" ] || fail "repo has more than one workflow after copy"
+if grep -rnE "SQL-L[0-9]+|XL-L[0-9]{2}-[A-Za-z0-9-]+" src package.json .github | grep -v "$COMP_ID" | grep -q .; then fail "stale lesson id in repo copy"; fi
 
-say "6/7 npm install + tsc"
-if [ "${SKIP_NPM:-0}" = "1" ]; then echo "  (skipped)"; else npm install --no-audit --no-fund --no-package-lock && npx tsc --noEmit; fi
+# 5) install + typecheck
+if [ -z "${SKIP_NPM:-}" ]; then
+  npm install
+  npx tsc --noEmit
+else
+  echo "SKIP_NPM set: npm install and tsc skipped"
+fi
 
-say "7/7 commit + push"
-git config user.name >/dev/null 2>&1 || git config user.name "Ahmed1870"
-git config user.email >/dev/null 2>&1 || git config user.email "ahmed1870@users.noreply.github.com"
+# 6) commit + push (never commit a lockfile made on Termux: CI must resolve its own Linux tree)
 rm -f package-lock.json
 git add -A
-if git ls-files | grep -qx "package-lock.json"; then die "package-lock.json is tracked in git (must never be committed)"; fi
-git commit -q --allow-empty -m "$COMMIT_MSG"
-if [ "${DRY_RUN:-0}" = "1" ]; then echo "  DRY_RUN: committed locally, not pushed"; else git push --force origin "$BRANCH"; fi
-echo "✔ done: ${COMP_ID}"
+if git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then fail "package-lock.json is tracked: remove it"; fi
+git -c user.name="${GIT_AUTHOR_NAME:-manzooma-bot}" -c user.email="${GIT_AUTHOR_EMAIL:-bot@manzooma.local}" commit -q -m "$COMMIT_MSG" || echo "nothing to commit"
+if [ -n "${DRY_RUN:-}" ]; then echo "DRY_RUN set: not pushing"; exit 0; fi
+git push --force origin "$BRANCH"
+echo "pushed: $COMMIT_MSG"

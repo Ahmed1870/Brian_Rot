@@ -1,43 +1,27 @@
-name: Render Lesson 20
-
+name: Render lesson video
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-
-env:
-  COMP_ID: XL-L20-Text-Functions
-  OUT_NAME: excel-l20-text-functions
-  VOICE: voiceover_lesson_20.mp3
-  LOGO: manzooma_logo.svg
-
+  workflow_dispatch: {}
 jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-
-      - name: Guard (names must match before rendering)
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || { echo "theme.ts COMP_ID mismatch"; exit 1; }
-          grep -q "XL-L20-Text-Functions" package.json || { echo "package.json COMP_ID mismatch"; exit 1; }
-          grep -q "out/${OUT_NAME}.mp4" package.json || { echo "package.json output name mismatch"; exit 1; }
-          test -s "public/${VOICE}" || { echo "voiceover missing"; exit 1; }
-          test -s "public/${LOGO}" || { echo "logo missing"; exit 1; }
-          extra=$(ls public | grep -v -x -e "${VOICE}" -e "${LOGO}" || true)
-          [ -z "$extra" ] || { echo "unexpected files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow file"; exit 1; }
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Fonts (open Calibri substitute)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-crosextra-carlito
-
+      - name: Guard (names, voiceover, public)
+        run: |
+          set -e
+          grep -q "XL-L23-CF-Formulas" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
+          grep -q "XL-L23-CF-Formulas" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
+          grep -q "xl-l23-cf-formulas.mp4" package.json || { echo "output name missing in package.json"; exit 1; }
+          test -s public/voiceover_lesson_23.mp3 || { echo "voiceover missing"; exit 1; }
+          extra=$(ls public | grep -vxE "voiceover_lesson_23.mp3|manzooma_logo.svg" || true)
+          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
+          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
       - name: Install
         run: |
           rm -rf node_modules package-lock.json
@@ -49,14 +33,11 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-
       - name: Render
-        run: npx remotion render src/index.ts "${COMP_ID}" "out/${OUT_NAME}.mp4" --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --concurrency=4
-
-      - name: Verify output
-        run: test -s "out/${OUT_NAME}.mp4"
-
+        run: npx remotion render src/index.ts XL-L23-CF-Formulas out/xl-l23-cf-formulas.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - name: Check output
+        run: test -s out/xl-l23-cf-formulas.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: excel-l20-text-functions
-          path: out/excel-l20-text-functions.mp4
+          name: xl-l23-cf-formulas
+          path: out/xl-l23-cf-formulas.mp4

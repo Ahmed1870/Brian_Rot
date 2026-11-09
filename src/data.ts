@@ -1,59 +1,50 @@
-import {XL} from './theme';
-import {Cell, Cur, Geo, Rect, Sel, colName, ease, lerp, pg} from './kit';
+export const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const PRODUCTS: [string, number][] = [
+  ["Laptop X1", 24500], ["Laptop X2", 18900], ["Phone S5", 12500], ["Tablet T3", 6800],
+  ["Monitor 24", 3900], ["Printer P2", 2300], ["Router R7", 1450], ["Keyboard K1", 850],
+];
+export const num = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const h = (a: number, b: number): number => {
+  let x = Math.imul(a + 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35);
+  x ^= x >>> 15; x = Math.imul(x, 0x2c1b3c6d); x ^= x >>> 12; x = Math.imul(x, 0x297a2d39); x ^= x >>> 15;
+  return (x >>> 0) / 4294967296;
+};
 
-export const PRODUCTS = ['Laptop', 'Mobile', 'Tablet', 'Printer', 'Monitor', 'Keyboard', 'Router', 'Camera'];
-export const REGIONS = ['Cairo', 'Giza', 'Alex', 'Tanta', 'Aswan', 'Luxor', 'Mansoura', 'Suez'];
-const S8 = [12500, 8400, 15200, 6900, 9800, 11300, 7600, 13400];
-export const sales = (r: number) => (r <= 9 ? S8[r - 2] : 50 * (100 + ((r * 37) % 200)));
-export const tax = (r: number) => Math.round((sales(r) * 14) / 100);
-export const comm = (r: number) => Math.round((sales(r) * 4) / 100);
-export const prod = (r: number) => PRODUCTS[(r - 2) % 8];
-export const reg = (r: number) => REGIONS[(r * 3 + 1) % 8];
-export const IN = '#FFF2CC';
-export const INC = '#7F6000';
-export const hdrC = (t: string): Cell => ({t, b: true, bg: XL.green, col: '#fff', al: 'l'});
-export const band = (r: number) => (r % 2 === 1 ? '#E2EFDA' : undefined);
-export const one = (r: number, c: number): Sel => ({r1: r, c1: c, r2: r, c2: c, ar: r, ac: c});
-export const rng = (r1: number, c1: number, r2: number, c2: number, ar = r1, ac = c1): Sel => ({r1, c1, r2, c2, ar, ac});
-const R0: Rect = {x: 0, y: 0, w: XL.colW, h: XL.rowH};
-export const rr = (g: Geo, r: number, c: number): Rect => g.cell(r, c) ?? R0;
-export const ctr = (g: Geo, r: number, c: number) => {
-  const q = rr(g, r, c);
-  return {x: q.x + q.w * 0.45, y: q.y + q.h * 0.5};
-};
-export const hp = (g: Geo, r: number, c: number) => {
-  const q = rr(g, r, c);
-  return {x: q.x + q.w - 1, y: q.y + q.h - 1};
-};
-/** cursor keyframes: [t, x, y, kind?]; moves eased between keys, holds when two keys share a position */
-export type K = [number, number, number, ('arrow' | 'cross')?];
-export const path = (t: number, ks: K[]): Cur => {
-  if (t <= ks[0][0]) return {x: ks[0][1], y: ks[0][2], k: ks[0][3]};
-  for (let i = 1; i < ks.length; i++) {
-    if (t <= ks[i][0]) {
-      const a = ks[i - 1], b = ks[i];
-      const p = ease(pg(t, a[0], b[0]));
-      return {x: lerp(a[1], b[1], p), y: lerp(a[2], b[2], p), k: p > 0.5 ? b[3] : a[3]};
-    }
-  }
-  const l = ks[ks.length - 1];
-  return {x: l[1], y: l[2], k: l[3]};
-};
-export const fmtN = (x: number) => x.toLocaleString('en-US', {maximumFractionDigits: 2});
-const sumRange = (f: (r: number) => number, a: number, b: number) => {
-  let s = 0;
-  for (let r = a; r <= b; r++) s += f(r);
-  return s;
-};
-export const SUM_TAX_1001 = sumRange(tax, 2, 1001);
-export const SUM_COMM_50K = sumRange(comm, 2, 50001);
-export const hwFor = (lastRow: number) => (lastRow >= 10000 ? 42 : lastRow >= 1000 ? 36 : XL.rowHdrW);
+// ---- Lesson 23 sheet: A2:E100 = 99 records (ID, Date, Branch, Amount, Status) ----
+export type Row = { n: number; id: string; date: string; branch: string; amount: number; status: string };
+const BR = ["Cairo", "Alex", "Mansoura", "Aswan", "Tanta"];
+const SEED = 37;
+const DUP: [number, number][] = [[2, 15], [6, 21], [9, 24], [40, 70], [55, 90]]; // row j repeats the Order ID of row i
+export const ROWS: Row[] = Array.from({ length: 99 }, (_, i) => {
+  const p = PRODUCTS[Math.floor(h(i, 21 + SEED) * PRODUCTS.length)];
+  const units = 1 + Math.floor(h(i, 31 + SEED) * 6);
+  const r = h(i, 41 + SEED);
+  return {
+    n: i, id: "S-" + (1001 + i), date: ((i * 5) % 28 + 1) + "-" + MON[(i * 3 + 1) % 12] + "-26",
+    branch: BR[Math.floor(h(i, 11 + SEED) * BR.length)], amount: units * p[1] + i,
+    status: r < 0.28 ? "Pending" : r < 0.8 ? "Paid" : r < 0.92 ? "Shipped" : "Cancelled",
+  };
+});
+DUP.forEach(([i, j]) => { ROWS[j].id = ROWS[i].id; });
+export type Ov = { idAt?: [number, string]; amtAt?: [number, number] };
+export const withOv = (ov: Ov): Row[] => ROWS.map((r) => ({ ...r, id: ov.idAt && ov.idAt[0] === r.n ? ov.idAt[1] : r.id, amount: ov.amtAt && ov.amtAt[0] === r.n ? ov.amtAt[1] : r.amount }));
+export const dupSet = (rows: Row[]): Set<number> => { const c = new Map<string, number>(); rows.forEach((r) => c.set(r.id, (c.get(r.id) ?? 0) + 1)); return new Set(rows.filter((r) => (c.get(r.id) ?? 0) > 1).map((r) => r.n)); };
+export const top10Set = (rows: Row[]): Set<number> => { const v = rows.map((r) => r.amount).sort((a, b) => b - a)[9]; return new Set(rows.filter((r) => r.amount >= v).map((r) => r.n)); };
+export const isAnd = (r: Row): boolean => r.status === "Pending" && r.amount >= 5000;
+export const isOr = (r: Row): boolean => r.branch === "Cairo" || r.branch === "Alex";
+export const isCairo = (r: Row): boolean => r.branch === "Cairo";
+export const EDIT_DUP_ROW = 12; // typing the ID of row 4 into row 13 makes a live duplicate
+export const EDIT_AMT_ROW = ROWS.findIndex((r, i) => i > 3 && i < 26 && r.amount < 5000 && !DUP.some(([a, b]) => a === i || b === i) && i !== EDIT_DUP_ROW);
 
-// matrix lesson data
-export const CATS = ['Laptop', 'Mobile', 'Tablet', 'Printer', 'Monitor', 'Router', 'Camera', 'Speaker', 'Headset', 'Scanner'];
-export const PRICE = [120, 180, 240, 300, 360, 420, 480, 540, 600, 660];
-export const RATE = [5, 10, 15, 20, 25];
-export const TIER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'VIP'];
-export const mv = (r: number, c: number) => (PRICE[c - 2] * RATE[r - 5]) / 100;
-export const MAT_SUM = (() => { let s = 0; for (let r = 5; r <= 9; r++) for (let c = 2; c <= 11; c++) s += mv(r, c); return s; })();
-export const fx2 = (c: number, r: number) => `${colName(c)}${r}`;
+// ---- Enterprise table (50,000 rows) ----
+export const BIG_N = 50000;
+export type Big = Row;
+export const bigOf = (i: number): Big => {
+  const p = PRODUCTS[Math.floor(h(i, 2) * PRODUCTS.length)];
+  const r = h(i, 5);
+  return { n: i, id: "INV-" + (1001 + i), date: ((i * 7) % 28 + 1) + "-" + MON[(i * 5 + 1) % 12] + "-26", branch: BR[Math.floor(h(i, 1) * BR.length)], amount: (1 + Math.floor(h(i, 3) * 9)) * p[1], status: r < 0.28 ? "Pending" : r < 0.8 ? "Paid" : r < 0.92 ? "Shipped" : "Cancelled" };
+};
+let _big: Big[] | null = null;
+export const bigRows = (): Big[] => (_big ??= Array.from({ length: BIG_N }, (_, i) => bigOf(i)));
+export const bigDeal = (r: Big): boolean => r.amount >= 10000;
+export const bigPend = (r: Big): boolean => r.status === "Pending" && r.amount >= 5000;
