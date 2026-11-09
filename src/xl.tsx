@@ -90,6 +90,12 @@ export const Ico: React.FC<IcoProps> = ({n, s = 16, c}) => {
     case 'find': g = (<g {...common}><circle cx={10} cy={10} r={5.5} /><path d="M14.2 14.2L20 20" strokeWidth={2.2} /></g>); break;
     case 'analyze': g = (<g {...common}><rect x={4} y={12} width={3.5} height={8} fill="#107C41" stroke="none" /><rect x={10} y={8} width={3.5} height={12} fill="#107C41" stroke="none" /><rect x={16} y={14} width={3.5} height={6} fill="#107C41" stroke="none" /><path d="M16 3l1 2.4 2.4 1-2.4 1L16 10l-1-2.6-2.4-1 2.4-1z" fill="#FFC83D" stroke="#FFC83D" /></g>); break;
     case 'addins': g = (<g {...common}><rect x={4} y={4} width={7} height={7} /><rect x={13} y={4} width={7} height={7} /><rect x={4} y={13} width={7} height={7} /><rect x={13} y={13} width={7} height={7} fill="#DCEBFA" stroke="#0F6CBD" /></g>); break;
+    case 'pivot': g = (<g {...common}><rect x={3.5} y={4} width={17} height={16} rx={1} /><path d="M3.5 9.5h17M9.5 9.5V20" /><rect x={10} y={10} width={10} height={4.5} fill="#DCEBFA" stroke="none" /><path d="M13 6.8h5" stroke="#107C41" /></g>); break;
+    case 'table': g = (<g><rect x={3.5} y={4.5} width={17} height={15} fill="#fff" stroke={k} strokeWidth={1.3} /><rect x={3.5} y={4.5} width={17} height={4} fill="#107C41" /><path d="M3.5 12h17M3.5 15.5h17M9.5 8.5v11M15 8.5v11" stroke={k} strokeWidth={1} /></g>); break;
+    case 'shapes': g = (<g {...common}><circle cx={8} cy={8} r={4} fill="#DCEBFA" stroke="#0F6CBD" /><rect x={11} y={11} width={9} height={9} rx={1.5} fill="#E6F4EA" stroke="#107C41" /><path d="M4 20l3-5 3 5z" /></g>); break;
+    case 'chart': g = (<g {...common}><path d="M4 4v16h16" /><rect x={7} y={12} width={3} height={6} fill="#107C41" stroke="none" /><rect x={12} y={8} width={3} height={10} fill="#0F6CBD" stroke="none" /><rect x={17} y={14} width={3} height={4} fill="#FFC83D" stroke="none" /></g>); break;
+    case 'slicer': g = (<g {...common}><rect x={4} y={3.5} width={16} height={17} rx={1.5} /><rect x={6.5} y={7} width={11} height={3} fill="#107C41" stroke="none" /><rect x={6.5} y={11.5} width={11} height={3} fill="#DCEBFA" stroke="none" /><rect x={6.5} y={16} width={11} height={2.5} fill="#DCEBFA" stroke="none" /></g>); break;
+    case 'zoom': g = (<g {...common}><circle cx={10} cy={10} r={5.5} /><path d="M14.2 14.2L20 20" strokeWidth={2.2} /><path d="M7.5 10h5M10 7.5v5" stroke="#107C41" /></g>); break;
     case 'search': g = (<g {...common}><circle cx={10.5} cy={10.5} r={5.5} /><path d="M15 15l5 5" /></g>); break;
     case 'comment': g = (<g {...common}><path d="M4 5h16v11H11l-4.5 4V16H4z" /></g>); break;
     case 'share': g = (<g {...common} stroke="#fff"><circle cx={6.5} cy={12} r={2.4} /><circle cx={17} cy={6} r={2.4} /><circle cx={17} cy={18} r={2.4} /><path d="M8.6 10.8l6.3-3.6M8.6 13.2l6.3 3.6" /></g>); break;
@@ -115,6 +121,7 @@ const tabW = (t: string) => Math.round(t.length * 7.4 + 26);
 export const tabBox = (name: string) => {
   let x = 6;
   for (const t of TABS) { const w = tabW(t); if (t === name) return {x, w, cx: x + w / 2}; x += w; }
+  if (name === 'Slicer' || name === 'Shape Format') { const w = tabW(name); return {x, w, cx: x + w / 2}; }
   return {x: 0, w: 0, cx: 0};
 };
 export const QAT_X0 = 44;
@@ -123,16 +130,17 @@ export const qatCx = (i: number) => QAT_X0 + QAT_STEP * i + QAT_STEP / 2;
 export const qatArrowCx = (n: number) => QAT_X0 + QAT_STEP * n + 10;
 export const qatBottom = XL.title - 4;
 
-export type Geo = {ribbonH: number; fbTop: number; fbH: number; colTop: number; rowsTop: number; rowsBottom: number; rowW: number; gridRight: number; sheetTop: number; statusTop: number};
-export const geo = (ribbon: number, fbExp: number, fbLines: number, rowW = 38): Geo => {
+export type Geo = {colHh: number; ribbonH: number; fbTop: number; fbH: number; colTop: number; rowsTop: number; rowsBottom: number; rowW: number; gridRight: number; sheetTop: number; statusTop: number};
+export const geo = (ribbon: number, fbExp: number, fbLines: number, rowW = 38, fbOn = 1, headOn = 1): Geo => {
   const ribbonH = Math.round(XL.ribbon * ribbon);
   const fbTop = XL.title + XL.tabs + ribbonH;
-  const fbH = XL.fbar + Math.round((fbLines - 1) * XL.fbLine * fbExp);
+  const fbH = Math.round((XL.fbar + Math.round((fbLines - 1) * XL.fbLine * fbExp)) * fbOn);
+  const colHh = Math.round(XL.colH * headOn);
   const colTop = fbTop + fbH;
-  const rowsTop = colTop + XL.colH;
+  const rowsTop = colTop + colHh;
   const statusTop = XL.H - XL.status;
   const sheetTop = statusTop - XL.sheetBar;
-  return {ribbonH, fbTop, fbH, colTop, rowsTop, rowsBottom: sheetTop, rowW, gridRight: XL.W - XL.vbar, sheetTop, statusTop};
+  return {colHh, ribbonH, fbTop, fbH, colTop, rowsTop, rowsBottom: sheetTop, rowW: Math.round(rowW * headOn), gridRight: XL.W - XL.vbar, sheetTop, statusTop};
 };
 export const colLetter = (c: number) => {
   let s = ''; let n = c;
@@ -178,6 +186,8 @@ export type ExcelProps = {
   statsGlow?: number;             // 0..1 blue glow on stats
   sheet?: string;
   zoomPct?: number;
+  gridOn?: number; headOn?: number; fbOn?: number;   // 1 = shown, 0 = hidden (animatable)
+  sheets?: string[]; extraTab?: string; ribbonHot?: string; checks?: Record<string, number>; fields?: Record<string, string>;
   children?: React.ReactNode;
 };
 
@@ -221,6 +231,84 @@ const Grp: React.FC<{name: string; w: number; launcher?: boolean; children?: Rea
     <div style={{position: 'absolute', left: 0, right: 0, top: 2, bottom: 16}}>{children}</div>
     <div style={{position: 'absolute', left: 0, right: 0, bottom: 1, height: 15, textAlign: 'center', fontFamily: UIFONT, fontSize: 11.5, color: G.mute, lineHeight: '15px'}}>{name}</div>
     {launcher ? <svg width={9} height={9} viewBox="0 0 9 9" style={{position: 'absolute', right: 3, bottom: 3}}><path d="M1 1h4M1 1v4M3 3l5 5M8 4.5V8H4.5" fill="none" stroke="#7A7A7A" strokeWidth={1} /></svg> : null}
+  </div>
+);
+
+
+export const sheetTabBox = (names: string[], name: string) => {
+  let x = 54; let out = {x: 0, w: 0, cx: 0, plusX: 0};
+  for (const n of names) { const w = Math.round(n.length * 7.3 + 30); if (n === name) out = {...out, x, w, cx: x + w / 2}; x += w; }
+  return {...out, plusX: x + 8};
+};
+
+/* ------------------------------------------------------------------ generic ribbons (View, Insert, Slicer): approximate layouts, generic glyphs */
+type RItem = {k: string; label: string; icon?: string; kind?: 'big' | 'check' | 'field' | 'sm'; caret?: boolean};
+type RGroup = {name: string; w: number; items: RItem[]};
+export const RIBBONS: Record<string, RGroup[]> = {
+  View: [
+    {name: 'Workbook Views', w: 250, items: [{k: 'Normal', label: 'Normal', icon: 'normal', kind: 'big'}, {k: 'PageBreak', label: 'Page Break Preview', icon: 'pageBreak', kind: 'big'}, {k: 'PageLayout', label: 'Page Layout', icon: 'pageLayout', kind: 'big'}]},
+    {name: 'Show', w: 200, items: [{k: 'Ruler', label: 'Ruler', kind: 'check'}, {k: 'Gridlines', label: 'Gridlines', kind: 'check'}, {k: 'FormulaBar', label: 'Formula Bar', kind: 'check'}, {k: 'Headings', label: 'Headings', kind: 'check'}]},
+    {name: 'Zoom', w: 190, items: [{k: 'Zoom', label: 'Zoom', icon: 'zoom', kind: 'big'}, {k: 'Zoom100', label: '100%', icon: 'zoom', kind: 'big'}, {k: 'ZoomSel', label: 'Zoom to Selection', icon: 'zoom', kind: 'big'}]},
+    {name: 'Window', w: 300, items: [{k: 'NewWin', label: 'New Window', icon: 'normal', kind: 'big'}, {k: 'Arrange', label: 'Arrange All', icon: 'normal', kind: 'big'}, {k: 'Freeze', label: 'Freeze Panes', icon: 'normal', kind: 'big', caret: true}, {k: 'Split', label: 'Split', icon: 'normal', kind: 'big'}]},
+  ],
+  Insert: [
+    {name: 'Tables', w: 200, items: [{k: 'PivotTable', label: 'PivotTable', icon: 'pivot', kind: 'big', caret: true}, {k: 'Table', label: 'Table', icon: 'table', kind: 'big'}]},
+    {name: 'Illustrations', w: 250, items: [{k: 'Pictures', label: 'Pictures', icon: 'normal', kind: 'big', caret: true}, {k: 'Shapes', label: 'Shapes', icon: 'shapes', kind: 'big', caret: true}, {k: 'Icons', label: 'Icons', icon: 'normal', kind: 'big'}]},
+    {name: 'Charts', w: 250, items: [{k: 'Charts', label: 'Recommended Charts', icon: 'chart', kind: 'big'}, {k: 'Column', label: 'Column or Bar', icon: 'chart', kind: 'big', caret: true}, {k: 'Line', label: 'Line or Area', icon: 'chart', kind: 'big', caret: true}]},
+    {name: 'Filters', w: 190, items: [{k: 'Slicer', label: 'Slicer', icon: 'slicer', kind: 'big'}, {k: 'Timeline', label: 'Timeline', icon: 'slicer', kind: 'big'}]},
+  ],
+  Slicer: [
+    {name: 'Slicer', w: 160, items: [{k: 'Settings', label: 'Slicer Settings', icon: 'slicer', kind: 'big'}, {k: 'Report', label: 'Report Connections', icon: 'slicer', kind: 'big'}]},
+    {name: 'Slicer Styles', w: 250, items: [{k: 'Styles', label: 'Quick Styles', icon: 'slicer', kind: 'big', caret: true}]},
+    {name: 'Arrange', w: 330, items: [{k: 'Forward', label: 'Bring Forward', icon: 'normal', kind: 'big'}, {k: 'Backward', label: 'Send Backward', icon: 'normal', kind: 'big'}, {k: 'SelPane', label: 'Selection Pane', icon: 'normal', kind: 'big'}, {k: 'Align', label: 'Align', icon: 'normal', kind: 'big', caret: true}]},
+    {name: 'Buttons', w: 190, items: [{k: 'Columns', label: 'Columns:', kind: 'field'}, {k: 'BtnHeight', label: 'Height:', kind: 'field'}, {k: 'BtnWidth', label: 'Width:', kind: 'field'}]},
+    {name: 'Size', w: 170, items: [{k: 'Height', label: 'Height:', kind: 'field'}, {k: 'Width', label: 'Width:', kind: 'field'}]},
+  ],
+};
+/** Absolute position (inside ribbon area, below title+tabs) of a ribbon item, for cursor targets. */
+export const ribbonItemBox = (kind: string, key: string) => {
+  const groups = RIBBONS[kind] ?? []; let gx = 6;
+  for (const g of groups) {
+    let bx = gx + 4; let ci = 0; let fi = 0;
+    for (const it of g.items) {
+      if (it.kind === 'check') { const col = Math.floor(ci / 2), row = ci % 2; const r = {x: gx + 10 + col * 100, y: XL.title + XL.tabs + 14 + row * 26, w: 96, h: 22}; if (it.k === key) return {...r, cx: r.x + 9, cy: r.y + 11}; ci++; }
+      else if (it.kind === 'field') { const r = {x: gx + 10, y: XL.title + XL.tabs + 8 + fi * 26, w: g.w - 20, h: 22}; if (it.k === key) return {...r, cx: r.x + r.w - 24, cy: r.y + 11}; fi++; }
+      else { const w = Math.max(62, Math.min(86, it.label.length * 4.2 + 16)); const r = {x: bx, y: XL.title + XL.tabs + 2, w, h: 78}; if (it.k === key) return {...r, cx: r.x + w / 2, cy: r.y + 34}; bx += w; }
+    }
+    gx += g.w + 11;
+  }
+  return {x: 0, y: 0, w: 0, h: 0, cx: 0, cy: 0};
+};
+const GenericRibbon: React.FC<{kind: string; hot?: string; checks: Record<string, number>; fields: Record<string, string>}> = ({kind, hot, checks, fields}) => (
+  <div style={{display: 'flex', height: '100%', paddingLeft: 6, overflow: 'hidden'}}>
+    {RIBBONS[kind].map((g) => {
+      let bx = 4; let ci = 0; let fi = 0;
+      return (
+        <div key={g.name} style={{display: 'contents'}}>
+          <Grp name={g.name} w={g.w}>
+            {g.items.map((it) => {
+              if (it.kind === 'check') {
+                const col = Math.floor(ci / 2), row = ci % 2; ci++; const on = (checks[it.k] ?? 1) > 0.5; const dis = it.k === 'Ruler';
+                return (<div key={it.k} style={ab(4 + col * 100, 12 + row * 26, 96, 22, {display: 'flex', alignItems: 'center', gap: 6, background: hot === it.k ? '#E4E4E4' : 'transparent', borderRadius: 3})}>
+                  <div style={{width: 14, height: 14, border: `1.5px solid ${dis ? '#B8B8B8' : '#555'}`, borderRadius: 2, boxSizing: 'border-box', background: on && !dis ? '#fff' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{on && !dis ? <svg width={10} height={10} viewBox="0 0 10 10"><path d="M1.5 5.2l2.4 2.4L8.6 2.4" fill="none" stroke="#222" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" /></svg> : null}</div>
+                  <span style={{...lab, color: dis ? '#9A9A9A' : G.ink}}>{it.label}</span></div>);
+              }
+              if (it.kind === 'field') {
+                const row = fi++;
+                return (<div key={it.k} style={ab(4, 6 + row * 26, g.w - 14, 22, {display: 'flex', alignItems: 'center', gap: 6})}>
+                  <span style={{...lab, width: 92}}>{it.label}</span>
+                  <div style={{flex: 1, height: 22, border: `1px solid ${hot === it.k ? G.green : '#C8C8C8'}`, boxShadow: hot === it.k ? `0 0 0 2px ${G.green}55` : 'none', borderRadius: 3, background: '#fff', boxSizing: 'border-box', padding: '0 6px', display: 'flex', alignItems: 'center'}}><span style={{...lab, fontFamily: CELLFONT, fontSize: 13}}>{fields[it.k] ?? ''}</span></div></div>);
+              }
+              const w = Math.max(62, Math.min(86, it.label.length * 4.2 + 16)); const x = bx; bx += w;
+              const words = it.label.split(' ');
+              return (<div key={it.k} style={ab(x, 0, w, 78, {display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4, background: hot === it.k ? '#E4E4E4' : 'transparent', borderRadius: 4})}>
+                <Ico n={it.icon ?? 'normal'} s={32} /><span style={{...lab, marginTop: 5, lineHeight: '14px'}}>{words.length > 1 ? words.slice(0, Math.ceil(words.length / 2)).join(' ') : it.label}</span>
+                <span style={{...lab, lineHeight: '14px', display: 'flex', alignItems: 'center', gap: 3}}>{words.length > 1 ? words.slice(Math.ceil(words.length / 2)).join(' ') : ''}{it.caret ? <Caret /> : null}</span></div>);
+            })}
+          </Grp><Sep />
+        </div>
+      );
+    })}
   </div>
 );
 
@@ -328,7 +416,7 @@ const TitleBar: React.FC<{file: string; qat: string[]; qatTips: number; qatHot: 
 );
 
 /* ------------------------------------------------------------------ tab strip */
-const TabStrip: React.FC<{tab: string; hot?: string}> = ({tab, hot}) => (
+const TabStrip: React.FC<{tab: string; hot?: string; extra?: string}> = ({tab, hot, extra}) => (
   <div style={ab(0, XL.title, XL.W, XL.tabs, {background: G.chrome})}>
     {TABS.map((t) => {
       const b = tabBox(t);
@@ -340,6 +428,7 @@ const TabStrip: React.FC<{tab: string; hot?: string}> = ({tab, hot}) => (
         </div>
       );
     })}
+    {extra ? (() => { const b = tabBox(extra); const on = tab === extra; return (<div style={ab(b.x, 2, b.w, XL.tabs - 2, {display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'transparent' : 'transparent', borderTop: `2px solid ${G.green}`, borderRadius: 3})}><span style={{fontFamily: UIFONT, fontSize: 13, fontWeight: on ? 700 : 400, color: G.greenDark}}>{extra}</span>{on ? <div style={ab(b.w / 2 - 14, XL.tabs - 6, 28, 3, {background: G.green, borderRadius: 2})} /> : null}</div>); })() : null}
     <div style={ab(XL.W - 224, 4, 92, 24, {border: '1px solid #D1D1D1', borderRadius: 5, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#fff'})}>
       <Ico n="comment" s={14} /><span style={lab}>Comments</span>
     </div>
@@ -377,8 +466,11 @@ export const ExcelApp: React.FC<ExcelProps> = (p) => {
   const scroll = p.scroll ?? {r: 1, c: 1};
   const cw = p.colW ?? defaultColW;
   const maxRowShown = p.rowIds ? p.rowIds[Math.min(p.rowIds.length - 1, scroll.r - 1 + 40)] : scroll.r + 40;
-  const rowW = maxRowShown >= 10000 ? 50 : maxRowShown >= 1000 ? 44 : 38;
-  const gm = geo(ribbon, fbExp, fbLines, rowW);
+  const rowW0 = maxRowShown >= 10000 ? 50 : maxRowShown >= 1000 ? 44 : 38;
+  const gridOn = p.gridOn ?? 1, headOn = p.headOn ?? 1, fbOn = p.fbOn ?? 1;
+  const rowW = rowW0;
+  const gm = geo(ribbon, fbExp, fbLines, rowW, fbOn, headOn);
+  const gridCol = gridOn >= 1 ? G.grid : `rgba(225,225,225,${gridOn})`;
   const nRows = Math.ceil((gm.rowsBottom - gm.rowsTop) / XL.rowH);
   const rows: number[] = [];
   for (let i = 0; i < nRows; i++) {
@@ -387,11 +479,11 @@ export const ExcelApp: React.FC<ExcelProps> = (p) => {
   }
   const cols: number[] = [];
   let cx = 0;
-  for (let c = scroll.c; cx < gm.gridRight - rowW; c++) { cols.push(c); cx += cw(c); }
+  for (let c = scroll.c; cx < gm.gridRight - gm.rowW; c++) { cols.push(c); cx += cw(c); }
   const rowIndexOf = (r: number) => rows.indexOf(r);
   const firstRowAtOrAfter = (r: number) => { const i = rows.findIndex((x) => x >= r); return i; };
   const lastRowAtOrBefore = (r: number) => { let k = -1; rows.forEach((x, i) => { if (x <= r) k = i; }); return k; };
-  const colPx = (c: number) => rowW + colX(c, scroll.c, cw);
+  const colPx = (c: number) => gm.rowW + colX(c, scroll.c, cw);
   const rangeRect = (g: Rng) => {
     const i1 = firstRowAtOrAfter(g.r1), i2 = lastRowAtOrBefore(g.r2);
     if (i1 < 0 || i2 < i1) return null;
@@ -423,11 +515,11 @@ export const ExcelApp: React.FC<ExcelProps> = (p) => {
         while (k < c + 6 && !p.cell(r, k)?.t) { spill += cw(k); k++; }
       }
       cellsView.push(
-        <div key={`${r}:${c}`} style={ab(x, y, w + spill, XL.rowH, {boxSizing: 'border-box', borderRight: spill ? 'none' : `1px solid ${G.grid}`, borderBottom: `1px solid ${G.grid}`, background: cell?.bg ?? 'transparent', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: (cell?.al ?? (cell?.num ? 'r' : 'l')) === 'r' ? 'flex-end' : (cell?.al === 'c' ? 'center' : 'flex-start'), padding: '0 3px 1px'})}>
+        <div key={`${r}:${c}`} style={ab(x, y, w + spill, XL.rowH, {boxSizing: 'border-box', borderRight: spill ? 'none' : `1px solid ${gridCol}`, borderBottom: `1px solid ${gridCol}`, background: cell?.bg ?? 'transparent', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: (cell?.al ?? (cell?.num ? 'r' : 'l')) === 'r' ? 'flex-end' : (cell?.al === 'c' ? 'center' : 'flex-start'), padding: '0 3px 1px'})}>
           {cell ? <span style={{fontFamily: CELLFONT, fontSize: 14.67, fontWeight: cell.b ? 700 : 400, fontStyle: cell.i ? 'italic' : 'normal', color: cell.color ?? '#000', whiteSpace: 'nowrap', lineHeight: '17px'}}>{cell.t}</span> : null}
         </div>,
       );
-      if (spill) cellsView.push(<div key={`${r}:${c}:b`} style={ab(x + w + spill - 1, y, 1, XL.rowH, {background: G.grid})} />);
+      if (spill) cellsView.push(<div key={`${r}:${c}:b`} style={ab(x + w + spill - 1, y, 1, XL.rowH, {background: gridCol})} />);
     });
   });
 
@@ -439,23 +531,23 @@ export const ExcelApp: React.FC<ExcelProps> = (p) => {
     <div style={{position: 'absolute', left: 0, top: 0, width: XL.W, height: XL.H, background: '#fff', overflow: 'hidden', fontFamily: UIFONT}}>
       {/* chrome */}
       <TitleBar file={p.file ?? 'Book1'} qat={p.qat ?? ['save', 'undo', 'redo']} qatTips={p.qatTips ?? 0} qatHot={p.qatHot ?? -1} />
-      <TabStrip tab={tab} hot={p.tabHot} />
+      <TabStrip tab={tab} hot={p.tabHot} extra={p.extraTab} />
       {gm.ribbonH > 0 ? (
         <div style={ab(0, XL.title + XL.tabs, XL.W, gm.ribbonH, {background: G.ribbonBg, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #D8D8D8', overflow: 'hidden', boxSizing: 'border-box'})}>
-          <div style={{position: 'absolute', left: 0, top: 0, width: XL.W, height: XL.ribbon, opacity: Math.min(1, ribbon * 1.4)}}><HomeRibbon /></div>
+          <div style={{position: 'absolute', left: 0, top: 0, width: XL.W, height: XL.ribbon, opacity: Math.min(1, ribbon * 1.4)}}>{RIBBONS[tab] ? <GenericRibbon kind={tab} hot={p.ribbonHot} checks={p.checks ?? {}} fields={p.fields ?? {}} /> : <HomeRibbon />}</div>
         </div>
       ) : <div style={ab(0, XL.title + XL.tabs, XL.W, 1, {background: '#D8D8D8'})} />}
-      <FormulaBar top={gm.fbTop} h={gm.fbH} nameBox={p.nameBox ?? 'A1'} nameEdit={!!p.nameEdit} formula={p.formula ?? ''} fbExp={fbExp} edit={!!p.fbEdit} blink={blink} />
+      <div style={ab(0, gm.fbTop, XL.W, gm.fbH, {overflow: 'hidden', opacity: fbOn})}><FormulaBar top={0} h={Math.max(XL.fbar, gm.fbH)} nameBox={p.nameBox ?? 'A1'} nameEdit={!!p.nameEdit} formula={p.formula ?? ''} fbExp={fbExp} edit={!!p.fbEdit} blink={blink} /></div>
 
       {/* grid */}
       <div style={ab(0, gm.colTop, gridW, XL.H - XL.status - XL.sheetBar - gm.colTop, {overflow: 'hidden', background: '#fff'})}>
-        <div style={ab(0, 0, gridW, XL.colH, {background: G.hdr, borderBottom: '1px solid #C6C6C6'})} />
-        <div style={ab(0, XL.colH, rowW, 2000, {background: G.hdr, borderRight: '1px solid #C6C6C6'})} />
-        <svg style={ab(rowW - 14, XL.colH - 14, 12, 12)} width={12} height={12} viewBox="0 0 12 12"><path d="M11 1v10H1z" fill="#BDBDBD" /></svg>
+        <div style={ab(0, 0, gridW, gm.colHh, {background: G.hdr, borderBottom: '1px solid #C6C6C6', overflow: 'hidden', opacity: headOn})} />
+        <div style={ab(0, gm.colHh, gm.rowW, 2000, {background: G.hdr, borderRight: '1px solid #C6C6C6', opacity: headOn})} />
+        <svg style={ab(gm.rowW - 14, gm.colHh - 14, 12, 12)} width={12} height={12} viewBox="0 0 12 12"><path d="M11 1v10H1z" fill="#BDBDBD" /></svg>
         {cols.map((c) => {
           const s = isColSel(c);
           return (
-            <div key={'h' + c} style={ab(colPx(c), 0, cw(c), XL.colH, {boxSizing: 'border-box', borderRight: '1px solid #C6C6C6', background: s ? G.hdrSel : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: UIFONT, fontSize: 12.5, color: s ? G.greenDark : '#444', fontWeight: s ? 700 : 400})}>
+            <div key={'h' + c} style={ab(colPx(c), 0, cw(c), gm.colHh, {opacity: headOn, overflow: 'hidden', boxSizing: 'border-box', borderRight: '1px solid #C6C6C6', background: s ? G.hdrSel : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: UIFONT, fontSize: 12.5, color: s ? G.greenDark : '#444', fontWeight: s ? 700 : 400})}>
               {colLetter(c)}
               {s ? <div style={ab(0, XL.colH - 2, cw(c), 2, {background: G.green})} /> : null}
             </div>
@@ -464,9 +556,9 @@ export const ExcelApp: React.FC<ExcelProps> = (p) => {
         {rows.map((r, ri) => {
           const s = isRowSel(r);
           return (
-            <div key={'r' + r} style={ab(0, XL.colH + ri * XL.rowH, rowW, XL.rowH, {boxSizing: 'border-box', borderBottom: '1px solid #C6C6C6', borderRight: '1px solid #C6C6C6', background: s ? G.hdrSel : G.hdr, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: UIFONT, fontSize: 12.5, color: s ? G.greenDark : filtered && r > 1 ? G.blue : '#444', fontWeight: s ? 700 : 400})}>
+            <div key={'r' + r} style={ab(0, gm.colHh + ri * XL.rowH, gm.rowW, XL.rowH, {opacity: headOn, overflow: 'hidden', boxSizing: 'border-box', borderBottom: '1px solid #C6C6C6', borderRight: '1px solid #C6C6C6', background: s ? G.hdrSel : G.hdr, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: UIFONT, fontSize: 12.5, color: s ? G.greenDark : filtered && r > 1 ? G.blue : '#444', fontWeight: s ? 700 : 400})}>
               {r.toLocaleString('en-US').replace(/,/g, '')}
-              {s ? <div style={ab(rowW - 2, 0, 2, XL.rowH, {background: G.green})} /> : null}
+              {s ? <div style={ab(gm.rowW - 2, 0, 2, XL.rowH, {background: G.green})} /> : null}
             </div>
           );
         })}
@@ -518,10 +610,11 @@ export const ExcelApp: React.FC<ExcelProps> = (p) => {
       {/* sheet tabs bar */}
       <div style={ab(0, gm.sheetTop, XL.W, XL.sheetBar, {background: G.chrome, borderTop: '1px solid #D1D1D1', boxSizing: 'border-box'})}>
         <svg style={ab(8, 6, 40, 14)} width={40} height={14} viewBox="0 0 40 14"><path d="M8 2L3 7l5 5M32 2l5 5-5 5" fill="none" stroke="#8A8A8A" strokeWidth={1.4} strokeLinecap="round" /></svg>
-        <div style={ab(54, 0, 76, XL.sheetBar - 1, {background: '#fff', borderBottom: `2px solid ${G.green}`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #D1D1D1', borderRight: '1px solid #D1D1D1'})}>
-          <span style={{fontFamily: UIFONT, fontSize: 12.5, fontWeight: 700, color: G.green}}>{p.sheet ?? 'Sheet1'}</span>
-        </div>
-        <div style={ab(138, 3, 20, 20, {borderRadius: 10, border: '1px solid #A0A0A0', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#444', lineHeight: '16px', fontFamily: UIFONT})}>+</div>
+        {(() => { const names = p.sheets ?? [p.sheet ?? 'Sheet1']; const act = p.sheet ?? names[0]; return names.map((nm) => { const b = sheetTabBox(names, nm); const on = nm === act; return (
+          <div key={nm} style={ab(b.x, 0, b.w, XL.sheetBar - 1, {background: on ? '#fff' : 'transparent', borderBottom: on ? `2px solid ${G.green}` : 'none', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #D1D1D1', borderRight: '1px solid #D1D1D1'})}>
+            <span style={{fontFamily: UIFONT, fontSize: 12.5, fontWeight: on ? 700 : 400, color: on ? G.green : G.ink}}>{nm}</span>
+          </div>); }); })()}
+        <div style={ab(sheetTabBox(p.sheets ?? [p.sheet ?? 'Sheet1'], '').plusX, 3, 20, 20, {borderRadius: 10, border: '1px solid #A0A0A0', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#444', lineHeight: '16px', fontFamily: UIFONT})}>+</div>
         <div style={ab(560, 8, XL.W - 560 - 40, 10, {background: '#E4E4E4', borderRadius: 5})}><div style={ab(0, 1, 260, 8, {background: '#C2C2C2', borderRadius: 4})} /></div>
       </div>
       {/* status bar */}

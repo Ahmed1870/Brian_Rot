@@ -1,62 +1,94 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
-import {C, MONO, SCENES, START} from '../theme';
-import {SALES_RAW, SC03_RESULT, salesCell} from '../data';
-import {CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track, typed} from '../kit';
+import {C, SCENES, START} from '../theme';
+import {Caption, Chip, Cursor, ExcelApp, ExcelWindow, Ripple, Stage, camLerp, dwell, prog, ribbonItemBox, sec, tabBox, track} from '../kit';
+import {CAM_SHEET, RangeFx, typeIn} from '../l7';
+import {ALL, CAM_TOP, ChartBar, ChartLine, DEMO, KpiShape, LA, LB, NSS, NewSlicerStyle, SlicerBox, fmt, kpiOf, layoutAt, nssElem, only, rollSeq, slicerItem} from '../dash';
 
+// SC03 anchors (s): 85 vertical problem | 97.8 select slicer | 98.6 Slicer tab | 100.8 Columns | 103.2 type 4 | 105-110 resize+move | 112.4 Quick Styles | 113.6 New Slicer Style | 118 OK | 119.5 filter clicks
 const S = START.s3;
 const t = (g: number) => sec(g - S);
-const colW = (c: number) => [0, 90, 80, 100, 90, 80, 90, 30, 90, 80, 100, 90, 80, 90][c] ?? XL.colW;
-const FORMULA = '=SORTBY(FILTER(A1:F11,(F1:F11>5000)*(D1:D11="Tech")),E1:E11,1,F1:F11,-1)';
+const eo = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+const lr = (a: any, b: any, k: number) => ({x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k});
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
-  const cam = camLerp(CAM0, {fx: 500, fy: 280, z: 0.92}, prog(f, t(2), 30));
-  const typedFormula = typed(FORMULA, f, t(86), 1.0);
-  const typingDone = f >= t(96);
-  const spillP = typingDone ? prog(f, t(96.5), 16) : 0;
-  const filledRows = Math.floor(spillP * SC03_RESULT.length);
-  const fbEdit = f >= t(86) && f < t(96.5);
-  const fbY = geo(1, 0, 1).fbTop + 14;
-  const e2 = cellCenter(2, 8, {colW});
-  const pts = dwell([{f: t(86), x: 200, y: fbY}, {f: t(96), x: e2.x, y: e2.y}, {f: t(98), x: 900, y: 330}]);
+  const at = (g: number) => f >= t(g);
+  const within = (a: number, b: number) => at(a) && !at(b);
+  const camA = camLerp(CAM_SHEET, CAM_TOP, prog(f, t(97.6), 24));
+  const cam = camLerp(camA, CAM_SHEET, prog(f, t(111.0), 30));
+
+  const h1 = eo((f - t(105.0)) / sec(4.6)), h2 = eo((f - t(109.4)) / sec(3.4));
+  const L = layoutAt(h2);
+  const slicerR = lr(LA.slicer, LB.slicer, h1);
+  const cols = at(104.0) ? 4 : 1;
+  const selSlicer = within(97.8, 111.6);
+  const tab = at(98.6) && !at(119.0) ? 'Slicer' : 'Home';
+  const dark = prog(f, t(118.3), 14);
+  const dialogP = prog(f, t(113.4), 10) * (1 - prog(f, t(118.2), 8));
+  const nm = typeIn('Manzooma Dark', f, t(114.0), sec(1.6));
+  const hiE = within(116.0, 117.0) ? 2 : within(117.0, 118.0) ? 4 : -1;
+  const colField = within(103.2, 111) ? '4' : '1';
+  const hotField = within(100.8, 104.0) ? 'Columns' : undefined;
+
+  const selAt = (g: number) => (g < 119.5 ? ALL : g < 123.5 ? only(0, 1) : g < 126.5 ? only(2) : ALL);
+  const sel = selAt(f / 30 + S);
+  const val = (k: number) => {
+    const marks = [119.5, 123.5, 126.5].map((g) => ({at: t(g), v: (() => { const kp = kpiOf(selAt(g + 0.01), DEMO); return [kp.sales, kp.profit, kp.orders, kp.avg][k]; })()}));
+    const base = kpiOf(ALL, DEMO); const b0 = [base.sales, base.profit, base.orders, base.avg][k];
+    return Math.round(f < marks[0].at ? b0 : rollSeq(f, marks, sec(0.8)));
+  };
+  const itemPos = (i: number) => { const r = slicerItem(LB.slicer, 4, i); return {x: r.x + r.w / 2, y: r.y + r.h / 2}; };
+  const itemA = (i: number) => { const r = slicerItem(LA.slicer, 1, i); return {x: r.x + r.w / 2, y: r.y + r.h / 2}; };
+  const hot = within(119.4, 119.9) ? 0 : within(122.4, 122.9) ? 1 : within(125.6, 126.1) ? 2 : -1;
+  const colBox = ribbonItemBox('Slicer', 'Columns'), stl = ribbonItemBox('Slicer', 'Styles'), stab = tabBox('Slicer');
+  const okB = {x: NSS.x + NSS.w - 190 + 42, y: NSS.y + 280 + 14};
+  const pts = dwell([
+    {f: t(83.55), x: 700, y: 520},
+    {f: t(97.0), x: 700, y: 520},
+    {f: t(97.8), x: itemA(2).x - 40, y: LA.slicer.y + 12},
+    {f: t(98.5), x: stab.cx, y: 48},
+    {f: t(100.6), x: colBox.cx, y: colBox.cy},
+    {f: t(104.6), x: colBox.cx, y: colBox.cy},
+    {f: t(105.2), x: LA.slicer.x + LA.slicer.w, y: LA.slicer.y + LA.slicer.h},
+    {f: t(109.2), x: LB.slicer.x + LB.slicer.w, y: LB.slicer.y + LB.slicer.h},
+    {f: t(112.2), x: stl.cx, y: stl.cy},
+    {f: t(113.8), x: nssElem(0).x, y: nssElem(0).y},
+    {f: t(116.0), x: nssElem(2).x, y: nssElem(2).y},
+    {f: t(117.0), x: nssElem(4).x, y: nssElem(4).y},
+    {f: t(117.9), x: okB.x, y: okB.y},
+    {f: t(119.3), x: itemPos(0).x, y: itemPos(0).y},
+    {f: t(122.3), x: itemPos(1).x, y: itemPos(1).y},
+    {f: t(125.5), x: itemPos(2).x, y: itemPos(2).y},
+    {f: t(128.5), x: 800, y: 470},
+  ]);
   const cur = track(f, pts);
-  const clicks = [96];
-  const curHide = f > t(99);
-  const down = clicks.some((c) => f >= t(c) && f < t(c) + 4);
+  const clicks = [97.8, 98.6, 100.8, 112.4, 117.9, 119.5, 122.5, 125.7];
+  const warn = prog(f, t(85.0), 14) * (1 - prog(f, t(96.2), 18));
+  const saved = prog(f, t(126.5), 14);
 
   return (
-    <Stage dur={SCENES.s3.dur} inFx="fade" outFx="fade">
+    <Stage dur={SCENES.s3.dur} inFx="left" outFx="up">
       <ExcelWindow cam={cam}>
-        <ExcelApp file="MultiSort.xlsx" nameBox="H2" formula={typedFormula} fbEdit={fbEdit}
-          cell={(r, c) => {
-            if (c <= 6 && r <= 11) return salesCell(r, c) as any;
-            if (c >= 8 && c <= 13) {
-              if (r === 1) { const h = salesCell(1, c - 7); return h ? {...h, bg: '#FEF3C7', color: '#92400E'} : undefined; }
-              const idx = r - 2;
-              if (idx < filledRows && idx < SC03_RESULT.length) {
-                const row = SC03_RESULT[idx];
-                const cols = [row.id, row.branch, row.product, row.category, row.region, row.amount.toLocaleString('en-US')];
-                return {t: cols[c - 8], al: c === 13 ? 'r' : 'l', color: '#92400E'};
-              }
-              return undefined;
-            }
-            return undefined;
-          }} colW={colW}
-          sel={{r1: 2, c1: 8, r2: 2, c2: 8}} active={{r: 2, c: 8}}
-          thumb={0} thumbSize={0.55}
-        >
-          <Neon x={cellCenter(1, 1, {colW}).x - colW(1) / 2} y={geo(1, 0, 1).rowsTop} w={colW(1) + colW(2) + colW(3) + colW(4) + colW(5) + colW(6)} h={XL.rowH * 11} color={C.amber} p={0.12} label="Source table" labelBelow />
-          {/* Highlight Region (col 5) and Amount (col 6) — the sort arrays */}
-          <Neon x={cellCenter(1, 5, {colW}).x - colW(5) / 2} y={geo(1, 0, 1).rowsTop} w={colW(5)} h={XL.rowH * 11} color={C.purple} p={prog(f, t(92), 12) * 0.3 * (1 - prog(f, t(130), 12))} label="Sort 1: Region ASC" labelBelow />
-          <Neon x={cellCenter(1, 6, {colW}).x - colW(6) / 2} y={geo(1, 0, 1).rowsTop} w={colW(6)} h={XL.rowH * 11} color={C.amber} p={prog(f, t(95), 12) * 0.3 * (1 - prog(f, t(130), 12))} label="Sort 2: Amount DESC" labelBelow />
-          {spillP > 0.05 ? <Neon x={cellCenter(2, 8, {colW}).x - colW(8) / 2} y={cellCenter(2, 8, {colW}).y - XL.rowH / 2} w={colW(8) + colW(9) + colW(10) + colW(11) + colW(12) + colW(13)} h={XL.rowH * SC03_RESULT.length} color={C.amber} p={spillP * (1 - prog(f, t(130), 12))} label="Multi-level filtered sort result" labelBelow /> : null}
-          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} color={C.amber} />; })}
-          <Cursor x={cur.x} y={cur.y} down={down} hide={curHide} />
+        <ExcelApp file="manzooma_sales_2026.xlsx" tab={tab} extraTab={at(97.8) ? 'Slicer' : undefined} ribbonHot={hotField} fields={{Columns: colField, BtnHeight: '0.26"', BtnWidth: '1.5"', Height: '4.08"', Width: '2.0"', Caption: 'Branch'}} nameBox="Branch" formula="" cell={() => undefined} sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}} sheets={['Data', 'Pivots', 'Executive Dashboard']} sheet="Executive Dashboard" thumb={0} thumbSize={0.55}>
+          <ChartBar rect={L.chart1} d={DEMO} sel={sel} />
+          <ChartLine rect={L.chart2} d={DEMO} sel={sel} />
+          {L.cards.map((c, i) => <KpiShape key={i} rect={c} value={fmt(val(i))} green={1} label={['Total Sales', 'Profit', 'Orders', 'Avg Order'][i]} />)}
+          <SlicerBox rect={slicerR} cols={cols} sel={sel} dark={dark} selected={selSlicer} hot={hot} warn={warn} />
+          <RangeFx rect={{x: LA.slicer.x - 4, y: LA.slicer.y, w: LA.slicer.w + 8, h: LA.slicer.h}} color={C.red} p={warn * 0.9} fill={0.08} label="Wastes report space" labelBelow dashed />
+          <RangeFx rect={{x: LB.slicer.x, y: LB.slicer.y, w: LB.slicer.w, h: LB.slicer.h}} color={C.green} p={saved * (1 - prog(f, t(130.4), 10))} fill={0.06} label="Compact filter bar" labelBelow />
+          <NewSlicerStyle p={dialogP} name={nm} hi={hiE} applied={at(117.5)} />
+          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} />; })}
+          <Cursor x={cur.x} y={cur.y} down={clicks.some((c) => f >= t(c) && f < t(c) + 4)} />
         </ExcelApp>
       </ExcelWindow>
-      <TopBadge text="Multi-Level Filtered Sort ──► =SORTBY(FILTER(...), Region, 1, Amount, -1)" from={t(86.0)} to={t(105.0)} />
-      {spillP > 0.3 ? <Caption text="Boolean Condition + Multi-Sort ──► Sorts Filtered Data Across Multiple Fields Dynamically" from={t(105.0)} to={t(129.0)} tone="ok" /> : null}
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(85.2), 10) * (1 - prog(f, t(96.0), 10))}}><Chip color={C.red}>Vertical slicer ──► eats the report area</Chip></div>
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(104.0), 10) * (1 - prog(f, t(111.0), 10))}}><Chip color={C.amber}>Columns: 4 ──► buttons reflow horizontally</Chip></div>
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(118.4), 10) * (1 - prog(f, t(125.0), 10))}}><Chip color={C.amber}>Selected = amber</Chip></div>
+      <div style={{position: 'absolute', left: 420, top: 82, opacity: prog(f, t(118.4), 10) * (1 - prog(f, t(125.0), 10))}}><Chip color={C.purple}>Unselected = purple</Chip></div>
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: saved}}><Chip color={C.green}>Report space saved</Chip></div>
+      <Caption text="Multi-Column Slicer Toolbar ──► Slicer ──► Buttons ──► Columns: 4" from={t(98.0)} to={t(112.4)} />
+      <Caption text="Custom Dark Styling ──► Compact Horizontal Filter Bar for Web-App Feel" from={t(113.0)} to={t(129.8)} tone="ok" />
     </Stage>
   );
 };

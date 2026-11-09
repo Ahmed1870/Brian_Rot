@@ -1,22 +1,22 @@
 {
-  "name": "manzooma-excel-lesson-39-filtersortby",
+  "name": "manzooma-excel-lesson-31-data-validation-engine",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 39: FILTER & SORTBY Synergy Engine (External Sort, Multi-Level, CHOOSECOLS Pipeline) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 31: Pivot Dashboards and Dynamic KPI Cards (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L39-FilterSortby out/xl-l39-filtersortby.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L31-Pivot-Dashboards out/xl-l31-pivot-dashboards.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.272",
-    "@remotion/google-fonts": "4.0.272",
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.272"
+    "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
-    "typescript": "5.4.5"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }
