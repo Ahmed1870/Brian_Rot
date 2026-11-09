@@ -1,27 +1,26 @@
 import React from 'react';
-import {AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame} from 'remotion';
-import {SC, VOICE} from './theme';
-import {Scene1, Scene2, Scene3, Scene4, Scene5, Scene6} from './scenes';
-import {clamp, kf} from './kit';
+import {Audio, Sequence, staticFile} from 'remotion';
+import {SCENES, VOICE_FILE} from './theme';
+import {Backdrop, Chrome} from './kit';
+import {Scene1} from './scenes/Scene1';
+import {Scene2} from './scenes/Scene2';
+import {Scene3} from './scenes/Scene3';
+import {Scene4} from './scenes/Scene4';
+import {Scene5} from './scenes/Scene5';
+import {Scene6} from './scenes/Scene6';
+import {Sfx} from './Sfx';
 
-// 2D scene transitions (plan: zoom / slide-left / slide-down / expand / fade)
-const Trans: React.FC<{kind: number; children: React.ReactNode}> = ({kind, children}) => {
-  const p = clamp(useCurrentFrame() / 14);
-  const e = kf(p, [[0, 0], [1, 1]]);
-  const tf = ['none', `scale(${1.08 - 0.08 * e})`, `translateX(${(1 - e) * 140}px)`, `translateY(${(1 - e) * -90}px)`, `scale(${0.94 + 0.06 * e})`, 'none'][kind];
-  return <AbsoluteFill style={{opacity: kind === 0 ? 1 : e, transform: tf}}>{children}</AbsoluteFill>;
-};
-
-// Voiceover + ONE pre-mixed soundtrack (sound effects + music, 240 s, aligned to the voice anchors)
-const Video: React.FC = () => (
-  <AbsoluteFill style={{background: '#0F172A'}}>
-    <Audio src={staticFile(VOICE)} />
-    <Audio src={staticFile('soundtrack_lesson_14.wav')} />
-    {[Scene1, Scene2, Scene3, Scene4, Scene5, Scene6].map((S, i) => (
-      <Sequence key={i} from={SC[i].from} durationInFrames={SC[i].dur}>
-        <Trans kind={i}><S from={SC[i].from} /></Trans>
-      </Sequence>
-    ))}
-  </AbsoluteFill>
+export const Video: React.FC = () => (
+  <>
+    <Backdrop />
+    <Audio src={staticFile(VOICE_FILE)} />
+    <Sequence from={SCENES.s1.from} durationInFrames={SCENES.s1.dur}><Scene1 /></Sequence>
+    <Sequence from={SCENES.s2.from} durationInFrames={SCENES.s2.dur}><Scene2 /></Sequence>
+    <Sequence from={SCENES.s3.from} durationInFrames={SCENES.s3.dur}><Scene3 /></Sequence>
+    <Sequence from={SCENES.s4.from} durationInFrames={SCENES.s4.dur}><Scene4 /></Sequence>
+    <Sequence from={SCENES.s5.from} durationInFrames={SCENES.s5.dur}><Scene5 /></Sequence>
+    <Sequence from={SCENES.s6.from} durationInFrames={SCENES.s6.dur}><Scene6 /></Sequence>
+    <Sfx />
+    <Chrome />
+  </>
 );
-export {Video};
