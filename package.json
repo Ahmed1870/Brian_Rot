@@ -1,22 +1,21 @@
 {
-  "name": "manzooma-excel-lesson-27-data-merge-linking",
+  "name": "excel-l20-text-functions",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 27: Data Merge & Linking (VSTACK, HSTACK, Power Query, Data Model) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L27-DataMerge-Linking out/xl-l27-datamerge-linking.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "start": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts XL-L20-Text-Functions out/excel-l20-text-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.272",
-    "@remotion/google-fonts": "4.0.272",
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.272"
+    "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
-    "typescript": "5.4.5"
+    "@types/react": "18.3.12",
+    "typescript": "5.5.4"
   }
 }

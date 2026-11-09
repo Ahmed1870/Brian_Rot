@@ -1,40 +1,62 @@
-name: Render Excel Lesson 27 Data Merge Linking
+name: Render Lesson 20
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+env:
+  COMP_ID: XL-L20-Text-Functions
+  OUT_NAME: excel-l20-text-functions
+  VOICE: voiceover_lesson_20.mp3
+  LOGO: manzooma_logo.svg
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 27 only
+
+      - name: Guard (names must match before rendering)
+        shell: bash
         run: |
-          grep -q "XL-L27-DataMerge-Linking" src/theme.ts
-          grep -q "XL-L27-DataMerge-Linking" package.json
-          test -f public/voiceover_lesson_27.mp3
-          test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "8"
-          test ! -f package-lock.json
+          set -euo pipefail
+          grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || { echo "theme.ts COMP_ID mismatch"; exit 1; }
+          grep -q "XL-L20-Text-Functions" package.json || { echo "package.json COMP_ID mismatch"; exit 1; }
+          grep -q "out/${OUT_NAME}.mp4" package.json || { echo "package.json output name mismatch"; exit 1; }
+          test -s "public/${VOICE}" || { echo "voiceover missing"; exit 1; }
+          test -s "public/${LOGO}" || { echo "logo missing"; exit 1; }
+          extra=$(ls public | grep -v -x -e "${VOICE}" -e "${LOGO}" || true)
+          [ -z "$extra" ] || { echo "unexpected files in public: $extra"; exit 1; }
+          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow file"; exit 1; }
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies (no lockfile, with retry)
+
+      - name: Fonts (open Calibri substitute)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-crosextra-carlito
+
+      - name: Install
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L27-DataMerge-Linking out/xl-l27-datamerge-linking.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l27-datamerge-linking.mp4
+
+      - name: Render
+        run: npx remotion render src/index.ts "${COMP_ID}" "out/${OUT_NAME}.mp4" --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --concurrency=4
+
+      - name: Verify output
+        run: test -s "out/${OUT_NAME}.mp4"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l27-datamerge-linking
-          path: out/xl-l27-datamerge-linking.mp4
-          if-no-files-found: error
+          name: excel-l20-text-functions
+          path: out/excel-l20-text-functions.mp4
