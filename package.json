@@ -1,22 +1,21 @@
 {
-  "name": "manzooma-excel-lesson-07-core-statistical-functions",
+  "name": "xl-l21-date-functions",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 07: Core Statistical Functions (SUM, AVERAGE, COUNT, COUNTA) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L07-Core-Statistical-Functions out/xl-l07-core-statistical-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "start": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts XL-L21-Date-Functions out/xl-l21-date-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.250",
-    "@remotion/google-fonts": "4.0.250",
+    "@remotion/cli": "4.0.261",
+    "@remotion/google-fonts": "4.0.261",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.250"
+    "remotion": "4.0.261"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
+    "@types/react": "^18.3.0",
     "typescript": "^5.4.0"
   }
 }

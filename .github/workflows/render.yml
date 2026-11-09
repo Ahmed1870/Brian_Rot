@@ -1,40 +1,47 @@
-name: Render Excel Lesson 07 Core Statistical Functions
+name: render
+
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 360
+    env:
+      COMP_ID: XL-L21-Date-Functions
+      OUT_NAME: xl-l21-date-functions
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain this lesson only
-        run: |
-          grep -q "XL-L07-Core-Statistical-Functions" src/theme.ts
-          grep -q "XL-L07-Core-Statistical-Functions" package.json
-          test -f public/voiceover_lesson_07.mp3
-          test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime error alert scan shine ambient; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "13"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install
+      - name: Guard
+        run: |
+          set -e
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
+          test -s public/voiceover_lesson_21.mp3
+          test -s public/manzooma_logo.svg
+          for n in datacamp_tech_ambient typing_fast academic_outro_theme calendar_snap holiday_skip_chime project_deadline_lock fraction_chime datedif_bug_alert spilled_calendar_snap schedule_update_chime enterprise_date_engine_seal; do test -s "public/$n.mp3"; done
+          extra="$(ls public | grep -v -x -e voiceover_lesson_21.mp3 -e manzooma_logo.svg -e datacamp_tech_ambient.mp3 -e typing_fast.mp3 -e academic_outro_theme.mp3 -e calendar_snap.mp3 -e holiday_skip_chime.mp3 -e project_deadline_lock.mp3 -e fraction_chime.mp3 -e datedif_bug_alert.mp3 -e spilled_calendar_snap.mp3 -e schedule_update_chime.mp3 -e enterprise_date_engine_seal.mp3 || true)"
+          test -z "$extra"
+          test "$(ls .github/workflows | wc -l)" = "1"
+      - name: Install dependencies
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.261 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L07-Core-Statistical-Functions out/xl-l07-core-statistical-functions.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l07-core-statistical-functions.mp4
+      - run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/$OUT_NAME.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l07-core-statistical-functions
-          path: out/xl-l07-core-statistical-functions.mp4
-          if-no-files-found: error
+          name: xl-l21-date-functions.mp4
+          path: out/xl-l21-date-functions.mp4
