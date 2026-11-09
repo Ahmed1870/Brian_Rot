@@ -102,7 +102,7 @@ rm -f package-lock.json
 if git diff --cached --name-only | grep -q '^package-lock.json$'; then
   die "package-lock.json is staged - refusing to push (would cause MODULE_NOT_FOUND on Linux)"
 fi
-MSG="${COMMIT_MSG:-feat: render Excel course lesson $NN - FILTER Engine & Multi-Criteria Filtering (Boolean AND/OR, #CALC! Shield, SORT+FILTER Chaining) 4m exact}"
+MSG="${COMMIT_MSG:-feat: render Excel course lesson $NN - SEQUENCE & RANDARRAY Engine (Auto-Numbering, 2D Grid, Random Sampling, F9 Simulation) 4m exact}"
 git commit -q -m "$MSG" || echo "(nothing to commit)"
 if [ "$DRY_RUN" = 1 ]; then
   echo "🧪 DRY_RUN=1: would run: git push --force origin $BRANCH"

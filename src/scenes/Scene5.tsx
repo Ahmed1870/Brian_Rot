@@ -8,7 +8,7 @@ import {
 
 const S = START.s5;
 const t = (g: number) => sec(g - S);
-const colW = (c: number) => [0, 110, 180, 130, 110][c] ?? XL.colW;
+const colW = (c: number) => [0, 90, 180, 100, 110][c] ?? XL.colW;
 
 export const Scene5: React.FC = () => {
   const f = useCurrentFrame();
@@ -24,16 +24,14 @@ export const Scene5: React.FC = () => {
   const processP = processed ? prog(f, t(178.5), 18) : 0;
   const processedRows = Math.floor(processP * BIG_ROWS);
   const jumpBottom = f >= t(185);
-
   let scroll = {r: 1, c: 1};
   if (jumpBottom) scroll = {r: BIG_LAST - 19, c: 1};
-
   const sealP = prog(f, t(190), 18);
-  const statusLeft = opened ? (processed ? `${fmtInt(processedRows)} of 50,000 rows filtered` : '50,000 rows loaded') : 'Ready';
+  const statusLeft = opened ? (processed ? `${fmtInt(processedRows)} of 50,000 rows sequenced` : '50,000 rows loaded') : 'Ready';
 
   const cell = (r: number, c: number) => {
     if (r === 1) {
-      const h = ['OrderID', 'Product', 'Customer', 'Amount'];
+      const h = ['ID', 'Product', 'Branch', 'Amount'];
       if (c < 1 || c > 4) return undefined;
       return {t: h[c - 1], b: true, bg: processed ? '#D1FAE5' : '#E2EFDA', al: c === 4 ? 'r' : 'l', color: processed ? '#107C41' : undefined};
     }
@@ -42,38 +40,32 @@ export const Scene5: React.FC = () => {
     const s = bigSale(n);
     const isFilled = processedRows >= n;
     if (processed) {
-      // Show only Cairo + amount > 10000 (filtered)
-      const isMatch = s.branch === 'Cairo' && s.amount > 10000;
-      if (!isMatch) return undefined;
       switch (c) {
-        case 1: return isFilled ? {t: s.id, color: '#107C41'} : {t: ''};
+        case 1: return isFilled ? {t: String(s.id), al: 'c', color: '#107C41'} : {t: ''};
         case 2: return isFilled ? {t: s.product, color: '#107C41'} : {t: ''};
-        case 3: return isFilled ? {t: s.customer, color: '#107C41'} : {t: ''};
+        case 3: return isFilled ? {t: s.branch, color: '#107C41'} : {t: ''};
         case 4: return isFilled ? {t: fmtInt(s.amount), al: 'r', color: '#107C41'} : {t: '', al: 'r'};
       }
     } else {
       switch (c) {
-        case 1: return {t: s.id};
+        case 1: return {t: String(s.id), al: 'c'};
         case 2: return {t: s.product};
-        case 3: return {t: s.customer};
+        case 3: return {t: s.branch};
         case 4: return {t: fmtInt(s.amount), al: 'r'};
       }
     }
   };
 
   const g = geo(1, 0, 1);
-
   return (
     <Stage dur={SCENES.s5.dur} inFx="fade" outFx="fade">
       <ExcelWindow cam={cam}>
         <ExcelApp
-          file={opened ? 'manzooma_sales_2026' : 'Book1'}
-          nameBox="A1" formula="" tab="Data"
+          file={opened ? 'manzooma_sales_2026' : 'Book1'} nameBox="A1" formula="" tab="Data"
           cell={cell as any} colW={colW}
           sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}}
           scroll={scroll} thumb={jumpBottom ? 1 : processP} thumbSize={opened ? 0.02 : 0.55}
-          statusLeft={statusLeft}
-          sheet="Sales"
+          statusLeft={statusLeft} sheet="Sales"
         >
           {processed && processP > 0 && processP < 1 ? (
             <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 24}}>
@@ -81,31 +73,28 @@ export const Scene5: React.FC = () => {
             </svg>
           ) : null}
           {processed ? (
-            <Neon x={g.rowW} y={g.rowsTop} w={colW(1) + colW(2) + colW(3) + colW(4)} h={g.rowsBottom - g.rowsTop} color={C.green} p={prog(f, t(178), 12) * 0.3 * (1 - prog(f, t(210), 12))} label="Filtered: Cairo + Amount > 10,000" labelBelow />
+            <Neon x={g.rowW} y={g.rowsTop} w={colW(1) + colW(2) + colW(3) + colW(4)} h={g.rowsBottom - g.rowsTop} color={C.green} p={prog(f, t(178), 12) * 0.3 * (1 - prog(f, t(210), 12))} label="SEQUENCE + RANDARRAY enterprise data" labelBelow />
           ) : null}
         </ExcelApp>
       </ExcelWindow>
-
       <div style={{position: 'absolute', left: 80, top: 150, width: 1760, height: 770, background: '#fff', opacity: flash, pointerEvents: 'none', borderRadius: 14}} />
       <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(171), 12) * (1 - prog(f, t(210), 12))}}>
         <Chip color={C.green}>manzooma_sales_2026.xlsx</Chip>
       </div>
       <div style={{position: 'absolute', left: 560, top: 82, opacity: prog(f, t(173), 12) * (1 - prog(f, t(210), 12))}}>
-        <Chip color={C.blue}>FILTER + SORT · 50,000 rows · Boolean AND</Chip>
+        <Chip color={C.blue}>SEQUENCE + RANDARRAY · 50,000 rows · Simulation</Chip>
       </div>
-
       <div style={{position: 'absolute', left: 1330, top: 320, width: 330, textAlign: 'center', opacity: sealP, transform: `scale(${0.7 + 0.3 * sealP})`}}>
         <svg width={230} height={230} viewBox="0 0 230 230">
           <circle cx={115} cy={115} r={104} fill="#10B98122" stroke={C.green} strokeWidth={6} />
           <circle cx={115} cy={115} r={86} fill="none" stroke={C.green} strokeWidth={2} strokeDasharray="6 6" />
           <polyline points="72,118 104,150 162,84" fill="none" stroke={C.green} strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <div style={{fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.green, marginTop: -6}}>FILTER ENGINE VERIFIED</div>
+        <div style={{fontFamily: MONO, fontWeight: 700, fontSize: 26, color: C.green, marginTop: -6}}>SEQUENCE/RANDARRAY VERIFIED</div>
         <div style={{fontFamily: MONO, fontSize: 20, color: C.text}}>{`50,000 rows · <2ms`}</div>
       </div>
-
-      <TopBadge text="Enterprise Dynamic Filtering ──► Filter & Extract Multi-Criteria Records Across 50,000 Rows" from={t(171.0)} to={t(190.0)} />
-      <Caption text="Zero Latency Execution ──► Real-Time Boolean Array Filtering & Sorting in <2ms" from={t(190.0)} to={t(209.0)} tone="ok" />
+      <TopBadge text="Enterprise Sequence & Simulation ──► Auto-Number & Simulate 50,000 Sales Rows Instantly" from={t(171.0)} to={t(190.0)} />
+      <Caption text="Zero Latency Performance ──► Real-Time SEQUENCE & RANDARRAY Execution in <2ms" from={t(190.0)} to={t(209.0)} tone="ok" />
     </Stage>
   );
 };

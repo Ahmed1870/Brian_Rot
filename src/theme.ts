@@ -15,28 +15,18 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 35;
+export const LESSON = 36;
 export const TOTAL_LESSONS = 76;
 export const UNIT = 7;
 export const TOTAL_UNITS = 14;
-export const COMP_ID = 'XL-L35-Filter-Engine';
-export const VOICE_FILE = 'voiceover_lesson_35.mp3';
+export const COMP_ID = 'XL-L36-Sequence-RandArray';
+export const VOICE_FILE = 'voiceover_lesson_36.mp3';
 export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {
-  bg: '#0F172A',
-  card: '#1E293B',
-  deep: '#0B1222',
-  border: '#334155',
-  muted: '#94A3B8',
-  text: '#F8FAFC',
-  blue: '#38BDF8',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  purple: '#A855F7',
-  gold: '#FBBF24',
-  cyan: '#06B6D4',
+  bg: '#0F172A', card: '#1E293B', deep: '#0B1222', border: '#334155', muted: '#94A3B8',
+  text: '#F8FAFC', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B', red: '#EF4444',
+  purple: '#A855F7', gold: '#FBBF24', cyan: '#06B6D4',
 };
 
 export const START = {s1: 0, s2: 40, s3: 85, s4: 130, s5: 170, s6: 210};

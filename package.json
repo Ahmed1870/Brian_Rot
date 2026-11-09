@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-35-filter-engine",
+  "name": "manzooma-excel-lesson-36-sequence-randarray",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 35: FILTER Engine & Multi-Criteria Filtering (Boolean AND/OR, #CALC! Shield, SORT+FILTER Chaining) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 36: SEQUENCE & RANDARRAY Engine (Auto-Numbering, 2D Grid, Random Sampling, F9 Simulation) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L35-Filter-Engine out/xl-l35-filter-engine.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L36-Sequence-RandArray out/xl-l36-sequence-randarray.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

@@ -1,48 +1,51 @@
-// Manzooma — Lesson 35: FILTER Engine & Multi-Criteria Filtering.
+// Manzooma — Lesson 36: SEQUENCE & RANDARRAY Engine.
 
-/* ------------------------------------------------------------------ sales data (Scenes 1-4) */
-export const SALES_RAW = [
-  {id: 'ORD-001', branch: 'Cairo',  product: 'Mouse',   amount: 3200, customer: 'Ahmed'},
-  {id: 'ORD-002', branch: 'Giza',   product: 'Cable',   amount: 850,  customer: 'Sara'},
-  {id: 'ORD-003', branch: 'Cairo',  product: 'Monitor', amount: 6800, customer: 'Omar'},
-  {id: 'ORD-004', branch: 'Alex',   product: 'Chair',   amount: 1200, customer: 'Mona'},
-  {id: 'ORD-005', branch: 'Cairo',  product: 'Stand',   amount: 900,  customer: 'Khaled'},
-  {id: 'ORD-006', branch: 'Giza',   product: 'Lamp',    amount: 650,  customer: 'Hana'},
-  {id: 'ORD-007', branch: 'Cairo',  product: 'Keyboard', amount: 7500, customer: 'Yasser'},
-  {id: 'ORD-008', branch: 'Alex',   product: 'Webcam',  amount: 1100, customer: 'Laila'},
-  {id: 'ORD-009', branch: 'Cairo',  product: 'Monitor', amount: 4800, customer: 'Tarek'},
-  {id: 'ORD-010', branch: 'Tanta',  product: 'Mouse',   amount: 350,  customer: 'Nour'},
-];
+/* ------------------------------------------------------------------ employee names (Scene 1) */
+export const EMPLOYEES = ['Ahmed Ali', 'Sara Mohamed', 'Omar Ibrahim', 'Mona Saleh', 'Khaled Adel', 'Hana Youssef', 'Yasser Nabil', 'Laila Fawzi', 'Tarek Mostafa', 'Nour Hisham'];
 
-export const FILTER_CAIRO = SALES_RAW.filter((r) => r.branch === 'Cairo');
-export const FILTER_AND = SALES_RAW.filter((r) => r.branch === 'Cairo' && r.amount > 5000);
-export const FILTER_OR = SALES_RAW.filter((r) => r.branch === 'Cairo' || r.branch === 'Alex');
-export const SORT_FILTER_RESULT = [...FILTER_AND].sort((a, b) => b.amount - a.amount);
+/* ------------------------------------------------------------------ 2D matrix (Scene 2) */
+// =SEQUENCE(5, 5, 100, 10) → 5×5 grid starting at 100, step 10
+export const GRID_2D: number[][] = Array.from({length: 5}, (_, r) =>
+  Array.from({length: 5}, (_, c) => 100 + (r * 5 + c) * 10)
+);
 
-export const BOOLEAN_MASK_AND = SALES_RAW.map((r) => ({
-  branch: r.branch, amount: r.amount,
-  cond1: r.branch === 'Cairo' ? 1 : 0,
-  cond2: r.amount > 5000 ? 1 : 0,
-  result: (r.branch === 'Cairo' ? 1 : 0) * (r.amount > 5000 ? 1 : 0),
-}));
+// =SEQUENCE(12, 1, DATE(2026,1,1), 31) → 12 dates starting Jan 1, 2026, +31 days each
+export const DATE_SEQUENCE: string[] = Array.from({length: 12}, (_, i) => {
+  const d = new Date(2026, 0, 1 + i * 31);
+  return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()}`;
+});
+
+/* ------------------------------------------------------------------ RANDARRAY (Scene 3) */
+// Deterministic "random" integers 1000-5000 for 10×3 grid
+const rng = (n: number) => {
+  const h = (n * 2654435761) >>> 0;
+  return 1000 + ((h >>> 5) % 4001);
+};
+export const RAND_INT_GRID: number[][] = Array.from({length: 10}, (_, r) =>
+  Array.from({length: 3}, (_, c) => rng(r * 3 + c + 1))
+);
+// Decimal version (same values / 1000 + offset)
+export const RAND_DEC_GRID: number[][] = RAND_INT_GRID.map((row) =>
+  row.map((v) => Math.round((v / 1000 + 0.5) * 100) / 100)
+);
+
+/* ------------------------------------------------------------------ Random sampling (Scene 4) */
+export const PRODUCTS_LIST = ['Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5', 'Desk Lamp', 'Monitor 24"', 'Keyboard', 'Webcam HD', 'USB Hub'];
+// First sample (F9 #1)
+export const SAMPLE_1 = [2, 5, 0, 8, 3]; // indices into PRODUCTS_LIST
+// Second sample (F9 #2 — different random)
+export const SAMPLE_2 = [6, 1, 9, 4, 7];
 
 export type CCell = {t: string; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
 
-export const salesCell = (r: number, c: number): CCell | undefined => {
+/* ------------------------------------------------------------------ employee cell helper (Scene 1) */
+export const employeeCell = (r: number, c: number): CCell | undefined => {
   if (r === 1) {
-    if (c < 1 || c > 4) return undefined;
-    const h = ['OrderID', 'Branch', 'Product', 'Amount'];
-    const al: 'l' | 'r' = c === 4 ? 'r' : 'l';
-    return {t: h[c - 1], b: true, bg: '#E2EFDA', al};
+    if (c < 1 || c > 2) return undefined;
+    return {t: c === 1 ? 'ID' : 'Employee Name', b: true, bg: '#E2EFDA', al: 'l'};
   }
-  const row = SALES_RAW[r - 2];
-  if (!row || c < 1 || c > 4) return undefined;
-  switch (c) {
-    case 1: return {t: row.id};
-    case 2: return {t: row.branch};
-    case 3: return {t: row.product};
-    case 4: return {t: row.amount.toLocaleString('en-US'), al: 'r'};
-  }
+  if (r < 2 || r > EMPLOYEES.length + 1) return undefined;
+  if (c === 2) return {t: EMPLOYEES[r - 2]};
   return undefined;
 };
 
@@ -50,15 +53,14 @@ export const salesCell = (r: number, c: number): CCell | undefined => {
 const BIG_PRODUCTS = ['Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5', 'Desk Lamp', 'Monitor 24"', 'Keyboard'];
 const BIG_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
 
-export type BigSale = {id: string; product: string; branch: string; customer: string; amount: number};
+export type BigSale = {id: number; product: string; branch: string; amount: number};
 
 export const bigSale = (n: number): BigSale => {
   const h = (n * 2654435761) >>> 0;
   const product = BIG_PRODUCTS[(h >>> 3) % BIG_PRODUCTS.length];
   const branch = BIG_BRANCHES[(h >>> 13) % BIG_BRANCHES.length];
-  const customer = `CUST-${100 + ((h >>> 5) % 500)}`;
-  const amount = 100 + ((h >>> 9) % 14900);
-  return {id: `ORD-${5000 + n}`, product, branch, customer, amount};
+  const amount = 100 + ((h >>> 9) % 4900);
+  return {id: n, product, branch, amount};
 };
 
 export const BIG_ROWS = 50000;

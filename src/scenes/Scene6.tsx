@@ -7,11 +7,11 @@ const S = START.s6;
 const t = (g: number) => sec(g - S);
 
 const SKILLS = [
-  {a: 'دالة التصفية الديناميكية FILTER', e: 'FILTER(array, include, [if_empty]) · Zero AutoFilter', at: 212.5},
-  {a: 'المنطق البوليني AND (*)', e: '(cond1) * (cond2) → [1,0] mask · Both must be TRUE', at: 213.7},
-  {a: 'المنطق البوليني OR (+)', e: '(cond1) + (cond2) → Either condition TRUE', at: 214.9},
-  {a: 'حماية خطأ #CALC!', e: '[if_empty] fallback argument → Clean output on no match', at: 216.1},
-  {a: 'السلسلة المعمارية SORT(FILTER())', e: 'Chained formula → Filtered + sorted report in 1 cell', at: 217.3},
+  {a: 'SEQUENCE للترقيم التلقائي', e: '=SEQUENCE(COUNTA(range)) · Zero manual drag fill', at: 212.5},
+  {a: 'تشكيل مصفوفات 2D', e: '=SEQUENCE(rows, columns, start, step) · 5x5 grid', at: 213.7},
+  {a: 'سلاسل التواريخ المنسابة', e: '=SEQUENCE(12, 1, DATE, 31) · Calendar arrays', at: 214.9},
+  {a: 'RANDARRAY لتوليد البيانات', e: '=RANDARRAY(rows, cols, min, max, TRUE/FALSE)', at: 216.1},
+  {a: 'محرك العينات العشوائية', e: '=INDEX(array, RANDARRAY(...)) · F9 Monte-Carlo sampling', at: 217.3},
 ];
 
 export const Scene6: React.FC = () => {
@@ -38,14 +38,12 @@ export const Scene6: React.FC = () => {
             <div dir="ltr" style={{fontFamily: MONO, fontSize: 34, fontWeight: 700, color: C.green, marginTop: 2}}>Manzooma Excel Masterclass</div>
           </div>
         </div>
-
         <div dir="ltr" style={{position: 'absolute', left: 60, top: 176, display: 'flex', alignItems: 'center', gap: 18}}>
           <Check p={badge} size={64} />
           <div style={{fontFamily: MONO, fontSize: 24, fontWeight: 700, color: C.text, opacity: clamp(badge), lineHeight: 1.3}}>
-            Lesson {String(LESSON).padStart(2, '0')} of {TOTAL_LESSONS} Completed:<br /><span style={{color: C.green}}>FILTER Engine Mastered (Unit {UNIT}/{TOTAL_UNITS})</span>
+            Lesson {String(LESSON).padStart(2, '0')} of {TOTAL_LESSONS} Completed:<br /><span style={{color: C.green}}>SEQUENCE &amp; RANDARRAY Mastered (Unit {UNIT}/{TOTAL_UNITS})</span>
           </div>
         </div>
-
         <div dir="ltr" style={{position: 'absolute', left: 60, top: 282, width: 940, opacity: head}}>
           <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 22, color: C.muted, marginBottom: 10}}>
             <span>Unit {UNIT} of {TOTAL_UNITS} · Dynamic Array Engine</span><span style={{color: C.green, fontWeight: 700}}>{pct}% of course</span>
@@ -57,7 +55,6 @@ export const Scene6: React.FC = () => {
             <span>Lesson {LESSON} · {pct}%</span><span>76 lessons total</span>
           </div>
         </div>
-
         <div style={{position: 'absolute', left: 60, top: 392, width: 940}}>
           {SKILLS.map((s, i) => {
             const p = prog(f, t(s.at), 16);
@@ -72,37 +69,32 @@ export const Scene6: React.FC = () => {
             );
           })}
         </div>
-
         <div style={{position: 'absolute', left: 1060, top: 50, width: 600, opacity: res, transform: `translateY(${(1 - res) * 24}px)`}}>
           <div style={{borderRadius: 24, background: C.card, border: `2px solid ${linkHot > 0.1 ? C.green : C.border}`, padding: '26px 32px', boxShadow: linkHot > 0.1 ? `0 0 ${30 * linkPulse}px ${C.green}88` : 'none'}}>
             <Mix style={{fontSize: 30, fontWeight: 700, color: C.text}}>الملفات والتدريبات</Mix>
             <div dir="ltr" style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: C.blue, marginTop: 14, wordBreak: 'break-all'}}>solutions.gomaaintelligence.me</div>
-            <Mix style={{fontSize: 22, color: C.muted, display: 'block', marginTop: 10}}>نزّل manzooma_sales_2026.xlsx وطبّق FILTER + Boolean AND/OR</Mix>
+            <Mix style={{fontSize: 22, color: C.muted, display: 'block', marginTop: 10}}>نزّل manzooma_sales_2026.xlsx وطبّق SEQUENCE + RANDARRAY</Mix>
           </div>
         </div>
-
         <div style={{position: 'absolute', left: 1060, top: 330, width: 600, opacity: next, transform: `translateY(${(1 - next) * 30}px)`}}>
           <div style={{borderRadius: 24, background: C.card, border: `2px solid ${C.blue}`, padding: '24px 30px', boxShadow: `0 0 0 6px ${C.blue}22`}}>
-            <Mix style={{fontSize: 24, color: C.blue, fontWeight: 700}}>الدرس القادم · 36 من 76</Mix>
-            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 6}}>دوال إنشاء السلاسل الديناميكية</Mix>
-            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginTop: 8}}>SEQUENCE & RANDARRAY Engine</div>
+            <Mix style={{fontSize: 24, color: C.blue, fontWeight: 700}}>الدرس القادم · 37 من 76</Mix>
+            <Mix style={{fontSize: 32, fontWeight: 700, color: C.text, display: 'block', marginTop: 6}}>دوال التحويل المتقدم للمصفوفات</Mix>
+            <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, color: C.muted, marginTop: 8}}>TOCOL · TOROW · CHOOSEROWS · CHOOSECOLS</div>
             <svg width={540} height={120} viewBox="0 0 540 120" style={{marginTop: 16}}>
               <rect x={1} y={1} width={538} height={118} rx={10} fill="#fff" stroke="#334155" />
-              <text x={30} y={40} fill="#242424" fontFamily="Consolas, monospace" fontSize={16} fontWeight={700}>SEQUENCE(5, 1, 1001, 1)</text>
-              {Array.from({length: 5}, (_, i) => (
-                <rect key={i} x={30} y={48 + i * 14} width={140} height={12} fill={i === 0 ? 'rgba(56,189,248,0.3)' : 'rgba(56,189,248,0.15)'} stroke={C.blue} strokeWidth={1} rx={2} />
-              ))}
-              <text x={320} y={40} fill="#242424" fontFamily="Consolas, monospace" fontSize={16} fontWeight={700}>RANDARRAY(3, 3)</text>
-              {Array.from({length: 3}, (_, r) => Array.from({length: 3}, (_, c) => (
-                <rect key={r + '-' + c} x={320 + c * 60} y={48 + r * 22} width={56} height={18} fill="rgba(245,158,11,0.2)" stroke={C.amber} strokeWidth={1} rx={2} />
-              )))}
+              <path d="M40 20 L200 20 L200 100 L40 100 Z" fill="none" stroke={C.amber} strokeWidth={2} strokeDasharray="4 3" />
+              <text x={120} y={65} textAnchor="middle" fill={C.amber} fontFamily="Consolas, monospace" fontSize={14} fontWeight={700}>2D Matrix</text>
+              <path d="M210 55 L280 55" stroke={C.blue} strokeWidth={2.5} markerEnd="url(#ah36)" />
+              <defs><marker id="ah36" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill={C.blue} /></marker></defs>
+              <path d="M290 40 L450 40 L450 70 L290 70 Z" fill="rgba(56,189,248,0.15)" stroke={C.blue} strokeWidth={2} />
+              <text x={370} y={60} textAnchor="middle" fill={C.blue} fontFamily="Consolas, monospace" fontSize={14} fontWeight={700}>TOCOL = 1 column</text>
             </svg>
             <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: -8, transform: `scale(${0.8 + 0.2 * tag})`, opacity: clamp(tag)}}>
-              <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green, border: `2px solid ${C.green}`, borderRadius: 999, padding: '4px 16px', background: `${C.green}18`}}>SEQUENCE</div>
+              <div dir="ltr" style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green, border: `2px solid ${C.green}`, borderRadius: 999, padding: '4px 16px', background: `${C.green}18`}}>RESHAPE</div>
             </div>
           </div>
         </div>
-
         <div style={{position: 'absolute', left: 60, right: 60, bottom: 26, height: 3, background: C.border, opacity: 0.6}} />
         <div style={{position: 'absolute', left: 60 + 40 * idle + 40, bottom: 24, width: 120, height: 7, borderRadius: 4, background: C.green, opacity: 0.8}} />
       </div>
