@@ -1,4 +1,4 @@
-name: Render Excel Lesson 44 TextSplit
+name: Render Excel Lesson 41 SUMIFS Dynamic Array
 on:
   push:
     branches: [main]
@@ -9,32 +9,32 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 44 only
+      - name: Guard - this repo must contain this lesson only
         run: |
-          grep -q "XL-L44-TextSplit" src/theme.ts
-          grep -q "XL-L44-TextSplit" package.json
-          test -f public/voiceover_lesson_44.mp3
+          grep -q "XL-L41-SUMIFS-Dynamic-Array" src/theme.ts
+          grep -q "XL-L41-SUMIFS-Dynamic-Array" package.json
+          test -f public/voiceover_lesson_41.mp3
           test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "8"
-          test ! -f package-lock.json
+          for n in click key tick pop whoosh chime error alert scan shine ambient; do test -f public/sfx_$n.mp3; done
+          test "$(ls public | wc -l)" = "13"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies (no lockfile, with retry)
+      - name: Install
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L44-TextSplit out/xl-l44-textsplit.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l44-textsplit.mp4
+      - run: npx remotion render src/index.ts XL-L41-SUMIFS-Dynamic-Array out/xl-l41-sumifs-dynamic-array.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l41-sumifs-dynamic-array.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l44-textsplit
-          path: out/xl-l44-textsplit.mp4
+          name: xl-l41-sumifs-dynamic-array
+          path: out/xl-l41-sumifs-dynamic-array.mp4
           if-no-files-found: error

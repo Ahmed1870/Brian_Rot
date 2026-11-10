@@ -63,11 +63,14 @@ chk .github/workflows/render.yml "path: out/$OUT.mp4"
 chk .github/workflows/render.yml "grep -q \"$COMP_ID\" src/theme.ts"
 chk .github/workflows/render.yml "grep -q \"$COMP_ID\" package.json"
 chk .github/workflows/render.yml "public/$VOICE"
+chk .github/workflows/render.yml "--no-package-lock"
+chk .gitignore "package-lock.json"
+if grep -qE '"(remotion|@remotion/[a-z-]+)": *"[\^~]' package.json; then echo "❌ remotion packages must be pinned (no ^ or ~)"; bad=1; fi
 grep -q "COMP_ID" src/Root.tsx || { echo "❌ Root.tsx must use COMP_ID"; bad=1; }
 if grep -qE "XL-L[0-9]{2}|SQL-L[0-9]+" src/Root.tsx; then echo "❌ Root.tsx has a literal lesson id"; bad=1; fi
 [ -f "public/$VOICE" ] || { echo "❌ public/$VOICE missing"; bad=1; }
 [ -f public/manzooma_logo.svg ] || { echo "❌ public/manzooma_logo.svg missing"; bad=1; }
-extra="$(ls public | grep -vxE "$VOICE|manzooma_logo.svg|sfx_(click|key|tick|pop|whoosh|chime)\.mp3" || true)"
+extra="$(ls public | grep -vxE "$VOICE|manzooma_logo.svg|sfx_(click|key|tick|pop|whoosh|chime|error|alert|scan|shine|ambient)\.mp3" || true)"
 [ -z "$extra" ] || { echo "❌ unexpected files in public: $extra"; bad=1; }
 [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "❌ .github/workflows must contain exactly one file"; bad=1; }
 # stale identifiers (SQL course or another Excel lesson)
@@ -76,33 +79,22 @@ stale="$(grep -rEn "SQL-L[0-9]+|XL-L[0-9]{2}-[A-Za-z0-9-]+|voiceover_lesson_[0-9
 [ "$bad" = 0 ] || die "name checks failed - nothing was pushed"
 ok "name checks passed"
 
-# ---- 5) install + type check (never commit package-lock.json) ----
-rm -f package-lock.json
-grep -q '^package-lock.json$' .gitignore || { echo "❌ .gitignore missing 'package-lock.json' entry"; bad=1; }
-grep -q 'no-package-lock' .github/workflows/render.yml || { echo "❌ render.yml install step must use --no-package-lock"; bad=1; }
-[ "$bad" = 0 ] || die "lockfile/install checks failed - nothing was pushed"
-ok "lockfile/install checks passed"
-
+# ---- 5) install + type check ----
 if [ "$SKIP_NPM" = 1 ]; then
   echo "⏭  SKIP_NPM=1 (npm install / tsc skipped)"
 else
   npm install --no-audit --no-fund --no-package-lock
   npx tsc --noEmit
   ok "tsc passed"
-  rm -f package-lock.json
 fi
 
-# ---- 6) commit + push (never commit package-lock.json) ----
+# ---- 6) commit + push ----
 git config user.name >/dev/null 2>&1 || git config user.name "Ahmed Gomaa"
 git config user.email >/dev/null 2>&1 || git config user.email "ahmed@users.noreply.github.com"
 rm -f package-lock.json
 git add -A
-git rm --cached -f package-lock.json 2>/dev/null || true
-rm -f package-lock.json
-if git diff --cached --name-only | grep -q '^package-lock.json$'; then
-  die "package-lock.json is staged - refusing to push (would cause MODULE_NOT_FOUND on Linux)"
-fi
-MSG="${COMMIT_MSG:-feat: render Excel course lesson $NN - TEXTSPLIT Dynamic Text Engine (Column/Row Parsing, Multi-Delimiters, Text Pipeline) 4m exact}"
+if git ls-files --cached | grep -qx "package-lock.json"; then die "package-lock.json is staged - nothing was pushed"; fi
+MSG="${COMMIT_MSG:-feat: render Excel course lesson $NN - Excel 365 Interface & Workspace Customization (QAT, Alt shortcuts, Name Box, Formula Bar, Status Bar, Excel Options) 4m exact}"
 git commit -q -m "$MSG" || echo "(nothing to commit)"
 if [ "$DRY_RUN" = 1 ]; then
   echo "🧪 DRY_RUN=1: would run: git push --force origin $BRANCH"
