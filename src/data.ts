@@ -1,27 +1,67 @@
-import type {CellD} from "./kit";
-import {C} from "./theme";
+// Manzooma — Lesson 43: REDUCE & SCAN Engine.
 
-export const int = (n: number) => Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-export const usd = (n: number) => "$" + int(n);
-export const block = (r0: number, c0: number, rows: (string | number)[][], o: {hdr?: boolean; bg?: string; color?: string} = {}): CellD[] => {
-  const out: CellD[] = [];
-  rows.forEach((row, i) => row.forEach((v, j) => {
-    const isH = !!o.hdr && i === 0;
-    out.push({r: r0 + i, c: c0 + j, t: typeof v === "number" ? int(v) : v, a: typeof v === "number" ? "r" : "l", bold: isH, color: isH ? "#fff" : o.color, bg: isH ? C.green : o.bg ?? (i % 2 ? "#EAF4EE" : undefined)});
-  }));
-  return out;
-};
-/** tbl_Sales sample (12 of 50,000 rows), placed at G1. */
-export const HEAD = ["Product ID", "Branch", "Category", "Sales Amount", "Units", "Region"];
-export const TB: (string | number)[][] = [
-  ["P-101", "Cairo", "Home Goods", 12500, 40, "East"], ["P-102", "Alexandria", "Home Goods", 8300, 25, "North"], ["P-103", "Cairo", "Tech Hardware", 64200, 18, "East"],
-  ["P-101", "Giza", "Tech Accessories", 15400, 22, "West"], ["P-104", "Cairo", "Home Goods", 5600, 60, "East"], ["P-103", "Alexandria", "Tools", 33000, 12, "North"],
-  ["P-105", "Tanta", "Tech Hardware", 9700, 30, "North"], ["P-102", "Cairo", "Home Goods", 21300, 33, "East"], ["P-103", "Giza", "Tools", 18900, 14, "West"],
-  ["P-104", "Cairo", "Tools", 7400, 41, "East"], ["P-101", "Alexandria", "Tech Accessories", 27000, 19, "North"], ["P-105", "Alexandria", "Home Goods", 11800, 28, "North"],
+/* ------------------------------------------------------------------ sales data (Scenes 1-4) */
+export const SALES_RAW = [
+  {id: 'ORD-001', branch: 'Cairo', product: 'Mouse',   amount: 1200},
+  {id: 'ORD-002', branch: 'Giza',  product: 'Cable',    amount: 850},
+  {id: 'ORD-003', branch: 'Cairo', product: 'Monitor',  amount: 6800},
+  {id: 'ORD-004', branch: 'Alex',  product: 'Chair',    amount: 1200},
+  {id: 'ORD-005', branch: 'Cairo', product: 'Stand',    amount: 900},
+  {id: 'ORD-006', branch: 'Giza',  product: 'Lamp',     amount: 650},
+  {id: 'ORD-007', branch: 'Cairo', product: 'Keyboard', amount: 7500},
+  {id: 'ORD-008', branch: 'Alex',  product: 'Webcam',   amount: 1100},
 ];
-export const W = [92, 92, 92, 92, 110, 20, 80, 96, 124, 112, 56, 70, 56, 56, 56, 56, 56, 56, 56];
-export const tblCells = (o: {order?: number[]; hl?: Record<number, string>; rows?: number} = {}): CellD[] => {
-  const ord = o.order ?? [0, 1, 2, 3, 4, 5];
-  const rows = [HEAD, ...TB.slice(0, o.rows ?? 12)].map((r) => ord.map((i) => r[i]));
-  return block(1, 7, rows, {hdr: true}).map((c) => (c.r > 1 && o.hl?.[c.r - 1] ? {...c, bg: o.hl[c.r - 1]} : c));
+
+// SCAN result: running balance (accumulated)
+export const SCAN_RESULT = SALES_RAW.reduce((acc: number[], row, i) => {
+  acc.push((acc[i - 1] ?? 0) + row.amount);
+  return acc;
+}, []);
+
+// REDUCE result: single total
+export const REDUCE_RESULT = SALES_RAW.reduce((sum, r) => sum + r.amount, 0);
+
+// Filtered SCAN: Cairo only running balance
+export const CAIRO_SALES = SALES_RAW.filter((r) => r.branch === 'Cairo');
+export const FILTERED_SCAN_RESULT = CAIRO_SALES.reduce((acc: number[], row, i) => {
+  acc.push((acc[i - 1] ?? 0) + row.amount);
+  return acc;
+}, []);
+
+export type CCell = {t: string; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
+
+export const salesHeader = ['OrderID', 'Branch', 'Product', 'Amount'];
+export const salesCell = (r: number, c: number): CCell | undefined => {
+  if (r === 1) {
+    if (c < 1 || c > 4) return undefined;
+    const al: 'l' | 'r' = c === 4 ? 'r' : 'l';
+    return {t: salesHeader[c - 1], b: true, bg: '#E2EFDA', al};
+  }
+  const row = SALES_RAW[r - 2];
+  if (!row || c < 1 || c > 4) return undefined;
+  switch (c) {
+    case 1: return {t: row.id};
+    case 2: return {t: row.branch};
+    case 3: return {t: row.product};
+    case 4: return {t: row.amount.toLocaleString('en-US'), al: 'r'};
+  }
+  return undefined;
 };
+
+/* ------------------------------------------------------------------ big sales (Scene 5) */
+const BIG_PRODUCTS = ['Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5', 'Desk Lamp', 'Monitor 24"', 'Keyboard'];
+const BIG_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
+
+export type BigSale = {id: string; product: string; branch: string; amount: number};
+
+export const bigSale = (n: number): BigSale => {
+  const h = (n * 2654435761) >>> 0;
+  const product = BIG_PRODUCTS[(h >>> 3) % BIG_PRODUCTS.length];
+  const branch = BIG_BRANCHES[(h >>> 13) % BIG_BRANCHES.length];
+  const amount = 100 + ((h >>> 9) % 4900);
+  return {id: `ORD-${5000 + n}`, product, branch, amount};
+};
+
+export const BIG_ROWS = 50000;
+export const BIG_LAST = BIG_ROWS + 1;
+export const fmtInt = (n: number) => n.toLocaleString('en-US');
