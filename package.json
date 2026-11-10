@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-43-reducescan",
+  "name": "manzooma-excel-lesson-44-textsplit",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 43: REDUCE & SCAN Engine (Accumulator, Running Balance, VSTACK Stacking) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 44: TEXTSPLIT & Dynamic Text Engine (Column/Row Parsing, Multi-Delimiters, Text Pipeline) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L43-ReduceScan out/xl-l43-reducescan.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L44-TextSplit out/xl-l44-textsplit.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

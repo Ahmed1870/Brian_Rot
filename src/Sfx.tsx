@@ -1,4 +1,4 @@
-// Sound effects for Lesson 43 — REDUCE & SCAN Engine.
+// Sound effects for Lesson 44 — TEXTSPLIT & Dynamic Text Engine.
 import React from 'react';
 import {Audio, Sequence, staticFile} from 'remotion';
 import {FPS, START} from './theme';

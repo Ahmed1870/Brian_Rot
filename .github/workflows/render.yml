@@ -1,4 +1,4 @@
-name: Render Excel Lesson 43 Reduce Scan
+name: Render Excel Lesson 44 TextSplit
 on:
   push:
     branches: [main]
@@ -9,11 +9,11 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 43 only
+      - name: Guard - this repo must contain Excel lesson 44 only
         run: |
-          grep -q "XL-L43-ReduceScan" src/theme.ts
-          grep -q "XL-L43-ReduceScan" package.json
-          test -f public/voiceover_lesson_43.mp3
+          grep -q "XL-L44-TextSplit" src/theme.ts
+          grep -q "XL-L44-TextSplit" package.json
+          test -f public/voiceover_lesson_44.mp3
           test -f public/manzooma_logo.svg
           for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
           test "$(ls public | wc -l)" = "8"
@@ -31,10 +31,10 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L43-ReduceScan out/xl-l43-reducescan.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l43-reducescan.mp4
+      - run: npx remotion render src/index.ts XL-L44-TextSplit out/xl-l44-textsplit.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l44-textsplit.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l43-reducescan
-          path: out/xl-l43-reducescan.mp4
+          name: xl-l44-textsplit
+          path: out/xl-l44-textsplit.mp4
           if-no-files-found: error

@@ -15,12 +15,12 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 43;
+export const LESSON = 44;
 export const TOTAL_LESSONS = 76;
-export const UNIT = 8;
+export const UNIT = 9;
 export const TOTAL_UNITS = 14;
-export const COMP_ID = 'XL-L43-ReduceScan';
-export const VOICE_FILE = 'voiceover_lesson_43.mp3';
+export const COMP_ID = 'XL-L44-TextSplit';
+export const VOICE_FILE = 'voiceover_lesson_44.mp3';
 export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {
