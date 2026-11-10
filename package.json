@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-31-data-validation-engine",
+  "name": "manzooma-excel-lesson-40-xlookup-dynamic-array",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 31: Pivot Dashboards and Dynamic KPI Cards (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 40: XLOOKUP and Dynamic Array Integration (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L31-Pivot-Dashboards out/xl-l31-pivot-dashboards.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L40-XLOOKUP-Dynamic-Array out/xl-l40-xlookup-dynamic-array.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

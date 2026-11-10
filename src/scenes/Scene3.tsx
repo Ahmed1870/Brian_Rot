@@ -1,94 +1,78 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {C, SCENES, START} from '../theme';
-import {Caption, Chip, Cursor, ExcelApp, ExcelWindow, Ripple, Stage, camLerp, dwell, prog, ribbonItemBox, sec, tabBox, track} from '../kit';
-import {CAM_SHEET, RangeFx, typeIn} from '../l7';
-import {ALL, CAM_TOP, ChartBar, ChartLine, DEMO, KpiShape, LA, LB, NSS, NewSlicerStyle, SlicerBox, fmt, kpiOf, layoutAt, nssElem, only, rollSeq, slicerItem} from '../dash';
+import {Caption, Chip, Stage, sec} from '../kit';
+import {CAM_SHEET, Cells, Ev, NEWROW, Pick, RangeFx, Row, Sim, TB, cellRect, fmtN, fn, mk, num, picksOf, prog, put, putTable, rangeRect, rev, G40} from '../l40';
 
-// SC03 anchors (s): 85 vertical problem | 97.8 select slicer | 98.6 Slicer tab | 100.8 Columns | 103.2 type 4 | 105-110 resize+move | 112.4 Quick Styles | 113.6 New Slicer Style | 118 OK | 119.5 filter clicks
+// SC03 anchors (s, abs): 87-90.8 default formula | 96.9-105.8 reverse formula | 105.9-109 sweep | 111.2 horizontal block | 112.4-116 HLOOKUP-style | 121 new row | 124.2 refresh
 const S = START.s3;
 const t = (g: number) => sec(g - S);
-const eo = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
-const lr = (a: any, b: any, k: number) => ({x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k});
+const FD = '=XLOOKUP("Cairo", tbl_Sales[Branch], tbl_Sales[Amount])';
+const FR = '=XLOOKUP("Cairo", tbl_Sales[Branch], tbl_Sales[Amount], , 0, -1)';
+const FH = '=XLOOKUP("Mar", I16:M16, I17:M17)';
+const EVS: Ev[] = [
+  {r: 4, c: 4, text: FD, start: t(87.0), dur: sec(3.6), enter: t(90.8)},
+  {r: 2, c: 4, text: FR, start: t(97.3), dur: sec(8.0), enter: t(105.8)},
+  {r: 20, c: 9, text: FH, start: t(112.6), dur: sec(3.2), enter: t(116.0)},
+];
+const EXTRA: Pick[] = [{at: t(120.9), r: 14, c: 8, click: true}];
+const PICKS = picksOf(EVS, EXTRA);
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+const SALES = [12400, 15800, 14200, 17300, 16100], PROFIT = [3100, 3950, 3550, 4320, 4030];
+const cairoRows = (rows: Row[]) => rows.map((r, i) => (r[3] === 'Cairo' ? i + 2 : 0)).filter(Boolean);
 
 export const Scene3: React.FC = () => {
   const f = useCurrentFrame();
   const at = (g: number) => f >= t(g);
   const within = (a: number, b: number) => at(a) && !at(b);
-  const camA = camLerp(CAM_SHEET, CAM_TOP, prog(f, t(97.6), 24));
-  const cam = camLerp(camA, CAM_SHEET, prog(f, t(111.0), 30));
-
-  const h1 = eo((f - t(105.0)) / sec(4.6)), h2 = eo((f - t(109.4)) / sec(3.4));
-  const L = layoutAt(h2);
-  const slicerR = lr(LA.slicer, LB.slicer, h1);
-  const cols = at(104.0) ? 4 : 1;
-  const selSlicer = within(97.8, 111.6);
-  const tab = at(98.6) && !at(119.0) ? 'Slicer' : 'Home';
-  const dark = prog(f, t(118.3), 14);
-  const dialogP = prog(f, t(113.4), 10) * (1 - prog(f, t(118.2), 8));
-  const nm = typeIn('Manzooma Dark', f, t(114.0), sec(1.6));
-  const hiE = within(116.0, 117.0) ? 2 : within(117.0, 118.0) ? 4 : -1;
-  const colField = within(103.2, 111) ? '4' : '1';
-  const hotField = within(100.8, 104.0) ? 'Columns' : undefined;
-
-  const selAt = (g: number) => (g < 119.5 ? ALL : g < 123.5 ? only(0, 1) : g < 126.5 ? only(2) : ALL);
-  const sel = selAt(f / 30 + S);
-  const val = (k: number) => {
-    const marks = [119.5, 123.5, 126.5].map((g) => ({at: t(g), v: (() => { const kp = kpiOf(selAt(g + 0.01), DEMO); return [kp.sales, kp.profit, kp.orders, kp.avg][k]; })()}));
-    const base = kpiOf(ALL, DEMO); const b0 = [base.sales, base.profit, base.orders, base.avg][k];
-    return Math.round(f < marks[0].at ? b0 : rollSeq(f, marks, sec(0.8)));
-  };
-  const itemPos = (i: number) => { const r = slicerItem(LB.slicer, 4, i); return {x: r.x + r.w / 2, y: r.y + r.h / 2}; };
-  const itemA = (i: number) => { const r = slicerItem(LA.slicer, 1, i); return {x: r.x + r.w / 2, y: r.y + r.h / 2}; };
-  const hot = within(119.4, 119.9) ? 0 : within(122.4, 122.9) ? 1 : within(125.6, 126.1) ? 2 : -1;
-  const colBox = ribbonItemBox('Slicer', 'Columns'), stl = ribbonItemBox('Slicer', 'Styles'), stab = tabBox('Slicer');
-  const okB = {x: NSS.x + NSS.w - 190 + 42, y: NSS.y + 280 + 14};
-  const pts = dwell([
-    {f: t(83.55), x: 700, y: 520},
-    {f: t(97.0), x: 700, y: 520},
-    {f: t(97.8), x: itemA(2).x - 40, y: LA.slicer.y + 12},
-    {f: t(98.5), x: stab.cx, y: 48},
-    {f: t(100.6), x: colBox.cx, y: colBox.cy},
-    {f: t(104.6), x: colBox.cx, y: colBox.cy},
-    {f: t(105.2), x: LA.slicer.x + LA.slicer.w, y: LA.slicer.y + LA.slicer.h},
-    {f: t(109.2), x: LB.slicer.x + LB.slicer.w, y: LB.slicer.y + LB.slicer.h},
-    {f: t(112.2), x: stl.cx, y: stl.cy},
-    {f: t(113.8), x: nssElem(0).x, y: nssElem(0).y},
-    {f: t(116.0), x: nssElem(2).x, y: nssElem(2).y},
-    {f: t(117.0), x: nssElem(4).x, y: nssElem(4).y},
-    {f: t(117.9), x: okB.x, y: okB.y},
-    {f: t(119.3), x: itemPos(0).x, y: itemPos(0).y},
-    {f: t(122.3), x: itemPos(1).x, y: itemPos(1).y},
-    {f: t(125.5), x: itemPos(2).x, y: itemPos(2).y},
-    {f: t(128.5), x: 800, y: 470},
-  ]);
-  const cur = track(f, pts);
-  const clicks = [97.8, 98.6, 100.8, 112.4, 117.9, 119.5, 122.5, 125.7];
-  const warn = prog(f, t(85.0), 14) * (1 - prog(f, t(96.2), 18));
-  const saved = prog(f, t(126.5), 14);
+  const newN = rev(f, t(121.3), 5, 6);
+  const rows: Row[] = newN > 0 ? [...TB, NEWROW] : TB;
+  const m: Cells = mk();
+  put(m, 1, 1, {t: 'Mode', b: true, bg: '#DDEBF7'}); put(m, 2, 1, {t: 'Last (-1)'}); put(m, 4, 1, {t: 'First (1)'});
+  putTable(m, TB);
+  if (newN > 0) NEWROW.forEach((v, j) => { if (j < newN) put(m, 14, 8 + j, j === 4 ? num(v as number, {bg: '#D9E1F2'}) : {t: String(v), bg: '#D9E1F2'}); });
+  const last = at(124.4) ? 1900 : 520;
+  if (at(90.8)) put(m, 4, 4, num(18500));
+  if (at(105.8)) put(m, 2, 4, num(last));
+  const hb = prog(f, t(111.2), 10);
+  if (hb > 0) {
+    put(m, 16, 8, {t: 'Month', b: true, bg: '#4472C4', color: '#fff'}); put(m, 17, 8, {t: 'Sales', bg: '#D9E1F2'}); put(m, 18, 8, {t: 'Profit'});
+    MONTHS.forEach((mo, i) => { put(m, 16, 9 + i, {t: mo, b: true, bg: '#4472C4', color: '#fff', al: 'r'}); put(m, 17, 9 + i, num(SALES[i], {bg: '#D9E1F2'})); put(m, 18, 9 + i, num(PROFIT[i])); });
+    put(m, 20, 8, {t: 'Result', b: true});
+    if (at(116.0)) put(m, 20, 9, num(14200));
+  }
+  const cr = cairoRows(rows);
+  const cairoP = prog(f, t(89.0), 10) * (1 - prog(f, t(96.3), 12));
+  const first = prog(f, t(91.0), 8) * (1 - prog(f, t(96.3), 12));
+  const sweepY = Math.min(1, Math.max(0, (f - t(105.9)) / sec(2.6)));
+  const row13 = cellRect(13, 8, G40), row12 = cellRect(12, 8, G40);
+  const sweepRect = {x: row13.x, y: row13.y - sweepY * (row13.y - row12.y), w: 540, h: 20};
+  const lastHit = prog(f, t(108.6), 8) * (1 - prog(f, t(112.0), 14));
+  const refresh = prog(f, t(124.4), 10) * (1 - prog(f, t(128.0), 20));
+  const hs = Math.min(1, Math.max(0, (f - t(116.1)) / sec(1.8)));
+  const hx = cellRect(16, 9, G40).x;
 
   return (
     <Stage dur={SCENES.s3.dur} inFx="left" outFx="up">
-      <ExcelWindow cam={cam}>
-        <ExcelApp file="manzooma_sales_2026.xlsx" tab={tab} extraTab={at(97.8) ? 'Slicer' : undefined} ribbonHot={hotField} fields={{Columns: colField, BtnHeight: '0.26"', BtnWidth: '1.5"', Height: '4.08"', Width: '2.0"', Caption: 'Branch'}} nameBox="Branch" formula="" cell={() => undefined} sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}} sheets={['Data', 'Pivots', 'Executive Dashboard']} sheet="Executive Dashboard" thumb={0} thumbSize={0.55}>
-          <ChartBar rect={L.chart1} d={DEMO} sel={sel} />
-          <ChartLine rect={L.chart2} d={DEMO} sel={sel} />
-          {L.cards.map((c, i) => <KpiShape key={i} rect={c} value={fmt(val(i))} green={1} label={['Total Sales', 'Profit', 'Orders', 'Avg Order'][i]} />)}
-          <SlicerBox rect={slicerR} cols={cols} sel={sel} dark={dark} selected={selSlicer} hot={hot} warn={warn} />
-          <RangeFx rect={{x: LA.slicer.x - 4, y: LA.slicer.y, w: LA.slicer.w + 8, h: LA.slicer.h}} color={C.red} p={warn * 0.9} fill={0.08} label="Wastes report space" labelBelow dashed />
-          <RangeFx rect={{x: LB.slicer.x, y: LB.slicer.y, w: LB.slicer.w, h: LB.slicer.h}} color={C.green} p={saved * (1 - prog(f, t(130.4), 10))} fill={0.06} label="Compact filter bar" labelBelow />
-          <NewSlicerStyle p={dialogP} name={nm} hi={hiE} applied={at(117.5)} />
-          {clicks.map((c) => { const cp = track(t(c), pts); return <Ripple key={c} x={cp.x} y={cp.y} f={f} at={t(c)} />; })}
-          <Cursor x={cur.x} y={cur.y} down={clicks.some((c) => f >= t(c) && f < t(c) + 4)} />
-        </ExcelApp>
-      </ExcelWindow>
-      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(85.2), 10) * (1 - prog(f, t(96.0), 10))}}><Chip color={C.red}>Vertical slicer ──► eats the report area</Chip></div>
-      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(104.0), 10) * (1 - prog(f, t(111.0), 10))}}><Chip color={C.amber}>Columns: 4 ──► buttons reflow horizontally</Chip></div>
-      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(118.4), 10) * (1 - prog(f, t(125.0), 10))}}><Chip color={C.amber}>Selected = amber</Chip></div>
-      <div style={{position: 'absolute', left: 420, top: 82, opacity: prog(f, t(118.4), 10) * (1 - prog(f, t(125.0), 10))}}><Chip color={C.purple}>Unselected = purple</Chip></div>
-      <div style={{position: 'absolute', left: 100, top: 82, opacity: saved}}><Chip color={C.green}>Report space saved</Chip></div>
-      <Caption text="Multi-Column Slicer Toolbar ──► Slicer ──► Buttons ──► Columns: 4" from={t(98.0)} to={t(112.4)} />
-      <Caption text="Custom Dark Styling ──► Compact Horizontal Filter Bar for Web-App Feel" from={t(113.0)} to={t(129.8)} tone="ok" />
+      <Sim f={f} cell={fn(m)} evs={EVS} picks={PICKS} cam={CAM_SHEET}>
+        {cr.map((r) => <RangeFx key={r} rect={cellRect(r, 11, G40)} color={C.amber} p={cairoP} fill={0.28} />)}
+        <RangeFx rect={rangeRect(2, 8, 2, 12, G40)} color={C.amber} p={first} fill={0.18} label="first match = 18,500" labelBelow />
+        {sweepY > 0 && sweepY < 1 ? <RangeFx rect={sweepRect} color={C.green} p={1} fill={0.25} label="searching bottom → top" /> : null}
+        <RangeFx rect={rangeRect(12, 8, 12, 12, G40)} color={C.green} p={lastHit} fill={0.22} label={'last Cairo = ' + fmtN(520)} labelBelow />
+        <RangeFx rect={cellRect(2, 4, G40)} color={C.green} p={refresh} fill={0.3} label="520 ──► 1,900" labelBelow />
+        <RangeFx rect={rangeRect(14, 8, 14, 12, G40)} color={C.blue} p={prog(f, t(121.3), 8) * (1 - prog(f, t(127.0), 14))} fill={0.12} label="new row: table expands" labelBelow />
+        <RangeFx rect={rangeRect(16, 9, 16, 13, G40)} color={C.purple} p={prog(f, t(116.1), 8) * (1 - prog(f, t(121.0), 12))} fill={0.12} label="lookup_array (row)" />
+        <RangeFx rect={rangeRect(17, 9, 17, 13, G40)} color={C.purple} p={prog(f, t(116.6), 8) * (1 - prog(f, t(121.0), 12))} fill={0.12} label="return_array (row)" labelBelow />
+        {hs > 0 && hs < 1 ? <RangeFx rect={{x: hx, y: cellRect(16, 9, G40).y, w: (cellRect(16, 11, G40).x + 90 - hx) * hs, h: 20}} color={C.purple} p={1} fill={0.3} /> : null}
+        <RangeFx rect={cellRect(20, 9, G40)} color={C.purple} p={prog(f, t(116.0), 8) * (1 - prog(f, t(122.0), 20))} fill={0.28} />
+      </Sim>
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(87.5), 10) * (1 - prog(f, t(96.4), 10))}}><Chip color={C.amber}>Default (1) ──► first match only</Chip></div>
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(97.0), 10) * (1 - prog(f, t(110.5), 10))}}><Chip color={C.green}>search_mode = -1 ──► last to first</Chip></div>
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(117.4), 10) * (1 - prog(f, t(120.5), 10))}}><Chip color={C.purple}>Column order does not matter</Chip></div>
+      <div style={{position: 'absolute', left: 100, top: 82, opacity: prog(f, t(121.0), 10) * (1 - prog(f, t(128.0), 10))}}><Chip color={C.blue}>New rows ──► references never break</Chip></div>
+      <Caption text="Reverse Search (-1) ──► Retrieves the Last Transaction Record Instantly" from={t(98.0)} to={t(110.2)} />
+      <Caption text="Bi-Directional Engine ──► Replaces Both VLOOKUP and HLOOKUP Seamlessly" from={t(112.2)} to={t(120.4)} />
+      <Caption text="Tables expand ──► the formula keeps working, no broken references" from={t(121.4)} to={t(128.2)} tone="ok" />
     </Stage>
   );
 };

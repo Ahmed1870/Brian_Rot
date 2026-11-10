@@ -1,4 +1,4 @@
-// Lesson 31 sound design. Every effect is synthesized (scripts/make_sfx.py); times are absolute seconds on the lesson timeline.
+// Lesson 40 sound design. Every effect is synthesized (scripts/make_sfx.py); times are absolute seconds on the lesson timeline.
 import React from 'react';
 import {Audio, Sequence, staticFile} from 'remotion';
 import {FPS, START, TOTAL_FRAMES} from './theme';
@@ -10,25 +10,28 @@ const run = (file: string, vol: number, from: number, to: number, n: number): Cu
 
 const CUES: Cue[] = [
   ...one('whoosh', 0.3, START.s2 - 0.3, START.s3 - 0.3, START.s4 - 0.3, START.s5 - 0.3, START.s6 - 0.3),
-  // ---- scene 1: canvas setup
-  ...one('pop', 0.25, 3.0, 14.5), ...one('shine', 0.3, 16.0), ...one('pop', 0.3, 28.0, 32.1, 33.0), ...run('tick', 0.2, 33.5, 36.3, 19),
-  ...one('key', 0.4, 36.4), ...one('whoosh', 0.25, 37.0, 38.0), ...one('chime', 0.35, 38.6), ...one('pop', 0.3, 39.0),
-  // ---- scene 2: linked KPI cards
-  ...one('pop', 0.3, 46.0, 49.2, 50.0, 51.5), ...one('whoosh', 0.25, 51.8), ...one('pop', 0.3, 53.7), ...run('tick', 0.2, 54.8, 56.3, 10), ...one('key', 0.4, 56.5),
-  ...run('tick', 0.15, 56.6, 58.8, 14), ...one('chime', 0.4, 58.9), ...one('pop', 0.3, 65.3, 69.0, 72.0), ...one('tick', 0.3, 65.6, 69.3, 72.3),
-  ...one('key', 0.4, 73.3, 73.6), ...one('pop', 0.3, 73.5, 74.7, 75.9), ...one('chime', 0.3, 76.2), ...one('pop', 0.3, 78.0, 79.0, 81.8), ...one('shine', 0.3, 82.0),
-  // ---- scene 3: multi-column slicers
-  ...one('alert', 0.25, 85.2), ...one('pop', 0.3, 97.8, 98.6, 100.8), ...one('tick', 0.3, 103.4), ...one('whoosh', 0.3, 104.0, 109.4), ...one('chime', 0.35, 110.6),
-  ...one('pop', 0.3, 112.4, 113.6), ...run('tick', 0.2, 114.0, 115.6, 13), ...one('pop', 0.25, 116.0, 117.0), ...one('key', 0.4, 117.9), ...one('shine', 0.4, 118.4), ...one('pop', 0.3, 119.5, 122.5, 125.7), ...one('chime', 0.3, 126.5),
-  // ---- scene 4: app-like UX + object lock
-  ...one('pop', 0.3, 136.0, 138.0, 141.0, 143.4), ...one('scan', 0.3, 138.2, 141.2, 143.6), ...one('whoosh', 0.3, 145.1), ...one('shine', 0.3, 147.6),
-  ...one('pop', 0.25, 148.9, 149.5, 150.1, 150.7, 151.5, 152.3, 153.0), ...one('key', 0.4, 154.0), ...one('pop', 0.3, 154.95, 155.4), ...one('key', 0.45, 157.2),
-  ...one('chime', 0.35, 158.1, 158.4, 158.7, 159.0), ...one('shine', 0.45, 159.8),
+  // ---- scene 1: A2# spilled bulk lookup
+  ...one('pop', 0.25, 3.0), ...run('tick', 0.18, 3.6, 5.9, 14), ...one('key', 0.4, 6.2), ...run('pop', 0.2, 6.3, 7.2, 6), ...one('tick', 0.3, 12.0), ...one('alert', 0.25, 23.5),
+  ...run('tick', 0.18, 28.9, 34.8, 28), ...one('key', 0.4, 35.0), ...run('pop', 0.25, 35.1, 36.2, 6), ...one('chime', 0.35, 36.4),
+  // ---- scene 2: multi-column + if_not_found
+  ...one('key', 0.4, 42.0), ...one('tick', 0.3, 41.2, 43.3, 46.3), ...run('tick', 0.15, 43.6, 44.4, 5), ...one('key', 0.35, 44.7), ...run('tick', 0.18, 46.6, 52.4, 28), ...one('key', 0.4, 52.6),
+  ...run('pop', 0.3, 52.7, 53.0, 3), ...one('chime', 0.35, 53.4), ...one('tick', 0.3, 58.9), ...run('tick', 0.15, 59.1, 60.0, 5), ...one('key', 0.35, 60.2), ...one('shine', 0.35, 60.5),
+  ...one('alert', 0.25, 64.9), ...one('tick', 0.3, 67.3, 69.2), ...run('tick', 0.15, 67.5, 68.4, 5), ...one('key', 0.35, 68.6), ...run('tick', 0.18, 69.5, 72.4, 14), ...one('key', 0.4, 72.5), ...one('error', 0.3, 72.7),
+  ...one('chime', 0.35, 75.5),
+  // ---- scene 3: reverse + horizontal
+  ...one('tick', 0.3, 86.5), ...run('tick', 0.18, 87.0, 90.6, 16), ...one('key', 0.4, 90.8), ...one('pop', 0.3, 91.0), ...one('tick', 0.3, 96.7),
+  ...run('tick', 0.18, 97.3, 105.6, 34), ...one('key', 0.4, 105.8), ...one('scan', 0.35, 105.9), ...one('chime', 0.4, 108.6),
+  ...one('pop', 0.3, 111.2), ...one('tick', 0.3, 112.2), ...run('tick', 0.18, 112.6, 115.8, 14), ...one('key', 0.4, 116.0), ...one('scan', 0.3, 116.1), ...one('chime', 0.35, 118.0),
+  ...one('tick', 0.3, 120.7), ...run('pop', 0.25, 121.3, 124.0, 5), ...one('shine', 0.4, 124.4),
+  // ---- scene 4: pipeline
+  ...one('tick', 0.3, 131.4), ...run('tick', 0.18, 131.8, 145.0, 60), ...one('pop', 0.3, 139.4, 142.5), ...one('whoosh', 0.2, 142.5), ...one('key', 0.4, 145.2), ...run('pop', 0.3, 145.3, 145.8, 3), ...one('shine', 0.4, 146.0),
+  ...one('tick', 0.3, 153.0), ...run('tick', 0.15, 153.3, 154.0, 5), ...one('key', 0.35, 154.1), ...one('pop', 0.3, 154.3), ...one('chime', 0.35, 154.8), ...one('shine', 0.3, 157.0),
   // ---- scene 5: enterprise
-  ...run('tick', 0.18, 167.0, 170.4, 18), ...one('pop', 0.3, 171.2, 174.6), ...one('scan', 0.3, 176.3), ...one('pop', 0.3, 180.5, 183.0, 185.5, 188.0), ...one('tick', 0.3, 180.8, 183.3, 185.8, 188.3),
-  ...one('scan', 0.4, 190.5), ...one('shine', 0.5, 192.0), ...one('chime', 0.3, 192.3),
+  ...run('tick', 0.18, 171.8, 175.2, 18), ...one('pop', 0.3, 175.8), ...one('key', 0.4, 177.2, 179.0), ...one('scan', 0.3, 177.4), ...one('tick', 0.3, 180.8),
+  ...run('tick', 0.18, 181.0, 183.4, 12), ...one('key', 0.4, 183.6), ...run('pop', 0.25, 183.7, 184.8, 8), ...one('tick', 0.3, 184.2), ...run('tick', 0.18, 184.4, 190.4, 30), ...one('key', 0.4, 190.6),
+  ...run('pop', 0.2, 190.7, 191.4, 8), ...one('scan', 0.4, 190.7), ...one('shine', 0.5, 192.2), ...one('chime', 0.3, 192.5),
   // ---- scene 6: end card
-  ...one('chime', 0.3, 206.0), ...one('pop', 0.25, 208.4, 209.6, 210.8, 212.0, 217.0, 227.4), ...one('tick', 0.3, 218.9), ...one('shine', 0.3, 229.4),
+  ...one('chime', 0.3, 210.4), ...one('pop', 0.25, 210.9, 212.0, 213.1, 214.2, 215.3, 216.7, 225.5), ...one('tick', 0.3, 220.0), ...one('shine', 0.3, 229.5),
 ];
 
 export const Sfx: React.FC = () => (
