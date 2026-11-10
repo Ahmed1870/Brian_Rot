@@ -1,61 +1,46 @@
-// Lesson identity: every name in the project is derived from these values.
-export const LESSON_NUM = "30";
-export const COMP_ID = "XL-L30-Pivot-Charts-Grouping";
-export const OUT_NAME = "xl-l30-pivot-charts-grouping";
-export const VOICE_FILE = "voiceover_lesson_30.mp3";
-export const LOGO_FILE = "manzooma_logo.svg";
-export const XLSX_NAME = "manzooma_sales_2026.xlsx";
+import {loadFont as loadLato} from "@remotion/google-fonts/Lato";
+import {loadFont as loadPlex} from "@remotion/google-fonts/IBMPlexSansArabic";
+import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
 
-// Video spec (change WIDTH/HEIGHT here only; the UI scales from S).
+// ── Lesson identity (single source of truth: every name below is derived from it) ──
+export const LESSON = 38;
+export const COMP_ID = "XL-L38-XMATCH-Dynamic-Search";
+export const OUT_NAME = "excel-lesson-38-xmatch-search";
+export const VOICE_FILE = "voiceover_lesson_38.mp3";
+export const LOGO_FILE = "manzooma-logo.svg";
+
 export const FPS = 30;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
 export const DURATION = 7200;
 
-// Layout: a Slate caption strip on top, the Excel window below.
-export const STRIP_H = 72;
-export const S = 1.25; // Excel logical px -> output px
-export const WIN_W = WIDTH / S; // 1536
-export const WIN_H = (HEIGHT - STRIP_H) / S; // 806.4
+const lato = loadLato("normal", {weights: ["400", "700"], subsets: ["latin"]});
+const plex = loadPlex("normal", {weights: ["400", "600", "700"], subsets: ["arabic", "latin"]});
+const mono = loadMono("normal", {weights: ["400", "700"], subsets: ["latin"]});
 
-// Excel metrics in logical px (Microsoft 365 desktop, Windows, 100%).
-export const M = {
-  titleBar: 30,
-  tabs: 30,
-  ribbon: 94,
-  formula: 28,
-  colHdr: 20,
-  rowHdr: 40,
-  rowH: 20,
-  colW: 64,
-  sheetBar: 28,
-  statusBar: 24,
+export const F = {
+  ui: `${lato.fontFamily}, "Segoe UI", Calibri, sans-serif`,
+  ar: `${plex.fontFamily}, "Segoe UI", sans-serif`,
+  mono: `${mono.fontFamily}, Consolas, monospace`,
 };
-export const GRID_TOP = M.titleBar + M.tabs + M.ribbon + M.formula + M.colHdr; // body top
-export const BODY_H = WIN_H - GRID_TOP - M.sheetBar - M.statusBar;
-export const NSLOT = Math.ceil(BODY_H / M.rowH);
+
+// ── Excel 365 (Windows, modern look) layout grid, in NATIVE px. The whole window is drawn
+// at 1280x656 and scaled by S=1.5 to 1920x984; the remaining 96px is the caption strip. ──
+export const M = {
+  S: 1.5, W: 1280, H: 656, capH: 96,
+  titleH: 32, tabsTop: 32, tabsH: 28,
+  ribTop: 60, ribH: 92,
+  fbTop: 152, fbH: 28,
+  hdrTop: 180, hdrH: 20, rowH: 20, colW: 64, rowHdrW: 32,
+  gridTop: 200, sheetTabsTop: 606, sheetTabsH: 26, statusTop: 632, statusH: 24,
+  visRows: 20, visCols: 19,
+};
 
 export const C = {
-  slate: "#0F172A",
-  slate2: "#1E293B",
-  text: "#F8FAFC",
-  blue: "#38BDF8",
-  green: "#10B981",
-  amber: "#F59E0B",
-  purple: "#A855F7",
-  red: "#EF4444",
-  gold: "#FBBF24",
-  // Excel light UI
-  xGreen: "#107C41",
-  xGreenDark: "#0B5A2E",
-  xSel: "rgba(16,124,65,0.14)",
-  chrome: "#F3F3F3",
-  ribbon: "#F9F9F9",
-  line: "#D6D6D6",
-  grid: "#DCDCDC",
-  hdr: "#F2F2F2",
-  hdrSel: "#CFE5D8",
-  ink: "#1F1F1F",
-  inkSoft: "#605E5C",
-  filtBlue: "#0563C1",
+  green: "#107C41", greenDark: "#0B5A2E", greenLine: "#217346",
+  ribbon: "#FAFAFA", chrome: "#F3F3F3", line: "#D6D6D6", grid: "#E1E1E1", hdr: "#F2F2F2", hdrTxt: "#444444",
+  txt: "#262626", sel: "#D3E9DD",
+  slate: "#0F172A", slate2: "#1E293B", ink: "#F8FAFC",
+  blue: "#38BDF8", emerald: "#10B981", amber: "#F59E0B", purple: "#A855F7", red: "#EF4444", yellow: "#FACC15",
 };
+export const SFX_FILE = "sfx_lesson_38.mp3";
