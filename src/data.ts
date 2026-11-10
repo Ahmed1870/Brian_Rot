@@ -1,145 +1,56 @@
-// Manzooma Store sales sample used across the lesson (illustrative data, EGP).
-export const HEAD = ['Order ID', 'Branch', 'Product', 'Category', 'Qty', 'Unit Price', 'Total', 'Tier'];
-
-const PRODUCTS: Array<[string, string, number]> = [
-  ['Wireless Mouse', 'Accessories', 350],
-  ['USB-C Cable', 'Accessories', 120],
-  ['Laptop Stand', 'Office', 900],
-  ['Office Chair', 'Furniture', 3200],
-  ['Notebook A5', 'Stationery', 45],
-  ['Desk Lamp', 'Office', 650],
-  ['Monitor 24"', 'Electronics', 4800],
-  ['Keyboard', 'Accessories', 750],
+export const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const PRODUCTS: [string, number][] = [
+  ["Laptop X1", 24500], ["Laptop X2", 18900], ["Phone S5", 12500], ["Tablet T3", 6800],
+  ["Monitor 24", 3900], ["Printer P2", 2300], ["Router R7", 1450], ["Keyboard K1", 850],
 ];
-const BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
-
-export type SaleRow = {id: string; branch: string; product: string; category: string; qty: number; price: number; total: number};
-
-/** Deterministic pseudo-random sale for an order index (1-based). */
-export const sale = (n: number, branch?: string): SaleRow => {
-  const h = (n * 2654435761) >>> 0;
-  const p = PRODUCTS[(h >>> 3) % PRODUCTS.length];
-  const qty = 1 + ((h >>> 9) % 6);
-  return {id: `ORD-${1000 + n}`, branch: branch ?? BRANCHES[(h >>> 5) % BRANCHES.length], product: p[0], category: p[1], qty, price: p[2], total: qty * p[2]};
+export const PN = PRODUCTS.map((p) => p[0]);
+export const BR = ["Alex", "Aswan", "Cairo", "Mansoura", "Tanta"];
+export const num = (n: number): string => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const h = (a: number, b: number): number => {
+  let x = Math.imul(a + 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35);
+  x ^= x >>> 15; x = Math.imul(x, 0x2c1b3c6d); x ^= x >>> 12; x = Math.imul(x, 0x297a2d39); x ^= x >>> 15;
+  return (x >>> 0) / 4294967296;
 };
-
-export const tierOf = (total: number) => (total >= 5000 ? 'Premium' : total >= 1000 ? 'Standard' : 'Basic');
-
-export const SMALL_N = 18;
-export const SMALL: SaleRow[] = Array.from({length: SMALL_N}, (_, i) => sale(i + 1));
-
-export const fmtInt = (n: number) => n.toLocaleString('en-US');
-/** Excel-like status bar number: up to 3 decimals, thousands separators. */
-export const fmtStat = (n: number) => {
-  const r = Math.round(n * 1000) / 1000;
-  return r.toLocaleString('en-US', {maximumFractionDigits: 3});
+// ---- calendar: day 0 = 1-Jan-2025, two full years (730 days) ----
+const MD = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+export const dateOf = (d: number): { yi: number; m: number; q: number; day: number } => {
+  const yi = d < 365 ? 0 : 1; let r = d - 365 * yi; let m = 0;
+  while (r >= MD[m]) { r -= MD[m]; m++; }
+  return { yi, m, q: Math.floor(m / 3), day: r + 1 };
 };
-
-export type Cell = {t: string; num?: number; b?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string};
-
-/** Cell lookup for the small practice sheet (rows 1..SMALL_N+1, columns A..H). */
-export const smallCell = (r: number, c: number): Cell | undefined => {
-  if (r === 1 && c >= 1 && c <= 8) return {t: HEAD[c - 1], b: true, bg: '#E2EFDA', al: c >= 5 && c <= 7 ? 'r' : 'l'};
-  const row = SMALL[r - 2];
-  if (!row || c < 1 || c > 8) return undefined;
-  switch (c) {
-    case 1: return {t: row.id};
-    case 2: return {t: row.branch};
-    case 3: return {t: row.product};
-    case 4: return {t: row.category};
-    case 5: return {t: String(row.qty), num: row.qty};
-    case 6: return {t: fmtInt(row.price), num: row.price};
-    case 7: return {t: fmtInt(row.total), num: row.total};
-    default: return {t: tierOf(row.total)};
+export const fmtDate = (d: number): string => { const o = dateOf(d); return `${o.m + 1}/${o.day}/${2025 + o.yi}`; };
+export type Order = { n: number; id: string; day: number; b: number; p: number; amount: number };
+export type Cube = number[][][][]; // [year][quarter][branch][product]
+const mkCube = (orders: Order[]): Cube => {
+  const c: Cube = [0, 1].map(() => [0, 1, 2, 3].map(() => BR.map(() => PN.map(() => 0))));
+  orders.forEach((o) => { const d = dateOf(o.day); c[d.yi][d.q][o.b][o.p] += o.amount; });
+  return c;
+};
+export const ORDERS: Order[] = [];
+for (let d = 0; d < 730; d++) {
+  const dd = dateOf(d); const k = 3 + Math.floor(h(d, 7) * 3) + (dd.yi === 1 ? 1 : 0) + (dd.q === 3 ? 1 : 0) + (dd.q === 1 ? -1 : 0) * (dd.day % 2);
+  for (let j = 0; j < k; j++) {
+    const n = ORDERS.length;
+    ORDERS.push({ n, id: "S-" + (10001 + n), day: d, b: Math.floor(h(n, 1) * 5), p: Math.floor(h(n, 2) * 8), amount: (1 + Math.floor(h(n, 3) * 6)) * PRODUCTS[Math.floor(h(n, 2) * 8)][1] });
   }
-};
-
-export type Stats = {count: number; numCount: number; sum: number; avg: number; min: number; max: number};
-/** Real status-bar statistics of a rectangular selection over the small sheet. */
-export const statsOf = (r1: number, c1: number, r2: number, c2: number): Stats => {
-  let count = 0, numCount = 0, sum = 0, min = Infinity, max = -Infinity;
-  for (let r = r1; r <= Math.min(r2, SMALL_N + 1); r++) {
-    for (let c = c1; c <= Math.min(c2, 8); c++) {
-      const cell = smallCell(r, c);
-      if (!cell) continue;
-      count++;
-      if (cell.num !== undefined) {
-        numCount++; sum += cell.num; min = Math.min(min, cell.num); max = Math.max(max, cell.num);
-      }
-    }
-  }
-  return {count, numCount, sum, avg: numCount ? sum / numCount : 0, min: numCount ? min : 0, max: numCount ? max : 0};
-};
-
-// ---- the big enterprise file (manzooma_sales_2026.xlsx, 50,000 rows) ----
-export const BIG_ROWS = 50000;
-export const BIG_LAST = BIG_ROWS + 1; // header + data
-export const BIG_STATS = {count: 50000, numCount: 50000, sum: 62478350, min: 45, max: 28800}; // avg = 1,249.567
-export const CAIRO_STATS = {count: 10000, numCount: 10000, sum: 12742530, min: 45, max: 28800}; // avg = 1,274.253
-
-/* =====================================================================  Lesson 07  ===================================================================== */
-import type {CellV} from './xl';
-
-export const fmtMoney = (n: number) => '$' + n.toLocaleString('en-US');
-export const fmt2 = (n: number) => n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-export const fmtMoney2 = (n: number) => '$' + fmt2(n);
-
-// ---- practice sheet (scenes 1-2): 10 revenue values, C12 = SUM, C13 = AVERAGE ----
-export const NAMES7 = ['Ahmed Hassan', 'Sara Ali', 'Omar Khaled', 'Mona Adel', 'Youssef Samir', 'Laila Nabil', 'Karim Fathy', 'Nour Hany', 'Hadeer Salah', 'Mostafa Reda'];
-export const REGIONS7 = ['Cairo', 'Giza', 'Alexandria', 'Tanta', 'Mansoura', 'Cairo', 'Giza', 'Alexandria', 'Cairo', 'Tanta'];
-export const REV7 = [1850, 2400, 960, 3150, 1275, 2780, 540, 4100, 1620, 2225]; // sum 20,900 | without rows 4 and 8 (960, 540): 19,400 / 8 = 2,425
-export const HEAD7 = ['Order ID', 'Customer', 'Revenue', 'Region'];
-export const cw7 = (c: number) => [0, 90, 140, 110, 100][c] ?? 64;
-export const sumOf = (a: Array<number | null>) => a.reduce<number>((s, v) => s + (v ?? 0), 0);
-export const countOf = (a: Array<number | null>) => a.filter((v) => v !== null).length;
-
-export const mainCell = (r: number, c: number, rev: Array<number | null>, o: {c12?: CellV; c13?: CellV; b12?: boolean; b13?: boolean; edit?: {r: number; c: number; t: string}} = {}): CellV | undefined => {
-  if (o.edit && o.edit.r === r && o.edit.c === c) return {t: o.edit.t, al: 'l'};
-  if (r === 1 && c >= 1 && c <= 4) return {t: HEAD7[c - 1], b: true, bg: '#E2EFDA', al: c === 3 ? 'r' : 'l'};
-  if (r >= 2 && r <= 11) {
-    const i = r - 2;
-    if (c === 1) return {t: `ORD-${1001 + i}`};
-    if (c === 2) return {t: NAMES7[i]};
-    if (c === 3) { const v = rev[i]; return v === null || v === undefined ? undefined : {t: fmtMoney(v), num: v, al: 'r'}; }
-    if (c === 4) return {t: REGIONS7[i]};
-  }
-  if (r === 12 && c === 2 && o.b12 !== false) return {t: 'Total', b: true};
-  if (r === 13 && c === 2 && o.b13) return {t: 'Average', b: true};
-  if (r === 12 && c === 3) return o.c12;
-  if (r === 13 && c === 3) return o.c13;
-  return undefined;
-};
-
-// ---- scene 3: mixed range A2:A13 -> COUNT = 6, COUNTA = 9 ----
-export type MixItem = {t: string; kind: 'num' | 'date' | 'text' | 'blank' | 'empty'};
-export const MIX: MixItem[] = [
-  {t: '1,250', kind: 'num'}, {t: 'Ahmed', kind: 'text'}, {t: '3/15/2026', kind: 'date'}, {t: '980', kind: 'num'}, {t: 'Cairo', kind: 'text'}, {t: '', kind: 'blank'},
-  {t: '2,100', kind: 'num'}, {t: '5/1/2026', kind: 'date'}, {t: '', kind: 'blank'}, {t: '', kind: 'blank'}, {t: '760', kind: 'num'}, {t: '', kind: 'empty'},
-];
-export const mixNumeric = MIX.filter((m) => m.kind === 'num' || m.kind === 'date').length; // 6
-export const mixNonEmpty = MIX.filter((m) => m.kind !== 'blank').length; // 9 (the last one is ="" -> counted by COUNTA)
-
-// ---- scene 4: Amount column with a text-number and an error ----
-export const AMT = [1200, 2500, '1,800', 900, 3400, 600] as const; // C2:C7, C4 is stored as text
-
-// ---- scene 5: enterprise sheet columns: Order ID | Customer | Branch | Product | Qty | Total ----
-export const cust5 = (n: number) => `CUS-${1000 + ((n * 37) % 9000)}`;
-export const HEAD5 = ['Order ID', 'Customer', 'Branch', 'Product', 'Qty', 'Total'];
-export const cw5 = (c: number) => [0, 80, 90, 100, 130, 54, 96, 24, 150, 130][c] ?? 64;
-export const KPI5 = {sum: 236616055, avg: 236616055 / 50000, count: 50000, counta: 50000};
-
-/* =====================================================================  Lesson 31  ===================================================================== */
-export const cwD = (c: number) => [0, 110, 100, 24, 110, 110][c] ?? 64;
-const PV = ['Cairo', 'Giza', 'Alexandria', 'Tanta', 'Mansoura', 'Aswan', 'Luxor', 'Suez'];
-const PVS = [342500, 198000, 176500, 98000, 112000, 67500, 83000, 172500];
-/** Illustrative "Pivots" sheet: KPI block A3:B7 (B4 = total sales) and the branch pivot D3:E12. */
-export const pivotCell = (r: number, c: number): CellV | undefined => {
-  const HB = '#DDEBF7';
-  if (r === 1 && c === 1) return {t: 'Pivot Engine (calculations only)', b: true};
-  if (r === 3 && c <= 2) return {t: ['Metric', 'Value'][c - 1], b: true, bg: HB, al: c === 2 ? 'r' : 'l'};
-  if (r >= 4 && r <= 7 && c <= 2) { const k: Array<[string, string]> = [['Total Sales', '1,250,000'], ['Profit', '312,500'], ['Orders', '8,418'], ['Avg Order', '148']]; return c === 1 ? {t: k[r - 4][0]} : {t: k[r - 4][1], al: 'r', num: 1}; }
-  if (r === 3 && c >= 4 && c <= 5) return {t: ['Row Labels', 'Sum of Sales'][c - 4], b: true, bg: HB, al: c === 5 ? 'r' : 'l'};
-  if (r >= 4 && r <= 11 && c >= 4 && c <= 5) return c === 4 ? {t: PV[r - 4]} : {t: fmtInt(PVS[r - 4]), al: 'r', num: 1};
-  if (r === 12 && c >= 4 && c <= 5) return c === 4 ? {t: 'Grand Total', b: true, bg: HB} : {t: '1,250,000', b: true, al: 'r', bg: HB, num: 1};
-  return undefined;
+}
+export const CUBE = mkCube(ORDERS);
+export const DAYSUMS: number[] = Array.from({ length: 730 }, () => 0);
+export const MONTHSUMS: number[][] = [0, 1].map(() => Array.from({ length: 12 }, () => 0));
+ORDERS.forEach((o) => { DAYSUMS[o.day] += o.amount; const d = dateOf(o.day); MONTHSUMS[d.yi][d.m] += o.amount; });
+export const detailRows = (yi: number, q: number): Order[] => ORDERS.filter((o) => { const d = dateOf(o.day); return d.yi === yi && d.q === q; });
+export const qTotal = (c: Cube, yi: number, q: number): number => c[yi][q].reduce((a, r) => a + r.reduce((x, y) => x + y, 0), 0);
+// ---- filtered aggregates (Slicer = branches, Timeline = one quarter) ----
+export type Flt = { br: number[]; qsel?: [number, number] | null };
+const inQ = (f: Flt, yi: number, q: number): boolean => !f.qsel || (f.qsel[0] === yi && f.qsel[1] === q);
+export const aggQ = (c: Cube, f: Flt): number[] => { const o: number[] = []; for (let yi = 0; yi < 2; yi++) for (let q = 0; q < 4; q++) o.push(inQ(f, yi, q) ? f.br.reduce((a, b) => a + c[yi][q][b].reduce((x, y) => x + y, 0), 0) : 0); return o; };
+export const aggP = (c: Cube, f: Flt): number[] => PN.map((_, p) => { let s = 0; for (let yi = 0; yi < 2; yi++) for (let q = 0; q < 4; q++) if (inQ(f, yi, q)) f.br.forEach((b) => { s += c[yi][q][b][p]; }); return s; });
+export const aggB = (c: Cube, f: Flt): number[] => f.br.map((b) => { let s = 0; for (let yi = 0; yi < 2; yi++) for (let q = 0; q < 4; q++) if (inQ(f, yi, q)) s += c[yi][q][b].reduce((x, y) => x + y, 0); return s; });
+// ---- enterprise table (50,000 rows) ----
+export const BIG_N = 50000;
+export const bigOrder = (i: number): Order => ({ n: i, id: "INV-" + (1001 + i), day: Math.floor(h(i, 11) * 730), b: Math.floor(h(i, 12) * 5), p: Math.floor(h(i, 13) * 8), amount: (1 + Math.floor(h(i, 14) * 9)) * PRODUCTS[Math.floor(h(i, 13) * 8)][1] });
+let _bc: Cube | null = null;
+export const bigCube = (): Cube => {
+  if (!_bc) { const c: Cube = [0, 1].map(() => [0, 1, 2, 3].map(() => BR.map(() => PN.map(() => 0)))); for (let i = 0; i < BIG_N; i++) { const o = bigOrder(i); const d = dateOf(o.day); c[d.yi][d.q][o.b][o.p] += o.amount; } _bc = c; }
+  return _bc;
 };

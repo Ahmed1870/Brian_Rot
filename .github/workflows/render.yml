@@ -1,25 +1,27 @@
-name: Render Excel Lesson 40 XLOOKUP Dynamic Array
+name: Render lesson video
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: {}
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain this lesson only
-        run: |
-          grep -q "XL-L40-XLOOKUP-Dynamic-Array" src/theme.ts
-          grep -q "XL-L40-XLOOKUP-Dynamic-Array" package.json
-          test -f public/voiceover_lesson_40.mp3
-          test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime error alert scan shine ambient; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "13"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Guard (names, voiceover, public)
+        run: |
+          set -e
+          grep -q "XL-L30-Pivot-Charts-Grouping" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
+          grep -q "XL-L30-Pivot-Charts-Grouping" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
+          grep -q "xl-l30-pivot-charts-grouping.mp4" package.json || { echo "output name missing in package.json"; exit 1; }
+          test -s public/voiceover_lesson_30.mp3 || { echo "voiceover missing"; exit 1; }
+          extra=$(ls public | grep -vxE "voiceover_lesson_30.mp3|manzooma_logo.svg" || true)
+          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
+          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
       - name: Install
         run: |
           rm -rf node_modules package-lock.json
@@ -31,10 +33,11 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L40-XLOOKUP-Dynamic-Array out/xl-l40-xlookup-dynamic-array.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l40-xlookup-dynamic-array.mp4
+      - name: Render
+        run: npx remotion render src/index.ts XL-L30-Pivot-Charts-Grouping out/xl-l30-pivot-charts-grouping.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - name: Check output
+        run: test -s out/xl-l30-pivot-charts-grouping.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l40-xlookup-dynamic-array
-          path: out/xl-l40-xlookup-dynamic-array.mp4
-          if-no-files-found: error
+          name: xl-l30-pivot-charts-grouping
+          path: out/xl-l30-pivot-charts-grouping.mp4

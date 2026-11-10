@@ -1,12 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-40-xlookup-dynamic-array",
+  "name": "manzooma-excel-lesson",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 40: XLOOKUP and Dynamic Array Integration (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L40-XLOOKUP-Dynamic-Array out/xl-l40-xlookup-dynamic-array.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "build": "remotion render src/index.ts XL-L30-Pivot-Charts-Grouping out/xl-l30-pivot-charts-grouping.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "studio": "remotion studio src/index.ts",
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@remotion/cli": "4.0.250",
@@ -16,7 +15,7 @@
     "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
   }
 }
