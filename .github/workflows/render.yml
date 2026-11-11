@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci --include=optional
       - run: npx remotion render src/index.ts SQL-L51-Sequential-Scan out/sql-l51-sequential-scan.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - run: test -s out/sql-l51-sequential-scan.mp4
       - uses: actions/upload-artifact@v4
