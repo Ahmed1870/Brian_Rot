@@ -1,8 +1,15 @@
-name: Render lesson video
+name: Render XL-L32-GETPIVOTDATA-Pivot-Security
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+concurrency:
+  group: render-main
+  cancel-in-progress: true
+env:
+  COMP_ID: XL-L32-GETPIVOTDATA-Pivot-Security
+  OUT_NAME: xl-l32-getpivotdata-pivot-security
+  VOICE: voiceover_lesson_32.mp3
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -12,32 +19,37 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard (names, voiceover, public)
+      - name: Guard - names must match everywhere
         run: |
-          set -e
-          grep -q "XL-L42-LAMBDA-MAP" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
-          grep -q "XL-L42-LAMBDA-MAP" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
-          grep -q "xl-l42-lambda-map.mp4" package.json || { echo "output name missing in package.json"; exit 1; }
-          test -s public/voiceover_lesson_42.mp3 || { echo "voiceover missing"; exit 1; }
-          extra=$(ls public | grep -vxE "voiceover_lesson_42.mp3|manzooma_logo.svg" || true)
-          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
-      - name: Install
+          set -euo pipefail
+          grep -q "COMP_ID = '$COMP_ID'" src/theme.ts
+          grep -q "OUT_NAME = '$OUT_NAME'" src/theme.ts
+          grep -q "VOICE = '$VOICE'" src/theme.ts
+          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
+          grep -q "id={COMP_ID}" src/Root.tsx
+          test -s "public/$VOICE"
+          test "$(ls .github/workflows | wc -l)" = "1"
+          extra="$(find public -type f | grep -v -E '^public/(voiceover_lesson_32\.mp3|manzooma_logo\.svg|soundtrack_lesson_32\.wav)$' || true)"
+          if [ -n "$extra" ]; then echo "Unexpected files in public:"; echo "$extra"; exit 1; fi
+          stale="$(grep -rhoE 'XL-L[0-9]+' src package.json .github | sort -u | grep -v '^XL-L32$' || true)"
+          if [ -n "$stale" ]; then echo "Stale lesson id: $stale"; exit 1; fi
+      - name: Install dependencies (no lockfile, Linux-native packages)
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.300 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - name: Render
-        run: npx remotion render src/index.ts XL-L42-LAMBDA-MAP out/xl-l42-lambda-map.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - name: Check output
-        run: test -s out/xl-l42-lambda-map.mp4
+      - run: npm run check
+      - run: npm run build
+      - name: Verify video exists
+        run: test -s "out/$OUT_NAME.mp4" && ls -lh out/
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l42-lambda-map
-          path: out/xl-l42-lambda-map.mp4
+          name: ${{ env.OUT_NAME }}
+          path: out/${{ env.OUT_NAME }}.mp4
+          if-no-files-found: error

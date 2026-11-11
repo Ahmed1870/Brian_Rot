@@ -1,491 +1,695 @@
-// Shared Excel-UI kit (Microsoft 365 desktop, Windows, light theme). Reused by every lesson.
-// All coordinates are LOGICAL px (1536 x 806.4 window); the stage scales them by S.
-import React from "react";
-import { Easing, interpolate } from "remotion";
-import { loadFont as loadLato } from "@remotion/google-fonts/Lato";
-import { loadFont as loadOpen } from "@remotion/google-fonts/OpenSans";
-import { loadFont as loadPlex } from "@remotion/google-fonts/IBMPlexSansArabic";
-import { loadFont as loadMono } from "@remotion/google-fonts/JetBrainsMono";
-import { C, GRID_TOP, HEIGHT, M, NSLOT, S, STRIP_H, WIDTH, WIN_H, WIN_W } from "./theme";
+import React from 'react';
+import {Img, staticFile, useCurrentFrame} from 'remotion';
+import {C, FPS, H, LOGO, M, SC, W, WIN, X, Z} from './theme';
+import {WARP} from './warp';
+import {ar, mono, ui} from './fonts';
 
-const lato = loadLato("normal", { weights: ["400", "700"], subsets: ["latin"] });
-const open = loadOpen("normal", { weights: ["400", "600", "700"], subsets: ["latin"] });
-const plex = loadPlex("normal", { weights: ["400", "500", "600", "700"], subsets: ["arabic", "latin"] });
-const mono = loadMono("normal", { weights: ["400", "700"], subsets: ["latin"] });
-export const F = {
-  cell: `${lato.fontFamily}, Carlito, Calibri, sans-serif`, // Calibri substitute (open licence)
-  ui: `${open.fontFamily}, "Segoe UI", sans-serif`,
-  ar: `${plex.fontFamily}, ${open.fontFamily}, sans-serif`,
-  mono: `${mono.fontFamily}, monospace`,
-};
-
-// ---------- motion helpers ----------
-export const ease = Easing.bezier(0.4, 0, 0.2, 1);
-export const prog = (f: number, from: number, dur: number): number =>
-  interpolate(f, [from, from + dur], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
-export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-export const typed = (s: string, f: number, from: number, perFrame = 0.5): string =>
-  s.slice(0, Math.max(0, Math.min(s.length, Math.floor((f - from) * perFrame))));
-export type KF = { f: number; x: number; y: number };
-export const path = (f: number, k: KF[]): { x: number; y: number } => {
-  if (f <= k[0].f) return { x: k[0].x, y: k[0].y };
-  for (let i = 1; i < k.length; i++) {
-    if (f <= k[i].f) {
-      const t = prog(f, k[i - 1].f, k[i].f - k[i - 1].f);
-      return { x: lerp(k[i - 1].x, k[i].x, t), y: lerp(k[i - 1].y, k[i].y, t) };
+/* ───────── motion helpers ───────── */
+export const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const ez = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+export const kf = (t: number, p: [number, number][]): number => {
+  if (t <= p[0][0]) return p[0][1];
+  for (let i = 1; i < p.length; i++) {
+    if (t <= p[i][0]) {
+      const [a, va] = p[i - 1];
+      const [b, vb] = p[i];
+      return b === a ? vb : va + (vb - va) * ez((t - a) / (b - a));
     }
   }
-  const l = k[k.length - 1];
-  return { x: l.x, y: l.y };
+  return p[p.length - 1][1];
 };
-// Row slots after collapsing: vis[i] in 0..1  ->  slot position of each row.
-export const stack = (vis: number[], start = 0): number[] => {
-  let s = start;
-  return vis.map((v) => { const r = s; s += v; return r; });
+/** scene clock in "design time": the real (voiceover) time is mapped through the per-scene anchor table in warp.ts */
+export const useT = (from: number) => {
+  const abs = (useCurrentFrame() + from) / FPS;
+  const i = SC.findIndex((s) => s.from === from);
+  if (i < 0) return abs;
+  const w = WARP[i];
+  if (abs <= w[0][0]) return w[0][1] + (abs - w[0][0]);
+  for (let j = 1; j < w.length; j++) if (abs <= w[j][0]) return w[j - 1][1] + ((abs - w[j - 1][0]) / (w[j][0] - w[j - 1][0])) * (w[j][1] - w[j - 1][1]);
+  return w[w.length - 1][1] + (abs - w[w.length - 1][0]);
 };
+export const fade = (t: number, a: number, b: number, f = 0.35) => clamp((t - a) / f) * clamp((b - t) / f);
+export const pls = (t: number, s = 1.4) => 0.5 + 0.5 * Math.sin((t * 6.2832) / s);
 
-// ---------- grid geometry ----------
-export type Col = { w: number; label: string };
-export const colLabel = (i: number): string => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
-export const buildCols = (widths: number[]): Col[] => {
-  const cols: Col[] = widths.map((w, i) => ({ w, label: colLabel(i) }));
-  let x = widths.reduce((a, b) => a + b, 0);
-  let i = widths.length;
-  while (x < WIN_W - M.rowHdr) { cols.push({ w: M.colW, label: colLabel(i) }); x += M.colW; i++; }
-  return cols;
+/* ───────── sample data (lesson 32: PivotTable + custom report) ───────── */
+export const NROWS = 50001;
+export const NC = 14;
+export const PVW = [130, 170, 40, 120, 170, 40, 380, 64, 64, 64, 64, 64, 64, 64];
+export const P5W = [120, 160, 130, 30, 110, 150, 130, 64, 64, 64, 64, 64, 64, 64];
+export const WCOL: number[] = [...PVW];
+/** switch the column-width set (called once at the top of each scene, before its grid renders) */
+export const setCols = (a: number[]) => { WCOL.length = 0; WCOL.push(...a); };
+export const xOf = (c: number) => {
+  const i = Math.min(NC - 1, Math.floor(c));
+  let x = 0;
+  for (let k = 0; k < i; k++) x += WCOL[k];
+  return x + (c - i) * WCOL[i];
 };
-export const colX = (cols: Col[], c: number): number => M.rowHdr + cols.slice(0, c).reduce((a, k) => a + k.w, 0);
-export const cellX = colX;
-export const slotY = (slot: number): number => GRID_TOP + slot * M.rowH;
-export const cellCenter = (cols: Col[], c: number, slot: number): { x: number; y: number } => ({
-  x: colX(cols, c) + cols[c].w / 2, y: slotY(slot) + M.rowH / 2,
-});
-
-// ---------- icons (generic, no trademarks) ----------
-export type IconKind = string;
-export const Icon: React.FC<{ k: IconKind; s?: number; c?: string }> = ({ k, s = 16, c = "#444" }) => {
-  const g = C.xGreen, b = "#2B7CD3", o = "#D83B01";
-  const sw = { fill: "none", stroke: c, strokeWidth: 1.2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  let body: React.ReactNode;
-  switch (k) {
-    case "paste": body = <g><rect x="3" y="3" width="10" height="11" rx="1" {...sw} /><rect x="6" y="1.5" width="4" height="3" rx="1" fill="#fff" stroke={c} strokeWidth="1.2" /><rect x="7" y="7" width="8" height="8" fill="#fff" stroke={b} strokeWidth="1.2" /></g>; break;
-    case "cut": body = <g><circle cx="5" cy="12" r="2" {...sw} /><circle cx="11" cy="12" r="2" {...sw} /><path d="M6 10 L11 2 M10 10 L5 2" {...sw} /></g>; break;
-    case "copy": body = <g><rect x="2.5" y="2.5" width="8" height="9" {...sw} /><rect x="6" y="5.5" width="8" height="9" fill="#fff" stroke={c} strokeWidth="1.2" /></g>; break;
-    case "brush": body = <g><rect x="3" y="2" width="9" height="4" fill={o} stroke="none" /><path d="M7.5 6 V10 M5.5 10 H9.5 V14 H5.5 Z" {...sw} /></g>; break;
-    case "sortaz": body = <g><text x="1" y="7" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">A</text><text x="1" y="14" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">Z</text><path d="M11 3 V13 M8.5 10.5 L11 13.5 L13.5 10.5" {...sw} stroke={b} /></g>; break;
-    case "sortza": body = <g><text x="1" y="7" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">Z</text><text x="1" y="14" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">A</text><path d="M11 3 V13 M8.5 10.5 L11 13.5 L13.5 10.5" {...sw} stroke={b} /></g>; break;
-    case "sort": body = <g><text x="0.5" y="6.5" fontSize="6" fontWeight="700" fill={c} fontFamily="Arial">A</text><text x="0.5" y="13.5" fontSize="6" fontWeight="700" fill={c} fontFamily="Arial">Z</text><rect x="8" y="3" width="7" height="2" fill={b} /><rect x="8" y="7" width="5" height="2" fill={b} /><rect x="8" y="11" width="3" height="2" fill={b} /></g>; break;
-    case "filter": body = <g><path d="M2 3 H14 L9.2 8.6 V13 L6.8 11.6 V8.6 Z" fill="#fff" stroke={b} strokeWidth="1.3" strokeLinejoin="round" /></g>; break;
-    case "filteron": body = <g><path d="M2 3 H14 L9.2 8.6 V13 L6.8 11.6 V8.6 Z" fill={b} stroke={b} strokeWidth="1.3" strokeLinejoin="round" /></g>; break;
-    case "clearf": body = <g><path d="M2 3 H11 L7.5 7.6 V12 L5.5 10.8 V7.6 Z" fill="#fff" stroke={b} strokeWidth="1.2" strokeLinejoin="round" /><path d="M10 9 L14 13 M14 9 L10 13" {...sw} stroke={o} /></g>; break;
-    case "reapply": body = <g><path d="M2 3 H11 L7.5 7.6 V12 L5.5 10.8 V7.6 Z" fill="#fff" stroke={b} strokeWidth="1.2" strokeLinejoin="round" /><path d="M10 11 A2.6 2.6 0 1 0 12 8.6 M12 7 V9 H10" {...sw} stroke={g} /></g>; break;
-    case "adv": body = <g><path d="M2 3 H12 L8 7.6 V12 L6 10.8 V7.6 Z" fill="#fff" stroke={b} strokeWidth="1.2" strokeLinejoin="round" /><path d="M11 10 H15 M13 8 V12" {...sw} stroke={g} /></g>; break;
-    case "find": body = <g><circle cx="6.5" cy="6.5" r="4" {...sw} /><path d="M9.6 9.6 L14 14" {...sw} strokeWidth={1.8} /><path d="M3 15 H6" {...sw} stroke={b} /></g>; break;
-    case "sum": body = <path d="M12 3 H4 L8 8 L4 13 H12" {...sw} stroke={o} strokeWidth="1.8" />; break;
-    case "fill": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><path d="M8 4 V12 M5.5 9.5 L8 12.5 L10.5 9.5" {...sw} stroke={g} /></g>; break;
-    case "eraser": body = <g><path d="M3 11 L9 3 L14 7 L9 14 H5 Z" fill="#fff" stroke={c} strokeWidth="1.2" /><path d="M6 10 L11 6" {...sw} /></g>; break;
-    case "cond": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><rect x="3.5" y="3.5" width="4" height="3" fill={o} /><rect x="3.5" y="8" width="4" height="3" fill={g} /><rect x="9" y="5" width="4" height="3" fill={b} /></g>; break;
-    case "table": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><rect x="2" y="2" width="12" height="3" fill={b} /><path d="M2 8 H14 M8 5 V14" {...sw} /></g>; break;
-    case "styles": body = <g><rect x="2" y="3" width="12" height="10" rx="1" {...sw} /><rect x="4" y="5" width="8" height="2" fill={g} /><rect x="4" y="9" width="5" height="2" fill={b} /></g>; break;
-    case "insert": body = <g><rect x="2" y="3" width="9" height="9" {...sw} /><path d="M12 10 V15 M9.5 12.5 H14.5" {...sw} stroke={g} strokeWidth="1.8" /></g>; break;
-    case "delete": body = <g><rect x="2" y="3" width="9" height="9" {...sw} /><path d="M10 11 L15 15 M15 11 L10 15" {...sw} stroke={o} strokeWidth="1.6" /></g>; break;
-    case "format": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><path d="M2 6 H14 M6 6 V14" {...sw} /><circle cx="11" cy="11" r="1.6" fill={g} /></g>; break;
-    case "analyze": body = <g><rect x="2" y="9" width="3" height="5" fill={b} /><rect x="6.5" y="5" width="3" height="9" fill={g} /><rect x="11" y="2" width="3" height="12" fill={o} /></g>; break;
-    case "get": body = <g><rect x="2" y="3" width="9" height="10" rx="1" {...sw} /><path d="M2 6 H11" {...sw} /><path d="M12 6 V13 M9.8 11 L12 13.4 L14.2 11" {...sw} stroke={g} /></g>; break;
-    case "refresh": body = <g><path d="M13 8 A5 5 0 1 1 11 4 M11.5 1.5 V4.5 H8.5" {...sw} stroke={g} strokeWidth="1.6" /></g>; break;
-    case "csv": body = <g><rect x="3" y="1.5" width="10" height="13" rx="1" {...sw} /><path d="M5 6 H11 M5 9 H11 M5 12 H9" {...sw} /></g>; break;
-    case "web": body = <g><circle cx="8" cy="8" r="6" {...sw} /><ellipse cx="8" cy="8" rx="2.6" ry="6" {...sw} /><path d="M2 8 H14" {...sw} /></g>; break;
-    case "text2col": body = <g><rect x="2" y="3" width="12" height="10" {...sw} /><path d="M8 3 V13" {...sw} stroke={b} /><path d="M4 6.5 H6.5 M4 9.5 H6.5 M9.5 6.5 H12 M9.5 9.5 H12" {...sw} /></g>; break;
-    case "flash": body = <path d="M9 1.5 L3.5 9 H7.5 L6.5 14.5 L12.5 7 H8.5 Z" fill={o} stroke="none" />; break;
-    case "dedupe": body = <g><rect x="2" y="2" width="10" height="9" {...sw} /><path d="M4 5 H10 M4 8 H10" {...sw} /><path d="M10 11 L15 15 M15 11 L10 15" {...sw} stroke={o} /></g>; break;
-    case "valid": body = <g><rect x="2" y="3" width="11" height="9" {...sw} /><path d="M5 8 L7 10 L11 5.5" {...sw} stroke={g} strokeWidth="1.6" /></g>; break;
-    case "whatif": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><path d="M6 6 Q8 3.5 10 6 Q10 8 8 9 M8 11 V11.6" {...sw} stroke={b} /></g>; break;
-    case "group": body = <g><path d="M3 3 V13 M3 4 H7 M3 12 H7" {...sw} /><rect x="8" y="2.5" width="6" height="3" {...sw} /><rect x="8" y="10.5" width="6" height="3" {...sw} /></g>; break;
-    case "align": body = <g><path d="M2 4 H14 M2 7 H10 M2 10 H14 M2 13 H10" {...sw} /></g>; break;
-    case "aligncenter": body = <g><path d="M2 4 H14 M4 7 H12 M2 10 H14 M4 13 H12" {...sw} /></g>; break;
-    case "alignright": body = <g><path d="M2 4 H14 M6 7 H14 M2 10 H14 M6 13 H14" {...sw} /></g>; break;
-    case "wrap": body = <g><path d="M2 4 H14 M2 8 H11 Q14 8 14 10.5 Q14 13 11 13 H8 M9.5 11.5 L8 13 L9.5 14.5" {...sw} /></g>; break;
-    case "merge": body = <g><rect x="2" y="3" width="12" height="10" {...sw} /><path d="M5 8 H11 M5 8 L7 6.5 M5 8 L7 9.5 M11 8 L9 6.5 M11 8 L9 9.5" {...sw} stroke={b} /></g>; break;
-    case "borders": body = <g><rect x="2.5" y="2.5" width="11" height="11" {...sw} strokeDasharray="1.5 1.5" /><path d="M2.5 13.5 H13.5" {...sw} strokeWidth="1.8" /></g>; break;
-    case "fillc": body = <g><path d="M4 8 L8 3 L12 8 L8 12 Z" fill="#fff" stroke={c} strokeWidth="1.2" /><rect x="2" y="13" width="12" height="2.2" fill="#FFD400" /></g>; break;
-    case "fontc": body = <g><text x="4.5" y="11" fontSize="10" fontWeight="700" fill={c} fontFamily="Arial">A</text><rect x="2" y="13" width="12" height="2.2" fill="#E81123" /></g>; break;
-    case "dollar": body = <text x="4" y="12.5" fontSize="11" fontWeight="700" fill={g} fontFamily="Arial">$</text>; break;
-    case "percent": body = <text x="2.5" y="12" fontSize="11" fontWeight="700" fill={c} fontFamily="Arial">%</text>; break;
-    case "comma": body = <text x="5" y="13" fontSize="13" fontWeight="700" fill={c} fontFamily="Arial">,</text>; break;
-    case "dec": body = <text x="0.5" y="11.5" fontSize="8" fontWeight="700" fill={c} fontFamily="Arial">.00</text>; break;
-    case "chev": body = <path d="M4 6 L8 10 L12 6" {...sw} />; break;
-    case "search": body = <g><circle cx="7" cy="7" r="4" {...sw} /><path d="M10 10 L14 14" {...sw} /></g>; break;
-    case "save": body = <g><path d="M2.5 2.5 H11.5 L13.5 4.5 V13.5 H2.5 Z" {...sw} /><rect x="5" y="2.5" width="5" height="3.5" {...sw} /><rect x="4.5" y="9" width="7" height="4.5" {...sw} /></g>; break;
-    case "undo": body = <path d="M5 4 L2 7 L5 10 M2 7 H10 A3.5 3.5 0 0 1 10 14 H7" {...sw} />; break;
-    case "redo": body = <path d="M11 4 L14 7 L11 10 M14 7 H6 A3.5 3.5 0 0 0 6 14 H9" {...sw} />; break;
-    case "grid": body = <g><rect x="2" y="2" width="12" height="12" rx="1" fill={g} stroke="none" /><path d="M2 6 H14 M2 10 H14 M6 2 V14 M10 2 V14" stroke="#fff" strokeWidth="1" /></g>; break;
-    case "comment": body = <path d="M2.5 3 H13.5 V10.5 H8 L5 13.5 V10.5 H2.5 Z" {...sw} />; break;
-    case "share": body = <g><path d="M8 10 V2.5 M5 5 L8 2 L11 5" {...sw} stroke="#fff" /><path d="M3 8 V13.5 H13 V8" {...sw} stroke="#fff" /></g>; break;
-    default: body = <g><rect x="2" y="2" width="12" height="12" rx="2" {...sw} /><path d="M5 6 H11 M5 9 H11" {...sw} /></g>;
+export const BRN = ['Cairo', 'Alex', 'Giza', 'Mansoura', 'Aswan'];
+export const SALES = [1858000, 1265000, 1105000, 759000, 584000];
+export const PROFIT = [428000, 291000, 238000, 152000, 117000];
+/** pivot row order: d = by value (default), a = A to Z, z = Z to A */
+export const ORD: Record<string, number[]> = {d: [0, 1, 2, 3, 4], a: [1, 4, 0, 2, 3], z: [3, 2, 0, 4, 1]};
+export const fmt = (n: number) => n.toLocaleString('en-US');
+/** kind = 'pv|sort|modes|flags|edit|[hl]'  (p5 = same with Profit column; modes 'ggggg;ggg--' = Sales;Profit report columns)
+ *  modes per report row: r = plain reference to the pivot cell (=B4..), g = GETPIVOTDATA (by branch name), - = empty
+ *  flags: h = report header, n = branch names.   edit = 'E4,4:text' (cell in edit mode) or 'V4,6:text' (committed value)
+ *  hl = JSON [[row,col,color] | [row1,col1,row2,col2,color]] */
+export type Kind = string;
+type PK = {k: string; a: string; b: string; c: string; d: string; hl: Map<string, string>; ed: {r: number; c: number; t: string; editing: boolean} | null};
+let lastK = '';
+let lastP: PK = {k: '', a: '', b: '', c: '', d: '', hl: new Map(), ed: null};
+const parseKind = (kind: string): PK => {
+  if (kind === lastK) return lastP;
+  const q = kind.split('|');
+  const js = q.length > 1 && q[q.length - 1].startsWith('[') ? q[q.length - 1] : '[]';
+  const hl = new Map<string, string>();
+  for (const e of JSON.parse(js) as (string | number)[][]) {
+    if (e.length === 3) hl.set(`${e[0]},${e[1]}`, String(e[2]));
+    else for (let r = Number(e[0]); r <= Number(e[2]); r++) for (let c = Number(e[1]); c <= Number(e[3]); c++) hl.set(`${r},${c}`, String(e[4]));
   }
-  return <svg width={s} height={s} viewBox="0 0 16 16" style={{ display: "block", flex: "none" }}>{body}</svg>;
+  const d = q[4] && !q[4].startsWith('[') ? q[4] : '';
+  const m = /^([EV])(\d+),(\d+):([\s\S]*)$/.exec(d);
+  lastK = kind;
+  lastP = {k: q[0], a: q[1] ?? 'd', b: q[2] ?? '', c: q[3] ?? '', d, hl, ed: m ? {r: Number(m[2]), c: Number(m[3]), t: m[4], editing: m[1] === 'E'} : null};
+  return lastP;
 };
-
-// Icon-set arrows (3 Arrows, coloured) used in cells and in the filter menu.
-export const Arrow: React.FC<{ kind: "up" | "side" | "down"; s?: number }> = ({ kind, s = 13 }) => {
-  const col = kind === "up" ? "#00B050" : kind === "down" ? "#E0301E" : "#FFC000";
-  const rot = kind === "up" ? 0 : kind === "side" ? 90 : 180;
-  return (
-    <svg width={s} height={s} viewBox="0 0 16 16" style={{ display: "block", flex: "none" }}>
-      <g transform={`rotate(${rot} 8 8)`}><path d="M8 1.5 L14.5 9 H10.5 V14.5 H5.5 V9 H1.5 Z" fill={col} /></g>
-    </svg>
-  );
+export const hlOf = (kind: Kind, row: number, col: number) => parseKind(kind).hl.get(`${row},${col}`);
+export const editOf = (kind: Kind, row: number, col: number) => {
+  const e = parseKind(kind).ed;
+  return e && e.r === row && e.c === col ? e : null;
 };
-
-// ---------- ribbon ----------
-type RItem = { id: string; label: string; icon: string; dd?: boolean };
-type RCol = { kind: "L" | "S"; items: RItem[] };
-type RGroup = { id: string; label: string; cols: RCol[]; custom?: "font" | "align" | "number" };
-const L = (id: string, label: string, icon: string, dd = false): RCol => ({ kind: "L", items: [{ id, label, icon, dd }] });
-const Sx = (...items: [string, string, string, boolean?][]): RCol => ({ kind: "S", items: items.map(([id, label, icon, dd]) => ({ id, label, icon, dd: !!dd })) });
-export const RIBBON: Record<string, RGroup[]> = {
-  home: [
-    { id: "clipboard", label: "Clipboard", cols: [L("paste", "Paste", "paste", true), Sx(["cut", "Cut", "cut"], ["copy", "Copy", "copy", true], ["fp", "Format Painter", "brush"])] },
-    { id: "font", label: "Font", cols: [], custom: "font" },
-    { id: "alignment", label: "Alignment", cols: [], custom: "align" },
-    { id: "number", label: "Number", cols: [], custom: "number" },
-    { id: "styles", label: "Styles", cols: [L("cf", "Conditional\nFormatting", "cond", true), L("fat", "Format as\nTable", "table", true), L("cs", "Cell\nStyles", "styles", true)] },
-    { id: "cells", label: "Cells", cols: [L("ins", "Insert", "insert", true), L("del", "Delete", "delete", true), L("fmt", "Format", "format", true)] },
-    { id: "editing", label: "Editing", cols: [Sx(["autosum", "AutoSum", "sum", true], ["fillb", "Fill", "fill", true], ["clearb", "Clear", "eraser", true]), L("sortfilter", "Sort &\nFilter", "sort", true), L("findsel", "Find &\nSelect", "find", true)] },
-    { id: "analysis", label: "Analysis", cols: [L("analyze", "Analyze\nData", "analyze")] },
-  ],
-  formulas: [
-    { id: "funclib", label: "Function Library", cols: [L("insfn", "Insert\nFunction", "sum"), L("autosum2", "AutoSum", "sum", true), L("recent", "Recently\nUsed", "generic", true), L("fin", "Financial", "dollar", true), L("logical", "Logical", "valid", true), L("text", "Text", "align", true), L("datetime", "Date &\nTime", "table", true), L("lookup", "Lookup &\nReference", "find", true), L("math", "Math &\nTrig", "analyze", true), L("morefn", "More\nFunctions", "generic", true)] },
-    { id: "names", label: "Defined Names", cols: [L("namemgr", "Name\nManager", "table"), Sx(["defname", "Define Name", "generic", true], ["useform", "Use in Formula", "generic", true], ["createsel", "Create from Selection", "generic"])] },
-    { id: "audit", label: "Formula Auditing", cols: [Sx(["traceprec", "Trace Precedents", "generic"], ["tracedep", "Trace Dependents", "generic"], ["rmarrows", "Remove Arrows", "generic", true]), Sx(["showf", "Show Formulas", "generic"], ["errchk", "Error Checking", "valid", true], ["evalf", "Evaluate Formula", "generic"]), L("watch", "Watch\nWindow", "find")] },
-    { id: "calc", label: "Calculation", cols: [L("calcopt", "Calculation\nOptions", "refresh", true), Sx(["calcnow", "Calculate Now", "refresh"], ["calcsheet", "Calculate Sheet", "refresh"])] },
-  ],
-  pivotanalyze: [
-    { id: "pt", label: "PivotTable", cols: [Sx(["ptname", "PivotTable1", "generic"], ["ptopt", "Options", "generic", true])] },
-    { id: "activefield", label: "Active Field", cols: [Sx(["afname", "Sum of Amount", "generic"], ["fieldset", "Field Settings", "format"]), Sx(["drilldown", "Drill Down", "generic"], ["drillup", "Drill Up", "generic"]), Sx(["expandf", "Expand Field", "insert"], ["collapsef", "Collapse Field", "delete"])] },
-    { id: "pgroup", label: "Group", cols: [Sx(["groupsel", "Group Selection", "group"], ["ungroup", "Ungroup", "group"], ["groupfield", "Group Field", "group"])] },
-    { id: "pfilter", label: "Filter", cols: [Sx(["inslicer", "Insert Slicer", "filter"], ["instl", "Insert Timeline", "table"], ["filtconn", "Filter Connections", "filter"])] },
-    { id: "pdata", label: "Data", cols: [L("prefresh", "Refresh", "refresh", true), L("chgsrc", "Change Data\nSource", "table", true)] },
-    { id: "pactions", label: "Actions", cols: [Sx(["pclear", "Clear", "eraser", true], ["pselect", "Select", "generic", true], ["pmove", "Move PivotTable", "generic"])] },
-    { id: "pcalc", label: "Calculations", cols: [Sx(["pfields", "Fields, Items, & Sets", "generic", true], ["prel", "Relationships", "generic"], ["olap", "OLAP Tools", "generic", true])] },
-    { id: "ptools", label: "Tools", cols: [L("pchart", "PivotChart", "analyze"), L("recpt", "Recommended\nPivotTables", "table")] },
-    { id: "pshow", label: "Show", cols: [Sx(["flist", "Field List", "generic"], ["pmbtn", "+/- Buttons", "generic"], ["fhead", "Field Headers", "generic"])] },
-  ],
-  pivotchart: [
-    { id: "pcname", label: "PivotChart", cols: [Sx(["cname", "Chart 1", "generic"])] },
-    { id: "cactive", label: "Active Field", cols: [Sx(["caf", "Sum of Amount", "generic"], ["cfs", "Field Settings", "format"]), Sx(["cexp", "Expand Field", "insert"], ["ccol", "Collapse Field", "delete"])] },
-    { id: "cfilter", label: "Filter", cols: [Sx(["cslicer", "Insert Slicer", "filter"], ["ctl", "Insert Timeline", "table"], ["cfc", "Filter Connections", "filter"])] },
-    { id: "cdata", label: "Data", cols: [L("crefresh", "Refresh", "refresh", true), L("cchg", "Change Data\nSource", "table", true)] },
-    { id: "cactions", label: "Actions", cols: [Sx(["cclear", "Clear", "eraser", true], ["cselect", "Select", "generic", true], ["cmove", "Move Chart", "generic"])] },
-    { id: "cshow", label: "Show/Hide", cols: [Sx(["cflist", "Field List", "generic"], ["cfbtn", "Field Buttons", "filter", true])] },
-  ],
-  slicer: [
-    { id: "sl", label: "Slicer", cols: [Sx(["slcap", "Slicer Caption: Branch", "generic"], ["slset", "Slicer Settings", "format"]), L("slconn", "Report\nConnections", "filter")] },
-    { id: "slstyle", label: "Slicer Styles", cols: [L("slqs", "Quick\nStyles", "styles", true)] },
-    { id: "slarr", label: "Arrange", cols: [Sx(["slfwd", "Bring Forward", "generic", true], ["slback", "Send Backward", "generic", true], ["slsel", "Selection Pane", "generic"]), Sx(["slalign", "Align", "generic", true], ["slgrp", "Group", "group", true], ["slrot", "Rotate", "generic", true])] },
-    { id: "slbtn", label: "Buttons", cols: [Sx(["slcols", "Columns: 1", "generic"], ["slh", "Height: 0.3", "generic"], ["slw", "Width: 1.9", "generic"])] },
-    { id: "slsize", label: "Size", cols: [Sx(["slsh", "Height: 3.5", "generic"], ["slsw", "Width: 1.9", "generic"])] },
-  ],
-  data: [
-    { id: "gettransform", label: "Get & Transform Data", cols: [L("getdata", "Get\nData", "get", true), Sx(["csv", "From Text/CSV", "csv"], ["web", "From Web", "web"], ["range", "From Table/Range", "table"]), Sx(["recent", "Recent Sources", "generic"], ["existing", "Existing Connections", "generic"])] },
-    { id: "queries", label: "Queries & Connections", cols: [L("refreshall", "Refresh\nAll", "refresh", true), Sx(["qc", "Queries & Connections", "generic"], ["props", "Properties", "generic"], ["links", "Edit Links", "generic"])] },
-    { id: "datatypes", label: "Data Types", cols: [L("stocks", "Stocks", "analyze"), L("currencies", "Currencies", "dollar")] },
-    { id: "sortfilter-data", label: "Sort & Filter", cols: [Sx(["sortaz", "", "sortaz"], ["sortza", "", "sortza"]), L("sortbtn", "Sort", "sort"), L("filterbtn", "Filter", "filter"), Sx(["clearbtn", "Clear", "clearf"], ["reapplybtn", "Reapply", "reapply"], ["advbtn", "Advanced", "adv"])] },
-    { id: "datatools", label: "Data Tools", cols: [Sx(["t2c", "Text to\nColumns", "text2col"], ["ff", "Flash Fill", "flash"], ["rd", "Remove Duplicates", "dedupe"]), Sx(["dv", "Data Validation", "valid", true], ["cons", "Consolidate", "generic"], ["rel", "Relationships", "generic"])] },
-    { id: "forecast", label: "Forecast", cols: [L("whatif", "What-If\nAnalysis", "whatif", true), L("fsheet", "Forecast\nSheet", "analyze")] },
-    { id: "outline", label: "Outline", cols: [L("grp", "Group", "group", true), L("ungrp", "Ungroup", "group", true), L("subt", "Subtotal", "generic")] },
-  ],
+export const cell = (kind: Kind, row: number, col: number): {t: string; n: boolean} => {
+  const p = parseKind(kind);
+  const ed = p.ed;
+  if (ed && ed.r === row && ed.c === col) return {t: ed.t, n: !ed.editing && /^[\d,]+$/.test(ed.t)};
+  const p5 = p.k === 'p5';
+  const ord = ORD[p.a] ?? ORD.d;
+  const pw = p5 ? 3 : 2;
+  const nc = p5 ? 4 : 3; // report names column
+  if (row === 3) {
+    if (col === 0) return {t: 'Row Labels  ▾', n: false};
+    if (col === 1) return {t: 'Sum of Sales Amount', n: false};
+    if (p5 && col === 2) return {t: 'Sum of Profit', n: false};
+    if (p.c.includes('h')) {
+      if (col === nc) return {t: 'Branch', n: false};
+      if (col === nc + 1) return {t: 'Sales Report', n: false};
+      if (p5 && col === 6) return {t: 'Profit Report', n: false};
+    }
+    return {t: '', n: false};
+  }
+  if (row === 9) {
+    if (col === 0) return {t: 'Grand Total', n: false};
+    if (col === 1) return {t: fmt(SALES.reduce((x, y) => x + y, 0)), n: true};
+    if (p5 && col === 2) return {t: fmt(PROFIT.reduce((x, y) => x + y, 0)), n: true};
+    return {t: '', n: false};
+  }
+  if (row < 4 || row > 8) return {t: '', n: false};
+  const i = row - 4;
+  if (col < pw) {
+    if (col === 0) return {t: BRN[ord[i]], n: false};
+    if (col === 1) return {t: fmt(SALES[ord[i]]), n: true};
+    return {t: fmt(PROFIT[ord[i]]), n: true};
+  }
+  if (col === nc && p.c.includes('n')) return {t: BRN[i], n: false};
+  const [mf, mg] = p.b.split(';');
+  if (col === nc + 1) {
+    const m = (mf ?? '')[i];
+    return m === 'g' ? {t: fmt(SALES[i]), n: true} : m === 'r' ? {t: fmt(SALES[ord[i]]), n: true} : {t: '', n: false};
+  }
+  if (p5 && col === 6) {
+    const m = (mg ?? '')[i];
+    return m === 'g' ? {t: fmt(PROFIT[i]), n: true} : m === 'r' ? {t: fmt(PROFIT[ord[i]]), n: true} : {t: '', n: false};
+  }
+  return {t: '', n: false};
 };
-const colW = (c: RCol): number =>
-  c.kind === "L" ? Math.max(50, Math.max(...c.items[0].label.split("\n").map((s) => s.length)) * 6.6 + 14) :
-    Math.max(...c.items.map((i) => 24 + i.label.length * 6 + (i.dd ? 12 : 0)), 28);
-const customW: Record<string, number> = { font: 232, align: 214, number: 168 };
-const groupW = (g: RGroup): number => (g.custom ? customW[g.custom] : g.cols.reduce((a, c) => a + colW(c), 0) + 10);
+export const colName = (c: number) => String.fromCharCode(65 + c);
 
-const tx = (size: number, extra?: React.CSSProperties): React.CSSProperties => ({ fontFamily: F.ui, fontSize: size, color: C.ink, ...extra });
-const Box: React.FC<{ w: number; h?: number; children?: React.ReactNode; style?: React.CSSProperties }> = ({ w, h = 22, children, style }) => (
-  <div style={{ width: w, height: h, border: "1px solid #BDBDBD", background: "#fff", boxSizing: "border-box", display: "flex", alignItems: "center", padding: "0 5px", ...tx(12), ...style }}>{children}</div>
+/* ───────── grid ───────── */
+const RH = M.rowH;
+const Block: React.FC<{x: number; y: number; w: number; h: number; r0: number; c0: number; kind: Kind}> = ({x, y, w, h, r0, c0, kind}) => {
+  const out: React.ReactNode[] = [];
+  const r = Math.floor(r0);
+  const off = -(r0 - r) * RH;
+  const c = Math.floor(c0);
+  const pw = kind.startsWith('p5') ? 3 : 2;
+  for (let i = 0; off + i * RH < h; i++) {
+    const row = r + i;
+    if (row > NROWS) break;
+    let cx = -(c0 - c) * WCOL[c];
+    for (let cc = c; cc < NC && cx < w; cc++) {
+      const v = cell(kind, row, cc);
+      const hl = hlOf(kind, row, cc);
+      const base = (row === 3 || row === 9) && cc < pw;
+      const ed = editOf(kind, row, cc);
+      const live = !!ed && ed.editing;
+      out.push(
+        <div key={`${i}-${cc}`} style={{position: 'absolute', left: cx, top: off + i * RH, width: live ? 440 : WCOL[cc], height: RH, boxSizing: 'border-box', borderRight: `1px solid ${X.grid}`, borderBottom: `1px solid ${X.grid}`, padding: '0 4px', lineHeight: `${RH - 1}px`, fontSize: 12.5, whiteSpace: 'nowrap', overflow: live ? 'visible' : 'hidden', zIndex: live ? 4 : undefined, textAlign: v.n ? 'right' : 'left', background: live ? '#fff' : hl ?? (base ? '#DDEBF7' : '#fff'), color: '#000', fontWeight: hl || base ? 700 : 400}}>
+          {v.t}
+        </div>,
+      );
+      cx += WCOL[cc];
+    }
+  }
+  return <div style={{position: 'absolute', left: x, top: y, width: w, height: h, overflow: 'hidden', background: '#fff'}}>{out}</div>;
+};
+const hdrBase: React.CSSProperties = {position: 'absolute', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, borderRight: `1px solid ${X.line}`, borderBottom: `1px solid ${X.line}`};
+const ColHdr: React.FC<{x: number; w: number; c0: number; selC: number}> = ({x, w, c0, selC}) => {
+  const out: React.ReactNode[] = [];
+  const c = Math.floor(c0);
+  let cx = -(c0 - c) * WCOL[c];
+  for (let cc = c; cc < NC && cx < w; cc++) {
+    const s = cc === selC;
+    out.push(<div key={cc} style={{...hdrBase, left: cx, top: 0, width: WCOL[cc], height: M.hdr, background: s ? X.gsel : '#F0F0F0', color: s ? X.green : '#444', fontWeight: s ? 700 : 400, borderBottom: s ? `2px solid ${X.green}` : `1px solid ${X.line}`}}>{colName(cc)}</div>);
+    cx += WCOL[cc];
+  }
+  return <div style={{position: 'absolute', left: x, top: 0, width: w, height: M.hdr, overflow: 'hidden'}}>{out}</div>;
+};
+const RowHdr: React.FC<{y: number; h: number; r0: number; selR: number}> = ({y, h, r0, selR}) => {
+  const out: React.ReactNode[] = [];
+  const r = Math.floor(r0);
+  const off = -(r0 - r) * RH;
+  for (let i = 0; off + i * RH < h; i++) {
+    const row = r + i;
+    const s = row === selR;
+    out.push(<div key={i} style={{...hdrBase, left: 0, top: off + i * RH, width: M.rowW, height: RH, background: s ? X.gsel : '#F0F0F0', color: s ? X.green : '#444', fontWeight: s ? 700 : 400, borderRight: s ? `2px solid ${X.green}` : `1px solid ${X.line}`}}>{row}</div>);
+  }
+  return <div style={{position: 'absolute', left: 0, top: y, width: M.rowW, height: h, overflow: 'hidden'}}>{out}</div>;
+};
+const Bar: React.FC<{vert: boolean; len: number; pos: number; thumb: number}> = ({vert, len, pos, thumb}) => (
+  <div style={{position: 'absolute', background: '#F0F0F0', ...(vert ? {right: 0, top: M.hdr, width: M.sb, height: len} : {})}}>
+    <div style={{position: 'absolute', left: 3, top: 14 + pos * (len - 28 - thumb), width: M.sb - 6, height: thumb, background: '#C1C1C1', borderRadius: 3}} />
+    <div style={{position: 'absolute', left: 3, top: 3, fontSize: 7, color: '#777'}}>▲</div>
+    <div style={{position: 'absolute', left: 3, bottom: 3, fontSize: 7, color: '#777'}}>▼</div>
+  </div>
 );
-const SmallIcons: React.FC<{ ks: string[]; gap?: number }> = ({ ks, gap = 8 }) => (
-  <div style={{ display: "flex", gap, alignItems: "center", height: 22 }}>{ks.map((k, i) => <Icon key={i} k={k} s={16} />)}</div>
-);
-const CustomGroup: React.FC<{ kind: "font" | "align" | "number" }> = ({ kind }) => {
-  if (kind === "font") return (
-    <div style={{ padding: "6px 6px 0", display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", gap: 4, alignItems: "center" }}><Box w={110} style={{ justifyContent: "space-between", fontFamily: F.cell }}>Calibri<Icon k="chev" s={10} /></Box><Box w={46} style={{ justifyContent: "space-between", fontFamily: F.cell }}>11<Icon k="chev" s={10} /></Box><span style={tx(13, { fontWeight: 700 })}>A˄</span><span style={tx(11, { fontWeight: 700 })}>A˅</span></div>
-      <div style={{ display: "flex", gap: 9, alignItems: "center", height: 22 }}><span style={tx(14, { fontWeight: 700, width: 12 })}>B</span><span style={tx(14, { fontStyle: "italic", width: 12, fontFamily: F.cell })}>I</span><span style={tx(14, { textDecoration: "underline", width: 12 })}>U</span><Icon k="borders" /><Icon k="fillc" /><Icon k="fontc" /></div>
-    </div>
-  );
-  if (kind === "align") return (
-    <div style={{ padding: "6px 6px 0", display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", height: 22 }}><SmallIcons ks={["align", "aligncenter", "alignright"]} /><Icon k="wrap" /><span style={tx(12)}>Wrap Text</span></div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", height: 22 }}><SmallIcons ks={["align", "aligncenter", "alignright"]} /><Icon k="merge" /><span style={tx(12)}>Merge & Center ▾</span></div>
-    </div>
-  );
+export type GridCfg = {kind: Kind; fr: number; fc: number; sr: number; sc: number; selR: number; selC: number; rangeR?: number; rangeC?: number; glow?: string; tint?: number; lines?: number};
+export const cellXY = (g: Pick<GridCfg, 'fr' | 'fc' | 'sr' | 'sc'>, r: number, c: number) => {
+  const fw = xOf(g.fc);
+  const fh = g.fr * RH;
+  const x = c < g.fc ? M.rowW + xOf(c) : M.rowW + fw + (xOf(c) - xOf(g.sc));
+  const y = r <= g.fr ? M.hdr + (r - 1) * RH : M.hdr + fh + (r - g.sr) * RH;
+  return {x, y, w: WCOL[c], h: RH};
+};
+export const gridTop = (ribbon: boolean) => M.title + M.tabs + (ribbon ? M.ribbon : 0) + M.formula;
+export const cellWin = (g: Pick<GridCfg, 'fr' | 'fc' | 'sr' | 'sc'>, r: number, c: number, ribbon = true) => {
+  const p = cellXY(g, r, c);
+  return {x: p.x + p.w / 2, y: gridTop(ribbon) + p.y + p.h / 2};
+};
+const Sel: React.FC<{g: GridCfg; ox: number; oy: number; aw: number; ah: number}> = ({g, ox, oy, aw, ah}) => {
+  const a = cellXY(g, g.selR, g.selC);
+  const e = g.rangeR ? cellXY(g, g.rangeR, g.rangeC ?? g.selC) : a;
+  const inFrR = g.selR <= g.fr;
+  const inFrC = g.selC < g.fc;
+  const fw = xOf(g.fc);
+  const fh = g.fr * RH;
+  const rx0 = inFrC ? ox : ox + fw;
+  const rx1 = inFrC ? ox + fw : ox + aw;
+  const ry0 = inFrR ? oy : oy + fh;
+  const ry1 = inFrR ? oy + fh : oy + ah;
+  const x0 = a.x, y0 = a.y, x1 = e.x + e.w, y1 = e.y + e.h;
+  const rng = !!g.rangeR;
   return (
-    <div style={{ padding: "6px 6px 0", display: "flex", flexDirection: "column", gap: 6 }}>
-      <Box w={150} style={{ justifyContent: "space-between" }}>General<Icon k="chev" s={10} /></Box>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", height: 22 }}><SmallIcons ks={["dollar", "percent", "comma", "dec", "dec"]} gap={11} /></div>
+    <div style={{position: 'absolute', left: rx0, top: ry0, width: rx1 - rx0, height: ry1 - ry0, overflow: 'hidden', pointerEvents: 'none'}}>
+      {rng && <div style={{position: 'absolute', left: x0 - rx0, top: y0 - ry0, width: x1 - x0, height: y1 - y0, background: 'rgba(33,115,70,.14)'}} />}
+      <div style={{position: 'absolute', left: x0 - rx0 - 1, top: y0 - ry0 - 1, width: x1 - x0 + 1, height: y1 - y0 + 1, border: `2px solid ${X.green}`, boxSizing: 'border-box'}} />
+      <div style={{position: 'absolute', left: x1 - rx0 - 4, top: y1 - ry0 - 4, width: 7, height: 7, background: X.green, border: '1px solid #fff', boxSizing: 'border-box'}} />
+    </div>
+  );
+};
+export const Grid: React.FC<{gw: number; gh: number} & GridCfg> = (g) => {
+  const ox = M.rowW, oy = M.hdr, aw = g.gw - ox - M.sb, ah = g.gh - oy;
+  const fw = xOf(g.fc), fh = g.fr * RH;
+  const fz = g.fr > 0 || g.fc > 0;
+  const glow = g.glow ?? C.green;
+  const ln = g.lines ?? 0;
+  const thumb = Math.max(24, (ah / (NROWS * RH)) * (ah - 28));
+  return (
+    <div style={{position: 'absolute', inset: 0, background: '#fff'}}>
+      <div style={{position: 'absolute', left: 0, top: 0, width: ox, height: oy, background: '#F0F0F0', borderRight: `1px solid ${X.line}`, borderBottom: `1px solid ${X.line}`}}>
+        <div style={{position: 'absolute', right: 4, bottom: 3, width: 0, height: 0, borderLeft: '10px solid transparent', borderBottom: '10px solid #B5B5B5'}} />
+      </div>
+      <ColHdr x={ox} w={fw} c0={0} selC={g.selC} />
+      <ColHdr x={ox + fw} w={aw - fw} c0={g.sc} selC={g.selC} />
+      <RowHdr y={oy} h={fh} r0={1} selR={g.selR} />
+      <RowHdr y={oy + fh} h={ah - fh} r0={g.sr} selR={g.selR} />
+      {fz && g.fr > 0 && g.fc > 0 && <Block x={ox} y={oy} w={fw} h={fh} r0={1} c0={0} kind={g.kind} />}
+      {g.fr > 0 && <Block x={ox + fw} y={oy} w={aw - fw} h={fh} r0={1} c0={g.sc} kind={g.kind} />}
+      {g.fc > 0 && <Block x={ox} y={oy + fh} w={fw} h={ah - fh} r0={g.sr} c0={0} kind={g.kind} />}
+      <Block x={ox + fw} y={oy + fh} w={aw - fw} h={ah - fh} r0={g.sr} c0={g.sc} kind={g.kind} />
+      {g.selR > 0 && <Sel g={g} ox={ox} oy={oy} aw={aw} ah={ah} />}
+      {fz && g.fr > 0 && <div style={{position: 'absolute', left: ox, top: oy + fh - 1, width: aw, height: 2, background: '#7A7A7A'}} />}
+      {fz && g.fc > 0 && <div style={{position: 'absolute', left: ox + fw - 1, top: oy, width: 2, height: ah, background: '#7A7A7A'}} />}
+      {ln > 0 && g.fr > 0 && <div style={{position: 'absolute', left: ox, top: oy + fh - 2, width: aw, height: 3, background: glow, opacity: ln, boxShadow: `0 0 7px ${glow}`}} />}
+      {ln > 0 && g.fc > 0 && <div style={{position: 'absolute', left: ox + fw - 2, top: oy, width: 3, height: ah, background: glow, opacity: ln, boxShadow: `0 0 7px ${glow}`}} />}
+      {(g.tint ?? 0) > 0 && g.fr > 0 && <div style={{position: 'absolute', left: ox, top: oy, width: aw, height: fh, background: glow, opacity: (g.tint ?? 0) * 0.18, pointerEvents: 'none'}} />}
+      {(g.tint ?? 0) > 0 && g.fc > 0 && <div style={{position: 'absolute', left: ox, top: oy, width: fw, height: ah, background: glow, opacity: (g.tint ?? 0) * 0.18, pointerEvents: 'none'}} />}
+      <Bar vert len={ah} pos={clamp((g.sr - 1) / NROWS)} thumb={thumb} />
+    </div>
+  );
+};
+export const SplitGrid: React.FC<{gw: number; gh: number; kind: Kind; sx: number; sy: number; rt: number; rb: number; cl: number; cr: number; glow?: string; selR?: number; selC?: number}> = (g) => {
+  const ox = M.rowW, oy = M.hdr, aw = g.gw - ox - M.sb, ah = g.gh - oy, bar = 6;
+  const glow = g.glow ?? C.purple;
+  const rw = aw - g.sx - bar, bh = ah - g.sy - bar;
+  const sR = g.selR ?? -1, sC = g.selC ?? -1;
+  return (
+    <div style={{position: 'absolute', inset: 0, background: '#fff'}}>
+      <div style={{position: 'absolute', left: 0, top: 0, width: ox, height: oy, background: '#F0F0F0', borderRight: `1px solid ${X.line}`, borderBottom: `1px solid ${X.line}`}} />
+      <ColHdr x={ox} w={g.sx} c0={g.cl} selC={sC} />
+      <ColHdr x={ox + g.sx + bar} w={rw} c0={g.cr} selC={sC} />
+      <RowHdr y={oy} h={g.sy} r0={g.rt} selR={sR} />
+      <RowHdr y={oy + g.sy + bar} h={bh} r0={g.rb} selR={sR} />
+      <Block x={ox} y={oy} w={g.sx} h={g.sy} r0={g.rt} c0={g.cl} kind={g.kind} />
+      <Block x={ox + g.sx + bar} y={oy} w={rw} h={g.sy} r0={g.rt} c0={g.cr} kind={g.kind} />
+      <Block x={ox} y={oy + g.sy + bar} w={g.sx} h={bh} r0={g.rb} c0={g.cl} kind={g.kind} />
+      <Block x={ox + g.sx + bar} y={oy + g.sy + bar} w={rw} h={bh} r0={g.rb} c0={g.cr} kind={g.kind} />
+      <div style={{position: 'absolute', left: ox, top: oy + g.sy, width: aw, height: bar, background: '#BDBDBD', boxShadow: `0 0 10px ${glow}`, borderTop: `1px solid ${glow}`, borderBottom: `1px solid ${glow}`}} />
+      <div style={{position: 'absolute', left: ox + g.sx, top: oy, width: bar, height: ah, background: '#BDBDBD', boxShadow: `0 0 10px ${glow}`, borderLeft: `1px solid ${glow}`, borderRight: `1px solid ${glow}`}} />
+      <div style={{position: 'absolute', left: ox + g.sx - 5, top: oy + g.sy - 5, width: 16, height: 16, borderRadius: 8, background: glow, boxShadow: `0 0 14px ${glow}`}} />
+      <Bar vert len={ah} pos={clamp((g.rb - 1) / NROWS)} thumb={24} />
+    </div>
+  );
+};
+/** growing split bars while the single grid is still shown */
+export const SplitBars: React.FC<{gw: number; gh: number; sx: number; sy: number; p: number}> = ({gw, gh, sx, sy, p}) => {
+  const ox = M.rowW, oy = M.hdr, aw = gw - ox - M.sb, ah = gh - oy;
+  const c = C.purple;
+  return (
+    <div style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', left: ox + sx - p * sx, top: oy + sy, width: p * aw, height: 6, background: c, boxShadow: `0 0 14px ${c}`}} />
+      <div style={{position: 'absolute', left: ox + sx, top: oy + sy - p * sy, width: 6, height: p * ah, background: c, boxShadow: `0 0 14px ${c}`}} />
     </div>
   );
 };
 
-export const Ribbon: React.FC<{ tab: string; glow?: { id: string; color: string; t: number } }> = ({ tab, glow }) => {
-  const groups = RIBBON[tab] ?? [];
-  const lit = (id: string): boolean => !!glow && glow.id === id && glow.t > 0.02;
-  const gl = (id: string): React.CSSProperties => lit(id) && glow
-    ? { boxShadow: `0 0 ${10 + 12 * glow.t}px ${glow.color}, inset 0 0 0 2px ${glow.color}`, background: `${glow.color}22`, borderRadius: 4, opacity: 1 } : {};
+/* ───────── ribbon ───────── */
+type It = {k: string; l: string; ic?: string; big?: boolean; w?: number; dd?: boolean; chk?: boolean; box?: boolean};
+type Grp = {n: string; cols: It[][]};
+const VIEW: Grp[] = [
+  {n: 'Workbook Views', cols: [[{k: 'normal', l: 'Normal', ic: 'grid', big: true, w: 50}], [{k: 'pbp', l: 'Page Break\nPreview', ic: 'pbp', big: true, w: 62}], [{k: 'plv', l: 'Page\nLayout', ic: 'plv', big: true, w: 48}], [{k: 'cv', l: 'Custom\nViews', ic: 'cv', big: true, w: 52}]]},
+  {n: 'Show', cols: [[{k: 'ruler', l: 'Ruler', chk: true, w: 76}, {k: 'grid', l: 'Gridlines', chk: true, w: 76}], [{k: 'fbar', l: 'Formula Bar', chk: true, w: 90}, {k: 'hdgs', l: 'Headings', chk: true, w: 90}]]},
+  {n: 'Zoom', cols: [[{k: 'zoom', l: 'Zoom', ic: 'zoom', big: true, w: 44}], [{k: 'z100', l: '100%', ic: 'z100', big: true, w: 44}], [{k: 'zsel', l: 'Zoom to\nSelection', ic: 'zsel', big: true, w: 62}]]},
+  {n: 'Window', cols: [[{k: 'neww', l: 'New\nWindow', ic: 'neww', big: true, w: 48}], [{k: 'arr', l: 'Arrange\nAll', ic: 'arr', big: true, w: 48}], [{k: 'frz', l: 'Freeze\nPanes', ic: 'frz', big: true, w: 52, dd: true}],
+    [{k: 'split', l: 'Split', ic: 'split', w: 62}, {k: 'hide', l: 'Hide', ic: 'hide', w: 62}, {k: 'unhide', l: 'Unhide', ic: 'unhide', w: 62}],
+    [{k: 'sbs', l: 'View Side by Side', ic: 'sbs', w: 138}, {k: 'sync', l: 'Synchronous Scrolling', ic: 'sync', w: 138}, {k: 'reset', l: 'Reset Window Position', ic: 'reset', w: 138}],
+    [{k: 'swt', l: 'Switch\nWindows', ic: 'swt', big: true, w: 58, dd: true}]]},
+  {n: 'Macros', cols: [[{k: 'macro', l: 'Macros', ic: 'macro', big: true, w: 50, dd: true}]]},
+];
+const HOME: Grp[] = [
+  {n: 'Clipboard', cols: [[{k: 'paste', l: 'Paste', ic: 'g', big: true, w: 44, dd: true}], [{k: 'cut', l: 'Cut', ic: 'g', w: 84}, {k: 'copy', l: 'Copy', ic: 'g', w: 84, dd: true}, {k: 'fpt', l: 'Format Painter', ic: 'g', w: 84}]]},
+  {n: 'Font', cols: [[{k: 'font', l: 'Calibri', box: true, dd: true, w: 104}, {k: 'biu', l: 'B   I   U   ▾', box: true, w: 104}], [{k: 'fsz', l: '11', box: true, dd: true, w: 48}, {k: 'brd', l: '⊞ ▾  A ▾', box: true, w: 48}]]},
+  {n: 'Alignment', cols: [[{k: 'al1', l: '≡  ≡  ≡', box: true, w: 80}, {k: 'al2', l: '≡  ≡  ≡', box: true, w: 80}], [{k: 'wrap', l: 'Wrap Text', ic: 'g', w: 94}, {k: 'mrg', l: 'Merge & Center', ic: 'g', w: 94, dd: true}]]},
+  {n: 'Number', cols: [[{k: 'num', l: 'General', box: true, dd: true, w: 96}, {k: 'num2', l: '$ ▾  %  ,  .0', box: true, w: 96}]]},
+  {n: 'Styles', cols: [[{k: 'cf', l: 'Conditional\nFormatting', ic: 'g', big: true, w: 70, dd: true}], [{k: 'fat', l: 'Format as\nTable', ic: 'g', big: true, w: 56, dd: true}], [{k: 'cs', l: 'Cell\nStyles', ic: 'g', big: true, w: 46, dd: true}]]},
+  {n: 'Cells', cols: [[{k: 'ins', l: 'Insert', ic: 'g', big: true, w: 44, dd: true}], [{k: 'del', l: 'Delete', ic: 'g', big: true, w: 44, dd: true}], [{k: 'fmt', l: 'Format', ic: 'g', big: true, w: 44, dd: true}]]},
+  {n: 'Editing', cols: [[{k: 'sum', l: 'AutoSum', ic: 'g', w: 70, dd: true}, {k: 'fill', l: 'Fill', ic: 'g', w: 70, dd: true}, {k: 'clr', l: 'Clear', ic: 'g', w: 70, dd: true}], [{k: 'sort', l: 'Sort &\nFilter', ic: 'g', big: true, w: 48, dd: true}], [{k: 'find', l: 'Find &\nSelect', ic: 'g', big: true, w: 52, dd: true}]]},
+];
+const PIV: Grp[] = [
+  {n: 'PivotTable', cols: [[{k: 'pvlbl', l: 'PivotTable Name:', ic: '', w: 104}, {k: 'pvname', l: 'PivotTable1', box: true, w: 104}, {k: 'popt', l: 'Options', ic: 'g', w: 104, dd: true}]]},
+  {n: 'Active Field', cols: [[{k: 'aflbl', l: 'Active Field:', ic: '', w: 124}, {k: 'afbox', l: 'Sum of Sales', box: true, w: 124}, {k: 'afset', l: 'Field Settings', ic: 'g', w: 124}]]},
+  {n: 'Group', cols: [[{k: 'grp', l: 'Group Selection', ic: 'g', w: 112}, {k: 'ungrp', l: 'Ungroup', ic: 'g', w: 112}, {k: 'grpf', l: 'Group Field', ic: 'g', w: 112}]]},
+  {n: 'Filter', cols: [[{k: 'slic', l: 'Insert\nSlicer', ic: 'g', big: true, w: 48}], [{k: 'tlin', l: 'Insert\nTimeline', ic: 'g', big: true, w: 52}], [{k: 'fconn', l: 'Filter\nConnections', ic: 'g', big: true, w: 62}]]},
+  {n: 'Data', cols: [[{k: 'refresh', l: 'Refresh', ic: 'reset', big: true, w: 50, dd: true}], [{k: 'chds', l: 'Change Data\nSource', ic: 'g', big: true, w: 66, dd: true}]]},
+  {n: 'Actions', cols: [[{k: 'clr', l: 'Clear', ic: 'g', w: 96, dd: true}, {k: 'sel', l: 'Select', ic: 'g', w: 96, dd: true}, {k: 'mov', l: 'Move PivotTable', ic: 'g', w: 96}]]},
+  {n: 'Calculations', cols: [[{k: 'calc', l: 'Fields, Items\n& Sets', ic: 'g', big: true, w: 72, dd: true}]]},
+  {n: 'Tools', cols: [[{k: 'pchart', l: 'PivotChart', ic: 'g', big: true, w: 58}], [{k: 'recp', l: 'Recommended\nPivotTables', ic: 'g', big: true, w: 78}]]},
+];
+type RB = {g: string; gx: number; gw: number; items: {it: It; x: number; y: number; w: number; h: number}[]};
+const layout = (spec: Grp[]): RB[] => {
+  let x = 4;
+  const out: RB[] = [];
+  for (const g of spec) {
+    const gx = x;
+    let cx = x + 5;
+    const items: RB['items'] = [];
+    for (const col of g.cols) {
+      const w = Math.max(...col.map((i) => i.w ?? 56));
+      col.forEach((it, i) => items.push({it, x: cx, y: it.big ? 4 : 4 + i * 22, w, h: it.big ? 66 : 22}));
+      cx += w;
+    }
+    out.push({g: g.n, gx, gw: cx + 5 - gx, items});
+    x = cx + 5;
+  }
+  return out;
+};
+const LV = layout(VIEW);
+const LH = layout(HOME);
+const LP = layout(PIV);
+/** PivotTable Analyze button rects, in window-logical px */
+export const PB: Record<string, {x: number; y: number; w: number; h: number}> = {};
+LP.forEach((g) => g.items.forEach((i) => { PB[i.it.k] = {x: i.x, y: i.y + M.title + M.tabs, w: i.w, h: i.h}; }));
+/** View-tab button rects, in window-logical px */
+export const VB: Record<string, {x: number; y: number; w: number; h: number}> = {};
+LV.forEach((g) => g.items.forEach((i) => { VB[i.it.k] = {x: i.x, y: i.y + M.title + M.tabs, w: i.w, h: i.h}; }));
+export const TABS: [string, number][] = [['File', 38], ['Home', 44], ['Insert', 48], ['Draw', 42], ['Page Layout', 84], ['Formulas', 58], ['Data', 40], ['Review', 52], ['View', 42], ['Automate', 62], ['Help', 40]];
+export const TABX: Record<string, {x: number; w: number}> = {};
+export const CTX: [string, number][] = [['PivotTable Analyze', 104], ['Design', 46]];
+(() => { let x = 10; [...TABS, ...CTX].forEach(([n, w]) => { TABX[n] = {x, w}; x += w + 8; }); })();
+const KT: Record<string, string> = {File: 'F', Home: 'H', Insert: 'N', Draw: 'JI', 'Page Layout': 'P', Formulas: 'M', Data: 'A', Review: 'R', View: 'W'};
+
+const Ico: React.FC<{k: string; s: number}> = ({k, s}) => {
+  const g = X.green, b = '#2B7CD3', d = '#555', o = '#C55A11';
+  const R = (x: number, y: number, w: number, h: number, f = 'none', st = d, sw = 1.2) => <rect x={x} y={y} width={w} height={h} fill={f} stroke={st} strokeWidth={sw} rx={1} />;
+  const L = (a: number, b2: number, c: number, e: number, st = d, sw = 1.2) => <line x1={a} y1={b2} x2={c} y2={e} stroke={st} strokeWidth={sw} />;
+  let el: React.ReactNode;
+  switch (k) {
+    case 'grid': el = <g>{R(3, 4, 18, 16, '#fff')}{L(3, 9, 21, 9)}{L(3, 14, 21, 14)}{L(9, 4, 9, 20)}{L(15, 4, 15, 20)}</g>; break;
+    case 'pbp': el = <g>{R(4, 3, 16, 18, '#fff')}{L(4, 12, 20, 12, b, 2)}{L(12, 3, 12, 21, b, 2)}</g>; break;
+    case 'plv': el = <g>{R(4, 3, 16, 18, '#fff')}{L(7, 8, 17, 8)}{L(7, 12, 17, 12)}{L(7, 16, 14, 16)}</g>; break;
+    case 'cv': el = <g>{R(3, 5, 18, 14, '#fff')}<circle cx={12} cy={12} r={3.5} fill="none" stroke={b} strokeWidth={1.5} /></g>; break;
+    case 'zoom': el = <g><circle cx={10} cy={10} r={6} fill="#fff" stroke={d} strokeWidth={1.5} />{L(15, 15, 21, 21, d, 2.2)}</g>; break;
+    case 'z100': el = <g><circle cx={10} cy={10} r={6} fill="#fff" stroke={d} strokeWidth={1.5} />{L(15, 15, 21, 21, d, 2.2)}<text x={5.4} y={12.4} fontSize={6.5} fill={g} fontWeight={700}>100</text></g>; break;
+    case 'zsel': el = <g><circle cx={10} cy={10} r={6} fill="#fff" stroke={d} strokeWidth={1.5} />{L(15, 15, 21, 21, d, 2.2)}{R(7, 7, 6, 6, 'none', g, 1)}</g>; break;
+    case 'neww': el = <g>{R(3, 5, 18, 15, '#fff')}{R(3, 5, 18, 4, b, b)}{L(12, 12, 12, 18, g, 2)}{L(9, 15, 15, 15, g, 2)}</g>; break;
+    case 'arr': el = <g>{R(3, 4, 8, 7, '#fff')}{R(13, 4, 8, 7, '#fff')}{R(3, 13, 8, 7, '#fff')}{R(13, 13, 8, 7, '#fff')}</g>; break;
+    case 'frz': el = <g>{R(3, 4, 18, 16, '#fff')}{R(3, 4, 18, 5, '#BFE0CC', g)}{R(3, 4, 5, 16, '#BFE0CC', g)}{L(3, 9, 21, 9, g, 2)}{L(8, 4, 8, 20, g, 2)}</g>; break;
+    case 'split': el = <g>{R(3, 4, 18, 16, '#fff')}{L(3, 12, 21, 12, d, 3)}{L(12, 4, 12, 20, d, 3)}</g>; break;
+    case 'hide': el = <g>{R(3, 5, 18, 14, '#fff')}{L(7, 12, 17, 12, o, 2)}</g>; break;
+    case 'unhide': el = <g>{R(3, 5, 18, 14, '#fff')}{L(7, 12, 17, 12, g, 2)}{L(12, 7, 12, 17, g, 2)}</g>; break;
+    case 'sbs': el = <g>{R(2, 4, 9, 16, '#fff')}{R(13, 4, 9, 16, '#fff')}{L(4, 9, 9, 9, b)}{L(15, 9, 20, 9, b)}</g>; break;
+    case 'sync': el = <g>{R(2, 4, 9, 16, '#fff')}{R(13, 4, 9, 16, '#fff')}{L(6.5, 7, 6.5, 17, b, 2)}{L(17.5, 7, 17.5, 17, b, 2)}</g>; break;
+    case 'reset': el = <g>{R(3, 5, 18, 14, '#fff')}{L(7, 14, 15, 9, b, 1.6)}</g>; break;
+    case 'swt': el = <g>{R(7, 3, 14, 11, '#fff')}{R(3, 9, 14, 11, '#fff')}</g>; break;
+    case 'macro': el = <g><circle cx={12} cy={12} r={7} fill="#fff" stroke={d} strokeWidth={1.5} /><circle cx={12} cy={12} r={3} fill={o} /></g>; break;
+    default: {
+      let n = 0;
+      for (let i = 0; i < k.length; i++) n += k.charCodeAt(i);
+      el = <g>{R(4, 4, 16, 16, '#fff', n % 2 ? g : b, 1.4)}{L(7, 9, 17, 9)}{L(7, 13, 17, 13)}{L(7, 17, 13, 17)}</g>;
+    }
+  }
+  return <svg width={s} height={s} viewBox="0 0 24 24">{el}</svg>;
+};
+const Ribbon: React.FC<{tab: string; hl?: string; pr?: string}> = ({tab, hl, pr}) => {
+  const L = tab === 'View' ? LV : tab === 'PivotTable Analyze' ? LP : LH;
   return (
-    <div style={{ position: "absolute", left: 0, top: M.titleBar + M.tabs, width: WIN_W, height: M.ribbon, background: C.ribbon, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", padding: "2px 6px", overflow: "hidden" }}>
-      {groups.map((g) => (
-        <div key={g.id} style={{ display: "flex", flexDirection: "column", width: groupW(g), borderRight: `1px solid ${C.line}`, boxSizing: "border-box", ...gl(g.id), borderRadius: lit(g.id) ? 4 : 0 }}>
-          <div style={{ flex: 1, display: "flex", padding: "2px 3px 0" }}>
-            {g.custom ? <CustomGroup kind={g.custom} /> : g.cols.map((c, ci) => (
-              <div key={ci} style={{ width: colW(c), display: "flex", flexDirection: c.kind === "L" ? "row" : "column", justifyContent: c.kind === "L" ? "center" : "flex-start", gap: c.kind === "S" ? 2 : 0, paddingTop: c.kind === "S" ? 1 : 0 }}>
-                {c.items.map((it) => c.kind === "L" ? (
-                  <div key={it.id} style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 2, ...gl(it.id) }}>
-                    <Icon k={it.icon} s={32} />
-                    <div style={tx(11, { textAlign: "center", lineHeight: "13px", whiteSpace: "pre", marginTop: 3 })}>{it.label}{it.dd ? (it.label.includes("\n") ? " ▾" : "\n▾") : ""}</div>
-                  </div>
-                ) : (
-                  <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 6, height: 22, padding: "0 3px", ...gl(it.id) }}>
-                    <Icon k={it.icon} s={16} /><span style={tx(11.5, { whiteSpace: "pre", lineHeight: "12px" })}>{it.label.replace("\n", " ")}{it.dd ? " ▾" : ""}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-          <div style={tx(11, { textAlign: "center", color: C.inkSoft, height: 15, lineHeight: "15px" })}>{g.label}</div>
+    <div style={{position: 'absolute', left: 0, top: M.title + M.tabs, width: '100%', height: M.ribbon, background: X.ribbon, borderTop: `1px solid ${X.line}`, borderBottom: `1px solid ${X.line}`, overflow: 'hidden'}}>
+      {L.map((g) => (
+        <div key={g.g}>
+          <div style={{position: 'absolute', left: g.gx + g.gw - 1, top: 6, width: 1, height: 78, background: X.line}} />
+          <div style={{position: 'absolute', left: g.gx, width: g.gw, top: 74, textAlign: 'center', fontSize: 10.5, color: X.dim}}>{g.g}</div>
+          {g.items.map(({it, x, y, w, h}) => {
+            if (!it.l && !it.ic) return null;
+            const on = hl === it.k, p = pr === it.k;
+            const st: React.CSSProperties = {position: 'absolute', left: x, top: y, width: w, height: h, boxSizing: 'border-box', borderRadius: 4, background: p ? '#CFCFCF' : on ? '#E3E3E3' : 'transparent', border: on || p ? '1px solid #BDBDBD' : '1px solid transparent', fontSize: 11, color: X.text, whiteSpace: 'pre', textAlign: 'center'};
+            if (it.box) return <div key={it.k} style={{...st, border: '1px solid #BDBDBD', background: '#fff', lineHeight: '20px', borderRadius: 2, padding: '0 4px', textAlign: 'left'}}>{it.l}{it.dd ? <span style={{float: 'right', fontSize: 8}}>▾</span> : null}</div>;
+            if (it.chk) return <div key={it.k} style={{...st, textAlign: 'left', lineHeight: '20px', paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 6}}><div style={{width: 12, height: 12, border: '1px solid #666', background: '#fff', color: X.green, fontSize: 11, lineHeight: '11px', textAlign: 'center'}}>{it.k === 'ruler' ? '' : '✓'}</div>{it.l}</div>;
+            if (it.big) return <div key={it.k} style={{...st, paddingTop: 3}}><div style={{display: 'flex', justifyContent: 'center'}}><Ico k={it.ic ?? 'g'} s={30} /></div><div style={{lineHeight: '12px', marginTop: 2}}>{it.l}{it.dd ? ' ▾' : ''}</div></div>;
+            return <div key={it.k} style={{...st, display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 4, textAlign: 'left'}}>{it.ic !== '' && <Ico k={it.ic ?? 'g'} s={16} />}{it.l}{it.dd ? ' ▾' : ''}</div>;
+          })}
         </div>
       ))}
     </div>
   );
 };
 
-// ---------- title bar + tabs ----------
-export const TitleBar: React.FC<{ file: string }> = ({ file }) => (
-  <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: M.titleBar, background: C.chrome, display: "flex", alignItems: "center", ...tx(12) }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 10, width: 470 }}>
-      <Icon k="grid" s={18} />
-      <span style={tx(12, { fontWeight: 600 })}>AutoSave</span>
-      <div style={{ width: 30, height: 14, borderRadius: 7, border: "1.5px solid #666", boxSizing: "border-box", position: "relative" }}><div style={{ position: "absolute", left: 2, top: 2, width: 7, height: 7, borderRadius: 4, background: "#666" }} /></div>
-      <span style={tx(11, { color: C.inkSoft })}>Off</span>
-      <Icon k="save" /><Icon k="undo" /><Icon k="redo" />
-      <span style={tx(12, { marginLeft: 6 })}>{file}</span><span style={tx(10, { color: C.inkSoft })}>▾</span>
+/* ───────── window chrome ───────── */
+export const shRect = (names: string[], i: number) => {
+  let x = 70;
+  for (let k = 0; k < i; k++) x += 24 + names[k].length * 7.4 + 14;
+  return {x, w: 24 + names[i].length * 7.4 + 14};
+};
+export const winH = (h: number) => h / Z;
+export const sheetY = (h: number) => winH(h) - M.status - M.sheet;
+export type Sheet = {n: string; c?: string};
+export type WinProps = {
+  x: number; y: number; w: number; h: number; title: string; group?: boolean; groupGlow?: number; tab: string; ribbon?: boolean; hl?: string; pr?: string;
+  sheets: Sheet[]; act: number; sel?: number[]; nameBox: string; formula: string; stats?: string; glow?: string; keytips?: boolean; ctx?: boolean;
+  children: (g: {gw: number; gh: number}) => React.ReactNode; over?: React.ReactNode;
+};
+export const Win: React.FC<WinProps> = (p) => {
+  const WL = p.w / Z, HL = p.h / Z;
+  const rb = p.ribbon ?? true;
+  const gy = gridTop(rb);
+  const gh = HL - gy - M.sheet - M.status;
+  const wide = WL > 900;
+  const sel = p.sel ?? [p.act];
+  const names = p.sheets.map((s) => s.n);
+  return (
+    <div style={{position: 'absolute', left: p.x, top: p.y, width: p.w, height: p.h, overflow: 'hidden', borderRadius: 10, background: '#fff', boxShadow: p.glow ? `0 0 0 3px ${p.glow}, 0 0 46px ${p.glow}` : '0 30px 80px rgba(0,0,0,.55)'}}>
+      <div style={{width: WL, height: HL, transform: `scale(${Z})`, transformOrigin: '0 0', position: 'relative', fontFamily: ui, fontSize: 12, color: X.text, background: '#fff'}}>
+        {/* title bar */}
+        <div style={{position: 'absolute', left: 0, top: 0, width: WL, height: M.title, background: '#fff', display: 'flex', alignItems: 'center'}}>
+          <div style={{marginLeft: 10, width: 18, height: 18, borderRadius: 4, background: X.green, display: 'flex', alignItems: 'center', justifyContent: 'center'}}><Ico k="grid" s={14} /></div>
+          {wide && <div style={{marginLeft: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11}}>AutoSave <div style={{width: 28, height: 14, borderRadius: 7, border: '1px solid #777', position: 'relative'}}><div style={{position: 'absolute', left: 2, top: 2, width: 8, height: 8, borderRadius: 4, background: '#777'}} /></div>Off</div>}
+          {wide && <div style={{marginLeft: 14, letterSpacing: 8, color: '#555', fontSize: 13}}>▣ ↶ ↷</div>}
+          <div style={{marginLeft: wide ? 18 : 14, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, whiteSpace: 'nowrap'}}>
+            {p.title}
+            {p.group && <span style={{background: '#38BDF8', color: '#0F172A', fontWeight: 700, borderRadius: 4, padding: '0 6px', lineHeight: '18px', boxShadow: `0 0 ${14 * (p.groupGlow ?? 1)}px #38BDF8`}}>[Group]</span>}
+          </div>
+          {wide && <div style={{position: 'absolute', left: 600, top: 4, width: 300, height: 24, border: '1px solid #C8C8C8', borderRadius: 4, background: '#fff', fontSize: 12, color: '#777', lineHeight: '22px', paddingLeft: 10, boxSizing: 'border-box'}}>🔍 Search</div>}
+          <div style={{position: 'absolute', right: 0, top: 0, display: 'flex', fontSize: 14, color: '#333'}}>
+            {['—', '▢', '✕'].map((s) => <div key={s} style={{width: 46, height: M.title, textAlign: 'center', lineHeight: `${M.title}px`}}>{s}</div>)}
+          </div>
+        </div>
+        {/* tabs */}
+        <div style={{position: 'absolute', left: 0, top: M.title, width: WL, height: M.tabs, background: '#fff'}}>
+          {[...TABS, ...(p.ctx ? CTX : [])].map(([n, w]) => {
+            const a = n === p.tab;
+            return (
+              <div key={n} style={{position: 'absolute', left: TABX[n].x, top: 0, width: w, height: M.tabs, textAlign: 'center', lineHeight: `${M.tabs - 2}px`, fontSize: 12.5, color: a ? X.green : '#333', fontWeight: a ? 700 : 400, borderBottom: a ? `3px solid ${X.green}` : '3px solid transparent', boxSizing: 'border-box', boxShadow: n === 'PivotTable Analyze' || n === 'Design' ? 'inset 0 3px 0 #8E9AAF' : 'none'}}>
+                {n}
+                {p.keytips && KT[n] && <div style={{position: 'absolute', left: w / 2 - 8, top: 17, minWidth: 16, height: 14, background: '#262626', color: '#fff', fontSize: 9.5, lineHeight: '14px', borderRadius: 2, fontWeight: 700}}>{KT[n]}</div>}
+              </div>
+            );
+          })}
+        </div>
+        {rb && <Ribbon tab={p.tab} hl={p.hl} pr={p.pr} />}
+        {/* formula bar */}
+        <div style={{position: 'absolute', left: 0, top: gy - M.formula, width: WL, height: M.formula, background: X.ribbon, borderBottom: `1px solid ${X.line}`}}>
+          <div style={{position: 'absolute', left: 4, top: 3, width: 90, height: 21, border: '1px solid #C8C8C8', background: '#fff', lineHeight: '19px', paddingLeft: 6, boxSizing: 'border-box', fontSize: 12.5}}>{p.nameBox}<span style={{position: 'absolute', right: 5, fontSize: 8, color: '#555'}}>▾</span></div>
+          <div style={{position: 'absolute', left: 104, top: 3, width: 76, height: 21, lineHeight: '21px', fontSize: 14, color: '#555', letterSpacing: 10}}>⋮ ✕ ✓</div>
+          <div style={{position: 'absolute', left: 168, top: 3, width: 24, height: 21, lineHeight: '21px', fontSize: 12, fontStyle: 'italic', fontWeight: 700, color: '#444'}}>fx</div>
+          <div style={{position: 'absolute', left: 196, top: 3, right: 20, height: 21, border: '1px solid #C8C8C8', background: '#fff', lineHeight: '19px', paddingLeft: 6, boxSizing: 'border-box', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden'}}>{p.formula}</div>
+        </div>
+        <div style={{position: 'absolute', left: 0, top: gy, width: WL, height: gh, overflow: 'hidden'}}>{p.children({gw: WL, gh})}</div>
+        {/* sheet bar */}
+        <div style={{position: 'absolute', left: 0, top: HL - M.status - M.sheet, width: WL, height: M.sheet, background: X.chrome, borderTop: `1px solid ${X.line}`}}>
+          <div style={{position: 'absolute', left: 8, top: 5, fontSize: 10, color: '#777', letterSpacing: 8}}>◀ ▶</div>
+          {p.sheets.map((s, i) => {
+            const r = shRect(names, i);
+            const on = sel.includes(i);
+            const act = i === p.act;
+            return (
+              <div key={s.n} style={{position: 'absolute', left: r.x, top: 0, width: r.w, height: M.sheet, boxSizing: 'border-box', textAlign: 'center', lineHeight: `${M.sheet - 4}px`, fontSize: 12.5, background: on ? '#fff' : s.c ? `linear-gradient(#F3F3F3, ${s.c}55)` : 'transparent', color: on ? (act ? X.green : '#222') : '#444', fontWeight: act ? 700 : 400, boxShadow: on ? '0 -1px 0 #D1D1D1, 1px 0 0 #D1D1D1, -1px 0 0 #D1D1D1' : 'none'}}>
+                {s.n}
+                {s.c && <div style={{position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: s.c}} />}
+                {on && !s.c && act && <div style={{position: 'absolute', left: 6, right: 6, bottom: 0, height: 2, background: X.green}} />}
+              </div>
+            );
+          })}
+          <div style={{position: 'absolute', left: shRect(names, names.length - 1).x + shRect(names, names.length - 1).w + 10, top: 3, width: 20, height: 20, borderRadius: 10, border: '1px solid #999', textAlign: 'center', lineHeight: '17px', fontSize: 16, color: '#555'}}>+</div>
+          <div style={{position: 'absolute', right: 20, top: 11, width: 220, height: 6, background: '#DDD', borderRadius: 3}}><div style={{width: 60, height: 6, background: '#AAA', borderRadius: 3}} /></div>
+        </div>
+        {/* status bar */}
+        <div style={{position: 'absolute', left: 0, bottom: 0, width: WL, height: M.status, background: X.chrome, borderTop: `1px solid ${X.line}`, fontSize: 11.5, lineHeight: `${M.status}px`, color: '#444'}}>
+          <span style={{marginLeft: 10}}>Ready</span>
+          {wide && <span style={{marginLeft: 24, color: '#666'}}>♿ Accessibility: Good to go</span>}
+          {p.stats && <span style={{position: 'absolute', right: 300, top: 0}}>{p.stats}</span>}
+          <span style={{position: 'absolute', right: 12, top: 0, letterSpacing: 4}}>▦ ▤ ▥ &nbsp; − ──●── + 100%</span>
+        </div>
+        {p.over}
+      </div>
     </div>
-    <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-      <div style={{ width: 380, height: 22, borderRadius: 4, background: "#fff", border: "1px solid #D0D0D0", boxSizing: "border-box", display: "flex", alignItems: "center", gap: 6, padding: "0 8px", ...tx(12, { color: C.inkSoft }) }}><Icon k="search" s={14} />Search</div>
-    </div>
-    <div style={{ width: 470, display: "flex", justifyContent: "flex-end", alignItems: "center", height: "100%" }}>
-      <div style={{ width: 22, height: 22, borderRadius: 11, background: "#6B7A90", color: "#fff", ...tx(11, { color: "#fff" }), display: "flex", alignItems: "center", justifyContent: "center", marginRight: 14 }}>A</div>
-      {["—", "☐", "✕"].map((g, i) => <div key={i} style={{ width: 46, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", ...tx(13, { color: "#333" }) }}>{g}</div>)}
+  );
+};
+
+/* ───────── menus / dialogs (logical coords inside a window) ───────── */
+export type MI = {l: string; sub?: boolean; hl?: boolean; dis?: boolean; d?: string; chk?: boolean};
+export const MENU_IH = 22;
+export const Menu: React.FC<{x: number; y: number; w: number; items: MI[]}> = ({x, y, w, items}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: w, background: '#fff', border: '1px solid #C8C8C8', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,.28)', padding: '4px 0', zIndex: 5}}>
+    {items.map((m) => (
+      <div key={m.l} style={{height: m.d ? 52 : MENU_IH, boxSizing: 'border-box', margin: '0 4px', borderRadius: 3, padding: m.d ? '5px 8px' : '0 8px', lineHeight: `${MENU_IH}px`, fontSize: 12.5, background: m.hl ? '#CCE4F7' : 'transparent', color: m.dis ? '#A0A0A0' : '#222', display: 'flex', justifyContent: 'space-between', flexDirection: m.d ? 'column' : 'row'}}>
+        <span style={{fontWeight: m.d ? 700 : 400, lineHeight: '16px'}}>{m.chk !== undefined && <span style={{display: 'inline-block', width: 20, color: X.green, fontWeight: 700}}>{m.chk ? '✓' : ''}</span>}{m.l}</span>
+        {m.d && <span style={{fontSize: 10.5, lineHeight: '12px', color: '#555'}}>{m.d}</span>}
+        {m.sub && <span>▸</span>}
+      </div>
+    ))}
+  </div>
+);
+export const THEME_ROW = ['#FFFFFF', '#000000', '#E7E6E6', '#44546A', '#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47'];
+export const STD_ROW = ['#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050', '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'];
+export const SUB_H = 226;
+export const SUB_W = 196;
+const shade = (hex: string, a: number) => {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v: number) => Math.round(a >= 0 ? v + (255 - v) * a : v * (1 + a));
+  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+};
+export const ColorSub: React.FC<{x: number; y: number; hover?: number}> = ({x, y, hover}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: SUB_W, height: SUB_H, background: '#fff', border: '1px solid #C8C8C8', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,.28)', zIndex: 6, fontSize: 11.5, color: '#333'}}>
+    <div style={{position: 'absolute', left: 8, top: 4}}>Theme Colors</div>
+    {[0, 1, 2, 3, 4, 5].map((r) => THEME_ROW.map((c, i) => <div key={`${r}${i}`} style={{position: 'absolute', left: 8 + i * 18, top: 22 + r * 18, width: 16, height: 16, background: r === 0 ? c : shade(c, [0, 0.8, 0.6, 0.4, -0.25, -0.5][r]), border: '1px solid #DDD', boxSizing: 'border-box'}} />))}
+    <div style={{position: 'absolute', left: 8, top: 134}}>Standard Colors</div>
+    {STD_ROW.map((c, i) => <div key={c} style={{position: 'absolute', left: 8 + i * 18, top: 150, width: 16, height: 16, background: c, border: hover === i ? '2px solid #1B6FD1' : '1px solid #DDD', boxSizing: 'border-box', transform: hover === i ? 'scale(1.25)' : 'none'}} />)}
+    <div style={{position: 'absolute', left: 8, top: 176, lineHeight: '22px'}}>▫ No Color</div>
+    <div style={{position: 'absolute', left: 8, top: 198, lineHeight: '22px'}}>🎨 More Colors…</div>
+  </div>
+);
+export const FreezeMenu: React.FC<{x: number; y: number; frozen: boolean; hover: number}> = ({x, y, frozen, hover}) => (
+  <Menu x={x} y={y} w={300} items={[
+    {l: frozen ? 'Unfreeze Panes' : 'Freeze Panes', d: frozen ? 'Unlock all rows and columns to scroll through the entire worksheet.' : 'Keep rows and columns visible while the rest of the worksheet scrolls (based on current selection).', hl: hover === 0},
+    {l: 'Freeze Top Row', d: 'Keep the top row visible while scrolling through the rest of the worksheet.', hl: hover === 1},
+    {l: 'Freeze First Column', d: 'Keep the first column visible while scrolling through the rest of the worksheet.', hl: hover === 2},
+  ]} />
+);
+export const ArrangeDlg: React.FC<{x: number; y: number; pick: number; ok: boolean}> = ({x, y, pick, ok}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: 330 * Z, height: 206 * Z, transform: 'none'}}>
+    <div style={{width: 330, height: 206, transform: `scale(${Z})`, transformOrigin: '0 0', background: '#F0F0F0', border: '1px solid #8A8A8A', boxShadow: '0 12px 40px rgba(0,0,0,.5)', fontFamily: ui, fontSize: 12.5, color: '#222', position: 'relative'}}>
+      <div style={{height: 28, background: '#fff', lineHeight: '28px', paddingLeft: 10}}>Arrange Windows<span style={{position: 'absolute', right: 14}}>✕</span></div>
+      <div style={{position: 'absolute', left: 12, top: 40, width: 306, height: 106, border: '1px solid #BBB'}}>
+        <div style={{position: 'absolute', left: 8, top: -9, background: '#F0F0F0', padding: '0 4px'}}>Arrange</div>
+        {['Tiled', 'Horizontal', 'Vertical', 'Cascade'].map((n, i) => (
+          <div key={n} style={{position: 'absolute', left: 16, top: 14 + i * 22, display: 'flex', alignItems: 'center', gap: 8}}>
+            <div style={{width: 13, height: 13, borderRadius: 7, border: '1px solid #444', background: '#fff', position: 'relative'}}>{pick === i && <div style={{position: 'absolute', left: 3, top: 3, width: 7, height: 7, borderRadius: 4, background: '#1B6FD1'}} />}</div>{n}
+          </div>
+        ))}
+      </div>
+      <div style={{position: 'absolute', left: 14, top: 154, display: 'flex', alignItems: 'center', gap: 8}}><div style={{width: 13, height: 13, border: '1px solid #444', background: '#fff', color: '#1B6FD1', fontSize: 11, lineHeight: '12px', textAlign: 'center'}}>✓</div>Windows of active workbook</div>
+      <div style={{position: 'absolute', left: 168, top: 174, width: 70, height: 24, background: '#E1E1E1', border: ok ? '2px solid #1B6FD1' : '1px solid #1B6FD1', textAlign: 'center', lineHeight: '22px', boxSizing: 'border-box'}}>OK</div>
+      <div style={{position: 'absolute', left: 246, top: 174, width: 70, height: 24, background: '#E1E1E1', border: '1px solid #ADADAD', textAlign: 'center', lineHeight: '22px', boxSizing: 'border-box'}}>Cancel</div>
     </div>
   </div>
 );
-export const TAB_NAME: Record<string, string> = { home: "Home", insert: "Insert", formulas: "Formulas", data: "Data", pivotanalyze: "PivotTable Analyze", pivotchart: "PivotChart Analyze", slicer: "Slicer" };
-export const CTX_TABS: Record<string, string[]> = { pivotanalyze: ["PivotTable Analyze", "Design"], pivotchart: ["PivotChart Analyze", "Design", "Format"], slicer: ["Slicer"] };
-export const TABS = ["File", "Home", "Insert", "Page Layout", "Formulas", "Data", "Review", "View", "Automate", "Help"];
-export const TabsRow: React.FC<{ active: string; hot?: { tab: string; color: string; t: number }; extra?: string[] }> = ({ active, hot, extra = [] }) => {
-  let x = 10;
-  const all = [...TABS.map((t) => ({ t, ctx: false })), ...extra.map((t) => ({ t, ctx: true }))];
-  return (
-    <div style={{ position: "absolute", left: 0, top: M.titleBar, width: WIN_W, height: M.tabs, background: C.chrome }}>
-      {all.map((it, i) => {
-        const t = it.t; const w = t.length * 7.2 + 26; if (it.ctx && !all[i - 1]?.ctx) x += 16; const left = x; x += w;
-        const on = t === active; const h = hot && hot.tab === t && hot.t > 0.02;
+
+export const Tip: React.FC<{x: number; y: number; text: string}> = ({x, y, text}) => (
+  <div style={{position: 'absolute', left: x, top: y, background: '#FFFFE1', border: '1px solid #8A8A8A', padding: '2px 6px', fontSize: 11, whiteSpace: 'nowrap', zIndex: 8, boxShadow: '1px 2px 4px rgba(0,0,0,.25)', fontFamily: ui, color: '#000'}}>{text}</div>
+);
+const GHOSTS = ['Luxor', 'Tanta'];
+/** PivotTable row-label filter dropdown; ghost = 0..1 (deleted items still listed until the cache is cleaned) */
+export const FilterMenu: React.FC<{x: number; y: number; hl: number; ghost: number}> = ({x, y, hl, ghost}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: 214, background: '#fff', border: '1px solid #C8C8C8', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,.28)', zIndex: 6, fontFamily: ui, fontSize: 12.5, color: '#222', paddingBottom: 6}}>
+    {['Sort A to Z', 'Sort Z to A'].map((l, i) => <div key={l} style={{height: 22, lineHeight: '22px', padding: '0 10px', margin: '4px 4px 0', borderRadius: 3, background: hl === i ? '#CCE4F7' : 'transparent'}}>{l}</div>)}
+    <div style={{height: 1, background: '#DDD', margin: '6px 6px'}} />
+    <div style={{margin: '0 8px 4px', height: 22, border: '1px solid #BBB', lineHeight: '20px', paddingLeft: 6, color: '#888', fontSize: 11.5}}>Search</div>
+    <div style={{margin: '0 8px', border: '1px solid #DDD', padding: '2px 0'}}>
+      {['(Select All)', 'Alex', 'Aswan', 'Cairo', 'Giza', 'Luxor', 'Mansoura', 'Tanta'].map((n) => {
+        const g = GHOSTS.includes(n);
         return (
-          <div key={t + i} style={{ position: "absolute", left, top: 2, width: w, height: M.tabs - 2, ...tx(13, { fontWeight: on ? 600 : 400, color: on ? C.xGreenDark : it.ctx ? "#7A3DB8" : C.ink }), display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, ...(h && hot ? { boxShadow: `0 0 12px ${hot.color}, inset 0 0 2px ${hot.color}` } : {}) }}>
-            {t}
-            {it.ctx ? <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 2, background: "#7A3DB8" }} /> : null}
-            {on ? <div style={{ position: "absolute", left: 10, right: 10, bottom: 0, height: 3, background: C.xGreen, borderRadius: 2 }} /> : null}
+          <div key={n} style={{height: g ? 18 * ghost : 18, lineHeight: '18px', overflow: 'hidden', opacity: g ? ghost : 1, padding: '0 6px', display: 'flex', gap: 6, color: g ? '#8A8A8A' : '#222', fontStyle: g ? 'italic' : 'normal'}}>
+            <span style={{display: 'inline-block', width: 12, height: 12, border: '1px solid #666', marginTop: 3, lineHeight: '11px', fontSize: 11, color: X.green, textAlign: 'center'}}>✓</span>{n}
           </div>
         );
       })}
-      <div style={{ position: "absolute", right: 14, top: 3, display: "flex", gap: 10, alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", ...tx(12) }}><Icon k="comment" />Comments</div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", height: 22, padding: "0 12px", background: C.xGreen, borderRadius: 4, ...tx(12, { color: "#fff", fontWeight: 600 }) }}><Icon k="share" />Share</div>
-      </div>
+    </div>
+    <div style={{display: 'flex', justifyContent: 'flex-end', gap: 6, margin: '8px 8px 0'}}>
+      {['OK', 'Cancel'].map((b) => <div key={b} style={{width: 64, height: 22, border: '1px solid #ADADAD', background: '#E1E1E1', textAlign: 'center', lineHeight: '20px'}}>{b}</div>)}
+    </div>
+  </div>
+);
+/** PivotTable Options dialog (screen space, scaled like the window). tab: 0 = Layout & Format, 4 = Data */
+export const DLG = {x: 608, y: 150, w: 704, h: 768};
+export const DLGP = (lx: number, ly: number) => ({x: DLG.x + lx * Z, y: DLG.y + ly * Z});
+export const DPOS = {tabLayout: {x: 56, y: 84}, tabData: {x: 330, y: 84}, save: {x: 30, y: 131}, details: {x: 30, y: 155}, refresh: {x: 30, y: 179}, dd: {x: 327, y: 243}, ddNone: {x: 300, y: 284}, ok: {x: 302, y: 457}};
+export const PivotOptDlg: React.FC<{tab: number; save: boolean; details: boolean; refresh: boolean; retain: string; ddOpen: boolean; ddHl: number; okHl: boolean; ring?: string; ringC?: string}> = (p) => {
+  const cb = (x: number, y: number, on: boolean, l: string) => (
+    <div key={l} style={{position: 'absolute', left: x, top: y, display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap'}}>
+      <div style={{width: 13, height: 13, border: '1px solid #444', background: '#fff', color: '#1B6FD1', fontSize: 11, lineHeight: '12px', textAlign: 'center'}}>{on ? '✓' : ''}</div>{l}
     </div>
   );
-};
-
-// ---------- formula bar ----------
-export const FormulaBar: React.FC<{ name: string; value: string; editing?: boolean }> = ({ name, value, editing }) => (
-  <div style={{ position: "absolute", left: 0, top: GRID_TOP - M.colHdr - M.formula, width: WIN_W, height: M.formula, background: "#fff", borderBottom: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", alignItems: "center", ...tx(13) }}>
-    <div style={{ width: 96, height: 22, margin: "0 4px 0 6px", border: "1px solid #BDBDBD", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px 0 6px", fontFamily: F.ui, fontSize: 13 }}><span>{name}</span><Icon k="chev" s={10} /></div>
-    <span style={tx(14, { color: "#BBB", width: 8, textAlign: "center" })}>⋮</span>
-    <span style={tx(15, { color: editing ? "#C42B1C" : "#BBB", width: 24, textAlign: "center" })}>✕</span>
-    <span style={tx(15, { color: editing ? C.xGreen : "#BBB", width: 24, textAlign: "center" })}>✓</span>
-    <span style={tx(13, { fontStyle: "italic", fontWeight: 600, color: "#555", width: 26, textAlign: "center", fontFamily: F.cell })}>fx</span>
-    <div style={{ flex: 1, height: 22, borderLeft: "1px solid #D0D0D0", paddingLeft: 6, display: "flex", alignItems: "center", fontFamily: F.cell, fontSize: 14.67, whiteSpace: "pre" }}>{value}</div>
-    <div style={{ width: 28, textAlign: "center" }}><Icon k="chev" s={12} /></div>
-  </div>
-);
-
-// ---------- grid ----------
-export type Cell = { v: string | number; al?: "l" | "r" | "c"; b?: boolean; pm?: "+" | "-"; indent?: number; fill?: string; fg?: string; icon?: "up" | "side" | "down"; err?: boolean };
-export type GRow = { id: string | number; hdr: string | number; cells: Cell[]; slot: number; h: number; head?: boolean };
-export type FBtn = { c: number; state: "on" | "open" | "off"; t: number };
-export type GridProps = {
-  cols: Col[]; rows: GRow[]; fixedHdr?: boolean; hdrBlue?: boolean;
-  active?: { c: number; slot: number } | null;
-  sel?: { c1: number; c2: number; s1: number; s2: number } | null;
-  fbtns?: FBtn[]; cellFx?: (id: string | number, c: number) => string | undefined;
-  marching?: { c1: number; c2: number; s1: number; s2: number } | null; frame?: number; hiRows?: (string | number)[];
-  lines?: boolean; boxes?: Box[];
-};
-export type Box = { c1: number; c2: number; s1: number; s2: number; color: string; t?: number; fill?: string; dash?: boolean; w?: number };
-const Btn: React.FC<{ b: FBtn; w: number }> = ({ b, w }) => (
-  <div style={{ position: "absolute", left: w - 18, top: 2, width: 16, height: 16, boxSizing: "border-box", border: "1px solid #A0A0A0", background: b.state === "open" ? "#CFE5D8" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${b.t})`, transformOrigin: "center", opacity: Math.min(1, b.t * 1.4) }}>
-    <Icon k={b.state === "on" ? "filteron" : "chev"} s={b.state === "on" ? 12 : 10} />
-  </div>
-);
-export const Grid: React.FC<GridProps> = (p) => {
-  const { cols, rows } = p;
-  const totalW = cols.reduce((a, c) => a + c.w, 0);
-  const selC = (c: number): boolean => !!p.sel && c >= p.sel.c1 && c <= p.sel.c2 || (!p.sel && !!p.active && p.active.c === c);
-  const selS = (s: number): boolean => !!p.sel && s >= p.sel.s1 && s <= p.sel.s2 || (!p.sel && !!p.active && Math.floor(p.active.slot) === s);
-  const box = (a: { c1: number; c2: number; s1: number; s2: number }) => ({ left: colX(cols, a.c1), top: slotY(a.s1) - GRID_TOP + M.colHdr, width: colX(cols, a.c2 + 1) - colX(cols, a.c1), height: (a.s2 - a.s1 + 1) * M.rowH });
+  const tabs: [string, number, number][] = [['Layout & Format', 8, 96], ['Totals & Filters', 104, 92], ['Display', 196, 56], ['Printing', 252, 56], ['Data', 308, 44], ['Alt Text', 352, 58]];
   return (
-    <div style={{ position: "absolute", left: 0, top: GRID_TOP - M.colHdr, width: WIN_W, height: WIN_H - (GRID_TOP - M.colHdr) - M.sheetBar - M.statusBar, background: "#fff", overflow: "hidden" }}>
-      {/* column headers */}
-      <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: M.colHdr, background: C.hdr, borderBottom: `1px solid ${C.line}`, boxSizing: "border-box" }}>
-        <div style={{ position: "absolute", left: 0, top: 0, width: M.rowHdr, height: M.colHdr, borderRight: `1px solid ${C.line}`, boxSizing: "border-box" }}>
-          <svg width={M.rowHdr} height={M.colHdr}><path d={`M${M.rowHdr - 4} 4 V${M.colHdr - 4} H4 Z`} fill="#BDBDBD" /></svg>
-        </div>
-        {cols.map((c, i) => (
-          <div key={i} style={{ position: "absolute", left: colX(cols, i), top: 0, width: c.w, height: M.colHdr, boxSizing: "border-box", borderRight: `1px solid ${C.line}`, background: selC(i) ? C.hdrSel : C.hdr, color: selC(i) ? C.xGreenDark : "#444", ...tx(13, { fontFamily: F.cell }), display: "flex", alignItems: "center", justifyContent: "center", borderBottom: selC(i) ? `2px solid ${C.xGreen}` : undefined }}>{c.label}</div>
-        ))}
-      </div>
-      {/* rows */}
-      <div style={{ position: "absolute", left: 0, top: M.colHdr, width: WIN_W, height: 4000, overflow: "visible" }}>
-        {p.lines ? (
-          <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: NSLOT * M.rowH }}>
-            {cols.map((c, i) => <div key={"v" + i} style={{ position: "absolute", left: colX(cols, i) + c.w - 1, top: 0, width: 1, height: NSLOT * M.rowH, background: C.grid }} />)}
-            {Array.from({ length: NSLOT }, (_, s) => <div key={"l" + s} style={{ position: "absolute", left: M.rowHdr, top: (s + 1) * M.rowH - 1, width: WIN_W - M.rowHdr, height: 1, background: C.grid }} />)}
-          </div>
-        ) : null}
-        {p.fixedHdr ? Array.from({ length: NSLOT }, (_, s) => (
-          <div key={"h" + s} style={{ position: "absolute", left: 0, top: s * M.rowH, width: M.rowHdr, height: M.rowH, boxSizing: "border-box", borderRight: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, background: selS(s) ? C.hdrSel : C.hdr, color: selS(s) ? C.xGreenDark : "#444", ...tx(13, { fontFamily: F.cell }), display: "flex", alignItems: "center", justifyContent: "center" }}>{s + 1}</div>
-        )) : null}
-        {rows.map((r) => {
-          if (r.h <= 0.01) return null;
-          const hi = p.hiRows?.includes(r.id);
-          return (
-            <div key={r.id} style={{ position: "absolute", left: 0, top: r.slot * M.rowH, width: WIN_W, height: r.h * M.rowH, overflow: "hidden" }}>
-              {!p.fixedHdr ? (
-                <div style={{ position: "absolute", left: 0, top: 0, width: M.rowHdr, height: M.rowH, boxSizing: "border-box", borderRight: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, background: selS(Math.round(r.slot)) ? C.hdrSel : C.hdr, color: p.hdrBlue ? C.filtBlue : "#444", ...tx(13, { fontFamily: F.cell }), display: "flex", alignItems: "center", justifyContent: "center" }}>{r.hdr}</div>
-              ) : null}
-              {cols.map((c, ci) => {
-                const cell = r.cells[ci];
-                if (p.lines && !cell) return null;
-                const fx = p.cellFx?.(r.id, ci);
-                return (
-                  <div key={ci} style={{ position: "absolute", left: colX(cols, ci), top: 0, width: c.w, height: M.rowH, boxSizing: "border-box", borderRight: p.lines ? undefined : `1px solid ${C.grid}`, borderBottom: p.lines ? undefined : `1px solid ${C.grid}`, backgroundColor: cell?.fill ?? (hi ? "#FFF6D6" : p.lines ? undefined : "#fff"), backgroundImage: fx ? `linear-gradient(${fx}, ${fx})` : undefined, color: cell?.fg ?? C.ink, fontFamily: F.cell, fontSize: 14.67, fontWeight: cell?.b ? 700 : 400, padding: "0 3px", display: "flex", alignItems: "center", justifyContent: cell?.icon ? "space-between" : cell?.al === "r" ? "flex-end" : cell?.al === "c" ? "center" : "flex-start", whiteSpace: "nowrap", overflow: "hidden" }}>
-                    {cell?.icon ? <Arrow kind={cell.icon} /> : null}
-                    {cell?.pm ? <span style={{ width: 9, height: 9, border: "1px solid #7F7F7F", boxSizing: "border-box", marginRight: 4, marginLeft: (cell.indent ?? 0) * 12, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, lineHeight: "9px", color: "#444", flex: "none", background: "#fff" }}>{cell.pm === "+" ? "+" : "−"}</span> : cell?.indent ? <span style={{ width: (cell.indent ?? 0) * 12 + 13, flex: "none" }} /> : null}
-                    <span>{cell ? String(cell.v) : ""}</span>
-                  </div>
-                );
-              })}
+    <div style={{position: 'absolute', left: DLG.x, top: DLG.y, width: DLG.w, height: DLG.h, zIndex: 90}}>
+      <div style={{width: 440, height: 480, transform: `scale(${Z})`, transformOrigin: '0 0', background: '#F0F0F0', border: '1px solid #8A8A8A', boxShadow: '0 16px 50px rgba(0,0,0,.55)', fontFamily: ui, fontSize: 12.5, color: '#222', position: 'relative'}}>
+        <div style={{height: 28, background: '#fff', lineHeight: '28px', paddingLeft: 10}}>PivotTable Options<span style={{position: 'absolute', right: 14, letterSpacing: 12}}>? ✕</span></div>
+        <div style={{position: 'absolute', left: 14, top: 40}}>PivotTable Name:</div>
+        <div style={{position: 'absolute', left: 130, top: 36, width: 296, height: 22, border: '1px solid #8A8A8A', background: '#fff', lineHeight: '20px', paddingLeft: 6, boxSizing: 'border-box'}}>PivotTable1</div>
+        {tabs.map(([n, x, w], i) => <div key={n} style={{position: 'absolute', left: x, top: i === p.tab ? 72 : 76, width: w, height: i === p.tab ? 25 : 21, border: '1px solid #ADADAD', borderBottom: i === p.tab ? '1px solid #fff' : '1px solid #ADADAD', background: i === p.tab ? '#fff' : '#ECECEC', textAlign: 'center', lineHeight: '22px', fontSize: 11.5, boxSizing: 'border-box', zIndex: i === p.tab ? 2 : 0}}>{n}</div>)}
+        <div style={{position: 'absolute', left: 8, top: 96, width: 424, height: 328, border: '1px solid #ADADAD', background: '#fff'}}>
+          {p.tab === 0 && (
+            <div>
+              <div style={{position: 'absolute', left: 10, top: 8, color: '#555'}}>Layout</div>
+              {cb(16, 28, false, 'Merge and center cells with labels')}
+              <div style={{position: 'absolute', left: 16, top: 52}}>When in compact form indent row labels:<span style={{marginLeft: 8, border: '1px solid #8A8A8A', padding: '0 6px'}}>1</span> character(s)</div>
+              <div style={{position: 'absolute', left: 16, top: 80}}>Display fields in report filter area:<span style={{marginLeft: 8, border: '1px solid #8A8A8A', padding: '0 6px'}}>Down, Then Over ▾</span></div>
+              <div style={{position: 'absolute', left: 16, top: 106}}>Report filter fields per column:<span style={{marginLeft: 8, border: '1px solid #8A8A8A', padding: '0 14px'}}>0</span></div>
+              <div style={{position: 'absolute', left: 10, top: 138, color: '#555'}}>Format</div>
+              {cb(16, 158, true, 'For error values show:')}
+              {cb(16, 182, true, 'For empty cells show:')}
+              {cb(16, 206, true, 'Autofit column widths on update')}
+              {cb(16, 230, true, 'Preserve cell formatting on update')}
             </div>
-          );
-        })}
-        {/* filter buttons live on the header row (slot 0) */}
-        {(p.fbtns ?? []).map((b) => <div key={"fb" + b.c} style={{ position: "absolute", left: colX(cols, b.c), top: 0, width: cols[b.c].w, height: M.rowH }}><Btn b={b} w={cols[b.c].w} /></div>)}
-        {/* range selection + active cell */}
-        {p.sel ? <div style={{ position: "absolute", ...box(p.sel), top: box(p.sel).top - M.colHdr, background: C.xSel, border: `2px solid ${C.xGreen}`, boxSizing: "border-box", pointerEvents: "none" }} /> : null}
-        {p.marching ? <div style={{ position: "absolute", ...box(p.marching), top: box(p.marching).top - M.colHdr, boxSizing: "border-box", border: "2px dashed #107C41", opacity: 0.9, backgroundImage: "none", outline: `1px dashed #fff`, transform: `translate(${((p.frame ?? 0) % 6) * 0}px,0)` }} /> : null}
-        {(p.boxes ?? []).map((b, i) => {
-          const t = b.t ?? 1; if (t <= 0.02) return null;
-          const x = colX(cols, b.c1), w = colX(cols, b.c2 + 1) - x, y = b.s1 * M.rowH, h = (b.s2 - b.s1 + 1) * M.rowH;
-          return <div key={"bx" + i} style={{ position: "absolute", left: x - 1, top: y - 1, width: w + 1, height: h + 1, border: `${b.w ?? 2}px ${b.dash ? "dashed" : "solid"} ${b.color}`, boxShadow: `0 0 ${6 + 8 * t}px ${b.color}`, background: b.fill, opacity: t, boxSizing: "border-box", zIndex: 2, pointerEvents: "none" }} />;
-        })}
-        {p.active ? (
-          <div style={{ position: "absolute", left: colX(cols, p.active.c) - 1, top: p.active.slot * M.rowH - 1, width: cols[p.active.c].w + 1, height: M.rowH + 1, border: `2px solid ${C.xGreen}`, boxSizing: "border-box", pointerEvents: "none", background: p.sel ? "#fff" : "transparent", zIndex: 1 }}>
-            {!p.sel ? <div style={{ position: "absolute", right: -5, bottom: -5, width: 6, height: 6, background: C.xGreen, border: "1px solid #fff" }} /> : null}
-          </div>
-        ) : null}
-      </div>
-      <div style={{ position: "absolute", left: totalW + M.rowHdr, top: 0, width: 1, height: 1 }} />
-    </div>
-  );
-};
-
-// ---------- sheet tabs + status bar ----------
-export const SheetBar: React.FC<{ sheets: string[]; active: string }> = ({ sheets, active }) => (
-  <div style={{ position: "absolute", left: 0, top: WIN_H - M.sheetBar - M.statusBar, width: WIN_W, height: M.sheetBar, background: C.chrome, borderTop: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", alignItems: "flex-end", ...tx(12) }}>
-    <div style={{ display: "flex", gap: 14, padding: "0 12px", alignItems: "center", height: "100%", color: "#777" }}>◂ ▸</div>
-    {sheets.map((s) => (
-      <div key={s} style={{ height: 24, padding: "0 16px", display: "flex", alignItems: "center", background: s === active ? "#fff" : "transparent", color: s === active ? C.xGreenDark : C.ink, fontWeight: s === active ? 700 : 400, borderBottom: s === active ? `3px solid ${C.xGreen}` : "none", borderLeft: `1px solid ${C.line}`, borderRight: `1px solid ${C.line}`, boxSizing: "border-box", ...tx(13, { fontWeight: s === active ? 700 : 400, color: s === active ? C.xGreenDark : C.ink }) }}>{s}</div>
-    ))}
-    <div style={{ width: 30, height: 24, display: "flex", alignItems: "center", justifyContent: "center", ...tx(18, { color: "#555" }) }}>+</div>
-  </div>
-);
-export const StatusBar: React.FC<{ left?: string; stats?: string[]; zoom?: number }> = ({ left = "Ready", stats = [], zoom = 100 }) => (
-  <div style={{ position: "absolute", left: 0, top: WIN_H - M.statusBar, width: WIN_W, height: M.statusBar, background: C.chrome, borderTop: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", ...tx(12) }}>
-    <div style={{ display: "flex", gap: 22, alignItems: "center" }}><span>{left}</span></div>
-    <div style={{ display: "flex", gap: 22, alignItems: "center" }}>
-      {stats.map((s, i) => <span key={i}>{s}</span>)}
-      <span style={{ letterSpacing: 6 }}>▦▤▥</span>
-      <span>−</span><div style={{ width: 90, height: 2, background: "#888", position: "relative" }}><div style={{ position: "absolute", left: 43, top: -4, width: 4, height: 10, background: "#555" }} /></div><span>+</span>
-      <span style={{ width: 36, textAlign: "right" }}>{zoom}%</span>
-    </div>
-  </div>
-);
-
-// ---------- window + camera ----------
-export type Cam = { z: number; cx: number; cy: number };
-export const camAt = (f: number, k: { f: number; z: number; cx: number; cy: number }[]): Cam => {
-  if (f <= k[0].f) return k[0];
-  for (let i = 1; i < k.length; i++) {
-    if (f <= k[i].f) { const t = prog(f, k[i - 1].f, k[i].f - k[i - 1].f); return { z: lerp(k[i - 1].z, k[i].z, t), cx: lerp(k[i - 1].cx, k[i].cx, t), cy: lerp(k[i - 1].cy, k[i].cy, t) }; }
-  }
-  return k[k.length - 1];
-};
-export type ExcelProps = {
-  cam: Cam; file: string; tab: string; hotTab?: { tab: string; color: string; t: number }; glow?: { id: string; color: string; t: number };
-  nameBox: string; formula: string; editing?: boolean; grid: GridProps; sheets?: string[]; sheet?: string;
-  statusLeft?: string; stats?: string[]; children?: React.ReactNode;
-};
-export const Excel: React.FC<ExcelProps> = (p) => {
-  const sz = S * p.cam.z, vw = WIDTH, vh = HEIGHT - STRIP_H;
-  const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
-  const tx0 = clamp(vw / 2 - p.cam.cx * sz, vw - WIN_W * sz, 0);
-  const ty0 = clamp(vh / 2 - p.cam.cy * sz, vh - WIN_H * sz, 0);
-  return (
-    <div style={{ position: "absolute", left: 0, top: STRIP_H, width: vw, height: vh, overflow: "hidden", background: "#fff" }}>
-      <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: WIN_H, transformOrigin: "0 0", transform: `translate(${tx0}px, ${ty0}px) scale(${sz})` }}>
-        <Grid {...p.grid} />
-        <FormulaBar name={p.nameBox} value={p.formula} editing={p.editing} />
-        <Ribbon tab={p.tab} glow={p.glow} />
-        <TabsRow active={TAB_NAME[p.tab] ?? "Home"} hot={p.hotTab} extra={CTX_TABS[p.tab] ?? []} />
-        <TitleBar file={p.file} />
-        <SheetBar sheets={p.sheets ?? ["Sales", "Branches"]} active={p.sheet ?? "Sales"} />
-        <StatusBar left={p.statusLeft} stats={p.stats} />
-        {p.children}
+          )}
+          {p.tab === 4 && (
+            <div>
+              <div style={{position: 'absolute', left: 10, top: 6, color: '#555'}}>PivotTable Data</div>
+              <div style={{position: 'absolute', left: 6, top: 18, width: 404, height: 94, border: '1px solid #D0D0D0'}} />
+              {cb(24, 28, p.save, 'Save source data with file')}
+              {cb(24, 52, p.details, 'Enable show details')}
+              {cb(24, 76, p.refresh, 'Refresh data when opening the file')}
+              <div style={{position: 'absolute', left: 10, top: 124, color: '#555'}}>Retain items deleted from the data source</div>
+              <div style={{position: 'absolute', left: 6, top: 136, width: 404, height: 54, border: '1px solid #D0D0D0'}} />
+              <div style={{position: 'absolute', left: 24, top: 150}}>Number of items to retain per field:</div>
+              <div style={{position: 'absolute', left: 252, top: 144, width: 150, height: 22, border: '1px solid #8A8A8A', background: '#fff', lineHeight: '20px', paddingLeft: 6, boxSizing: 'border-box'}}>{p.retain}<span style={{position: 'absolute', right: 6, fontSize: 9}}>▼</span></div>
+              {p.ddOpen && (
+                <div style={{position: 'absolute', left: 252, top: 166, width: 150, border: '1px solid #8A8A8A', background: '#fff', zIndex: 5}}>
+                  {['Automatic', 'None', 'Max'].map((n, i) => <div key={n} style={{height: 20, lineHeight: '20px', paddingLeft: 6, background: p.ddHl === i ? '#1B6FD1' : '#fff', color: p.ddHl === i ? '#fff' : '#222'}}>{n}</div>)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {p.ring === 'details' && <div style={{position: 'absolute', left: 28, top: 144, width: 300, height: 24, border: `3px solid ${p.ringC}`, borderRadius: 6, boxShadow: `0 0 14px ${p.ringC}`, zIndex: 6}} />}
+        {p.ring === 'dd' && <div style={{position: 'absolute', left: 246, top: 236, width: 162, height: 30, border: `3px solid ${p.ringC}`, borderRadius: 6, boxShadow: `0 0 14px ${p.ringC}`, zIndex: 6}} />}
+        <div style={{position: 'absolute', left: 262, top: 444, width: 80, height: 26, background: '#E1E1E1', border: p.okHl ? '2px solid #1B6FD1' : '1px solid #1B6FD1', textAlign: 'center', lineHeight: '24px', boxSizing: 'border-box'}}>OK</div>
+        <div style={{position: 'absolute', left: 352, top: 444, width: 80, height: 26, background: '#E1E1E1', border: '1px solid #ADADAD', textAlign: 'center', lineHeight: '24px', boxSizing: 'border-box'}}>Cancel</div>
       </div>
     </div>
   );
 };
-export { HEIGHT };
 
-// Centre of a ribbon button (logical px) so cursors/glows can target it.
-export const ribbonPos = (tab: string, id: string): { x: number; y: number } => {
-  let x = 6;
-  for (const g of RIBBON[tab] ?? []) {
-    const gw = groupW(g);
-    if (!g.custom) {
-      let cx = x + 3;
-      for (const c of g.cols) {
-        const w = colW(c);
-        for (let i = 0; i < c.items.length; i++) {
-          if (c.items[i].id === id) return { x: cx + w / 2, y: M.titleBar + M.tabs + (c.kind === "L" ? 40 : 16 + 22 * i) };
-        }
-        cx += w;
-      }
-    }
-    x += gw;
-  }
-  return { x: 0, y: 0 };
+/* ───────── screen-space overlays ───────── */
+export const P = (lx: number, ly: number, win = WIN) => ({x: win.x + lx * Z, y: win.y + ly * Z});
+export const Cursor: React.FC<{x: number; y: number; t: number; left?: number[]; right?: number[]}> = ({x, y, t, left = [], right = []}) => (
+  <div style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 50}}>
+    {[...left.map((c) => ({c, k: C.blue})), ...right.map((c) => ({c, k: C.amber}))].map(({c, k}) => {
+      const p = (t - c) / 0.55;
+      return p > 0 && p < 1 ? <div key={`${k}${c}`} style={{position: 'absolute', left: x - 30 * p - 6, top: y - 30 * p - 6, width: 60 * p + 12, height: 60 * p + 12, borderRadius: '50%', border: `4px solid ${k}`, opacity: 1 - p}} /> : null;
+    })}
+    <svg style={{position: 'absolute', left: x - 2, top: y - 2, filter: 'drop-shadow(2px 3px 3px rgba(0,0,0,.5))'}} width={30} height={42} viewBox="0 0 15 21">
+      <path d="M1 1 L1 17 L5 13.4 L8 20 L10.4 19 L7.6 12.6 L13 12.6 Z" fill="#fff" stroke="#000" strokeWidth={1.1} strokeLinejoin="round" />
+    </svg>
+  </div>
+);
+export const Ring: React.FC<{x: number; y: number; w: number; h: number; c: string; t: number; a?: number; r?: number}> = ({x, y, w, h, c, t, a = 1, r = 12}) => (
+  <div style={{position: 'absolute', left: x - 6, top: y - 6, width: w + 12, height: h + 12, borderRadius: r, border: `4px solid ${c}`, boxSizing: 'border-box', opacity: a * (0.7 + 0.3 * pls(t)), boxShadow: `0 0 ${18 + 12 * pls(t)}px ${c}, inset 0 0 14px ${c}55`, pointerEvents: 'none', zIndex: 40}} />
+);
+export const Chip: React.FC<{x: number; y: number; text: string; c: string; a?: number; center?: boolean; size?: number}> = ({x, y, text, c, a = 1, center, size = 26}) => (
+  <div style={{position: 'absolute', left: x, top: y, transform: center ? 'translateX(-50%)' : 'none', opacity: a, padding: '8px 18px', borderRadius: 12, background: 'rgba(15,23,42,.94)', border: `3px solid ${c}`, color: '#F8FAFC', fontFamily: ar, fontWeight: 600, fontSize: size, whiteSpace: 'nowrap', boxShadow: `0 0 20px ${c}88`, zIndex: 45, direction: 'ltr'}}>{text}</div>
+);
+export const Cam: React.FC<{t: number; k: [number, number, number, number][]; children: React.ReactNode}> = ({t, k, children}) => {
+  const cx = kf(t, k.map((q) => [q[0], q[1]] as [number, number]));
+  const cy = kf(t, k.map((q) => [q[0], q[2]] as [number, number]));
+  const s = kf(t, k.map((q) => [q[0], q[3]] as [number, number]));
+  return <div style={{position: 'absolute', left: 0, top: 0, width: W, height: H, transformOrigin: '0 0', transform: `translate(${W / 2}px,${H / 2}px) scale(${s}) translate(${-cx}px,${-cy}px)`}}>{children}</div>;
 };
+
+/* ───────── HUD (screen space, outside the camera) ───────── */
+export const Logo: React.FC<{s?: number}> = ({s = 64}) => <Img src={staticFile(LOGO)} style={{width: s, height: s, filter: 'invert(1)'}} />;
+export const TopBadge: React.FC<{text: string; a: number}> = ({text, a}) => (
+  <div style={{position: 'absolute', left: 0, right: 0, top: 22, display: 'flex', justifyContent: 'center', opacity: a, transform: `translateY(${(1 - a) * -16}px)`}}>
+    <div dir="rtl" style={{padding: '8px 34px', borderRadius: 16, background: 'rgba(30,41,59,.95)', border: `3px solid ${C.blue}`, color: '#F8FAFC', fontFamily: ar, fontWeight: 700, fontSize: 34, boxShadow: `0 0 26px ${C.blue}77`}}>{text}</div>
+  </div>
+);
+export const Tag: React.FC<{text: string; c: string; a: number}> = ({text, c, a}) => (
+  <div style={{position: 'absolute', left: 0, right: 0, bottom: 14, display: 'flex', justifyContent: 'center', opacity: a, transform: `translateY(${(1 - a) * 20}px)`, direction: 'ltr'}}>
+    <div style={{padding: '10px 30px', borderRadius: 14, background: 'rgba(15,23,42,.95)', border: `3px solid ${c}`, borderLeftWidth: 12, color: '#F8FAFC', fontFamily: ar, fontWeight: 600, fontSize: 30, boxShadow: `0 0 24px ${c}66`, whiteSpace: 'nowrap'}}>{text}</div>
+  </div>
+);
+export const Keys: React.FC<{keys: string[]; n: number; a: number; c: string}> = ({keys, n, a, c}) => (
+  <div style={{position: 'absolute', right: 40, top: 20, opacity: a, display: 'flex', alignItems: 'center', gap: 10, direction: 'ltr'}}>
+    {keys.map((k, i) => {
+      const on = n > i;
+      return (
+        <div key={i} style={{display: 'flex', alignItems: 'center', gap: 10}}>
+          {i > 0 && <span style={{color: C.dim, fontFamily: mono, fontSize: 28}}>+</span>}
+          <div style={{minWidth: 64, height: 60, padding: '0 16px', boxSizing: 'border-box', borderRadius: 12, border: `3px solid ${on ? c : '#475569'}`, background: on ? c : '#1E293B', color: on ? '#0F172A' : '#CBD5E1', fontFamily: mono, fontWeight: 700, fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: on ? `0 0 22px ${c}` : 'none', transform: `scale(${on && n < i + 1.4 ? 1.1 : 1})`}}>{k}</div>
+        </div>
+      );
+    })}
+  </div>
+);
+export const Stage: React.FC<{children: React.ReactNode}> = ({children}) => (
+  <div style={{position: 'absolute', inset: 0, overflow: 'hidden', background: `radial-gradient(circle at 50% 35%, ${C.panel} 0%, ${C.bg} 72%)`}}>{children}</div>
+);

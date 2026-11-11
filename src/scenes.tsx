@@ -1,281 +1,353 @@
-import React from "react";
-import { useCurrentFrame } from "remotion";
-import { A1, A2, A3, A4, A5, A6, SCENES } from "./sync";
-import { BIG_N, MATRIX, PRICES, PRICES2, REGIONS, TAXES, TAXES2, bigNetTotal, bigRow, calcNet, colMax, colMaxRow, fmt2, num, pct, rowSum } from "./data";
-import { Excel, F, buildCols, camAt, colX, lerp, prog, ribbonPos, slotY, typed, type Box, type Cell, type Col, type GRow } from "./kit";
-import { CellEditor, FuncTip, KeyCaps, Logo, NameManager, NewNameDialog, SceneFx, TopStrip, argIndex, type Seg } from "./kit_ui";
-import { C, XLSX_NAME } from "./theme";
+import React from 'react';
+import {A} from './anchors';
+import {ar, mono} from './fonts';
+import {Chip, Cursor, DLGP, DPOS, FilterMenu, Grid, Logo, Menu, MI, P, P5W, PB, PVW, PivotOptDlg, Ring, Stage, TABX, Tag, Tip, TopBadge, Win, cellWin, clamp, colName, fade, kf, pls, setCols, useT, xOf} from './kit';
+import {C, FILE, M, WIN, Z} from './theme';
 
-const badge = "Lesson 42 / 76 · Unit 8 / 14";
-const BLUE = "#2B7CD3", AMB = "#B45309", GRN = "#0B7A4B";
-const win = (a: number, b: number, f: number, r = 8): number => prog(f, a, r) * (1 - prog(f, b, r));
-const D = SCENES.map((s) => s.end - s.start);
-const sl = (d: number, f: number, a: string, b: string, ca: string, cb: string, arAr = false): React.ReactNode => (
-  <TopStrip f={f} badge={badge} lines={[{ from: 60, to: Math.round(d * 0.45), text: a, color: ca, ar: arAr }, { from: Math.round(d * 0.55), to: Math.round(d * 0.95), text: b, color: cb }]} />
+const W8 = '#F8FAFC';
+const GOLD = '#FBBF24';
+const RED_T = '#FECACA', BLUE_T = '#BAE6FD', GREEN_T = '#BBF7D0', PURP_T = '#E9D5FF', HEAD_T = '#E2EFDA';
+const GP = '=GETPIVOTDATA("Sales Amount",$A$3,"Branch",';
+type HL = (number | string)[];
+const pt = (t: number, k: [number, {x: number; y: number}][]) => ({
+  x: kf(t, k.map((q) => [q[0], q[1].x] as [number, number])),
+  y: kf(t, k.map((q) => [q[0], q[1].y] as [number, number])),
+});
+const typed = (s: string, t: number, a: number, b: number) => s.slice(0, Math.floor(s.length * clamp((t - a) / (b - a))));
+const cfg0 = {fr: 0, fc: 0, sr: 1, sc: 0};
+const cw = (c: number) => xOf(c + 1) - xOf(c);
+const cellL = (r: number, c: number) => cellWin(cfg0, r, c, true);
+const cellP = (r: number, c: number) => {
+  const q = cellL(r, c);
+  return P(q.x, q.y);
+};
+const corner = (r: number, c: number) => {
+  const q = cellL(r, c);
+  return P(q.x + cw(c) / 2 - 3, q.y + 8);
+};
+const a3btn = () => {
+  const q = cellL(3, 0);
+  return P(q.x + cw(0) / 2 - 11, q.y);
+};
+const FM = {x: 42, y: 262};
+const fmItem = (i: number) => P(FM.x + 100, FM.y + 4 + 11 + i * 26);
+const OM = () => ({x: PB.popt.x, y: PB.popt.y + PB.popt.h});
+const omItem = (i: number) => P(OM().x + 80, OM().y + 4 + 11 + i * 22);
+const optBtn = () => P(PB.popt.x + 50, PB.popt.y + 11);
+const analyzeTab = () => P(TABX['PivotTable Analyze'].x + 52, 46);
+const Hud: React.FC<{children?: React.ReactNode}> = ({children}) => (
+  <div style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+    <div style={{position: 'absolute', left: 4, top: -24}}><Logo s={136} /></div>
+    {children}
+  </div>
 );
-const Chip: React.FC<{ x: number; y: number; text: string; color: string; t: number; mono?: boolean }> = ({ x, y, text, color, t, mono }) => (
-  t <= 0 ? null : <div style={{ position: "absolute", left: x, top: y, opacity: t, transform: `translateY(${(1 - t) * 8}px)`, background: C.slate, color: C.text, border: `2px solid ${color}`, borderRadius: 8, padding: "6px 12px", boxShadow: `0 0 14px ${color}88`, fontFamily: mono ? F.mono : F.ui, fontWeight: 600, fontSize: mono ? 14 : 15, whiteSpace: "nowrap", zIndex: 45 }}>{text}</div>
+type WB = {kind: string; selR: number; selC: number; formula: string; tab?: string; ctx?: boolean; rangeR?: number; over?: React.ReactNode; hl?: string};
+const WinB: React.FC<WB> = (p) => (
+  <Win {...WIN} title={`${FILE} - Excel`} tab={p.tab ?? 'Home'} ctx={p.ctx} hl={p.hl} sheets={[{n: 'Pivot'}, {n: 'Data'}]} act={0} nameBox={`${colName(p.selC)}${p.selR}`} formula={p.formula} over={p.over}>
+    {({gw, gh}) => <Grid gw={gw} gh={gh} kind={p.kind} fr={0} fc={0} sr={1} sc={0} selR={p.selR} selC={p.selC} rangeR={p.rangeR} rangeC={p.selC} />}
+  </Win>
 );
-const Seal: React.FC<{ t: number; line1: string; line2: string }> = ({ t, line1, line2 }) => (
-  t <= 0 ? null : (
-    <div style={{ position: "absolute", right: 50, top: 300, width: 340, opacity: t, transform: `scale(${0.7 + 0.3 * t})`, zIndex: 60, textAlign: "center" }}>
-      <div style={{ width: 170, height: 170, margin: "0 auto", borderRadius: 85, background: `radial-gradient(circle, ${C.green}33, ${C.slate})`, border: `4px solid ${C.green}`, boxShadow: `0 0 40px ${C.green}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 92, color: C.green }}>✓</div>
-      <div style={{ marginTop: 12, background: C.slate, border: `1.5px solid ${C.green}`, borderRadius: 12, padding: "8px 12px", fontFamily: F.ui, fontWeight: 700, fontSize: 21, color: C.text }}>{line1}</div>
-      <div style={{ marginTop: 8, fontFamily: F.ar, fontWeight: 600, fontSize: 19, color: C.green, background: C.slate, borderRadius: 10, padding: "4px 10px" }}>{line2}</div>
-    </div>
-  )
-);
-const cell = (v: string | number, o: Partial<Cell> = {}): Cell => ({ v, ...o });
-const HF = "#E2EFDA";
-const sliceSegs = (full: Seg[], n: number): Seg[] => { let left = n; const out: Seg[] = []; for (const s of full) { if (left <= 0) break; out.push({ ...s, t: s.t.slice(0, left) }); left -= s.t.length; } return out; };
-const segText = (s: Seg[]): string => s.map((x) => x.t).join("");
-type SP = { cam: ReturnType<typeof camAt>; tab?: string; nameBox: string; formula: string; editing?: boolean; cols: Col[]; rows: GRow[]; active: { c: number; slot: number } | null; boxes?: Box[]; cellFx?: (id: string | number, c: number) => string | undefined; sheet?: string; glow?: { id: string; color: string; t: number }; children?: React.ReactNode; fixedHdr?: boolean };
-const Sheet: React.FC<SP> = (p) => (
-  <Excel cam={p.cam} file="manzooma_sales_2026.xlsx" tab={p.tab ?? "formulas"} glow={p.glow} nameBox={p.nameBox} formula={p.formula} editing={p.editing} statusLeft={p.editing ? "Enter" : "Ready"} sheets={["Sales", "Invoices"]} sheet={p.sheet ?? "Sales"}
-    grid={{ cols: p.cols, rows: p.rows, fixedHdr: p.fixedHdr ?? true, lines: true, active: p.active, boxes: p.boxes, cellFx: p.cellFx }}>{p.children}</Excel>
-);
-const colsPT = buildCols([90, 70, 120]);
-const ptRows = (prices: number[], taxes: number[], net: (i: number) => string | undefined, h: (i: number) => number = () => 1): GRow[] => [
-  { id: "h", hdr: 1, slot: 0, h: 1, cells: [cell("Price", { b: true, fill: HF, al: "r" }), cell("Tax", { b: true, fill: HF, al: "r" }), cell("Net", { b: true, fill: HF, al: "r" })] },
-  ...prices.map((p, i) => { const n = net(i); const cs: Cell[] = [cell(num(p), { al: "r" }), cell(pct(taxes[i]), { al: "r" })]; if (n !== undefined) cs[2] = cell(n, { al: "r" }); return { id: "r" + i, hdr: i + 2, slot: i + 1, h: h(i), cells: cs }; }),
-];
-const cx = (cols: Col[], c: number, slot: number): { x: number; y: number } => ({ x: colX(cols, c), y: slotY(slot) });
-const camA = { z: 1, cx: 768, cy: 403 };
+const inPivot = (r: number, c: number) => c <= 1 && r >= 3 && r <= 9;
+const kindOf = (k: string, sort: string, modes: string, flags: string, edit: string, hl: HL[]) => `${k}|${sort}|${modes}|${flags}|${edit}|${JSON.stringify(hl)}`;
+const Note: React.FC<{text: string; c: string; a: number; y?: number; x?: number}> = ({text, c, a, y = 720, x = 960}) => <Chip x={x} y={y} center text={text} c={c} a={a} size={26} />;
 
-// ================= SC01: LAMBDA basics =================
-const L1: Seg[] = [{ t: "=LAMBDA(" }, { t: "price, tax", c: BLUE }, { t: ", " }, { t: "price*(1+tax)", c: AMB }, { t: ")(" }, { t: "A2, B2", c: GRN }, { t: ")" }];
-export const Scene1: React.FC = () => {
-  const f = useCurrentFrame(); const A = A1;
-  const n = Math.max(0, Math.floor((f - 860) * 0.5));
-  const typing = f >= 860 && f < 956, done = f >= 956;
-  const segs = sliceSegs(L1, n);
-  const c2 = cx(colsPT, 2, 1);
-  const cam = camAt(f, [{ f: 0, ...camA }, { f: 540, ...camA }, { f: 580, z: 1.3, cx: 520, cy: 340 }, { f: 1200, z: 1.3, cx: 520, cy: 340 }]);
-  const boxes: Box[] = [{ c1: 0, c2: 0, s1: 1, s2: 1, color: C.green, t: done ? win(956, 1100, f, 10) : 0 }, { c1: 1, c2: 1, s1: 1, s2: 1, color: C.green, t: done ? win(956, 1100, f, 10) : 0 }, { c1: 2, c2: 2, s1: 1, s2: 1, color: C.blue, t: done ? prog(f, 956, 12) : 0, w: 3 }];
-  return (
-    <SceneFx f={f} dur={D[0]} kind="fade">
-      <Sheet cam={cam} nameBox="C2" formula={done ? segText(L1) : typing ? segText(segs) : ""} editing={typing} cols={colsPT} rows={ptRows(PRICES, TAXES, (i) => (i === 0 && done ? fmt2(calcNet(PRICES[0], TAXES[0])) : undefined))} active={{ c: 2, slot: 1 }} boxes={boxes}
-        glow={{ id: "insfn", color: C.blue, t: win(A.lambda, A.instead, f, 10) * 0.8 }}>
-        <Chip x={420} y={slotY(1)} text="=LAMBDA( parameters… , calculation )" color={C.blue} t={win(A.lambda, A.instead, f, 10)} mono />
-        <Chip x={420} y={slotY(1)} text="=IF(B2=0.14, A2*1.14, IF(B2=0.05, A2*1.05, A2))  ← long & repeated" color={C.amber} t={win(A.instead, A.vba, f, 10)} mono />
-        <div style={{ position: "absolute", left: 420, top: slotY(1), width: 420, background: C.slate, border: `2px solid ${C.red}`, borderRadius: 10, padding: "10px 14px", boxShadow: `0 0 16px ${C.red}88`, opacity: win(A.vba, 880, f, 10), fontFamily: F.mono, fontSize: 14, color: "#FCA5A5", lineHeight: "21px", zIndex: 45 }}>
-          Sub CalcNet()<br />&nbsp;&nbsp;For i = 2 To 11<br />&nbsp;&nbsp;&nbsp;&nbsp;Cells(i, 3) = Cells(i, 1) * (1 + Cells(i, 2))<br />&nbsp;&nbsp;Next i<br />End Sub
-          <div style={{ fontFamily: F.ui, fontWeight: 700, color: C.text, marginTop: 6 }}>VBA macro = more code to maintain</div>
-        </div>
-        {typing ? <CellEditor x={c2.x} y={c2.y} segs={segs} /> : null}
-        {typing ? <FuncTip x={c2.x} y={c2.y + 24} name="LAMBDA" params={["[parameter1]", "[parameter2]", "…", "calculation"]} active={Math.min(3, argIndex(segText(segs)))} /> : null}
-        <Chip x={420} y={slotY(4)} text="(…)(A2, B2) → test the function right inside the cell" color={C.blue} t={prog(f, A.end - 10, 12)} />
-        <Chip x={420} y={slotY(7)} text="Result = 1,200 × (1 + 14%) = 1,368.00" color={C.green} t={prog(f, 980, 12)} />
-      </Sheet>
-      {sl(D[0], f, "الدرس 42 من 76 | الوحدة 8 من 14 → LAMBDA & MAP Engine", "Native Functions → =LAMBDA(x, y, x*(1+y))(A2, B2) (Zero VBA Required)", C.blue, C.blue, true)}
-      <KeyCaps keys={["Enter"]} f={f} from={940} hold={40} accent={C.blue} />
-    </SceneFx>
-  );
-};
-
-// ================= SC02: Name Manager =================
-export const Scene2: React.FC = () => {
-  const f = useCurrentFrame(); const A = A2;
-  const nmT = win(235, 462, f, 12), nnT = win(270, 428, f, 12);
-  const nameTxt = typed("CalculateNet", f, 276, 0.25);
-  const REF = "=LAMBDA(price, tax, price*(1+tax))";
-  const refTxt = typed(REF, f, 330, 0.5);
-  const saved = f >= 428;
-  const call = "=CalculateNet(A2, B2)";
-  const ct = typed(call, f, 470, 0.45);
-  const typing = f >= 470 && f < 545;
-  const net = (i: number): string | undefined => (f >= 545 + (i === 0 ? 0 : 30 + i * 5) ? fmt2(calcNet(PRICES[i], TAXES[i])) : undefined);
-  const inv = f >= 900;
-  const np = ribbonPos("formulas", "namemgr");
-  const cam = camAt(f, [{ f: 0, ...camA }, { f: 150, ...camA }, { f: 175, z: 1.6, cx: np.x, cy: 150 }, { f: 228, z: 1.6, cx: np.x, cy: 150 }, { f: 255, z: 1.3, cx: 768, cy: 330 }, { f: 462, z: 1.3, cx: 768, cy: 330 }, { f: 495, z: 1.3, cx: 520, cy: 340 }, { f: 1173, z: 1.3, cx: 520, cy: 340 }]);
-  const c2 = cx(colsPT, 2, 1);
-  const rows = inv ? ptRows(PRICES2, TAXES2, (i) => fmt2(calcNet(PRICES2[i], TAXES2[i])), (i) => prog(f, 905 + i * 4, 8)) : ptRows(PRICES, TAXES, net);
-  return (
-    <SceneFx f={f} dur={D[1]} kind="left">
-      <Sheet cam={cam} nameBox="C2" formula={typing ? ct : f >= 545 ? "=CalculateNet(A2, B2)" : ""} editing={typing} cols={colsPT} rows={rows} active={{ c: 2, slot: 1 }} sheet={inv ? "Invoices" : "Sales"}
-        glow={{ id: "namemgr", color: C.green, t: win(A.nm - 6, 236, f, 10) }}
-        boxes={[{ c1: 2, c2: 2, s1: 1, s2: 10, color: C.green, t: f >= 575 && !inv ? win(575, 760, f, 10) : 0, fill: "rgba(16,185,129,.08)", w: 3 }]}>
-        <Chip x={420} y={slotY(1)} text="Save the LAMBDA once → reuse it everywhere" color={C.blue} t={win(A.save, 175, f, 10)} />
-        <NameManager x={420} y={170} t={nmT} newPress={f >= 256 && f < 270 ? 1 : 0} closePress={f >= 452 && f < 462 ? 1 : 0} names={saved ? [{ name: "CalculateNet", refers: REF, hi: f < 460 ? C.green : undefined }] : []} />
-        <NewNameDialog x={530} y={240} t={nnT} name={nameTxt} refers={[{ t: refTxt }]} hiName={f < 330 ? C.green : undefined} hiRefers={f >= 330 ? C.green : undefined} ok={f >= 414 && f < 428 ? 1 : 0} />
-        {typing ? <CellEditor x={c2.x} y={c2.y} segs={[{ t: ct }]} /> : null}
-        {typing ? <FuncTip x={c2.x} y={c2.y + 24} name="CalculateNet" params={["price", "tax"]} active={Math.min(1, argIndex(ct))} /> : null}
-        <Chip x={420} y={slotY(2)} text="CalculateNet = a real, official function in this workbook" color={C.green} t={win(A.native, 470, f, 10)} />
-        <Chip x={420} y={slotY(4)} text="Pass the variables directly: =CalculateNet(A2, B2)" color={C.amber} t={win(A.vars, 760, f, 10)} />
-        <Chip x={420} y={slotY(8)} text="Cleaner sheets · easier to maintain" color={C.green} t={win(A.arch, 900, f, 10)} />
-        <Chip x={420} y={slotY(1)} text="Same function in the Invoices sheet — no code copied" color={C.green} t={prog(f, 920, 12)} />
-      </Sheet>
-      {sl(D[1], f, "Custom Function Storage → Name Manager → CalculateNet = LAMBDA(price, tax, ...)", "Native Call → =CalculateNet(A2, B2) Invokes Custom Logic Across the Workbook", C.green, C.green)}
-    </SceneFx>
-  );
-};
-
-// ================= SC03: MAP =================
-export const Scene3: React.FC = () => {
-  const f = useCurrentFrame(); const A = A3;
-  const M = "=MAP(A2:A11, B2:B11, LAMBDA(p, t, CalculateNet(p, t)))";
-  const mt = typed(M, f, 331, 0.45);
-  const typing = f >= 331 && f < 612, done = f >= 612;
-  const edit = f >= 1160 && f < 1215, edited = f >= 1215;
-  const price = (i: number): number => (edited && i === 2 ? 5000 : PRICES[i]);
-  const hit = (i: number): number => 612 + i * 9;
-  const net = (i: number): string | undefined => (done && f >= hit(i) + 4 ? fmt2(calcNet(price(i), TAXES[i])) : undefined);
-  const tr = done && f < 612 + 10 * 9 ? Math.min(9, Math.floor((f - 612) / 9)) : -1;
-  const c2 = cx(colsPT, 2, 1);
-  const rows = ptRows(PRICES.map((_, i) => price(i)), TAXES, net);
-  const boxes: Box[] = [
-    { c1: 0, c2: 1, s1: Math.max(0, tr) + 1, s2: Math.max(0, tr) + 1, color: C.purple, t: tr >= 0 ? 1 : 0, w: 3 },
-    { c1: 2, c2: 2, s1: 1, s2: 10, color: C.amber, t: f >= 700 ? prog(f, 700, 14) : 0, fill: "rgba(245,158,11,.08)", w: 3 },
-  ];
-  const cam = camAt(f, [{ f: 0, z: 1.3, cx: 520, cy: 340 }, { f: 1356, z: 1.3, cx: 520, cy: 340 }]);
-  return (
-    <SceneFx f={f} dur={D[2]} kind="down">
-      <Sheet cam={cam} nameBox={edit ? "A4" : "C2"} formula={edit ? typed("5000", f, 1160, 0.12) : done ? M : typing ? mt : ""} editing={typing || edit} cols={colsPT} rows={rows} active={edit ? { c: 0, slot: 3 } : { c: 2, slot: 1 }} boxes={boxes}
-        cellFx={(id, c) => { const k = Number(String(id).slice(1)); if (c === 2 && f >= hit(k) + 4 && f < hit(k) + 40 && String(id)[0] === "r") return `rgba(245,158,11,${0.5 * win(hit(k) + 4, hit(k) + 40, f, 6)})`; if (c === 2 && edited && k === 2) return `rgba(245,158,11,${0.5 * win(1215, 1280, f, 8)})`; return undefined; }}>
-        {typing ? <CellEditor x={c2.x} y={c2.y} segs={[{ t: mt }]} /> : null}
-        {typing ? <FuncTip x={c2.x} y={c2.y + 24} name="MAP" params={["array1", "lambda_or_array2", "[lambda_or_array3]", "…"]} active={Math.min(2, argIndex(mt))} /> : null}
-        {edit ? <CellEditor x={cx(colsPT, 0, 3).x} y={cx(colsPT, 0, 3).y} segs={[{ t: typed("5000", f, 1160, 0.12) }]} /> : null}
-        <Chip x={640} y={slotY(1)} text="Arrays in → arrays out, element by element" color={C.purple} t={win(A.arrays, 453, f, 10)} />
-        <Chip x={640} y={slotY(1)} text="MAP walks BOTH arrays: (p, t) = (price, tax) for each row" color={C.purple} t={win(470, 610, f, 10)} />
-        <Chip x={640} y={slotY(3)} text="Each pair → LAMBDA → CalculateNet(p, t)" color={C.amber} t={win(A.each, 780, f, 10)} />
-        <Chip x={640} y={slotY(5)} text="Output = same size as the inputs (10 × 1)" color={C.amber} t={win(A.dims, 931, f, 10)} />
-        <Chip x={640} y={slotY(7)} text="No fill-down · no manual copying" color={C.green} t={win(A.manual, 1100, f, 10)} />
-        <Chip x={640} y={slotY(5)} text="Change one input → the whole spill recalculates" color={C.green} t={prog(f, 1220, 12)} />
-      </Sheet>
-      {sl(D[2], f, "Iterative Array Engine → =MAP(A2:A11, B2:B11, LAMBDA(p, t, CalculateNet(p, t)))", "Element-Wise Processing → Applies Custom Logic to Every Array Element Seamlessly", C.purple, C.purple)}
-      <KeyCaps keys={["Enter"]} f={f} from={596} hold={40} accent={C.amber} />
-    </SceneFx>
-  );
-};
-
-// ================= SC04: BYROW / BYCOL =================
-const cols4 = buildCols([100, 50, 72, 72, 72, 72, 22, 96]);
-export const Scene4: React.FC = () => {
-  const f = useCurrentFrame(); const A = A4;
-  const BR = "=BYROW(C2:F10, LAMBDA(r, SUM(r)))", BC = "=BYCOL(C2:F10, LAMBDA(c, MAX(c)))";
-  const bt = typed(BR, f, 338, 0.45), ct = typed(BC, f, 771, 0.45);
-  const t1 = f >= 338 && f < 440, t2 = f >= 771 && f < 855;
-  const rk = (k: number): number => 445 + k * 13, ck = (q: number): number => 860 + q * 25;
-  const rows: GRow[] = [
-    { id: "h", hdr: 1, slot: 0, h: 1, cells: [cell("Region", { b: true, fill: HF }), cell("Year", { b: true, fill: HF, al: "r" }), ...["Q1", "Q2", "Q3", "Q4"].map((q) => cell(q, { b: true, fill: HF, al: "r" as const }))].concat([]) },
-    ...REGIONS.map((r, i) => ({ id: "m" + i, hdr: i + 2, slot: i + 1, h: 1, cells: [cell(r), cell(2026, { al: "r" }), ...MATRIX[i].map((v) => cell(num(v), { al: "r" as const }))] })),
-  ];
-  rows[0].cells[7] = cell("Row total", { b: true, fill: HF, al: "r" });
-  REGIONS.forEach((_, i) => { if (f >= rk(i) + 4) rows[i + 1].cells[7] = cell(num(rowSum(i)), { al: "r", b: true }); });
-  const bycolRow: GRow = { id: "bc", hdr: 12, slot: 11, h: 1, cells: [cell("Column max", { b: f >= 855 })] };
-  [0, 1, 2, 3].forEach((q) => { if (f >= ck(q) + 4) bycolRow.cells[2 + q] = cell(num(colMax(q)), { al: "r", b: true }); });
-  rows.push(bycolRow);
-  const rr = f >= 445 && f < rk(8) + 13 ? Math.min(8, Math.floor((f - 445) / 13)) : -1;
-  const cc = f >= 860 && f < ck(3) + 25 ? Math.min(3, Math.floor((f - 860) / 25)) : -1;
-  const boxes: Box[] = [
-    { c1: 2, c2: 5, s1: Math.max(0, rr) + 1, s2: Math.max(0, rr) + 1, color: C.green, t: rr >= 0 ? 1 : 0, w: 3 },
-    { c1: 7, c2: 7, s1: 1, s2: 9, color: C.green, t: f >= rk(8) + 13 ? prog(f, rk(8) + 13, 12) : 0, fill: "rgba(16,185,129,.08)", w: 3 },
-    { c1: 2 + Math.max(0, cc), c2: 2 + Math.max(0, cc), s1: 1, s2: 9, color: C.blue, t: cc >= 0 ? 1 : 0, w: 3 },
-    { c1: 2, c2: 5, s1: 11, s2: 11, color: C.blue, t: f >= ck(3) + 25 ? prog(f, ck(3) + 25, 12) : 0, fill: "rgba(56,189,248,.08)", w: 3 },
-    ...[0, 1, 2, 3].map((q) => ({ c1: 2 + q, c2: 2 + q, s1: colMaxRow(q) + 1, s2: colMaxRow(q) + 1, color: C.blue, t: f >= 975 ? win(975, 1300, f, 10) : 0, w: 3 })),
-  ];
-  const h2 = cx(cols4, 7, 1), c12 = cx(cols4, 2, 11);
-  const cam = camAt(f, [{ f: 0, z: 1.15, cx: 668, cy: 400 }, { f: 1347, z: 1.15, cx: 668, cy: 400 }]);
-  return (
-    <SceneFx f={f} dur={D[3]} kind="expand">
-      <Sheet cam={cam} nameBox={t2 || f >= 855 ? "C12" : "H2"} formula={t2 ? ct : f >= 855 ? BC : t1 ? bt : f >= 440 ? BR : ""} editing={t1 || t2} cols={cols4} rows={rows} active={f >= 771 ? { c: 2, slot: 11 } : { c: 7, slot: 1 }} boxes={boxes}>
-        {t1 ? <CellEditor x={h2.x} y={h2.y} segs={[{ t: bt }]} /> : null}
-        {t1 ? <FuncTip x={h2.x} y={h2.y + 24} name="BYROW" params={["array", "lambda(row)"]} active={Math.min(1, argIndex(bt))} /> : null}
-        {t2 ? <CellEditor x={c12.x} y={c12.y} segs={[{ t: ct }]} /> : null}
-        {t2 ? <FuncTip x={c12.x} y={c12.y + 24} name="BYCOL" params={["array", "lambda(column)"]} active={Math.min(1, argIndex(ct))} /> : null}
-        <Chip x={790} y={slotY(1)} text="2-D array  C2:F10  (9 rows × 4 columns)" color={C.amber} t={win(A.two, 440, f, 10)} />
-        <Chip x={790} y={slotY(3)} text="BYROW → one result per ROW  ↓" color={C.green} t={win(A.sum, 760, f, 10)} />
-        <Chip x={790} y={slotY(5)} text="Each row arrives as a sub-array  r = {Q1, Q2, Q3, Q4}" color={C.green} t={win(A.sub, 760, f, 10)} />
-        <Chip x={790} y={slotY(7)} text="BYCOL → one result per COLUMN  →" color={C.blue} t={win(A.bycol, 1100, f, 10)} />
-        <Chip x={790} y={slotY(9)} text="No array-dimension conflicts · no #VALUE!" color={C.green} t={win(A.conflict, 1300, f, 10)} />
-        <Chip x={790} y={slotY(13)} text="Blue boxes = the maximum of each column" color={C.blue} t={win(990, 1300, f, 10)} />
-      </Sheet>
-      {sl(D[3], f, "Row-Wise Aggregation → =BYROW(C2:F10, LAMBDA(r, SUM(r))) (No #VALUE! Errors)", "Column-Wise Aggregation → =BYCOL(C2:F10, LAMBDA(c, MAX(c)))", C.green, C.blue)}
-      <KeyCaps keys={["Enter"]} f={f} from={424} hold={36} accent={C.green} />
-      <KeyCaps keys={["Enter"]} f={f} from={839} hold={36} accent={C.blue} />
-    </SceneFx>
-  );
-};
-
-// ================= SC05: 50,000 rows =================
-const cols5 = buildCols([84, 84, 64, 130]);
-const VIEW = 26;
-export const Scene5: React.FC = () => {
-  const f = useCurrentFrame(); const A = A5;
-  const BM = '=MAP(B2:B50001, C2:C50001, LAMBDA(p, t, CalculateNet(p, t)))';
-  const bottom = f >= 455 && f < 500;
-  const off = bottom ? BIG_N - VIEW : 0;
-  const bt = typed(BM, f, 523, 1.0);
-  const typing = f >= 523 && f < 626, done = f >= 626;
-  const rows: GRow[] = [
-    { id: "h", hdr: 1, slot: 0, h: 1, cells: ["Order ID", "Price", "Tax", "Net"].map((t, i) => cell(t, { b: true, fill: HF, al: i === 0 ? "l" as const : "r" as const })) },
-    ...Array.from({ length: VIEW }, (_, k) => { const r = bigRow(off + k); const cs: Cell[] = [cell(r.id), cell(num(r.price), { al: "r" }), cell(pct(r.tax), { al: "r" })]; if (done && !bottom) cs[3] = cell(fmt2(r.net), { al: "r" }); return { id: "o" + k, hdr: off + k + 2, slot: k + 1, h: done && !bottom ? 1 : 1, cells: cs }; }),
-  ];
-  const count = Math.round(BIG_N * prog(f, A.file, 130));
-  const d2 = cx(cols5, 3, 1);
-  const cam = camAt(f, [{ f: 0, z: 1.15, cx: 668, cy: 340 }, { f: 449, z: 1.15, cx: 668, cy: 340 }, { f: 459, z: 1.15, cx: 668, cy: 456 }, { f: 496, z: 1.15, cx: 668, cy: 456 }, { f: 506, z: 1.15, cx: 668, cy: 340 }, { f: 1194, z: 1.15, cx: 668, cy: 340 }]);
-  return (
-    <SceneFx f={f} dur={D[4]} kind="expand">
-      <Sheet cam={cam} nameBox={bottom ? "A50001" : typing || done ? "D2" : "A1"} formula={done ? BM : typing ? bt : bottom ? bigRow(BIG_N - 1).id : "Order ID"} editing={typing} cols={cols5} rows={rows} fixedHdr={false}
-        active={bottom ? { c: 0, slot: VIEW } : typing || done ? { c: 3, slot: 1 } : { c: 0, slot: 0 }}
-        boxes={[{ c1: 3, c2: 3, s1: 1, s2: VIEW + 1, color: C.blue, t: done && !bottom ? prog(f, 626, 14) : 0, fill: "rgba(16,185,129,.09)", w: 3 }]}
-        cellFx={(id, c) => (c === 3 && done && String(id)[0] === "o" ? `rgba(245,158,11,${0.4 * win(626 + Number(String(id).slice(1)) * 2, 700, f, 8)})` : undefined)}>
-        {typing ? <CellEditor x={d2.x} y={d2.y} segs={[{ t: bt }]} /> : null}
-        {typing ? <FuncTip x={d2.x} y={d2.y + 24} name="MAP" params={["array1", "lambda_or_array2", "[lambda_or_array3]", "…"]} active={Math.min(2, argIndex(bt))} /> : null}
-        <Chip x={colX(cols5, 4) + 30} y={slotY(2)} text={`Spilled: ${num(BIG_N)} rows · SUM(D2#) = ${num(bigNetTotal())}`} color={C.green} t={prog(f, 660, 12)} />
-        <Chip x={colX(cols5, 4) + 30} y={slotY(5)} text="Custom logic once · applied to every row · no VBA" color={C.blue} t={win(A.days, 1000, f, 10)} />
-        <Chip x={colX(cols5, 4) + 30} y={slotY(8)} text="Tip: for plain math use B2:B50001*(1+C2:C50001); LAMBDA/MAP shine for custom logic" color={C.amber} t={prog(f, 880, 12)} />
-      </Sheet>
-      <div style={{ position: "absolute", right: 28, top: 92, background: "rgba(15,23,42,.92)", border: `1.5px solid ${C.blue}`, borderRadius: 12, padding: "8px 18px", fontFamily: F.mono, fontSize: 19, color: C.text, opacity: prog(f, A.file, 12), zIndex: 60 }}>manzooma_sales_2026 · <span style={{ color: C.blue, fontWeight: 700 }}>{num(count)}</span> rows</div>
-      <Seal t={prog(f, A.days + 10, 26)} line1="Enterprise LAMBDA & MAP" line2={`${num(BIG_N)} صف · بدون VBA`} />
-      <KeyCaps keys={["Ctrl", "↓"]} f={f} from={440} hold={34} accent={C.blue} />
-      <KeyCaps keys={["Enter"]} f={f} from={610} hold={36} accent={C.green} />
-      {sl(D[4], f, "Enterprise LAMBDA & MAP → Custom Functional Logic Across 50,000 Rows Instantly", "Zero VBA Overhead → Functional Array Iteration Across 50,000 Rows", C.blue, C.green)}
-    </SceneFx>
-  );
-};
-
-// ================= SC06: outro =================
-export const Scene6: React.FC = () => {
-  const f = useCurrentFrame(); const A = A6;
-  const pr = prog(f, 60, 110);
-  const pct2 = (42 / 76) * 100;
-  const skills = ["LAMBDA(params, calculation) · test in the cell", "Name Manager → CalculateNet", "MAP · element-wise on spilled arrays", "BYROW & BYCOL · row / column aggregation"];
-  const fadeOut = 1 - prog(f, 880, 50);
-  const card: React.CSSProperties = { background: "rgba(30,41,59,.72)", border: "1.5px solid rgba(148,163,184,.35)", borderRadius: 28 };
-  return (
-    <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 20% 10%, #16324a 0%, ${C.slate} 55%)`, opacity: Math.min(prog(f, 0, 20), fadeOut) }}>
-      <div style={{ position: "absolute", left: 90, top: 60, display: "flex", alignItems: "center", gap: 20, opacity: prog(f, 0, 20) }}>
-        <Logo s={120} />
-        <div><div style={{ fontFamily: F.ar, fontWeight: 700, fontSize: 46, color: C.text }}>منظومة أكاديمي | Manzooma Excel Masterclass</div><div style={{ fontFamily: F.ui, fontSize: 22, color: "#94A3B8", marginTop: 4 }}>Excel From Zero to Professional</div></div>
-      </div>
-      <div style={{ ...card, position: "absolute", left: 90, top: 200, width: 1010, height: 700, padding: 44, boxSizing: "border-box", opacity: prog(f, 20, 20), transform: `translateY(${(1 - prog(f, 20, 20)) * 24}px)` }}>
-        <div style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 38, color: C.text }}>Lesson 42 · LAMBDA & MAP Engine</div>
-        <div style={{ fontFamily: F.ar, fontSize: 28, color: "#CBD5E1", marginTop: 8, direction: "rtl", textAlign: "left" }}>الدرس الثاني والأربعون | الوحدة الثامنة</div>
-        <div style={{ marginTop: 30, display: "flex", justifyContent: "space-between", fontFamily: F.ui, fontWeight: 600, fontSize: 24, color: C.text }}><span>Course progress · Lesson 42 of 76</span><span style={{ color: C.green }}>{(pr * pct2).toFixed(1)}%</span></div>
-        <div style={{ marginTop: 12, height: 26, borderRadius: 13, background: "#0B1220", overflow: "hidden", border: "1px solid #334155" }}><div style={{ width: `${pr * pct2}%`, height: "100%", background: `linear-gradient(90deg, ${C.green}, #34D399)`, boxShadow: `0 0 18px ${C.green}` }} /></div>
-        <div style={{ marginTop: 10, fontFamily: F.ui, fontSize: 20, color: "#94A3B8" }}>Unit 8 of 14 · Dynamic Search & Advanced Sorting · Lesson 5 of the unit</div>
-        <div style={{ marginTop: 28 }}>
-          {skills.map((s, i) => { const t = prog(f, 110 + i * 28, 16); return <div key={i} style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 20, opacity: t, transform: `translateX(${(1 - t) * 30}px)`, fontFamily: F.ui, fontSize: 28, color: C.text }}><span style={{ color: C.green, fontWeight: 700, fontSize: 34 }}>✓</span>{s}</div>; })}
-        </div>
-        <div style={{ marginTop: 22, display: "flex", gap: 18, opacity: prog(f, A.sheet, 16) }}>
-          <div style={{ background: C.slate, border: `1.5px solid ${C.blue}`, borderRadius: 12, padding: "10px 18px", fontFamily: F.mono, fontSize: 21, color: C.text }}>{XLSX_NAME}</div>
-          <div style={{ background: C.slate, border: `1.5px solid ${C.green}`, borderRadius: 12, padding: "10px 18px", fontFamily: F.mono, fontSize: 21, color: C.green, opacity: prog(f, A.link, 16) }}>solutions.gomaaintelligence.me</div>
-        </div>
-      </div>
-      <div style={{ position: "absolute", left: 1150, top: 200, width: 680, display: "flex", flexDirection: "column", gap: 30 }}>
-        <div style={{ ...card, height: 230, display: "flex", alignItems: "center", justifyContent: "center", gap: 28, opacity: prog(f, 190, 20), transform: `scale(${0.85 + 0.15 * prog(f, 190, 20)})` }}>
-          <div style={{ width: 130, height: 130, borderRadius: 65, background: `radial-gradient(circle, ${C.green}, #047857)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 76, color: C.slate, boxShadow: `0 0 40px ${C.green}88` }}>✓</div>
-          <div style={{ fontFamily: F.ui, fontWeight: 700, fontSize: 30, color: C.green, lineHeight: "38px" }}>LAMBDA & MAP Engine<div style={{ fontWeight: 500, fontSize: 21, color: "#CBD5E1" }}>Lesson 42 mastered</div></div>
-        </div>
-        <div style={{ ...card, height: 440, padding: 34, boxSizing: "border-box", opacity: prog(f, A.l43 - 20, 20), transform: `translateY(${(1 - prog(f, A.l43 - 20, 20)) * 30}px)`, border: `1.5px solid ${C.blue}` }}>
-          <div style={{ fontFamily: F.ui, fontWeight: 600, fontSize: 22, color: C.blue, letterSpacing: 1 }}>NEXT · LESSON 43 · UNIT 8 FINALE</div>
-          <div style={{ fontFamily: F.ar, fontWeight: 700, fontSize: 34, color: C.text, marginTop: 10, direction: "rtl", textAlign: "right", lineHeight: "48px" }}>الدرس 43: دوال تجميع وتقليص المصفوفات المنسابة</div>
-          <div style={{ fontFamily: F.ui, fontWeight: 600, fontSize: 24, color: "#CBD5E1", marginTop: 8 }}>REDUCE & SCAN Engine</div>
-          <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 10 }}>{["=REDUCE(0, A2:A11, LAMBDA(a, x, a + x))", "=SCAN(0, A2:A11, LAMBDA(a, x, a + x))"].map((t) => <div key={t} style={{ height: 46, borderRadius: 8, background: "#fff", border: `2px solid ${C.xGreen}`, display: "flex", alignItems: "center", padding: "0 14px", fontFamily: F.cell, fontSize: 21, fontWeight: 700, color: C.ink }}>{t}</div>)}</div>
-        </div>
-      </div>
+/* ───────── SCENE 1 — =B4 breaks, GETPIVOTDATA holds ───────── */
+export const Scene1: React.FC<{from: number}> = ({from}) => {
+  setCols(PVW);
+  const t = useT(from);
+  const a = A[1];
+  const sort = t >= 44.4 ? 'z' : t >= 32.3 ? 'a' : 'd';
+  const GPF = GP + '"Cairo")';
+  let modes = '-----', edit = '', formula = '';
+  if (t >= 25.5 && t < 27.4) { const s = typed('=B4', t, 25.5, 27.2); edit = `E4,4:${s}`; formula = s; }
+  else if (t >= 27.4 && t < 36.9) { const n = t < 28.6 ? 1 : t < 28.8 ? 2 : t < 29.0 ? 3 : t < 29.2 ? 4 : 5; modes = 'r'.repeat(n) + '-'.repeat(5 - n); formula = '=B4'; }
+  else if (t >= 36.9 && t < 41.8) { const s = typed(GPF, t, 37.0, 41.6); modes = 'rrrrr'; edit = `E4,4:${s}`; formula = s; }
+  else if (t >= 41.8) { modes = 'grrrr'; formula = GPF; }
+  const hl: HL[] = [];
+  if (t >= 16.5) hl.push([3, 3, 3, 4, HEAD_T]);
+  for (let i = 0; i < 5; i++) {
+    if (modes[i] === 'r' && t >= 32.5) hl.push([4 + i, 4, RED_T]);
+    if (modes[i] === 'g') hl.push([4 + i, 4, BLUE_T]);
+  }
+  const menu = (t >= 31.1 && t < 32.4) || (t >= 43.2 && t < 44.6);
+  const sel = menu ? [3, 0] : [4, 4];
+  const ctx = inPivot(sel[0], sel[1]);
+  const over = (
+    <div>
+      {menu && <FilterMenu x={FM.x} y={FM.y} hl={t < 40 ? (t >= 31.7 ? 0 : -1) : t >= 44.0 ? 1 : -1} ghost={0} />}
+      {t >= 38.0 && t < 41.8 && <Tip x={cellL(4, 4).x - cw(4) / 2} y={cellL(4, 4).y + 10} text="GETPIVOTDATA(data_field, pivot_table, [field1, item1], ...)" />}
     </div>
   );
+  const E4 = cellP(4, 4), h4 = corner(4, 4), h8 = corner(8, 4), A3 = a3btn();
+  const cur = pt(t, [[0, {x: 1000, y: 520}], [24.6, {x: 1000, y: 520}], [24.7, E4], [27.9, E4], [28.0, h4], [29.4, h8], [30.8, A3], [31.1, A3], [31.7, fmItem(0)], [32.3, fmItem(0)], [36.4, E4], [36.5, E4], [43.0, A3], [43.3, A3], [44.0, fmItem(1)], [44.5, fmItem(1)], [46, {x: 1000, y: 520}]]);
+  const rowTop = P(0, 180 + 20 + 40).y;
+  return (
+    <Stage>
+      <WinB kind={kindOf('pv', sort, modes, t >= 16.5 ? 'hn' : '', edit, hl)} selR={sel[0]} selC={sel[1]} ctx={ctx} formula={menu ? 'Row Labels' : formula} over={over} rangeR={t >= 28.2 && t < 29.6 ? 8 : undefined} />
+      <Ring x={P(M.rowW - 2, 0).x} y={rowTop - 2} w={(xOf(2) + 4) * Z} h={(7 * 20 + 4) * Z} c={C.blue} t={t} a={fade(t, a.pivot, 15.5)} r={8} />
+      <Note text="PivotTable — Sum of Sales Amount by Branch" c={C.blue} a={fade(t, a.pivot, 15.5)} y={760} />
+      <Note text="Custom financial report linked to the PivotTable" c={C.blue} a={fade(t, 16.8, 24.5)} y={760} />
+      <Note text="⚠ Report now shows WRONG numbers (B4 moved)" c={C.red} a={fade(t, 33.0, 36.8)} y={760} />
+      <Note text="✓ E4 stays correct: Cairo = 1,858,000" c={C.green} a={fade(t, 45.0, 49.0)} y={760} />
+      <Cursor x={cur.x} y={cur.y} t={t} left={[24.8, 28.1, 31.1, 32.3, 36.6, 43.3, 44.5]} />
+      <Hud>
+        <TopBadge text="الدرس 32 من 76 | ختام الوحدة 6 → Pivot Extraction & Security Engine" a={fade(t, 2, 18)} />
+        <Tag text="Hardcoded Cell Failure → =B4 Breaks on Pivot Sort; GETPIVOTDATA Guarantees Data Accuracy" c={C.blue} a={fade(t, 27, 49)} />
+      </Hud>
+    </Stage>
+  );
 };
-void lerp;
+
+/* ───────── SCENE 2 — dynamic argument linking ───────── */
+export const Scene2: React.FC<{from: number}> = ({from}) => {
+  setCols(PVW);
+  const t = useT(from);
+  const a = A[2];
+  const sort = t >= 75.4 ? 'a' : 'd';
+  let text = GP + 'D4)';
+  const editing = t >= 58.4 && t < 64.0;
+  if (t < 60.6) text = GP + '"Cairo")';
+  else if (t < 61.8) { const rem = Math.max(0, 7 - Math.floor((7 * (t - 60.6)) / 1.1)); text = GP + '"Cairo"'.slice(0, rem) + ')'; }
+  else if (t < 62.9) text = GP + ')';
+  const n = t < 66.8 ? 1 : t < 67.4 ? 1 : t < 67.9 ? 2 : t < 68.3 ? 3 : t < 68.7 ? 4 : 5;
+  const modes = 'g'.repeat(n) + '-'.repeat(5 - n);
+  const hl: HL[] = [[3, 3, 3, 4, HEAD_T]];
+  for (let i = 0; i < n; i++) hl.push([4 + i, 4, t >= 69.0 ? GREEN_T : BLUE_T]);
+  if (editing && t >= 62.9) hl.push([4, 3, BLUE_T]);
+  const menu = t >= 73.6 && t < 75.4;
+  const sel = menu ? [3, 0] : [4, 4];
+  const over = menu ? <FilterMenu x={FM.x} y={FM.y} hl={t >= 74.8 ? 0 : -1} ghost={0} /> : null;
+  const E4 = cellP(4, 4), D4 = cellP(4, 3), h4 = corner(4, 4), h8 = corner(8, 4), A3 = a3btn();
+  const cur = pt(t, [[51.4, {x: 1000, y: 520}], [58.0, E4], [58.4, E4], [62.4, D4], [62.9, D4], [66.3, h4], [66.8, h4], [69.0, h8], [73.0, A3], [73.6, A3], [74.8, fmItem(0)], [75.4, fmItem(0)], [77, {x: 1000, y: 520}]]);
+  const f = t < 58.4 ? GP + '"Cairo")' : editing ? text : GP + 'D4)';
+  return (
+    <Stage>
+      <WinB kind={kindOf('pv', sort, modes, 'hn', editing ? `E4,4:${text}` : '', hl)} selR={sel[0]} selC={sel[1]} ctx={inPivot(sel[0], sel[1])} formula={menu ? 'Row Labels' : f} over={over} rangeR={t >= 66.8 && t < 69.2 ? 8 : undefined} />
+      <Ring x={E4.x - 85} y={E4.y - 16} w={170} h={32} c={C.amber} t={t} a={fade(t, a.hard, 60.5)} r={6} />
+      <Note text={'Hardcoded text "Cairo" → change one branch only'} c={C.amber} a={fade(t, a.hard, 60.5)} y={760} />
+      <Note text="Cell reference D4 instead of text" c={C.blue} a={fade(t, 62.4, 66.5)} y={760} />
+      <Note text="Auto-fill → every branch updates ✓" c={C.green} a={fade(t, a.spill - 0.4, 73)} y={760} />
+      <Note text="Report stays correct after sorting the PivotTable" c={C.green} a={fade(t, 75.8, 83.5)} y={760} />
+      <Cursor x={cur.x} y={cur.y} t={t} left={[58.4, 62.9, 66.8, 73.6, 75.4]} />
+      <Hud>
+        <Tag text={'Dynamic Syntax → =GETPIVOTDATA("Sales Amount", $A$3, "Branch", D4)'} c={C.blue} a={fade(t, 52, 70)} />
+        <Tag text="Dynamic Linking → Replace Hardcoded Strings with Cell References for Auto-Fill Capability" c={C.green} a={fade(t, 71, 84.6)} />
+      </Hud>
+    </Stage>
+  );
+};
+
+/* ───────── SCENE 3 — Generate GetPivotData toggle ───────── */
+export const Scene3: React.FC<{from: number}> = ({from}) => {
+  setCols(PVW);
+  const t = useT(from);
+  const a = A[3];
+  let sel = [4, 4];
+  if (t >= 88.3 && t < 92.7) sel = [4, 6];
+  else if (t >= 92.7 && t < 101.0) sel = [5, 1];
+  else if (t >= 101.0 && t < 104.5) sel = [4, 6];
+  else if (t >= 104.5 && t < 108.4) sel = [5, 1];
+  else if (t >= 108.4) sel = [4, 6];
+  const ctx = inPivot(sel[0], sel[1]);
+  const analyze = ctx && ((t >= 94.1 && t < 101.0) || (t >= 105.5 && t < 108.4));
+  let edit = '';
+  if (t >= 88.9 && t < 90.1) edit = 'E4,6:=';
+  else if (t >= 90.1 && t < 92.6) edit = `E4,6:${GP}"Cairo")`;
+  else if (t >= 101.8 && t < 102.6) edit = 'E4,6:=';
+  else if (t >= 102.6 && t < 104.0) edit = 'E4,6:=B4';
+  else if ((t >= 104.0 && t < 109.0)) edit = 'V4,6:1,858,000';
+  else if (t >= 109.0 && t < 109.4) edit = 'E4,6:=';
+  else if (t >= 109.4 && t < 111.6) edit = `E4,6:${GP}"Cairo")`;
+  else if (t >= 111.6) edit = 'V4,6:1,858,000';
+  const hl: HL[] = [[3, 3, 3, 4, HEAD_T]];
+  if (edit === 'E4,6:=B4') hl.push([4, 6, PURP_T]);
+  const m1 = t >= 96.0 && t < 98.2, m2 = t >= 106.0 && t < 107.9;
+  const on = m1 ? t < 97.9 : t >= 107.3;
+  const items: MI[] = [{l: 'Options…', hl: false}, {l: 'Show Report Filter Pages…'}, {l: 'Generate GetPivotData', chk: on, hl: (m1 && t >= 97.0) || (m2 && t >= 106.9)}];
+  const over = (m1 || m2) ? <Menu x={OM().x} y={OM().y} w={232} items={items} /> : null;
+  const G4 = cellP(4, 6), B4 = cellP(4, 1), B5 = cellP(5, 1);
+  const cur = pt(t, [[86, {x: 1000, y: 520}], [87.9, G4], [88.3, G4], [89.7, B4], [90.1, B4], [92.7, B5], [92.9, B5], [93.9, analyzeTab()], [94.1, analyzeTab()], [95.8, optBtn()], [96.0, optBtn()], [97.2, omItem(2)], [97.9, omItem(2)], [100.7, G4], [101.0, G4], [102.5, B4], [102.6, B4], [104.5, B5], [104.6, B5], [105.4, analyzeTab()], [105.5, analyzeTab()], [105.9, optBtn()], [106.0, optBtn()], [107.2, omItem(2)], [107.3, omItem(2)], [108.3, G4], [108.4, G4], [109.3, B4], [109.4, B4], [112, {x: 1000, y: 520}]]);
+  const formula = edit.startsWith('E4,6:') ? edit.slice(5) : edit.startsWith('V') ? edit.slice(5) : sel[0] === 5 ? '1,265,000' : '';
+  const toggled = t >= 97.9 && t < 107.3;
+  return (
+    <Stage>
+      <WinB kind={kindOf('pv', 'd', 'ggggg', 'hn', edit, hl)} selR={sel[0]} selC={sel[1]} ctx={ctx} tab={analyze ? 'PivotTable Analyze' : 'Home'} hl={m1 || m2 ? 'popt' : undefined} formula={formula} over={over} />
+      <Note text="Clicking a pivot cell auto-writes a LONG GETPIVOTDATA formula" c={C.amber} a={fade(t, 90.4, 92.6)} y={760} />
+      <Note text="Generate GetPivotData: OFF  ◯" c={C.purple} a={fade(t, 98.3, 104.2)} y={760} />
+      <Note text="=B4 — plain cell reference" c={C.purple} a={fade(t, 102.8, 105)} y={700} />
+      <Note text="Generate GetPivotData: ON  ●  → full syntax again" c={C.blue} a={fade(t, 107.6, 114)} y={760} />
+      <Cursor x={cur.x} y={cur.y} t={t} left={[88.3, 90.1, 92.9, 94.1, 96.0, 97.9, 101.0, 102.6, 104.6, 105.5, 106.0, 107.3, 108.4, 109.4]} />
+      <Hud>
+        <Tag text="Feature Control → PivotTable Analyze → Options → Uncheck Generate GetPivotData" c={C.purple} a={fade(t, 93.5, 104)} />
+        <Tag text="Formula Writing Flexibility → Toggle Between Automatic Full Syntax and Standard Cell Referencing" c={C.purple} a={fade(t, 105, 114.6)} />
+        {toggled && <div />}
+      </Hud>
+    </Stage>
+  );
+};
+
+/* ───────── SCENE 4 — pivot security & cache hygiene ───────── */
+export const Scene4: React.FC<{from: number}> = ({from}) => {
+  setCols(PVW);
+  const t = useT(from);
+  const a = A[4];
+  const dlg = t >= 120.6 && t < 137.7;
+  const details = t < 126.3, save = t < 128.8;
+  const retain = t >= 133.8 ? 'None' : 'Automatic';
+  const ddOpen = t >= 131.8 && t < 133.9;
+  const fm1 = t >= 137.9 && t < 140.3, fm2 = t >= 142.0 && t < 146.6;
+  const ghost = fm1 ? 1 : fm2 ? kf(t, [[142.4, 1], [143.2, 0]]) : 1;
+  const fmOpen = fm1 || fm2;
+  const om = t >= 119.0 && t < 120.6;
+  const sel = fmOpen ? [3, 0] : [4, 1];
+  const items: MI[] = [{l: 'Options…', hl: t >= 119.9}, {l: 'Show Report Filter Pages…'}, {l: 'Generate GetPivotData', chk: true}];
+  const over = (
+    <div>
+      {om && <Menu x={OM().x} y={OM().y} w={232} items={items} />}
+      {fmOpen && <FilterMenu x={FM.x} y={FM.y} hl={-1} ghost={ghost} />}
+    </div>
+  );
+  const D = (k: keyof typeof DPOS) => DLGP(DPOS[k].x, DPOS[k].y);
+  const refresh = P(PB.refresh.x + 25, PB.refresh.y + 30);
+  const A3 = a3btn();
+  const cur = pt(t, [[116.6, {x: 1000, y: 560}], [118.4, optBtn()], [119.0, optBtn()], [119.9, omItem(0)], [120.5, omItem(0)], [122.0, D('tabData')], [123.5, D('tabData')], [125.9, D('details')], [126.3, D('details')], [128.4, D('save')], [128.8, D('save')], [131.4, D('dd')], [131.8, D('dd')], [133.1, D('ddNone')], [133.8, D('ddNone')], [137.0, D('ok')], [137.5, D('ok')], [137.8, A3], [137.9, A3], [140.5, refresh], [140.8, refresh], [141.8, A3], [142.0, A3], [146.7, {x: 1000, y: 560}]]);
+  const hl: HL[] = [[3, 3, 3, 4, HEAD_T]];
+  return (
+    <Stage>
+      <WinB kind={kindOf('pv', 'd', 'ggggg', 'hn', '', hl)} selR={sel[0]} selC={sel[1]} ctx tab="PivotTable Analyze" hl={om ? 'popt' : t >= 140.6 && t < 141.4 ? 'refresh' : undefined} formula={sel[0] === 3 ? 'Row Labels' : '1,858,000'} over={over} />
+      {dlg && <div style={{position: 'absolute', left: WIN.x, top: WIN.y, width: WIN.w, height: WIN.h, background: 'rgba(0,0,0,.38)', zIndex: 40, borderRadius: 10}} />}
+      {dlg && <PivotOptDlg tab={t >= 123.5 ? 4 : 0} save={save} details={details} refresh={false} retain={retain} ddOpen={ddOpen} ddHl={t >= 133.2 ? 1 : 0} okHl={t >= 137.3} ring={t >= 126.4 && t < 131 ? 'details' : t >= 133.9 && t < 138 ? 'dd' : ''} ringC={t < 133 ? C.red : C.green} />}
+      <Chip x={1340} y={430} text="Drill-Down leak BLOCKED" c={C.red} a={fade(t, 127.0, 131.5)} size={26} />
+      <Chip x={1340} y={520} text="Smaller file · source not stored" c={C.amber} a={fade(t, 128.9, 131.5)} size={24} />
+      <Chip x={1340} y={610} text="Ghost items purged on refresh" c={C.green} a={fade(t, 134.0, 138.2)} size={24} />
+      <Note text="Deleted items still listed: Luxor, Tanta (ghost items)" c={C.amber} a={fade(t, 138.2, 140.3)} y={760} x={1180} />
+      <Note text="Refresh PivotTable" c={C.blue} a={fade(t, 140.9, 141.9)} y={760} x={1180} />
+      <Note text="Ghost items purged ✓ — clean filter list" c={C.green} a={fade(t, 143.4, 148.6)} y={760} x={1180} />
+      <Cursor x={cur.x} y={cur.y} t={t} left={[119.0, 120.5, 123.5, 126.3, 128.8, 131.8, 133.8, 137.5, 137.9, 140.8, 142.0]} />
+      <Hud>
+        <Tag text="Data Leak Prevention → PivotTable Options → Data → Uncheck Enable show details" c={C.red} a={fade(t, 118, 133)} />
+        <Tag text="Filter Hygiene → Number of items to retain per field → None (Purges Deleted Ghost Items)" c={C.green} a={fade(t, 134, 149.6)} />
+      </Hud>
+    </Stage>
+  );
+};
+
+/* ───────── SCENE 5 — 50,000 rows ───────── */
+export const Scene5: React.FC<{from: number}> = ({from}) => {
+  setCols(P5W);
+  const t = useT(from);
+  const a = A[5];
+  const GPS = GP + 'E4)';
+  const GPP = '=GETPIVOTDATA("Profit",$A$3,"Branch",E4)';
+  const nf = t < 169.0 ? 1 : t < 169.4 ? 2 : t < 169.7 ? 3 : t < 170.0 ? 4 : 5;
+  const ng = t < 174.2 ? 1 : t < 174.6 ? 2 : t < 174.9 ? 3 : t < 175.2 ? 4 : 5;
+  const fOn = t >= 168.6, gOn = t >= 173.8;
+  const mf = fOn ? 'g'.repeat(nf) + '-'.repeat(5 - nf) : '-----';
+  const mg = gOn ? 'g'.repeat(ng) + '-'.repeat(5 - ng) : '-----';
+  let edit = '', formula = '';
+  if (t >= 165.2 && t < 168.6) { const s = typed(GPS, t, 165.2, 168.4); edit = `E4,5:${s}`; formula = s; }
+  else if (t >= 168.6 && t < 170.3) formula = GPS;
+  else if (t >= 170.4 && t < 173.8) { const s = typed(GPP, t, 170.4, 173.6); edit = `E4,6:${s}`; formula = s; }
+  else if (t >= 173.8) formula = GPP;
+  const hl: HL[] = t >= 161.5 ? [[3, 4, 3, 6, HEAD_T]] : [];
+  for (let i = 0; i < 5; i++) {
+    if (mf[i] === 'g') hl.push([4 + i, 5, t >= 175.6 ? GREEN_T : BLUE_T]);
+    if (mg[i] === 'g') hl.push([4 + i, 6, t >= 175.6 ? GREEN_T : BLUE_T]);
+  }
+  const selC = t >= 170.3 ? 6 : 5;
+  const F4 = cellP(4, 5), G4 = cellP(4, 6), hF4 = corner(4, 5), hF8 = corner(8, 5), hG4 = corner(4, 6), hG8 = corner(8, 6);
+  const cur = pt(t, [[150.4, {x: 1100, y: 640}], [164.9, F4], [165.0, F4], [168.9, hF4], [170.1, hF8], [170.3, G4], [170.4, G4], [174.1, hG4], [175.3, hG8], [176, {x: 1100, y: 640}]]);
+  const sealP = kf(t, [[176.2, 0], [177.1, 1]]);
+  const sealA = clamp(sealP) * clamp((183.6 - t) / 0.5);
+  const load = fade(t, 150.8, 158.2, 0.4);
+  return (
+    <Stage>
+      <WinB kind={kindOf('p5', 'd', `${mf};${mg}`, t >= 161.5 ? 'hn' : '', edit, hl)} selR={4} selC={selC} formula={formula} rangeR={(t >= 168.9 && t < 170.3) || (t >= 174.1 && t < 175.5) ? 8 : undefined} />
+      <Ring x={P(235, 3).x} y={P(235, 3).y} w={330 * Z} h={26 * Z} c={C.green} t={t} a={fade(t, a.file - 0.3, 166)} />
+      <Note text="50,000 data rows → PivotTable summary" c={C.green} a={fade(t, a.fifty - 0.3, 168.4)} y={760} />
+      <Note text="Dynamic link — no hard-coded cells" c={C.green} a={fade(t, 169.2, 172.4)} y={760} />
+      <Note text="Profit report via GETPIVOTDATA" c={C.blue} a={fade(t, 174.6, 177.6)} y={760} />
+      <Note text="Secure cache: Enable show details OFF · Retain items None" c={C.amber} a={fade(t, 178.0, 183.4)} y={760} />
+      <Cursor x={cur.x} y={cur.y} t={t} left={[165.0, 168.9, 170.4, 174.1]} />
+      {load > 0.01 && (
+        <div style={{position: 'absolute', left: 560, top: 400, width: 800, height: 220, opacity: load, borderRadius: 20, background: 'rgba(15,23,42,.96)', border: `3px solid ${C.blue}`, boxShadow: `0 0 30px ${C.blue}66`, zIndex: 60, fontFamily: ar, color: W8, textAlign: 'center', paddingTop: 36, boxSizing: 'border-box'}}>
+          <div style={{fontSize: 38, fontWeight: 700, direction: 'ltr'}}>Loading {FILE}</div>
+          <div style={{fontSize: 28, color: C.dim, marginTop: 6}}>50,000 rows</div>
+          <div style={{margin: '24px 60px 0', height: 14, background: '#334155', borderRadius: 7}}><div style={{width: `${kf(t, [[151.2, 0], [157.6, 100]])}%`, height: 14, background: C.blue, borderRadius: 7}} /></div>
+        </div>
+      )}
+      <Hud>
+        <Tag text="Enterprise Pivot Extraction → Dynamic Financial Statement Linking Across 50,000 Sales Rows" c={C.blue} a={fade(t, 152, 167)} />
+        <Tag text="Zero Data Leaks → Secure Cache Settings & Dynamic GETPIVOTDATA Execution" c={C.green} a={fade(t, 168, 183.4)} />
+        {sealA > 0.01 && (
+          <div style={{position: 'absolute', left: 1450, top: 470, width: 420, height: 420, opacity: sealA, transform: `scale(${0.5 + 0.5 * clamp(sealP)})`, zIndex: 80}}>
+            <div style={{position: 'absolute', inset: 0, borderRadius: '50%', background: 'radial-gradient(circle, #065F46 0%, #0F172A 72%)', border: `6px solid ${C.green}`, boxShadow: `0 0 ${40 + 26 * pls(t, 1.6)}px ${C.green}`}} />
+            <div style={{position: 'absolute', inset: 24, borderRadius: '50%', border: `2px dashed ${C.green}`, transform: `rotate(${(t - 176) * 30}deg)`}} />
+            <div style={{position: 'absolute', left: 0, right: 0, top: 50, textAlign: 'center', fontSize: 110, color: C.green, lineHeight: '110px'}}>✓</div>
+            <div style={{position: 'absolute', left: 0, right: 0, top: 195, textAlign: 'center', fontFamily: ar, fontWeight: 700, fontSize: 32}}>Enterprise Pivot Security</div>
+            <div style={{position: 'absolute', left: 0, right: 0, top: 245, textAlign: 'center', fontFamily: ar, fontWeight: 600, fontSize: 28, color: '#6EE7B7'}}>Zero Data Leaks</div>
+            <div style={{position: 'absolute', left: 0, right: 0, top: 305, textAlign: 'center', fontFamily: mono, fontSize: 21, color: C.dim}}>{FILE}</div>
+          </div>
+        )}
+      </Hud>
+    </Stage>
+  );
+};
+
+/* ───────── SCENE 6 — lesson 32 / unit 6 complete ───────── */
+export const Scene6: React.FC<{from: number}> = ({from}) => {
+  const t = useT(from);
+  const a = A[6];
+  const pop = (s: number) => {
+    const p = clamp((t - s) / 0.6);
+    return {opacity: p, transform: `translateY(${(1 - p) * 26}px)`};
+  };
+  const prog = kf(t, [[185.6, 0], [189.0, 42.1]]);
+  const skills = ['GETPIVOTDATA — stays correct when the PivotTable changes', 'Dynamic argument linking — cell reference + auto-fill', 'Generate GetPivotData toggle — full syntax or =B4', 'Pivot security — Enable show details OFF, Retain items None'];
+  const out = clamp((t - 231.1) / 8.9);
+  return (
+    <Stage>
+      <div style={{position: 'absolute', left: 80, top: 110, width: 1760, height: 860, borderRadius: 32, background: 'rgba(30,41,59,.78)', border: '2px solid rgba(148,163,184,.35)', boxShadow: '0 30px 90px rgba(0,0,0,.5)', fontFamily: ar, color: W8, ...pop(a.great - 0.2)}}>
+        <div style={{position: 'absolute', left: 60, top: 50, display: 'flex', alignItems: 'center', gap: 28}}>
+          <div style={{margin: '-56px -44px'}}><Logo s={230} /></div>
+          <div>
+            <div dir="rtl" style={{fontSize: 52, fontWeight: 700, whiteSpace: 'nowrap'}}>منظومة أكاديمي | Manzooma Excel Masterclass</div>
+            <div style={{fontSize: 28, color: C.dim, marginTop: 4}}>Excel From Zero to Professional — Unit 6: Pivot Tables & Aggregation Engine</div>
+          </div>
+        </div>
+        <div style={{position: 'absolute', left: 60, top: 240, width: 840, ...pop(a.skills)}}>
+          <div style={{display: 'inline-flex', alignItems: 'center', gap: 16, padding: '12px 26px', borderRadius: 18, background: 'rgba(56,189,248,.16)', border: `3px solid ${C.blue}`, boxShadow: `0 0 ${14 + 12 * pls(t, 1.8)}px ${C.blue}66`, fontSize: 30, fontWeight: 600, direction: 'ltr'}}>
+            <span style={{fontSize: 40, color: C.blue}}>✓</span>Lesson 32 of 76 · Unit 6 Mastered (100% Complete)
+          </div>
+        </div>
+        <div style={{position: 'absolute', left: 60, top: 360, width: 800, ...pop(a.skills + 0.4)}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 28, color: C.dim, direction: 'ltr'}}><span>Course progress · lesson 32 of 76</span><span style={{color: W8, fontWeight: 700}}>{prog.toFixed(1)}%</span></div>
+          <div style={{marginTop: 12, height: 26, borderRadius: 13, background: '#334155', overflow: 'hidden'}}><div style={{width: `${prog}%`, height: 26, borderRadius: 13, background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, boxShadow: `0 0 18px ${C.blue}`}} /></div>
+          <div style={{display: 'flex', gap: 8, marginTop: 22, direction: 'ltr'}}>
+            {Array.from({length: 14}, (_, i) => <div key={i} style={{flex: 1, height: 16, borderRadius: 5, background: i < 6 && t >= 189.4 + 0.25 * i ? C.blue : '#334155', boxShadow: i < 6 && t >= 189.4 + 0.25 * i ? `0 0 10px ${C.blue}` : 'none'}} />)}
+          </div>
+          <div style={{fontSize: 22, color: C.dim, marginTop: 8, direction: 'ltr'}}>Units completed: 6 of 14</div>
+        </div>
+        <div style={{position: 'absolute', left: 60, top: 560, width: 840, direction: 'ltr'}}>
+          {skills.map((s, i) => (
+            <div key={s} style={{display: 'flex', alignItems: 'center', gap: 16, fontSize: 25, margin: '0 0 18px', ...pop(a.skills + 1.2 + i * 0.7)}}>
+              <span style={{width: 36, height: 36, borderRadius: 18, background: C.blue, color: '#0F172A', textAlign: 'center', lineHeight: '36px', fontWeight: 700, fontSize: 24, flex: 'none'}}>✓</span>{s}
+            </div>
+          ))}
+        </div>
+        <div style={{position: 'absolute', left: 940, top: 250, width: 760, height: 290, borderRadius: 24, background: 'rgba(15,23,42,.7)', border: `2px solid ${C.blue}`, padding: '28px 40px', boxSizing: 'border-box', direction: 'ltr', ...pop(a.down)}}>
+          <div style={{fontSize: 30, color: C.dim}} dir="rtl">الملفات والتدريبات</div>
+          <div style={{fontFamily: mono, fontSize: 30, fontWeight: 700, color: C.blue, marginTop: 16}}>{FILE}</div>
+          <div style={{fontFamily: mono, fontSize: 36, fontWeight: 700, color: W8, marginTop: 22, padding: '14px 18px', border: `2px dashed ${C.blue}`, borderRadius: 14, boxShadow: `0 0 ${10 + 14 * pls(t, 1.8)}px ${C.blue}55`}}>solutions.gomaaintelligence.me</div>
+        </div>
+        <div style={{position: 'absolute', left: 940, top: 580, width: 760, height: 270, borderRadius: 24, background: 'rgba(15,23,42,.7)', border: `2px solid ${C.purple}`, padding: '24px 40px', boxSizing: 'border-box', boxShadow: t >= a.next ? `0 0 ${12 + 12 * pls(t, 2.2)}px ${C.purple}66` : 'none', ...pop(a.next - 0.6)}}>
+          <div dir="rtl" style={{fontSize: 28, color: C.dim}}>الدرس القادم — الوحدة 7 من 14</div>
+          <div dir="rtl" style={{fontSize: 40, fontWeight: 700, marginTop: 8, lineHeight: '56px'}}>الدرس 33: القوائم الديناميكية والدوال المنسابة</div>
+          <div style={{fontSize: 30, color: '#C4B5FD', marginTop: 8, direction: 'ltr', fontWeight: 600}}>Dynamic Arrays & Spilled Formulas →</div>
+        </div>
+      </div>
+      <Hud />
+      <div style={{position: 'absolute', inset: 0, background: '#000', opacity: out}} />
+    </Stage>
+  );
+};
