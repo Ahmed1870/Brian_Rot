@@ -1,8 +1,7 @@
-import React from 'react';
-import {Composition} from 'remotion';
-import {Video} from './Video';
-import {COMP_ID, DUR, FPS, W, H} from './theme';
+import {Composition} from "remotion";
+import {Video} from "./Video";
+import {COMP_ID, DURATION, FPS, HEIGHT, WIDTH} from "./theme";
 
-export const Root: React.FC = () => (
-  <Composition id={COMP_ID} component={Video} durationInFrames={DUR} fps={FPS} width={W} height={H} />
+export const RemotionRoot = () => (
+  <Composition id={COMP_ID} component={Video} durationInFrames={DURATION} fps={FPS} width={WIDTH} height={HEIGHT} />
 );

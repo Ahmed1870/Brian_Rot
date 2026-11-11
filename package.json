@@ -1,11 +1,10 @@
 {
-  "name": "excel-l28-pivot-tables",
+  "name": "manzooma-excel-lesson-45",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L28-Pivot-Tables out/excel-l28-pivot-tables.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "typecheck": "tsc --noEmit"
+    "build": "remotion render src/index.ts XL-L45-TEXTJOIN-CONCAT-Dynamic-Text out/excel-lesson-45-textjoin-concat.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
   },
   "dependencies": {
     "@remotion/cli": "4.0.250",
@@ -16,6 +15,6 @@
   },
   "devDependencies": {
     "@types/react": "18.3.12",
-    "typescript": "5.5.4"
+    "typescript": "5.6.3"
   }
 }

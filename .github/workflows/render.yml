@@ -1,4 +1,4 @@
-name: Render Lesson 28
+name: Render Excel Lesson 45
 
 on:
   push:
@@ -6,39 +6,46 @@ on:
   workflow_dispatch:
 
 env:
-  COMP_ID: XL-L28-Pivot-Tables
-  OUT_NAME: excel-l28-pivot-tables
-  VOICE: voiceover_lesson_28.mp3
-  LOGO: manzooma_logo.svg
+  COMP_ID: XL-L45-TEXTJOIN-CONCAT-Dynamic-Text
+  OUT_NAME: excel-lesson-45-textjoin-concat
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
-      - name: Guard (names must match before rendering)
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || { echo "theme.ts COMP_ID mismatch"; exit 1; }
-          grep -q "XL-L28-Pivot-Tables" package.json || { echo "package.json COMP_ID mismatch"; exit 1; }
-          grep -q "out/${OUT_NAME}.mp4" package.json || { echo "package.json output name mismatch"; exit 1; }
-          test -s "public/${VOICE}" || { echo "voiceover missing"; exit 1; }
-          test -s "public/${LOGO}" || { echo "logo missing"; exit 1; }
-          extra=$(ls public | grep -v -x -e "${VOICE}" -e "${LOGO}" || true)
-          [ -z "$extra" ] || { echo "unexpected files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow file"; exit 1; }
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Fonts (open Calibri substitute)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-crosextra-carlito
+      - name: Guard (names, voiceover, public contents)
+        run: |
+          set -e
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "$COMP_ID" package.json
+          grep -q "out/$OUT_NAME.mp4" package.json
+          test -s public/voiceover_lesson_45.mp3
+          test -s public/sfx_lesson_45.mp3
+          test -s public/manzooma-logo.svg
+          extra=$(ls public | grep -v -x -e voiceover_lesson_45.mp3 -e sfx_lesson_45.mp3 -e manzooma-logo.svg || true)
+          if [ -n "$extra" ]; then echo "Unexpected files in public: $extra"; exit 1; fi
+          test "$(ls .github/workflows | wc -l)" = "1"
+          test ! -f package-lock.json
 
-      - name: Install
+      - name: Cache npm + Remotion browser
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules/.remotion
+          key: remotion-${{ runner.os }}-${{ hashFiles('package.json') }}
+
+      - name: System libs for headless Chrome
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libnss3 libdbus-1-3 libatk1.0-0 libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 libgbm-dev || true
+
+      - name: Install (no lockfile, Linux-native Remotion binaries)
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
@@ -51,12 +58,12 @@ jobs:
           echo "dependencies could not be installed correctly"; exit 1
 
       - name: Render
-        run: npx remotion render src/index.ts "${COMP_ID}" "out/${OUT_NAME}.mp4" --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --concurrency=4
+        run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
 
-      - name: Verify output
-        run: test -s "out/${OUT_NAME}.mp4"
+      - run: test -s out/$OUT_NAME.mp4
 
       - uses: actions/upload-artifact@v4
         with:
-          name: excel-l28-pivot-tables
-          path: out/excel-l28-pivot-tables.mp4
+          name: excel-lesson-45-textjoin-concat
+          path: out/excel-lesson-45-textjoin-concat.mp4
+          if-no-files-found: error
