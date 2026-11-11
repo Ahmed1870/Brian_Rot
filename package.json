@@ -1,10 +1,12 @@
 {
-  "name": "manzooma-excel-lesson-45",
+  "name": "manzooma-excel-lesson-46-power-query-etl",
   "version": "1.0.0",
   "private": true,
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 46: Power Query and the ETL Engine (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L45-TEXTJOIN-CONCAT-Dynamic-Text out/excel-lesson-45-textjoin-concat.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts XL-L46-PowerQuery-ETL out/xl-l46-powerquery-etl.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
     "@remotion/cli": "4.0.250",
@@ -14,7 +16,7 @@
     "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "typescript": "5.6.3"
+    "@types/react": "^18.3.3",
+    "typescript": "^5.4.0"
   }
 }

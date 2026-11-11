@@ -1,51 +1,26 @@
-name: Render Excel Lesson 45
-
+name: Render Excel Lesson 46 Power Query ETL
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
-env:
-  COMP_ID: XL-L45-TEXTJOIN-CONCAT-Dynamic-Text
-  OUT_NAME: excel-lesson-45-textjoin-concat
-
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-
+      - name: Guard - this repo must contain this lesson only
+        run: |
+          grep -q "XL-L46-PowerQuery-ETL" src/theme.ts
+          grep -q "XL-L46-PowerQuery-ETL" package.json
+          test -f public/voiceover_lesson_46.mp3
+          test -f public/manzooma_logo.svg
+          for n in click key tick pop whoosh chime error alert scan shine ambient; do test -f public/sfx_$n.mp3; done
+          test "$(ls public | wc -l)" = "13"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Guard (names, voiceover, public contents)
-        run: |
-          set -e
-          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
-          grep -q "$COMP_ID" package.json
-          grep -q "out/$OUT_NAME.mp4" package.json
-          test -s public/voiceover_lesson_45.mp3
-          test -s public/sfx_lesson_45.mp3
-          test -s public/manzooma-logo.svg
-          extra=$(ls public | grep -v -x -e voiceover_lesson_45.mp3 -e sfx_lesson_45.mp3 -e manzooma-logo.svg || true)
-          if [ -n "$extra" ]; then echo "Unexpected files in public: $extra"; exit 1; fi
-          test "$(ls .github/workflows | wc -l)" = "1"
-          test ! -f package-lock.json
-
-      - name: Cache npm + Remotion browser
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            node_modules/.remotion
-          key: remotion-${{ runner.os }}-${{ hashFiles('package.json') }}
-
-      - name: System libs for headless Chrome
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libnss3 libdbus-1-3 libatk1.0-0 libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 libgbm-dev || true
-
-      - name: Install (no lockfile, Linux-native Remotion binaries)
+      - name: Install
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
@@ -56,14 +31,10 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-
-      - name: Render
-        run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-
-      - run: test -s out/$OUT_NAME.mp4
-
+      - run: npx remotion render src/index.ts XL-L46-PowerQuery-ETL out/xl-l46-powerquery-etl.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l46-powerquery-etl.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: excel-lesson-45-textjoin-concat
-          path: out/excel-lesson-45-textjoin-concat.mp4
+          name: xl-l46-powerquery-etl
+          path: out/xl-l46-powerquery-etl.mp4
           if-no-files-found: error
