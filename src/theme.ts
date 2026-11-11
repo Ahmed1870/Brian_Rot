@@ -1,29 +1,22 @@
-export const W = 1920;
-export const H = 1080;
-export const FPS = 30;
-export const TOTAL = 7200; // 4:00 = mp3 duration 240.04s
-export const COMP_ID = 'XL-L32-GETPIVOTDATA-Pivot-Security';
-export const OUT_NAME = 'xl-l32-getpivotdata-pivot-security';
-export const VOICE = 'voiceover_lesson_32.mp3';
-export const LOGO = 'manzooma_logo.svg';
-export const FILE = 'manzooma_sales_2026.xlsx';
-
-// Excel is drawn in logical px (like a ~1150x555 desktop window) and scaled by Z -> fixed metrics for all lessons
-export const Z = 1.6;
-export const WIN = {x: 40, y: 100, w: 1840, h: 888};
+import { loadFont as loadCairo } from '@remotion/google-fonts/Cairo';
+import { loadFont as loadMono } from '@remotion/google-fonts/IBMPlexMono';
 
 export const C = {
-  bg: '#0F172A', panel: '#1E293B', line: '#334155', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B',
-  purple: '#A855F7', red: '#EF4444', text: '#F8FAFC', dim: '#94A3B8',
+  bg: '#0F172A',
+  card: '#1E293B',
+  cardDeep: '#172033',
+  line: '#334155',
+  client: '#38BDF8',
+  db: '#10B981',
+  opt: '#F59E0B',
+  accent: '#EF4444',
+  purple: '#A855F7',
+  text: '#F8FAFC',
+  muted: '#94A3B8',
 };
-// Excel (Microsoft 365, Windows, light) palette
-export const X = {
-  chrome: '#F3F3F3', ribbon: '#FAFAFA', line: '#D1D1D1', grid: '#DCDCDC', text: '#242424', dim: '#616161',
-  green: '#217346', gsel: '#D3E8DA', head: '#1F4E78',
-};
-export const M = {title: 32, tabs: 28, ribbon: 92, formula: 28, hdr: 20, rowW: 40, sheet: 28, status: 22, rowH: 20, sb: 14};
 
-export const SC = [
-  {from: 0, dur: 1569}, {from: 1569, dur: 1189}, {from: 2758, dur: 1034},
-  {from: 3792, dur: 1133}, {from: 4925, dur: 1119}, {from: 6044, dur: 1156},
-];
+const cairo = loadCairo('normal', { weights: ['400', '700', '900'], subsets: ['arabic', 'latin'] });
+const mono = loadMono('normal', { weights: ['400', '600'], subsets: ['latin'] });
+
+export const FONT_AR = `${cairo.fontFamily}, sans-serif`;
+export const FONT_MONO = `${mono.fontFamily}, monospace`;
