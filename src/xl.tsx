@@ -1,664 +1,389 @@
-// Excel-like (Microsoft 365 desktop, Windows, modern look) interface drawn in pure 2D SVG/HTML.
-// No Microsoft logo or licensed icon is used: all glyphs are generic drawings with the same meaning/position.
-// Every measurement lives in XL (logical px at 100% Windows scale) so all lessons share the same grid.
-import React from 'react';
-import {continueRender, delayRender, useCurrentFrame} from 'remotion';
-import {CARLITO_BOLD, CARLITO_REGULAR} from './fonts/carlitoData';
-import {CELLFONT, UIFONT} from './theme';
+import React from "react";
+import {C, X, M, COLS, GRID_Y, RIBBON_Y, WIN_H, FONT_AR} from "./theme";
+import {clamp01} from "./kit";
 
-export const XL = {
-  W: 1536, H: 672,                 // logical app size (scaled to the video window by SCALE)
-  SCALE: 1760 / 1536,
-  title: 32, tabs: 32, ribbon: 96, fbar: 28, colH: 20, rowH: 20, colW: 64, sheetBar: 26, status: 24, vbar: 16,
-  fbLine: 17,                      // extra height per additional formula line when the bar is expanded
-};
-
-export const G = {
-  green: '#107C41', greenDark: '#0B5B33', tint: 'rgba(16,124,65,0.13)', chrome: '#F3F3F3', ribbonBg: '#FAFAFA',
-  line: '#E0E0E0', grid: '#D9D9D9', hdr: '#F3F3F3', hdrSel: '#CFE8D8', ink: '#242424', mute: '#616161', blue: '#0F6CBD', red: '#C42B1C',
-};
-
-export const FontLoader: React.FC = () => {
-  const [handle] = React.useState(() => delayRender('carlito-font'));
-  React.useEffect(() => {
-    const faces = [
-      new FontFace('Carlito', `url(${CARLITO_REGULAR})`, {weight: '400'}),
-      new FontFace('Carlito', `url(${CARLITO_BOLD})`, {weight: '700'}),
-    ];
-    Promise.all(faces.map((f) => f.load()))
-      .then((loaded) => { loaded.forEach((f) => (document.fonts as any).add(f)); continueRender(handle); })
-      .catch(() => continueRender(handle));
-  }, [handle]);
-  return null;
-};
-
-/* ------------------------------------------------------------------ icons */
-type IcoProps = {n: string; s?: number; c?: string};
-const S = '#424242';
-export const Ico: React.FC<IcoProps> = ({n, s = 16, c}) => {
-  const k = c ?? S;
-  const sw = 1.5;
-  const common = {fill: 'none', stroke: k, strokeWidth: sw, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const};
-  let g: React.ReactNode = null;
+/* ───────── generic hand-drawn icons (no Microsoft artwork) ───────── */
+export const Icon: React.FC<{n: string; s?: number; c?: string}> = ({n, s = 28, c = "#3A3A3A"}) => {
+  const st = {fill: "none", stroke: c, strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const};
+  let g: React.ReactNode;
   switch (n) {
-    case 'paste': g = (<g {...common}><rect x={5} y={5} width={14} height={16} rx={2} /><rect x={9} y={2.5} width={6} height={4} rx={1} fill="#fff" /><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" stroke="#107C41" /></g>); break;
-    case 'cut': g = (<g {...common}><circle cx={7} cy={18} r={2.8} /><circle cx={17} cy={18} r={2.8} /><path d="M8.6 15.6L16 3M15.4 15.6L8 3" /></g>); break;
-    case 'copy': g = (<g {...common}><rect x={8} y={8} width={11} height={13} rx={1.5} /><path d="M5 16V5a1.5 1.5 0 011.5-1.5H15" /></g>); break;
-    case 'painter': g = (<g {...common}><rect x={5} y={3} width={13} height={6} rx={1.5} fill="#FFC83D" /><path d="M11.5 9v4M9 13h5v8h-5z" /></g>); break;
-    case 'save': g = (<g {...common}><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></g>); break;
-    case 'undo': g = (<g {...common}><path d="M9 6L4 10.5 9 15" /><path d="M4.5 10.5H14a5 5 0 010 10H9" /></g>); break;
-    case 'redo': g = (<g {...common}><path d="M15 6l5 4.5L15 15" /><path d="M19.5 10.5H10a5 5 0 000 10h5" /></g>); break;
-    case 'pasteValues': g = (<g {...common}><rect x={4} y={5} width={13} height={16} rx={2} /><rect x={7.5} y={2.5} width={6} height={4} rx={1} fill="#fff" /><text x={10.5} y={17} fontSize={8} fontWeight={700} fill="#107C41" stroke="none" textAnchor="middle" fontFamily="Arial">123</text><rect x={14} y={12} width={8} height={9} rx={1.2} fill="#fff" stroke="#107C41" /></g>); break;
-    case 'filter': g = (<g {...common}><path d="M4 5h16l-6.2 7.6V19l-3.6 1.8v-8.2z" fill="#DCEBFA" stroke="#0F6CBD" /></g>); break;
-    case 'sortAsc': g = (<g {...common}><text x={3} y={10} fontSize={8.5} fontWeight={700} fill="#242424" stroke="none" fontFamily="Arial">A</text><text x={3} y={21} fontSize={8.5} fontWeight={700} fill="#242424" stroke="none" fontFamily="Arial">Z</text><path d="M17 5v14M13.5 15.5L17 19.5l3.5-4" stroke="#0F6CBD" /></g>); break;
-    case 'sortDesc': g = (<g {...common}><text x={3} y={10} fontSize={8.5} fontWeight={700} fill="#242424" stroke="none" fontFamily="Arial">Z</text><text x={3} y={21} fontSize={8.5} fontWeight={700} fill="#242424" stroke="none" fontFamily="Arial">A</text><path d="M17 5v14M13.5 8.5L17 4.5l3.5 4" stroke="#0F6CBD" /></g>); break;
-    case 'clearFormats': g = (<g {...common}><path d="M14 4l6 6-8.5 8.5H6L3.5 16 14 4z" fill="#FDE7E9" stroke="#C42B1C" /><path d="M8 20h12" /></g>); break;
-    case 'bold': g = (<text x={12} y={18} fontSize={17} fontWeight={700} fill={k} textAnchor="middle" fontFamily="Arial">B</text>); break;
-    case 'italic': g = (<text x={12} y={18} fontSize={17} fontStyle="italic" fill={k} textAnchor="middle" fontFamily="Georgia, serif">I</text>); break;
-    case 'underline': g = (<g><text x={12} y={16.5} fontSize={16} fill={k} textAnchor="middle" fontFamily="Arial">U</text><path d="M6 20.5h12" stroke={k} strokeWidth={1.6} /></g>); break;
-    case 'borders': g = (<g {...common}><rect x={4} y={4} width={16} height={16} /><path d="M12 4v16M4 12h16" strokeDasharray="2 2" /></g>); break;
-    case 'fill': g = (<g {...common}><path d="M6 12l6-7 6 7-5 5z" /><path d="M19 14c1 1.6 1.6 2.6 1.6 3.5a1.6 1.6 0 01-3.2 0c0-.9.6-1.9 1.6-3.5z" fill="#0F6CBD" stroke="none" /><rect x={3} y={20} width={18} height={2.6} fill="#FFD400" stroke="none" /></g>); break;
-    case 'fontColor': g = (<g><text x={12} y={16} fontSize={15} fontWeight={700} fill={k} textAnchor="middle" fontFamily="Arial">A</text><rect x={4} y={19} width={16} height={3} fill="#C42B1C" /></g>); break;
-    case 'growFont': g = (<g><text x={9} y={18} fontSize={15} fontWeight={700} fill={k} textAnchor="middle" fontFamily="Arial">A</text><path d="M17 8l3 -4 3 4z" fill={k} stroke="none" transform="translate(-3 0)" /></g>); break;
-    case 'shrinkFont': g = (<g><text x={9} y={18} fontSize={12} fontWeight={700} fill={k} textAnchor="middle" fontFamily="Arial">A</text><path d="M17 4l3 4 3-4z" fill={k} stroke="none" transform="translate(-3 0)" /></g>); break;
-    case 'alignL': g = (<g {...common}><path d="M4 6h16M4 10h10M4 14h16M4 18h10" /></g>); break;
-    case 'alignC': g = (<g {...common}><path d="M4 6h16M7 10h10M4 14h16M7 18h10" /></g>); break;
-    case 'alignR': g = (<g {...common}><path d="M4 6h16M10 10h10M4 14h16M10 18h10" /></g>); break;
-    case 'alignTop': g = (<g {...common}><path d="M4 4h16" /><path d="M7 8h10M7 12h10" /></g>); break;
-    case 'alignMid': g = (<g {...common}><path d="M7 6h10M4 12h16M7 18h10" /></g>); break;
-    case 'alignBot': g = (<g {...common}><path d="M7 12h10M7 16h10M4 20h16" /></g>); break;
-    case 'orient': g = (<g {...common}><text x={4} y={17} fontSize={10} fill={k} stroke="none" fontFamily="Arial" transform="rotate(-35 8 14)">ab</text><path d="M15 6l4 4M15 10l4-4" /></g>); break;
-    case 'wrap': g = (<g {...common}><path d="M4 6h16M4 12h12a3 3 0 010 6H10" /><path d="M12 15.5L9.5 18 12 20.5" /></g>); break;
-    case 'merge': g = (<g {...common}><rect x={3.5} y={6} width={17} height={12} /><path d="M7 12h10M9.5 9.5L7 12l2.5 2.5M14.5 9.5L17 12l-2.5 2.5" stroke="#107C41" /></g>); break;
-    case 'indentL': g = (<g {...common}><path d="M4 5h16M11 10h9M11 14h9M4 19h16" /><path d="M8 9.5L4.5 12 8 14.5" /></g>); break;
-    case 'indentR': g = (<g {...common}><path d="M4 5h16M11 10h9M11 14h9M4 19h16" /><path d="M4.5 9.5L8 12l-3.5 2.5" /></g>); break;
-    case 'currency': g = (<g><rect x={3} y={6} width={18} height={12} rx={1.5} fill="none" stroke={k} strokeWidth={1.4} /><text x={12} y={15.5} fontSize={9.5} fontWeight={700} fill="#107C41" textAnchor="middle" fontFamily="Arial">$</text></g>); break;
-    case 'percent': g = (<text x={12} y={17.5} fontSize={16} fontWeight={700} fill={k} textAnchor="middle" fontFamily="Arial">%</text>); break;
-    case 'comma': g = (<text x={12} y={17} fontSize={17} fontWeight={700} fill={k} textAnchor="middle" fontFamily="Arial">,</text>); break;
-    case 'decInc': g = (<g><text x={3} y={15} fontSize={8} fill={k} fontFamily="Arial">.00</text><path d="M5 19h14M15.5 16.5L19 19l-3.5 2.5" fill="none" stroke="#0F6CBD" strokeWidth={1.4} strokeLinecap="round" /></g>); break;
-    case 'decDec': g = (<g><text x={3} y={15} fontSize={8} fill={k} fontFamily="Arial">.0</text><path d="M19 19H5M8.5 16.5L5 19l3.5 2.5" fill="none" stroke="#0F6CBD" strokeWidth={1.4} strokeLinecap="round" /></g>); break;
-    case 'condFmt': g = (<g><rect x={3} y={4} width={18} height={16} rx={1.5} fill="none" stroke={k} strokeWidth={1.3} /><rect x={5} y={6} width={6} height={4} fill="#F4B183" /><rect x={13} y={6} width={6} height={4} fill="#A9D18E" /><rect x={5} y={12} width={6} height={4} fill="#9DC3E6" /><rect x={13} y={12} width={6} height={4} fill="#FFE699" /></g>); break;
-    case 'fmtTable': g = (<g><rect x={3} y={4} width={18} height={16} fill="#fff" stroke={k} strokeWidth={1.3} /><rect x={3} y={4} width={18} height={5} fill="#107C41" /><path d="M3 12.5h18M3 16.5h18M9 9v11M15 9v11" stroke={k} strokeWidth={1} /></g>); break;
-    case 'cellStyles': g = (<g><rect x={3} y={5} width={18} height={14} rx={1.5} fill="#fff" stroke={k} strokeWidth={1.3} /><rect x={5.5} y={8} width={5} height={3} fill="#9DC3E6" /><rect x={12.5} y={8} width={6} height={3} fill="#A9D18E" /><rect x={5.5} y={13} width={13} height={3} fill="#FFE699" /></g>); break;
-    case 'insert': g = (<g {...common}><rect x={3.5} y={9} width={13} height={10} /><path d="M3.5 14h13M10 9v10" /><path d="M18 3.5v6M15 6.5h6" stroke="#107C41" /></g>); break;
-    case 'delete': g = (<g {...common}><rect x={3.5} y={9} width={13} height={10} /><path d="M3.5 14h13M10 9v10" /><path d="M15.5 6.5h6" stroke="#C42B1C" /></g>); break;
-    case 'format': g = (<g {...common}><rect x={3.5} y={5} width={13} height={11} /><path d="M3.5 10.5h13M10 5v11" /><circle cx={17.5} cy={17.5} r={3} fill="#fff" stroke="#616161" /></g>); break;
-    case 'autosum': g = (<text x={12} y={19} fontSize={21} fontWeight={700} fill="#107C41" textAnchor="middle" fontFamily="Arial">Σ</text>); break;
-    case 'fillDown': g = (<g {...common}><rect x={5} y={4} width={14} height={16} /><path d="M12 8v8M8.5 12.5L12 16l3.5-3.5" stroke="#0F6CBD" /></g>); break;
-    case 'clear': g = (<g {...common}><path d="M14 4l6 6-8.5 8.5H6L3.5 16 14 4z" fill="#fff" /><path d="M8 20h12" /></g>); break;
-    case 'sortFilter': g = (<g {...common}><path d="M3 4.5h9l-3.4 4.2v4.2l-2.2 1.1V8.7z" fill="#DCEBFA" stroke="#0F6CBD" /><text x={14} y={13} fontSize={7.5} fontWeight={700} fill={k} stroke="none" fontFamily="Arial">A</text><text x={14} y={21} fontSize={7.5} fontWeight={700} fill={k} stroke="none" fontFamily="Arial">Z</text><path d="M9 16.5v5M7.2 19.8L9 21.8l1.8-2" stroke="#0F6CBD" /></g>); break;
-    case 'find': g = (<g {...common}><circle cx={10} cy={10} r={5.5} /><path d="M14.2 14.2L20 20" strokeWidth={2.2} /></g>); break;
-    case 'analyze': g = (<g {...common}><rect x={4} y={12} width={3.5} height={8} fill="#107C41" stroke="none" /><rect x={10} y={8} width={3.5} height={12} fill="#107C41" stroke="none" /><rect x={16} y={14} width={3.5} height={6} fill="#107C41" stroke="none" /><path d="M16 3l1 2.4 2.4 1-2.4 1L16 10l-1-2.6-2.4-1 2.4-1z" fill="#FFC83D" stroke="#FFC83D" /></g>); break;
-    case 'addins': g = (<g {...common}><rect x={4} y={4} width={7} height={7} /><rect x={13} y={4} width={7} height={7} /><rect x={4} y={13} width={7} height={7} /><rect x={13} y={13} width={7} height={7} fill="#DCEBFA" stroke="#0F6CBD" /></g>); break;
-    case 'pivot': g = (<g {...common}><rect x={3.5} y={4} width={17} height={16} rx={1} /><path d="M3.5 9.5h17M9.5 9.5V20" /><rect x={10} y={10} width={10} height={4.5} fill="#DCEBFA" stroke="none" /><path d="M13 6.8h5" stroke="#107C41" /></g>); break;
-    case 'table': g = (<g><rect x={3.5} y={4.5} width={17} height={15} fill="#fff" stroke={k} strokeWidth={1.3} /><rect x={3.5} y={4.5} width={17} height={4} fill="#107C41" /><path d="M3.5 12h17M3.5 15.5h17M9.5 8.5v11M15 8.5v11" stroke={k} strokeWidth={1} /></g>); break;
-    case 'shapes': g = (<g {...common}><circle cx={8} cy={8} r={4} fill="#DCEBFA" stroke="#0F6CBD" /><rect x={11} y={11} width={9} height={9} rx={1.5} fill="#E6F4EA" stroke="#107C41" /><path d="M4 20l3-5 3 5z" /></g>); break;
-    case 'chart': g = (<g {...common}><path d="M4 4v16h16" /><rect x={7} y={12} width={3} height={6} fill="#107C41" stroke="none" /><rect x={12} y={8} width={3} height={10} fill="#0F6CBD" stroke="none" /><rect x={17} y={14} width={3} height={4} fill="#FFC83D" stroke="none" /></g>); break;
-    case 'slicer': g = (<g {...common}><rect x={4} y={3.5} width={16} height={17} rx={1.5} /><rect x={6.5} y={7} width={11} height={3} fill="#107C41" stroke="none" /><rect x={6.5} y={11.5} width={11} height={3} fill="#DCEBFA" stroke="none" /><rect x={6.5} y={16} width={11} height={2.5} fill="#DCEBFA" stroke="none" /></g>); break;
-    case 'zoom': g = (<g {...common}><circle cx={10} cy={10} r={5.5} /><path d="M14.2 14.2L20 20" strokeWidth={2.2} /><path d="M7.5 10h5M10 7.5v5" stroke="#107C41" /></g>); break;
-    case 'search': g = (<g {...common}><circle cx={10.5} cy={10.5} r={5.5} /><path d="M15 15l5 5" /></g>); break;
-    case 'comment': g = (<g {...common}><path d="M4 5h16v11H11l-4.5 4V16H4z" /></g>); break;
-    case 'share': g = (<g {...common} stroke="#fff"><circle cx={6.5} cy={12} r={2.4} /><circle cx={17} cy={6} r={2.4} /><circle cx={17} cy={18} r={2.4} /><path d="M8.6 10.8l6.3-3.6M8.6 13.2l6.3 3.6" /></g>); break;
-    case 'appIcon': g = (<g><rect x={3} y={3} width={18} height={18} rx={3} fill="#107C41" /><path d="M8 8l8 8M16 8l-8 8" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" /></g>); break;
-    case 'user': g = (<g {...common}><circle cx={12} cy={9} r={3.6} /><path d="M5 20c.8-4 3.6-5.6 7-5.6s6.2 1.6 7 5.6" /></g>); break;
-    case 'normal': g = (<g {...common}><rect x={4} y={5} width={16} height={14} /><path d="M4 10h16M10 5v14" /></g>); break;
-    case 'pageLayout': g = (<g {...common}><rect x={6} y={3.5} width={12} height={17} /><path d="M9 8h6M9 12h6M9 16h6" /></g>); break;
-    case 'pageBreak': g = (<g {...common}><rect x={4} y={4} width={16} height={16} /><path d="M12 4v16" stroke="#0F6CBD" strokeDasharray="2 2" /><path d="M4 12h16" stroke="#0F6CBD" strokeDasharray="2 2" /></g>); break;
-    case 'check': g = (<path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke={k} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />); break;
-    default: g = null;
+    case "paste": g = <g {...st}><rect x="6" y="6" width="16" height="19" rx="2" /><rect x="10" y="3" width="8" height="5" rx="1.5" fill="#fff" /><path d="M10 13h8M10 17h8M10 21h5" /></g>; break;
+    case "copy": g = <g {...st}><rect x="9" y="8" width="13" height="16" rx="1.5" /><path d="M6 20V5h12" /></g>; break;
+    case "cut": g = <g {...st}><circle cx="9" cy="21" r="3.2" /><circle cx="19" cy="21" r="3.2" /><path d="M11 18L19 4M17 18L9 4" /></g>; break;
+    case "brush": g = <g {...st}><rect x="6" y="5" width="15" height="7" rx="1.5" /><path d="M13 12v4M10 16h6v8h-6z" /></g>; break;
+    case "bold": g = <text x="14" y="21" textAnchor="middle" fontSize="20" fontWeight="800" fill={c} fontFamily="Arial">B</text>; break;
+    case "italic": g = <text x="14" y="21" textAnchor="middle" fontSize="20" fontStyle="italic" fill={c} fontFamily="Georgia">I</text>; break;
+    case "underline": g = <g><text x="14" y="19" textAnchor="middle" fontSize="18" fill={c} fontFamily="Arial">U</text><path d="M7 24h14" {...st} /></g>; break;
+    case "border": g = <g {...st}><rect x="5" y="5" width="18" height="18" /><path d="M5 14h18M14 5v18" strokeDasharray="2 2" /></g>; break;
+    case "fill": g = <g {...st}><path d="M6 14l8-8 8 8-7 7z" /><rect x="5" y="23" width="18" height="3" fill="#FFD43B" stroke="none" /></g>; break;
+    case "fontcolor": g = <g><text x="14" y="19" textAnchor="middle" fontSize="19" fontWeight="700" fill={c} fontFamily="Arial">A</text><rect x="5" y="23" width="18" height="3" fill="#E03131" /></g>; break;
+    case "align": g = <g {...st}><path d="M5 7h18M5 12h12M5 17h18M5 22h12" /></g>; break;
+    case "wrap": g = <g {...st}><path d="M5 7h18M5 13h14a4 4 0 010 8h-5M5 21h5" /><path d="M16 18l-3 3 3 3" /></g>; break;
+    case "merge": g = <g {...st}><rect x="4" y="7" width="20" height="14" rx="1.5" /><path d="M8 14h12M10 11l-3 3 3 3M18 11l3 3-3 3" /></g>; break;
+    case "pct": g = <text x="14" y="21" textAnchor="middle" fontSize="19" fontWeight="700" fill={c} fontFamily="Arial">%</text>; break;
+    case "comma": g = <text x="14" y="20" textAnchor="middle" fontSize="17" fontWeight="800" fill={c} fontFamily="Arial">000</text>; break;
+    case "dec": g = <text x="14" y="20" textAnchor="middle" fontSize="15" fontWeight="700" fill={c} fontFamily="Arial">.00</text>; break;
+    case "cond": g = <g {...st}><rect x="5" y="5" width="18" height="18" /><path d="M5 11h18M5 17h18M11 5v18" /><rect x="12" y="12" width="6" height="5" fill="#F59E0B" stroke="none" /></g>; break;
+    case "fmttable": g = <g {...st}><rect x="4" y="5" width="20" height="18" /><rect x="4" y="5" width="20" height="5" fill="#4EA72E" stroke="#4EA72E" /><path d="M4 15h20M12 10v13" /></g>; break;
+    case "styles": g = <g {...st}><rect x="4" y="7" width="20" height="14" rx="3" /><text x="14" y="18" textAnchor="middle" fontSize="11" fontWeight="700" fill={c} stroke="none" fontFamily="Arial">Aa</text></g>; break;
+    case "insert": g = <g {...st}><rect x="4" y="7" width="15" height="14" /><path d="M4 14h15M11 7v14M21 5v8M17 9h8" stroke="#107C41" /></g>; break;
+    case "delete": g = <g {...st}><rect x="4" y="7" width="15" height="14" /><path d="M4 14h15M11 7v14" /><path d="M17 6l7 7M24 6l-7 7" stroke="#C42B1C" /></g>; break;
+    case "format": g = <g {...st}><rect x="4" y="6" width="20" height="16" /><path d="M4 12h20M12 6v16" /><circle cx="20" cy="20" r="3.5" fill="#fff" /></g>; break;
+    case "sum": g = <text x="14" y="23" textAnchor="middle" fontSize="26" fontWeight="700" fill="#107C41" fontFamily="Arial">Σ</text>; break;
+    case "filldown": g = <g {...st}><rect x="7" y="4" width="14" height="8" /><path d="M14 13v10M10 19l4 4 4-4" /></g>; break;
+    case "clear": g = <g {...st}><path d="M6 17l9-10 8 7-6 7H9z" /><path d="M9 21h12" /></g>; break;
+    case "sort": g = <g {...st}><path d="M8 5v18M4 19l4 4 4-4" /><path d="M18 8h6M18 13h4M18 18h2" /></g>; break;
+    case "find": g = <g {...st}><circle cx="12" cy="12" r="6" /><path d="M17 17l7 7" /></g>; break;
+    case "pivot": g = <g {...st}><rect x="4" y="5" width="20" height="18" /><path d="M4 11h20M11 5v18" /><path d="M14 14l6 6M20 14v6h-6" stroke="#107C41" /></g>; break;
+    case "dup": g = <g {...st}><rect x="4" y="6" width="16" height="16" /><path d="M4 12h16M12 6v16" /><path d="M17 17l7 7M24 17l-7 7" stroke="#C42B1C" /></g>; break;
+    case "convert": g = <g {...st}><rect x="4" y="6" width="16" height="14" /><path d="M4 13h16M12 6v14M18 23h7M22 20l3 3-3 3" transform="translate(0,-2)" /></g>; break;
+    case "slicer": g = <g {...st}><rect x="5" y="4" width="18" height="20" rx="2" /><rect x="8" y="9" width="12" height="4" fill="#4EA72E" stroke="none" /><path d="M8 17h12" /></g>; break;
+    case "export": g = <g {...st}><rect x="4" y="9" width="14" height="14" /><path d="M12 14l10-8M16 6h6v6" /></g>; break;
+    case "refresh": g = <g {...st}><path d="M22 14a8 8 0 01-14 5M6 14a8 8 0 0114-5" /><path d="M20 4v5h-5M8 24v-5h5" /></g>; break;
+    case "browser": g = <g {...st}><circle cx="14" cy="14" r="9" /><path d="M5 14h18M14 5c4 4 4 14 0 18M14 5c-4 4-4 14 0 18" /></g>; break;
+    case "unlink": g = <g {...st}><path d="M11 17l-3 3a3.5 3.5 0 01-5-5l3-3M17 11l3-3a3.5 3.5 0 015 5l-3 3M9 9l-2-2M19 19l2 2" /></g>; break;
+    case "resize": g = <g {...st}><rect x="5" y="5" width="16" height="16" /><path d="M15 15l9 9M18 24h6v-6" /></g>; break;
+    case "undo": g = <g {...st}><path d="M9 11h9a5 5 0 010 10h-5M12 7L8 11l4 4" /></g>; break;
+    case "redo": g = <g {...st}><path d="M19 11h-9a5 5 0 000 10h5M16 7l4 4-4 4" /></g>; break;
+    case "save": g = <g {...st}><path d="M5 5h15l3 3v15H5z" /><rect x="9" y="5" width="9" height="6" /><rect x="9" y="15" width="10" height="8" /></g>; break;
+    case "fx": g = <text x="14" y="21" textAnchor="middle" fontSize="19" fontStyle="italic" fontWeight="700" fill="#107C41" fontFamily="Georgia">fx</text>; break;
+    case "grid": g = <g {...st}><rect x="4" y="5" width="20" height="18" /><path d="M4 11h20M4 17h20M11 5v18M17 5v18" /></g>; break;
+    default: g = <rect x="6" y="6" width="16" height="16" {...st} />;
   }
-  return <svg width={s} height={s} viewBox="0 0 24 24" style={{display: 'block', flexShrink: 0}}>{g}</svg>;
+  return <svg width={s} height={s} viewBox="0 0 28 28" style={{flexShrink: 0}}>{g}</svg>;
 };
 
-export const Caret: React.FC<{c?: string; s?: number}> = ({c = '#616161', s = 8}) => (
-  <svg width={s} height={s} viewBox="0 0 8 8" style={{display: 'block', flexShrink: 0}}><path d="M1.2 2.6L4 5.4l2.8-2.8" fill="none" stroke={c} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" /></svg>
-);
-
-/* ------------------------------------------------------------------ geometry helpers (used by scenes for cursors/zooms) */
-export const TABS = ['File', 'Home', 'Insert', 'Page Layout', 'Formulas', 'Data', 'Review', 'View', 'Automate', 'Help'];
-export const TOTAL_TABS_SWEEP = ['File', 'Home', 'Insert', 'Page Layout', 'Formulas', 'Data', 'Review', 'View'];
-const tabW = (t: string) => Math.round(t.length * 7.4 + 26);
-export const tabBox = (name: string) => {
-  let x = 6;
-  for (const t of TABS) { const w = tabW(t); if (t === name) return {x, w, cx: x + w / 2}; x += w; }
-  if (name === 'Slicer' || name === 'Shape Format') { const w = tabW(name); return {x, w, cx: x + w / 2}; }
-  return {x: 0, w: 0, cx: 0};
-};
-export const QAT_X0 = 44;
-export const QAT_STEP = 34;
-export const qatCx = (i: number) => QAT_X0 + QAT_STEP * i + QAT_STEP / 2;
-export const qatArrowCx = (n: number) => QAT_X0 + QAT_STEP * n + 10;
-export const qatBottom = XL.title - 4;
-
-export type Geo = {colHh: number; ribbonH: number; fbTop: number; fbH: number; colTop: number; rowsTop: number; rowsBottom: number; rowW: number; gridRight: number; sheetTop: number; statusTop: number};
-export const geo = (ribbon: number, fbExp: number, fbLines: number, rowW = 38, fbOn = 1, headOn = 1): Geo => {
-  const ribbonH = Math.round(XL.ribbon * ribbon);
-  const fbTop = XL.title + XL.tabs + ribbonH;
-  const fbH = Math.round((XL.fbar + Math.round((fbLines - 1) * XL.fbLine * fbExp)) * fbOn);
-  const colHh = Math.round(XL.colH * headOn);
-  const colTop = fbTop + fbH;
-  const rowsTop = colTop + colHh;
-  const statusTop = XL.H - XL.status;
-  const sheetTop = statusTop - XL.sheetBar;
-  return {colHh, ribbonH, fbTop, fbH, colTop, rowsTop, rowsBottom: sheetTop, rowW: Math.round(rowW * headOn), gridRight: XL.W - XL.vbar, sheetTop, statusTop};
-};
-export const colLetter = (c: number) => {
-  let s = ''; let n = c;
-  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
-  return s;
-};
-export const NAME_BOX = {x: 6, w: 104, cx: 58};
-export const FB_ICONS = {cancelX: 138, enterX: 160, fxX: 184};
-
-/* ------------------------------------------------------------------ props */
-export type CellV = {t: string; b?: boolean; i?: boolean; al?: 'l' | 'c' | 'r'; bg?: string; color?: string; num?: number | boolean};
-export type Rng = {r1: number; c1: number; r2: number; c2: number};
-export type ExcelProps = {
-  file?: string;
-  tab?: string;
-  tabHot?: string;                // tab under spotlight/hover
-  ribbon?: number;                // 0 collapsed .. 1 expanded
-  qat?: string[];
-  qatTips?: number;               // 0..1
-  qatHot?: number;                // highlighted qat index
-  qatCustom?: boolean;
-  nameBox?: string;
-  nameEdit?: boolean;
-  formula?: string;
-  fbExp?: number;                 // 0..1 expansion progress
-  fbLines?: number;               // number of lines shown when expanded
-  fbEdit?: boolean;
-  scroll?: {r: number; c: number};
-  cell: (r: number, c: number) => CellV | undefined;
-  colW?: (c: number) => number;
-  sel: Rng;
-  active: {r: number; c: number};
-  marquee?: Rng;
-  marqueeOn?: boolean;
-  filterCols?: number[];
-  filterHot?: number;
-  filterApplied?: number[];       // columns with an active filter (funnel icon)
-  rowIds?: number[];              // filtered view: actual row numbers in display order (index 0 is row 1)
-  thumb?: number;                 // 0..1 vertical scroll thumb position
-  thumbSize?: number;             // 0..1 size of the vertical thumb
-  statusLeft?: string;
-  stats?: Array<[string, string]>;
-  statsGlow?: number;             // 0..1 blue glow on stats
-  sheet?: string;
-  zoomPct?: number;
-  gridOn?: number; headOn?: number; fbOn?: number;   // 1 = shown, 0 = hidden (animatable)
-  sheets?: string[]; extraTab?: string; ribbonHot?: string; checks?: Record<string, number>; fields?: Record<string, string>;
-  children?: React.ReactNode;
-};
-
-const defaultColW = (c: number) => {
-  const w = [0, 84, 92, 130, 100, 54, 84, 84, 84];
-  return c < w.length ? w[c] : XL.colW;
-};
-export const colWidth = defaultColW;
-export const colX = (c: number, from: number, cw: (c: number) => number) => {
-  let x = 0;
-  for (let i = from; i < c; i++) x += cw(i);
-  return x;
-};
-
-/* ------------------------------------------------------------------ small ribbon building blocks */
-const ab = (x: number, y: number, w?: number, h?: number, extra?: React.CSSProperties): React.CSSProperties => ({position: 'absolute', left: x, top: y, width: w, height: h, ...extra});
-const lab: React.CSSProperties = {fontFamily: UIFONT, fontSize: 12, color: G.ink, whiteSpace: 'nowrap'};
-
-const Sm: React.FC<{x: number; y: number; icon: string; label?: string; caret?: boolean; w?: number; iconColor?: string; bold?: boolean; bg?: string}> = ({x, y, icon, label, caret, w, iconColor, bg}) => (
-  <div style={ab(x, y, w, 22, {display: 'flex', alignItems: 'center', gap: 5, padding: '0 3px', borderRadius: 3, background: bg})}>
-    <Ico n={icon} s={16} c={iconColor} />
-    {label ? <span style={lab}>{label}</span> : null}
-    {caret ? <Caret /> : null}
+/* ───────── ribbon building blocks ───────── */
+const lbl: React.CSSProperties = {fontSize: 12.5, color: "#3B3B3B", lineHeight: "14px", textAlign: "center", fontFamily: FONT_AR};
+const Big: React.FC<{i: string; l: string; w?: number}> = ({i, l, w = 64}) => (
+  <div style={{width: w, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, paddingTop: 4}}>
+    <Icon n={i} s={36} />
+    <div style={{...lbl, width: w - 4}}>{l}</div>
   </div>
 );
-const Big: React.FC<{x: number; w: number; icon: string; l1: string; l2?: string; caret?: boolean}> = ({x, w, icon, l1, l2, caret}) => (
-  <div style={ab(x, 2, w, 78, {display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4})}>
-    <Ico n={icon} s={32} />
-    <span style={{...lab, marginTop: 5, lineHeight: '14px'}}>{l1}</span>
-    <span style={{...lab, lineHeight: '14px', display: 'flex', alignItems: 'center', gap: 3}}>{l2 ?? ''}{caret ? <Caret /> : null}</span>
+const Small: React.FC<{i: string; l: string}> = ({i, l}) => (
+  <div style={{display: "flex", alignItems: "center", gap: 7, height: 24, whiteSpace: "nowrap", width: "100%", overflow: "hidden"}}>
+    <Icon n={i} s={20} />
+    <span style={{...lbl, textAlign: "left"}}>{l}</span>
   </div>
 );
-const Combo: React.FC<{x: number; y: number; w: number; text: string}> = ({x, y, w, text}) => (
-  <div style={ab(x, y, w, 22, {border: '1px solid #C8C8C8', borderRadius: 3, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6px', boxSizing: 'border-box'})}>
-    <span style={{...lab, fontFamily: CELLFONT, fontSize: 13}}>{text}</span><Caret />
+const Box: React.FC<{t: string; w: number}> = ({t, w}) => (
+  <div style={{width: w, height: 24, border: "1px solid #ABABAB", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", fontSize: 13.5, color: "#222", fontFamily: FONT_AR}}>
+    <span>{t}</span><span style={{fontSize: 9, color: "#555"}}>▼</span>
   </div>
 );
-const Sep: React.FC = () => <div style={{width: 1, height: 74, background: G.line, margin: '4px 5px 0', flexShrink: 0}} />;
-const Grp: React.FC<{name: string; w: number; launcher?: boolean; children?: React.ReactNode}> = ({name, w, launcher, children}) => (
-  <div style={{position: 'relative', width: w, height: '100%', flexShrink: 0}}>
-    <div style={{position: 'absolute', left: 0, right: 0, top: 2, bottom: 16}}>{children}</div>
-    <div style={{position: 'absolute', left: 0, right: 0, bottom: 1, height: 15, textAlign: 'center', fontFamily: UIFONT, fontSize: 11.5, color: G.mute, lineHeight: '15px'}}>{name}</div>
-    {launcher ? <svg width={9} height={9} viewBox="0 0 9 9" style={{position: 'absolute', right: 3, bottom: 3}}><path d="M1 1h4M1 1v4M3 3l5 5M8 4.5V8H4.5" fill="none" stroke="#7A7A7A" strokeWidth={1} /></svg> : null}
+const Grp: React.FC<{name: string; children?: React.ReactNode}> = ({name, children}) => (
+  <div style={{position: "relative", height: M.ribbonH, padding: "0 10px", borderRight: "1px solid #E1E1E1", display: "flex", flexDirection: "column"}}>
+    <div style={{flex: 1, display: "flex", gap: 6, alignItems: "flex-start", paddingTop: 6}}>{children}</div>
+    <div style={{...lbl, color: "#6B6B6B", fontSize: 12, height: 18}}>{name}</div>
   </div>
 );
-
-
-export const sheetTabBox = (names: string[], name: string) => {
-  let x = 54; let out = {x: 0, w: 0, cx: 0, plusX: 0};
-  for (const n of names) { const w = Math.round(n.length * 7.3 + 30); if (n === name) out = {...out, x, w, cx: x + w / 2}; x += w; }
-  return {...out, plusX: x + 8};
-};
-
-/* ------------------------------------------------------------------ generic ribbons (View, Insert, Slicer): approximate layouts, generic glyphs */
-type RItem = {k: string; label: string; icon?: string; kind?: 'big' | 'check' | 'field' | 'sm'; caret?: boolean};
-type RGroup = {name: string; w: number; items: RItem[]};
-export const RIBBONS: Record<string, RGroup[]> = {
-  View: [
-    {name: 'Workbook Views', w: 250, items: [{k: 'Normal', label: 'Normal', icon: 'normal', kind: 'big'}, {k: 'PageBreak', label: 'Page Break Preview', icon: 'pageBreak', kind: 'big'}, {k: 'PageLayout', label: 'Page Layout', icon: 'pageLayout', kind: 'big'}]},
-    {name: 'Show', w: 200, items: [{k: 'Ruler', label: 'Ruler', kind: 'check'}, {k: 'Gridlines', label: 'Gridlines', kind: 'check'}, {k: 'FormulaBar', label: 'Formula Bar', kind: 'check'}, {k: 'Headings', label: 'Headings', kind: 'check'}]},
-    {name: 'Zoom', w: 190, items: [{k: 'Zoom', label: 'Zoom', icon: 'zoom', kind: 'big'}, {k: 'Zoom100', label: '100%', icon: 'zoom', kind: 'big'}, {k: 'ZoomSel', label: 'Zoom to Selection', icon: 'zoom', kind: 'big'}]},
-    {name: 'Window', w: 300, items: [{k: 'NewWin', label: 'New Window', icon: 'normal', kind: 'big'}, {k: 'Arrange', label: 'Arrange All', icon: 'normal', kind: 'big'}, {k: 'Freeze', label: 'Freeze Panes', icon: 'normal', kind: 'big', caret: true}, {k: 'Split', label: 'Split', icon: 'normal', kind: 'big'}]},
-  ],
-  Insert: [
-    {name: 'Tables', w: 200, items: [{k: 'PivotTable', label: 'PivotTable', icon: 'pivot', kind: 'big', caret: true}, {k: 'Table', label: 'Table', icon: 'table', kind: 'big'}]},
-    {name: 'Illustrations', w: 250, items: [{k: 'Pictures', label: 'Pictures', icon: 'normal', kind: 'big', caret: true}, {k: 'Shapes', label: 'Shapes', icon: 'shapes', kind: 'big', caret: true}, {k: 'Icons', label: 'Icons', icon: 'normal', kind: 'big'}]},
-    {name: 'Charts', w: 250, items: [{k: 'Charts', label: 'Recommended Charts', icon: 'chart', kind: 'big'}, {k: 'Column', label: 'Column or Bar', icon: 'chart', kind: 'big', caret: true}, {k: 'Line', label: 'Line or Area', icon: 'chart', kind: 'big', caret: true}]},
-    {name: 'Filters', w: 190, items: [{k: 'Slicer', label: 'Slicer', icon: 'slicer', kind: 'big'}, {k: 'Timeline', label: 'Timeline', icon: 'slicer', kind: 'big'}]},
-  ],
-  Data: [
-    {name: 'Get & Transform Data', w: 440, items: [{k: 'GetData', label: 'Get Data', icon: 'table', kind: 'big', caret: true}, {k: 'FromText', label: 'From Text/CSV', icon: 'normal', kind: 'big'}, {k: 'FromWeb', label: 'From Web', icon: 'normal', kind: 'big'}, {k: 'FromTable', label: 'From Table/Range', icon: 'table', kind: 'big'}, {k: 'Recent', label: 'Recent Sources', icon: 'normal', kind: 'big'}, {k: 'Existing', label: 'Existing Connections', icon: 'normal', kind: 'big'}]},
-    {name: 'Queries & Connections', w: 300, items: [{k: 'RefreshAll', label: 'Refresh All', icon: 'fillDown', kind: 'big', caret: true}, {k: 'QC', label: 'Queries & Connections', icon: 'pivot', kind: 'big'}, {k: 'Props', label: 'Properties', icon: 'normal', kind: 'big'}]},
-    {name: 'Sort & Filter', w: 230, items: [{k: 'Sort', label: 'Sort', icon: 'sortFilter', kind: 'big'}, {k: 'Filter', label: 'Filter', icon: 'filter', kind: 'big'}, {k: 'Adv', label: 'Advanced', icon: 'filter', kind: 'big'}]},
-    {name: 'Data Tools', w: 230, items: [{k: 'T2C', label: 'Text to Columns', icon: 'normal', kind: 'big'}, {k: 'Valid', label: 'Data Validation', icon: 'check', kind: 'big', caret: true}]},
-  ],
-  Slicer: [
-    {name: 'Slicer', w: 160, items: [{k: 'Settings', label: 'Slicer Settings', icon: 'slicer', kind: 'big'}, {k: 'Report', label: 'Report Connections', icon: 'slicer', kind: 'big'}]},
-    {name: 'Slicer Styles', w: 250, items: [{k: 'Styles', label: 'Quick Styles', icon: 'slicer', kind: 'big', caret: true}]},
-    {name: 'Arrange', w: 330, items: [{k: 'Forward', label: 'Bring Forward', icon: 'normal', kind: 'big'}, {k: 'Backward', label: 'Send Backward', icon: 'normal', kind: 'big'}, {k: 'SelPane', label: 'Selection Pane', icon: 'normal', kind: 'big'}, {k: 'Align', label: 'Align', icon: 'normal', kind: 'big', caret: true}]},
-    {name: 'Buttons', w: 190, items: [{k: 'Columns', label: 'Columns:', kind: 'field'}, {k: 'BtnHeight', label: 'Height:', kind: 'field'}, {k: 'BtnWidth', label: 'Width:', kind: 'field'}]},
-    {name: 'Size', w: 170, items: [{k: 'Height', label: 'Height:', kind: 'field'}, {k: 'Width', label: 'Width:', kind: 'field'}]},
-  ],
-};
-/** Absolute position (inside ribbon area, below title+tabs) of a ribbon item, for cursor targets. */
-export const ribbonItemBox = (kind: string, key: string) => {
-  const groups = RIBBONS[kind] ?? []; let gx = 6;
-  for (const g of groups) {
-    let bx = gx + 4; let ci = 0; let fi = 0;
-    for (const it of g.items) {
-      if (it.kind === 'check') { const col = Math.floor(ci / 2), row = ci % 2; const r = {x: gx + 10 + col * 100, y: XL.title + XL.tabs + 14 + row * 26, w: 96, h: 22}; if (it.k === key) return {...r, cx: r.x + 9, cy: r.y + 11}; ci++; }
-      else if (it.kind === 'field') { const r = {x: gx + 10, y: XL.title + XL.tabs + 8 + fi * 26, w: g.w - 20, h: 22}; if (it.k === key) return {...r, cx: r.x + r.w - 24, cy: r.y + 11}; fi++; }
-      else { const w = Math.max(62, Math.min(86, it.label.length * 4.2 + 16)); const r = {x: bx, y: XL.title + XL.tabs + 2, w, h: 78}; if (it.k === key) return {...r, cx: r.x + w / 2, cy: r.y + 34}; bx += w; }
-    }
-    gx += g.w + 11;
-  }
-  return {x: 0, y: 0, w: 0, h: 0, cx: 0, cy: 0};
-};
-const GenericRibbon: React.FC<{kind: string; hot?: string; checks: Record<string, number>; fields: Record<string, string>}> = ({kind, hot, checks, fields}) => (
-  <div style={{display: 'flex', height: '100%', paddingLeft: 6, overflow: 'hidden'}}>
-    {RIBBONS[kind].map((g) => {
-      let bx = 4; let ci = 0; let fi = 0;
-      return (
-        <div key={g.name} style={{display: 'contents'}}>
-          <Grp name={g.name} w={g.w}>
-            {g.items.map((it) => {
-              if (it.kind === 'check') {
-                const col = Math.floor(ci / 2), row = ci % 2; ci++; const on = (checks[it.k] ?? 1) > 0.5; const dis = it.k === 'Ruler';
-                return (<div key={it.k} style={ab(4 + col * 100, 12 + row * 26, 96, 22, {display: 'flex', alignItems: 'center', gap: 6, background: hot === it.k ? '#E4E4E4' : 'transparent', borderRadius: 3})}>
-                  <div style={{width: 14, height: 14, border: `1.5px solid ${dis ? '#B8B8B8' : '#555'}`, borderRadius: 2, boxSizing: 'border-box', background: on && !dis ? '#fff' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{on && !dis ? <svg width={10} height={10} viewBox="0 0 10 10"><path d="M1.5 5.2l2.4 2.4L8.6 2.4" fill="none" stroke="#222" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" /></svg> : null}</div>
-                  <span style={{...lab, color: dis ? '#9A9A9A' : G.ink}}>{it.label}</span></div>);
-              }
-              if (it.kind === 'field') {
-                const row = fi++;
-                return (<div key={it.k} style={ab(4, 6 + row * 26, g.w - 14, 22, {display: 'flex', alignItems: 'center', gap: 6})}>
-                  <span style={{...lab, width: 92}}>{it.label}</span>
-                  <div style={{flex: 1, height: 22, border: `1px solid ${hot === it.k ? G.green : '#C8C8C8'}`, boxShadow: hot === it.k ? `0 0 0 2px ${G.green}55` : 'none', borderRadius: 3, background: '#fff', boxSizing: 'border-box', padding: '0 6px', display: 'flex', alignItems: 'center'}}><span style={{...lab, fontFamily: CELLFONT, fontSize: 13}}>{fields[it.k] ?? ''}</span></div></div>);
-              }
-              const w = Math.max(62, Math.min(86, it.label.length * 4.2 + 16)); const x = bx; bx += w;
-              const words = it.label.split(' ');
-              return (<div key={it.k} style={ab(x, 0, w, 78, {display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4, background: hot === it.k ? '#E4E4E4' : 'transparent', borderRadius: 4})}>
-                <Ico n={it.icon ?? 'normal'} s={32} /><span style={{...lab, marginTop: 5, lineHeight: '14px'}}>{words.length > 1 ? words.slice(0, Math.ceil(words.length / 2)).join(' ') : it.label}</span>
-                <span style={{...lab, lineHeight: '14px', display: 'flex', alignItems: 'center', gap: 3}}>{words.length > 1 ? words.slice(Math.ceil(words.length / 2)).join(' ') : ''}{it.caret ? <Caret /> : null}</span></div>);
-            })}
-          </Grp><Sep />
-        </div>
-      );
-    })}
-  </div>
+const Stack: React.FC<{w?: number; children?: React.ReactNode}> = ({w, children}) => <div style={{display: "flex", flexDirection: "column", gap: 2, paddingTop: 2, width: w}}>{children}</div>;
+const IconRow: React.FC<{items: string[]}> = ({items}) => (
+  <div style={{display: "flex", gap: 2}}>{items.map((n) => <div key={n} style={{width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center"}}><Icon n={n} s={20} /></div>)}</div>
 );
 
 const HomeRibbon: React.FC = () => (
-  <div style={{display: 'flex', height: '100%', paddingLeft: 6, overflow: 'hidden'}}>
-    <Grp name="Clipboard" w={140} launcher>
-      <Big x={2} w={46} icon="paste" l1="Paste" caret />
-      <Sm x={52} y={0} icon="cut" label="Cut" w={92} />
-      <Sm x={52} y={24} icon="copy" label="Copy" caret w={92} />
-      <Sm x={52} y={48} icon="painter" label="Format Painter" w={92} />
-    </Grp>
-    <Sep />
-    <Grp name="Font" w={206} launcher>
-      <Combo x={2} y={2} w={100} text="Calibri" />
-      <Combo x={106} y={2} w={42} text="11" />
-      <Sm x={152} y={1} icon="growFont" w={24} />
-      <Sm x={176} y={1} icon="shrinkFont" w={24} />
-      <Sm x={2} y={30} icon="bold" w={24} />
-      <Sm x={26} y={30} icon="italic" w={24} />
-      <Sm x={50} y={30} icon="underline" caret w={36} />
-      <Sm x={92} y={30} icon="borders" caret w={36} />
-      <Sm x={132} y={30} icon="fill" caret w={36} />
-      <Sm x={168} y={30} icon="fontColor" caret w={36} />
-    </Grp>
-    <Sep />
-    <Grp name="Alignment" w={236} launcher>
-      <Sm x={2} y={1} icon="alignTop" w={24} />
-      <Sm x={26} y={1} icon="alignMid" w={24} />
-      <Sm x={50} y={1} icon="alignBot" w={24} />
-      <Sm x={78} y={1} icon="orient" caret w={36} />
-      <Sm x={116} y={1} icon="wrap" label="Wrap Text" w={96} />
-      <Sm x={2} y={30} icon="alignL" w={24} />
-      <Sm x={26} y={30} icon="alignC" w={24} />
-      <Sm x={50} y={30} icon="alignR" w={24} />
-      <Sm x={78} y={30} icon="indentL" w={24} />
-      <Sm x={100} y={30} icon="indentR" w={24} />
-      <Sm x={126} y={30} icon="merge" label="Merge & Center" caret w={116} />
-    </Grp>
-    <Sep />
-    <Grp name="Number" w={170} launcher>
-      <Combo x={2} y={2} w={168} text="General" />
-      <Sm x={2} y={30} icon="currency" caret w={40} />
-      <Sm x={44} y={30} icon="percent" w={24} />
-      <Sm x={68} y={30} icon="comma" w={24} />
-      <Sm x={96} y={30} icon="decInc" w={26} />
-      <Sm x={124} y={30} icon="decDec" w={26} />
-    </Grp>
-    <Sep />
-    <Grp name="Styles" w={240}>
-      <Big x={2} w={80} icon="condFmt" l1="Conditional" l2="Formatting" caret />
-      <Big x={86} w={76} icon="fmtTable" l1="Format as" l2="Table" caret />
-      <Big x={166} w={74} icon="cellStyles" l1="Cell" l2="Styles" caret />
-    </Grp>
-    <Sep />
-    <Grp name="Cells" w={92}>
-      <Sm x={2} y={0} icon="insert" label="Insert" caret w={86} />
-      <Sm x={2} y={24} icon="delete" label="Delete" caret w={86} />
-      <Sm x={2} y={48} icon="format" label="Format" caret w={86} />
-    </Grp>
-    <Sep />
-    <Grp name="Editing" w={214}>
-      <Sm x={2} y={0} icon="autosum" label="AutoSum" caret w={92} />
-      <Sm x={2} y={24} icon="fillDown" label="Fill" caret w={92} />
-      <Sm x={2} y={48} icon="clear" label="Clear" caret w={92} />
-      <Big x={96} w={58} icon="sortFilter" l1="Sort &" l2="Filter" caret />
-      <Big x={154} w={58} icon="find" l1="Find &" l2="Select" caret />
-    </Grp>
-    <Sep />
-    <Grp name="Add-ins" w={62}>
-      <Big x={2} w={58} icon="addins" l1="Add-" l2="ins" caret />
-    </Grp>
-    <Sep />
-    <Grp name="Analysis" w={64}>
-      <Big x={0} w={62} icon="analyze" l1="Analyze" l2="Data" />
-    </Grp>
+  <div style={{display: "flex", height: M.ribbonH}}>
+    <Grp name="Clipboard"><Big i="paste" l="Paste" w={56} /><Stack w={118}><Small i="cut" l="Cut" /><Small i="copy" l="Copy" /><Small i="brush" l="Format Painter" /></Stack></Grp>
+    <Grp name="Font"><div style={{display: "flex", flexDirection: "column", gap: 6, paddingTop: 2}}><div style={{display: "flex", gap: 6}}><Box t="Calibri" w={120} /><Box t="11" w={46} /></div><IconRow items={["bold", "italic", "underline", "border", "fill", "fontcolor"]} /></div></Grp>
+    <Grp name="Alignment"><div style={{display: "flex", flexDirection: "column", gap: 6, paddingTop: 2}}><IconRow items={["align", "align", "align", "align"]} /><IconRow items={["align", "align", "align", "align"]} /></div><Stack w={140}><Small i="wrap" l="Wrap Text" /><Small i="merge" l="Merge & Center" /></Stack></Grp>
+    <Grp name="Number"><div style={{display: "flex", flexDirection: "column", gap: 6, paddingTop: 2}}><Box t="General" w={130} /><IconRow items={["comma", "pct", "comma", "dec", "dec"]} /></div></Grp>
+    <Grp name="Styles"><Big i="cond" l="Conditional Formatting" w={92} /><Big i="fmttable" l="Format as Table" w={78} /><Big i="styles" l="Cell Styles" w={64} /></Grp>
+    <Grp name="Cells"><Big i="insert" l="Insert" w={56} /><Big i="delete" l="Delete" w={56} /><Big i="format" l="Format" w={56} /></Grp>
+    <Grp name="Editing"><Stack w={84}><Small i="sum" l="AutoSum" /><Small i="filldown" l="Fill" /><Small i="clear" l="Clear" /></Stack><Big i="sort" l="Sort & Filter" w={74} /><Big i="find" l="Find & Select" w={74} /></Grp>
   </div>
 );
 
-/* ------------------------------------------------------------------ title bar */
-const TitleBar: React.FC<{file: string; qat: string[]; qatTips: number; qatHot: number}> = ({file, qat, qatTips, qatHot}) => (
-  <div style={ab(0, 0, XL.W, XL.title, {background: G.chrome})}>
-    <div style={ab(10, 6, 20, 20)}><Ico n="appIcon" s={20} /></div>
-    {qat.map((id, i) => (
-      <div key={id} style={ab(QAT_X0 + QAT_STEP * i, 3, QAT_STEP, 26, {display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 3, background: qatHot === i ? '#D9D9D9' : 'transparent'})}>
-        <Ico n={id} s={16} />
-      </div>
-    ))}
-    <div style={ab(qatArrowCx(qat.length) - 8, 3, 18, 26, {display: 'flex', alignItems: 'center', justifyContent: 'center'})}><Caret s={9} /></div>
-    <div style={ab(300, 0, 220, XL.title, {display: 'flex', alignItems: 'center'})}><span style={{...lab, fontSize: 12.5, color: G.ink}}>{file} - Excel</span></div>
-    <div style={ab(XL.W / 2 - 190, 4, 420, 24, {background: '#fff', border: '1px solid #D1D1D1', borderRadius: 5, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px'})}>
-      <Ico n="search" s={15} /><span style={{...lab, color: '#707070'}}>Search</span>
-    </div>
-    <div style={ab(XL.W - 255, 5, 22, 22)}><Ico n="user" s={22} c="#605E5C" /></div>
-    {['min', 'max', 'close'].map((k, i) => (
-      <div key={k} style={ab(XL.W - 138 + i * 46, 0, 46, XL.title, {display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
-        <svg width={12} height={12} viewBox="0 0 12 12"><g fill="none" stroke="#333" strokeWidth={1}>
-          {k === 'min' ? <path d="M1 6h10" /> : k === 'max' ? <rect x={1.5} y={1.5} width={9} height={9} /> : <path d="M1 1l10 10M11 1L1 11" />}
-        </g></svg>
-      </div>
-    ))}
-    {qatTips > 0.01 ? qat.map((id, i) => (
-      <div key={'k' + id} style={ab(qatCx(i) - 9, 22, 18, 16, {background: '#1F1F1F', color: '#fff', borderRadius: 3, fontFamily: UIFONT, fontSize: 11, fontWeight: 700, textAlign: 'center', lineHeight: '16px', opacity: qatTips, transform: `scale(${0.7 + 0.3 * qatTips})`, zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,.4)'})}>{i + 1}</div>
-    )) : null}
+
+const FormulasRibbon: React.FC = () => (
+  <div style={{display: "flex", height: M.ribbonH}}>
+    <Grp name="Function Library"><Big i="fx" l="Insert Function" w={70} /><Big i="sum" l="AutoSum" w={56} /><Big i="grid" l="Recently Used" w={74} /><Stack><Small i="grid" l="Financial" /><Small i="grid" l="Logical" /><Small i="grid" l="Text" /></Stack><Stack><Small i="grid" l="Date & Time" /><Small i="find" l="Lookup & Reference" /><Small i="grid" l="Math & Trig" /></Stack><Big i="grid" l="More Functions" w={70} /></Grp>
+    <Grp name="Defined Names"><Big i="format" l="Name Manager" w={72} /><Stack><Small i="grid" l="Define Name" /><Small i="fx" l="Use in Formula" /><Small i="cond" l="Create from Selection" /></Stack></Grp>
+    <Grp name="Formula Auditing"><Stack><Small i="grid" l="Trace Precedents" /><Small i="grid" l="Trace Dependents" /><Small i="clear" l="Remove Arrows" /></Stack><Stack><Small i="fx" l="Show Formulas" /><Small i="cond" l="Error Checking" /><Small i="find" l="Evaluate Formula" /></Stack></Grp>
+    <Grp name="Calculation"><Big i="refresh" l="Calculation Options" w={92} /><Stack><Small i="refresh" l="Calculate Now" /><Small i="refresh" l="Calculate Sheet" /></Stack></Grp>
   </div>
 );
 
-/* ------------------------------------------------------------------ tab strip */
-const TabStrip: React.FC<{tab: string; hot?: string; extra?: string}> = ({tab, hot, extra}) => (
-  <div style={ab(0, XL.title, XL.W, XL.tabs, {background: G.chrome})}>
-    {TABS.map((t) => {
-      const b = tabBox(t);
-      const act = t === tab;
-      return (
-        <div key={t} style={ab(b.x, 2, b.w, XL.tabs - 2, {display: 'flex', alignItems: 'center', justifyContent: 'center', background: hot === t ? '#E4E4E4' : 'transparent', borderRadius: 4})}>
-          <span style={{fontFamily: UIFONT, fontSize: 13, fontWeight: act ? 700 : 400, color: G.ink}}>{t}</span>
-          {act ? <div style={ab(b.w / 2 - 14, XL.tabs - 6, 28, 3, {background: G.green, borderRadius: 2})} /> : null}
-        </div>
-      );
-    })}
-    {extra ? (() => { const b = tabBox(extra); const on = tab === extra; return (<div style={ab(b.x, 2, b.w, XL.tabs - 2, {display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'transparent' : 'transparent', borderTop: `2px solid ${G.green}`, borderRadius: 3})}><span style={{fontFamily: UIFONT, fontSize: 13, fontWeight: on ? 700 : 400, color: G.greenDark}}>{extra}</span>{on ? <div style={ab(b.w / 2 - 14, XL.tabs - 6, 28, 3, {background: G.green, borderRadius: 2})} /> : null}</div>); })() : null}
-    <div style={ab(XL.W - 224, 4, 92, 24, {border: '1px solid #D1D1D1', borderRadius: 5, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#fff'})}>
-      <Ico n="comment" s={14} /><span style={lab}>Comments</span>
-    </div>
-    <div style={ab(XL.W - 124, 4, 84, 24, {background: G.green, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6})}>
-      <Ico n="share" s={14} /><span style={{...lab, color: '#fff'}}>Share</span><Caret c="#fff" />
-    </div>
+/** fixed positions (window-local) used for cursor targets */
+export const TD = {nameBox: {x: 14, y: RIBBON_Y + 28, w: 150, h: 24}, totalChk: {x: 756, y: RIBBON_Y + 30, w: 110, h: 20}};
+
+const Chk: React.FC<{x: number; y: number; l: string; on: boolean}> = ({x, y, l, on}) => (
+  <div style={{position: "absolute", left: x, top: y, display: "flex", alignItems: "center", gap: 7, fontSize: 13.5, color: "#222", fontFamily: FONT_AR, whiteSpace: "nowrap"}}>
+    <div style={{width: 15, height: 15, border: `1.5px solid ${on ? X.green : "#6E6E6E"}`, background: on ? X.green : "#fff", color: "#fff", fontSize: 12, lineHeight: "13px", textAlign: "center"}}>{on ? "✓" : ""}</div>{l}
+  </div>
+);
+const Sw: React.FC<{x: number; c: string; sel?: boolean}> = ({x, c, sel}) => (
+  <div style={{position: "absolute", left: x, top: 14, width: 66, height: 54, border: `${sel ? 2.5 : 1}px solid ${sel ? X.green : "#BDBDBD"}`, background: "#fff", padding: 3}}>
+    <div style={{height: 10, background: c}} />
+    {[0, 1, 2, 3].map((i) => <div key={i} style={{height: 8, marginTop: 2, background: i % 2 === 0 ? `${c}55` : "#fff"}} />)}
   </div>
 );
 
-/* ------------------------------------------------------------------ formula bar */
-const FormulaBar: React.FC<{top: number; h: number; nameBox: string; nameEdit: boolean; formula: string; fbExp: number; edit: boolean; blink: boolean}> = ({top, h, nameBox, nameEdit, formula, fbExp, edit, blink}) => (
-  <div style={ab(0, top, XL.W, h, {background: '#fff', borderTop: '1px solid #E1E1E1', borderBottom: '1px solid #D1D1D1', boxSizing: 'border-box'})}>
-    <div style={ab(NAME_BOX.x, 2, NAME_BOX.w, 22, {border: nameEdit ? `1.5px solid ${G.green}` : '1px solid #C8C8C8', borderRadius: 3, boxSizing: 'border-box', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6px'})}>
-      <span style={{fontFamily: CELLFONT, fontSize: 14.5, color: G.ink, whiteSpace: 'nowrap'}}>{nameBox}{nameEdit && blink ? <span style={{color: G.green}}>|</span> : null}</span>
-      <Caret />
-    </div>
-    <div style={ab(124, 5, 1, 16, {background: '#C8C8C8'})} />
-    <svg style={ab(FB_ICONS.cancelX - 8, 4, 18, 18)} width={18} height={18} viewBox="0 0 18 18"><path d="M4.5 4.5l9 9M13.5 4.5l-9 9" stroke={edit ? G.red : '#B0B0B0'} strokeWidth={1.6} strokeLinecap="round" /></svg>
-    <svg style={ab(FB_ICONS.enterX - 8, 4, 18, 18)} width={18} height={18} viewBox="0 0 18 18"><path d="M3.5 9.5l3.8 3.8L14.5 5" fill="none" stroke={edit ? G.green : '#B0B0B0'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /></svg>
-    <div style={ab(FB_ICONS.fxX - 6, 3, 22, 20, {fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 15, color: '#444', textAlign: 'center', lineHeight: '20px'})}>fx</div>
-    <div style={ab(212, 2, XL.W - 212 - 34, h - 4, {border: '1px solid #D1D1D1', borderRadius: 3, boxSizing: 'border-box', background: '#fff', padding: '2px 8px', overflow: 'hidden', fontFamily: CELLFONT, fontSize: 14.5, color: G.ink, whiteSpace: 'pre', lineHeight: `${XL.fbLine}px`})}>
-      {formula}{edit && blink ? <span style={{color: '#222'}}>|</span> : null}
-    </div>
-    <div style={ab(XL.W - 28, 4, 22, 18, {display: 'flex', alignItems: 'center', justifyContent: 'center', transform: `rotate(${180 * fbExp}deg)`})}><Caret s={10} /></div>
-  </div>
-);
-
-/* ------------------------------------------------------------------ main component */
-export const ExcelApp: React.FC<ExcelProps> = (p) => {
-  const f = useCurrentFrame();
-  const blink = Math.floor(f / 14) % 2 === 0;
-  const ribbon = p.ribbon ?? 1;
-  const fbExp = p.fbExp ?? 0;
-  const fbLines = p.fbLines ?? 1;
-  const scroll = p.scroll ?? {r: 1, c: 1};
-  const cw = p.colW ?? defaultColW;
-  const maxRowShown = p.rowIds ? p.rowIds[Math.min(p.rowIds.length - 1, scroll.r - 1 + 40)] : scroll.r + 40;
-  const rowW0 = maxRowShown >= 10000 ? 50 : maxRowShown >= 1000 ? 44 : 38;
-  const gridOn = p.gridOn ?? 1, headOn = p.headOn ?? 1, fbOn = p.fbOn ?? 1;
-  const rowW = rowW0;
-  const gm = geo(ribbon, fbExp, fbLines, rowW, fbOn, headOn);
-  const gridCol = gridOn >= 1 ? G.grid : `rgba(225,225,225,${gridOn})`;
-  const nRows = Math.ceil((gm.rowsBottom - gm.rowsTop) / XL.rowH);
-  const rows: number[] = [];
-  for (let i = 0; i < nRows; i++) {
-    const idx = scroll.r - 1 + i;
-    if (p.rowIds) { if (idx < p.rowIds.length) rows.push(p.rowIds[idx]); } else rows.push(scroll.r + i);
-  }
-  const cols: number[] = [];
-  let cx = 0;
-  for (let c = scroll.c; cx < gm.gridRight - gm.rowW; c++) { cols.push(c); cx += cw(c); }
-  const rowIndexOf = (r: number) => rows.indexOf(r);
-  const firstRowAtOrAfter = (r: number) => { const i = rows.findIndex((x) => x >= r); return i; };
-  const lastRowAtOrBefore = (r: number) => { let k = -1; rows.forEach((x, i) => { if (x <= r) k = i; }); return k; };
-  const colPx = (c: number) => gm.rowW + colX(c, scroll.c, cw);
-  const rangeRect = (g: Rng) => {
-    const i1 = firstRowAtOrAfter(g.r1), i2 = lastRowAtOrBefore(g.r2);
-    if (i1 < 0 || i2 < i1) return null;
-    const x1 = colPx(Math.max(g.c1, scroll.c));
-    const x2 = colPx(g.c2 + 1);
-    return {x: x1, y: gm.rowsTop + i1 * XL.rowH, w: x2 - x1, h: (i2 - i1 + 1) * XL.rowH, left: g.c1 >= scroll.c, top: g.r1 >= rows[0], right: true, bottom: g.r2 <= rows[rows.length - 1]};
-  };
-  const sel = p.sel;
-  const selRect = rangeRect(sel);
-  const actI = rowIndexOf(p.active.r);
-  const actRect = actI >= 0 && p.active.c >= scroll.c ? {x: colPx(p.active.c), y: gm.rowsTop + actI * XL.rowH, w: cw(p.active.c), h: XL.rowH} : null;
-  const fullSel = sel.r2 - sel.r1 > 0 || sel.c2 - sel.c1 > 0;
-  const mq = p.marquee ? rangeRect(p.marquee) : null;
-  const filtered = !!p.rowIds;
-  const gridW = gm.gridRight;
-  const stats = p.stats ?? [];
-  const tab = p.tab ?? 'Home';
-
-  const cellsView: React.ReactNode[] = [];
-  rows.forEach((r, ri) => {
-    cols.forEach((c) => {
-      const w = cw(c);
-      const x = colPx(c);
-      const y = gm.rowsTop + ri * XL.rowH;
-      const cell = p.cell(r, c);
-      let spill = 0;
-      if (cell && cell.t && !cell.num && !cell.bg && (cell.al ?? 'l') === 'l') {
-        let k = c + 1;
-        while (k < c + 6 && !p.cell(r, k)?.t) { spill += cw(k); k++; }
-      }
-      cellsView.push(
-        <div key={`${r}:${c}`} style={ab(x, y, w + spill, XL.rowH, {boxSizing: 'border-box', borderRight: spill ? 'none' : `1px solid ${gridCol}`, borderBottom: `1px solid ${gridCol}`, background: cell?.bg ?? 'transparent', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: (cell?.al ?? (cell?.num ? 'r' : 'l')) === 'r' ? 'flex-end' : (cell?.al === 'c' ? 'center' : 'flex-start'), padding: '0 3px 1px'})}>
-          {cell ? <span style={{fontFamily: CELLFONT, fontSize: 14.67, fontWeight: cell.b ? 700 : 400, fontStyle: cell.i ? 'italic' : 'normal', color: cell.color ?? '#000', whiteSpace: 'nowrap', lineHeight: '17px'}}>{cell.t}</span> : null}
-        </div>,
-      );
-      if (spill) cellsView.push(<div key={`${r}:${c}:b`} style={ab(x + w + spill - 1, y, 1, XL.rowH, {background: gridCol})} />);
-    });
-  });
-
-  const isColSel = (c: number) => c >= sel.c1 && c <= sel.c2;
-  const isRowSel = (r: number) => r >= sel.r1 && r <= sel.r2;
-  const dash = (f * 0.9) % 14;
-
+const TableDesignRibbon: React.FC<{name: string; nameFocus: number; typing: boolean; totalRow: boolean; caret: boolean}> = ({name, nameFocus, typing, totalRow, caret}) => {
   return (
-    <div style={{position: 'absolute', left: 0, top: 0, width: XL.W, height: XL.H, background: '#fff', overflow: 'hidden', fontFamily: UIFONT}}>
-      {/* chrome */}
-      <TitleBar file={p.file ?? 'Book1'} qat={p.qat ?? ['save', 'undo', 'redo']} qatTips={p.qatTips ?? 0} qatHot={p.qatHot ?? -1} />
-      <TabStrip tab={tab} hot={p.tabHot} extra={p.extraTab} />
-      {gm.ribbonH > 0 ? (
-        <div style={ab(0, XL.title + XL.tabs, XL.W, gm.ribbonH, {background: G.ribbonBg, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #D8D8D8', overflow: 'hidden', boxSizing: 'border-box'})}>
-          <div style={{position: 'absolute', left: 0, top: 0, width: XL.W, height: XL.ribbon, opacity: Math.min(1, ribbon * 1.4)}}>{RIBBONS[tab] ? <GenericRibbon kind={tab} hot={p.ribbonHot} checks={p.checks ?? {}} fields={p.fields ?? {}} /> : <HomeRibbon />}</div>
-        </div>
-      ) : <div style={ab(0, XL.title + XL.tabs, XL.W, 1, {background: '#D8D8D8'})} />}
-      <div style={ab(0, gm.fbTop, XL.W, gm.fbH, {overflow: 'hidden', opacity: fbOn})}><FormulaBar top={0} h={Math.max(XL.fbar, gm.fbH)} nameBox={p.nameBox ?? 'A1'} nameEdit={!!p.nameEdit} formula={p.formula ?? ''} fbExp={fbExp} edit={!!p.fbEdit} blink={blink} /></div>
-
-      {/* grid */}
-      <div style={ab(0, gm.colTop, gridW, XL.H - XL.status - XL.sheetBar - gm.colTop, {overflow: 'hidden', background: '#fff'})}>
-        <div style={ab(0, 0, gridW, gm.colHh, {background: G.hdr, borderBottom: '1px solid #C6C6C6', overflow: 'hidden', opacity: headOn})} />
-        <div style={ab(0, gm.colHh, gm.rowW, 2000, {background: G.hdr, borderRight: '1px solid #C6C6C6', opacity: headOn})} />
-        <svg style={ab(gm.rowW - 14, gm.colHh - 14, 12, 12)} width={12} height={12} viewBox="0 0 12 12"><path d="M11 1v10H1z" fill="#BDBDBD" /></svg>
-        {cols.map((c) => {
-          const s = isColSel(c);
-          return (
-            <div key={'h' + c} style={ab(colPx(c), 0, cw(c), gm.colHh, {opacity: headOn, overflow: 'hidden', boxSizing: 'border-box', borderRight: '1px solid #C6C6C6', background: s ? G.hdrSel : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: UIFONT, fontSize: 12.5, color: s ? G.greenDark : '#444', fontWeight: s ? 700 : 400})}>
-              {colLetter(c)}
-              {s ? <div style={ab(0, XL.colH - 2, cw(c), 2, {background: G.green})} /> : null}
-            </div>
-          );
-        })}
-        {rows.map((r, ri) => {
-          const s = isRowSel(r);
-          return (
-            <div key={'r' + r} style={ab(0, gm.colHh + ri * XL.rowH, gm.rowW, XL.rowH, {opacity: headOn, overflow: 'hidden', boxSizing: 'border-box', borderBottom: '1px solid #C6C6C6', borderRight: '1px solid #C6C6C6', background: s ? G.hdrSel : G.hdr, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: UIFONT, fontSize: 12.5, color: s ? G.greenDark : filtered && r > 1 ? G.blue : '#444', fontWeight: s ? 700 : 400})}>
-              {r.toLocaleString('en-US').replace(/,/g, '')}
-              {s ? <div style={ab(gm.rowW - 2, 0, 2, XL.rowH, {background: G.green})} /> : null}
-            </div>
-          );
-        })}
+    <div style={{position: "absolute", left: 0, top: 0, width: "100%", height: M.ribbonH}}>
+      <div style={{position: "absolute", left: 14, top: 8, ...lbl, fontSize: 13}}>Table Name:</div>
+      <div style={{position: "absolute", left: 14, top: 28, width: 150, height: 24, border: `1.5px solid ${nameFocus > 0 ? "#0F6CBD" : "#ABABAB"}`, background: "#fff", display: "flex", alignItems: "center", padding: "0 6px", fontSize: 14.5, color: "#222", fontFamily: FONT_AR}}>
+        <span style={{background: nameFocus > 0.5 && !typing ? "#2F80D0" : "transparent", color: nameFocus > 0.5 && !typing ? "#fff" : "#222", padding: "0 1px"}}>{name}</span>
+        {typing && caret ? <span style={{width: 1.5, height: 16, background: "#222", marginLeft: 1}} /> : null}
       </div>
-      {/* cells layer (absolute in app coordinates, clipped to grid) */}
-      <div style={ab(0, gm.rowsTop, gridW, gm.rowsBottom - gm.rowsTop, {overflow: 'hidden'})}>
-        <div style={{position: 'absolute', left: 0, top: -gm.rowsTop}}>{cellsView}</div>
-        {/* selection */}
-        <svg style={{position: 'absolute', left: 0, top: -gm.rowsTop, width: gridW, height: XL.H, overflow: 'visible'}} width={gridW} height={XL.H}>
-          {selRect ? (
-            <g>
-              {fullSel || !actRect ? (
-                <path fillRule="evenodd" fill={G.tint} d={`M${selRect.x} ${selRect.y}h${selRect.w}v${selRect.h}h${-selRect.w}z${actRect ? `M${actRect.x} ${actRect.y}h${actRect.w}v${actRect.h}h${-actRect.w}z` : ''}`} />
-              ) : null}
-              <rect x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h} fill="none" stroke={G.green} strokeWidth={2.25} />
-              {selRect.bottom ? <rect x={selRect.x + selRect.w - 4} y={selRect.y + selRect.h - 4} width={7} height={7} fill={G.green} stroke="#fff" strokeWidth={1} /> : null}
-            </g>
-          ) : null}
-          {actRect && fullSel ? <rect x={actRect.x} y={actRect.y} width={actRect.w} height={actRect.h} fill="none" stroke={G.green} strokeWidth={1} opacity={0} /> : null}
-          {p.marqueeOn && mq ? (
-            <g>
-              <rect x={mq.x} y={mq.y} width={mq.w} height={mq.h} fill="none" stroke="#fff" strokeWidth={2} />
-              <rect x={mq.x} y={mq.y} width={mq.w} height={mq.h} fill="none" stroke={G.green} strokeWidth={2} strokeDasharray="5 4" strokeDashoffset={-dash} />
-            </g>
-          ) : null}
-          {(p.filterCols ?? []).map((c) => {
-            if (c < scroll.c || rows[0] !== 1) return null;
-            const x = colPx(c + 1) - 18, y = gm.rowsTop + 2;
-            const on = p.filterApplied?.includes(c);
-            const hot = p.filterHot === c;
-            return (
-              <g key={'fl' + c}>
-                <rect x={x} y={y} width={16} height={16} fill={hot ? '#CFE8D8' : '#F3F3F3'} stroke="#8A8A8A" strokeWidth={1} />
-                {on ? <path d={`M${x + 3.5} ${y + 3.5}h9l-3.4 4v4.2l-2.2 1.2v-5.4z`} fill="#0F6CBD" /> : <path d={`M${x + 4} ${y + 6}h8l-4 4.6z`} fill="#333" />}
-              </g>
-            );
-          })}
-        </svg>
+      <div style={{position: "absolute", left: 14, top: 62}}><Small i="resize" l="Resize Table" /></div>
+      <div style={{position: "absolute", left: 14, top: M.ribbonH - 18, width: 160, ...lbl, color: "#6B6B6B", fontSize: 12}}>Properties</div>
+      <div style={{position: "absolute", left: 186, top: 0, bottom: 0, width: 1, background: "#E1E1E1"}} />
+      <div style={{position: "absolute", left: 196, top: 8, width: 190, display: "flex", flexDirection: "column", gap: 2}}><Small i="pivot" l="Summarize with PivotTable" /><Small i="dup" l="Remove Duplicates" /><Small i="convert" l="Convert to Range" /></div>
+      <div style={{position: "absolute", left: 392, top: 4}}><Big i="slicer" l="Insert Slicer" w={80} /></div>
+      <div style={{position: "absolute", left: 196, top: M.ribbonH - 18, width: 270, ...lbl, color: "#6B6B6B", fontSize: 12}}>Tools</div>
+      <div style={{position: "absolute", left: 478, top: 0, bottom: 0, width: 1, background: "#E1E1E1"}} />
+      <div style={{position: "absolute", left: 486, top: 4}}><Big i="export" l="Export" w={56} /></div>
+      <div style={{position: "absolute", left: 546, top: 4}}><Big i="refresh" l="Refresh" w={56} /></div>
+      <div style={{position: "absolute", left: 608, top: 10}}><Stack><Small i="browser" l="Open in Browser" /><Small i="unlink" l="Unlink" /></Stack></div>
+      <div style={{position: "absolute", left: 486, top: M.ribbonH - 18, width: 230, ...lbl, color: "#6B6B6B", fontSize: 12}}>External Table Data</div>
+      <div style={{position: "absolute", left: 742, top: 0, bottom: 0, width: 1, background: "#E1E1E1"}} />
+      <Chk x={756} y={8} l="Header Row" on />
+      <Chk x={TD.totalChk.x} y={30} l="Total Row" on={totalRow} />
+      <Chk x={756} y={52} l="Banded Rows" on />
+      <Chk x={900} y={8} l="First Column" on={false} />
+      <Chk x={900} y={30} l="Last Column" on={false} />
+      <Chk x={900} y={52} l="Banded Columns" on={false} />
+      <Chk x={756} y={74} l="Filter Button" on />
+      <div style={{position: "absolute", left: 756, top: M.ribbonH - 18, width: 240, ...lbl, color: "#6B6B6B", fontSize: 12}}>Table Style Options</div>
+      <div style={{position: "absolute", left: 1046, top: 0, bottom: 0, width: 1, background: "#E1E1E1"}} />
+      <div style={{position: "absolute", left: 1060, top: 0}}>
+        {["#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000", "#4472C4", "#4EA72E", "#7030A0"].map((c, i) => <Sw key={c} x={i * 74} c={c} sel={i === 5} />)}
       </div>
-      {/* vertical scrollbar */}
-      <div style={ab(XL.W - XL.vbar, gm.colTop, XL.vbar, gm.sheetTop - gm.colTop, {background: '#F0F0F0', borderLeft: '1px solid #DADADA', boxSizing: 'border-box'})}>
-        {(() => {
-          const span = gm.sheetTop - gm.colTop - 34;
-          const size = Math.max(18, span * (p.thumbSize ?? 0.5));
-          const top = 17 + (span - size) * (p.thumb ?? 0);
-          return <div style={ab(3, top, 9, size, {background: '#C2C2C2', borderRadius: 4})} />;
-        })()}
-      </div>
-      {/* sheet tabs bar */}
-      <div style={ab(0, gm.sheetTop, XL.W, XL.sheetBar, {background: G.chrome, borderTop: '1px solid #D1D1D1', boxSizing: 'border-box'})}>
-        <svg style={ab(8, 6, 40, 14)} width={40} height={14} viewBox="0 0 40 14"><path d="M8 2L3 7l5 5M32 2l5 5-5 5" fill="none" stroke="#8A8A8A" strokeWidth={1.4} strokeLinecap="round" /></svg>
-        {(() => { const names = p.sheets ?? [p.sheet ?? 'Sheet1']; const act = p.sheet ?? names[0]; return names.map((nm) => { const b = sheetTabBox(names, nm); const on = nm === act; return (
-          <div key={nm} style={ab(b.x, 0, b.w, XL.sheetBar - 1, {background: on ? '#fff' : 'transparent', borderBottom: on ? `2px solid ${G.green}` : 'none', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', borderLeft: '1px solid #D1D1D1', borderRight: '1px solid #D1D1D1'})}>
-            <span style={{fontFamily: UIFONT, fontSize: 12.5, fontWeight: on ? 700 : 400, color: on ? G.green : G.ink}}>{nm}</span>
-          </div>); }); })()}
-        <div style={ab(sheetTabBox(p.sheets ?? [p.sheet ?? 'Sheet1'], '').plusX, 3, 20, 20, {borderRadius: 10, border: '1px solid #A0A0A0', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#444', lineHeight: '16px', fontFamily: UIFONT})}>+</div>
-        <div style={ab(560, 8, XL.W - 560 - 40, 10, {background: '#E4E4E4', borderRadius: 5})}><div style={ab(0, 1, 260, 8, {background: '#C2C2C2', borderRadius: 4})} /></div>
-      </div>
-      {/* status bar */}
-      <div style={ab(0, gm.statusTop, XL.W, XL.status, {background: G.chrome, borderTop: '1px solid #D1D1D1', boxSizing: 'border-box', display: 'flex', alignItems: 'center', fontFamily: UIFONT, fontSize: 12, color: G.ink})}>
-        <span style={{marginLeft: 10, minWidth: 40, whiteSpace: 'nowrap'}}>{p.statusLeft ?? 'Ready'}</span>
-        <span style={{marginLeft: 18, color: G.mute, whiteSpace: 'nowrap'}}>Accessibility: Good to go</span>
-        <div style={{flex: 1}} />
-        {stats.length ? (
-          <div style={{display: 'flex', gap: 22, marginRight: 22, padding: '2px 10px', borderRadius: 4, background: `rgba(56,189,248,${0.18 * (p.statsGlow ?? 0)})`, boxShadow: `0 0 ${14 * (p.statsGlow ?? 0)}px rgba(56,189,248,${0.8 * (p.statsGlow ?? 0)})`}}>
-            {stats.map(([k, v]) => (<span key={k} style={{whiteSpace: 'nowrap'}}>{k}: <b style={{fontWeight: 600}}>{v}</b></span>))}
-          </div>
-        ) : null}
-        <div style={{display: 'flex', gap: 10, marginRight: 14, alignItems: 'center'}}>
-          <Ico n="normal" s={15} c={G.green} /><Ico n="pageLayout" s={15} /><Ico n="pageBreak" s={15} />
-        </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: 6, marginRight: 14}}>
-          <span style={{fontSize: 14, color: '#555'}}>−</span>
-          <div style={{width: 90, height: 2, background: '#9A9A9A', position: 'relative'}}><div style={ab(43, -4, 4, 10, {background: '#444'})} /></div>
-          <span style={{fontSize: 14, color: '#555'}}>+</span>
-          <span style={{minWidth: 36, textAlign: 'right'}}>{p.zoomPct ?? 100}%</span>
-        </div>
-      </div>
-      {/* overlays in logical app coordinates */}
-      {p.children}
+      <div style={{position: "absolute", left: 1060, top: M.ribbonH - 18, width: 540, ...lbl, color: "#6B6B6B", fontSize: 12}}>Table Styles</div>
     </div>
   );
 };
 
-/** Layout lookup for scenes (cursor targets). */
-export const cellCenter = (r: number, c: number, o: {ribbon?: number; fbExp?: number; fbLines?: number; scroll?: {r: number; c: number}; colW?: (c: number) => number; rowW?: number}) => {
-  const sc = o.scroll ?? {r: 1, c: 1};
-  const cw = o.colW ?? defaultColW;
-  const gm = geo(o.ribbon ?? 1, o.fbExp ?? 0, o.fbLines ?? 1, o.rowW ?? 38);
-  return {x: gm.rowW + colX(c, sc.c, cw) + cw(c) / 2, y: gm.rowsTop + (r - sc.r) * XL.rowH + XL.rowH / 2};
+/* ───────── window geometry helpers (window-local coordinates) ───────── */
+export const colLeft = (c: number) => M.rowHdrW + COLS.slice(0, c).reduce((a, b) => a + b, 0);
+export const cellBox = (rows: number[], r: number, c: number) => {
+  const idx = rows.indexOf(r);
+  return {x: colLeft(c), y: GRID_Y + idx * M.rowH, w: COLS[c], h: M.rowH, idx};
 };
-export const colHeaderCenter = (c: number, o: {ribbon?: number; fbExp?: number; fbLines?: number; scroll?: {r: number; c: number}; colW?: (c: number) => number; rowW?: number}) => {
-  const sc = o.scroll ?? {r: 1, c: 1};
-  const cw = o.colW ?? defaultColW;
-  const gm = geo(o.ribbon ?? 1, o.fbExp ?? 0, o.fbLines ?? 1, o.rowW ?? 38);
-  return {x: gm.rowW + colX(c, sc.c, cw) + cw(c) / 2, y: gm.colTop + XL.colH / 2};
+export const colName = (c: number) => String.fromCharCode(65 + c);
+export const rowsRange = (from: number, n = M.rows) => Array.from({length: n}, (_, i) => from + i);
+
+export const TAB_NAMES = ["File", "Home", "Insert", "Draw", "Page Layout", "Formulas", "Data", "Review", "View", "Automate", "Help"];
+const tabW = (t: string) => t.length * 8.4 + 30;
+export const tabBox = (name: string) => {
+  let x = 10;
+  for (const t of [...TAB_NAMES, "Table Design"]) {
+    const gap = t === "Table Design" ? 14 : 0;
+    x += gap;
+    if (t === name) return {x, w: tabW(t)};
+    x += tabW(t);
+  }
+  return {x: 0, w: 0};
 };
+
+/* ───────── grid ───────── */
+export type CellSty = {text?: string; bold?: boolean; color?: string; bg?: string; num?: boolean; edit?: boolean; err?: boolean};
+export type TableGeo = {top: number; bottom: number; left: number; right: number; p: number; total?: number; filterCol?: number; rowsF?: number; glow?: number};
+export type Sel = {r1: number; c1: number; r2: number; c2: number; t?: number};
+
+export const Grid: React.FC<{
+  rows: number[];
+  cell: (r: number, c: number) => CellSty | undefined;
+  table?: TableGeo;
+  sel?: Sel | null;
+  refs?: {r: number; c: number; color: string}[];
+  caret?: boolean;
+  f?: number;
+  tableAlpha?: number;
+}> = ({rows, cell, table, sel, refs = [], caret = true, f = 0}) => {
+  const totalW = M.w;
+  const els: React.ReactNode[] = [];
+  const bodyH = M.rows * M.rowH;
+  const lefts = COLS.map((_, c) => colLeft(c));
+  // gridlines
+  const lines: React.ReactNode[] = [];
+  for (let i = 0; i <= M.rows; i++) lines.push(<line key={"h" + i} x1={0} x2={totalW} y1={GRID_Y + i * M.rowH} y2={GRID_Y + i * M.rowH} stroke={X.grid} strokeWidth={1} />);
+  COLS.forEach((w, c) => lines.push(<line key={"v" + c} x1={lefts[c] + w} x2={lefts[c] + w} y1={GRID_Y - M.hdrH} y2={GRID_Y + bodyH} stroke={X.grid} strokeWidth={1} />));
+  // header highlight sets
+  const selC1 = sel ? Math.min(sel.c1, sel.c2) : -1;
+  const selC2 = sel ? Math.max(sel.c1, sel.c2) : -2;
+  const selR1 = sel ? Math.min(sel.r1, sel.r2) : -1;
+  const selR2 = sel ? Math.max(sel.r1, sel.r2) : -2;
+  // cells
+  rows.forEach((r, ri) => {
+    COLS.forEach((w, c) => {
+      const s = cell(r, c);
+      const inT = table && r >= table.top && r <= table.bottom && c >= table.left && c <= table.right;
+      if (!s && !inT) return;
+      let bg = s?.bg || "transparent";
+      let color = s?.color || X.text;
+      let bold = !!s?.bold;
+      let arrow = 0;
+      if (inT && table) {
+        const k = clamp01(table.p * 1.7 - ((r - table.top) * 0.035 + (c - table.left) * 0.05));
+        const isHdr = r === table.top;
+        const isTot = table.total === r;
+        if (isHdr) {
+          bg = `rgba(78,167,46,${k})`;
+          if (k > 0.45) { color = "#fff"; bold = true; }
+          arrow = k;
+        } else if (isTot) {
+          bg = `rgba(255,255,255,${k})`;
+          if (k > 0.45) bold = true;
+        } else if ((r - table.top) % 2 === 1) {
+          bg = `rgba(220,235,213,${k})`;
+        }
+      }
+      const editSty: React.CSSProperties = s?.edit ? {background: "#fff", outline: `2px solid ${X.green}`, zIndex: 3, overflow: "visible"} : {};
+      els.push(
+        <div key={r + ":" + c} style={{position: "absolute", left: lefts[c] + 1, top: GRID_Y + ri * M.rowH + 1, width: w - 1, height: M.rowH - 1, background: bg, color, fontWeight: bold ? 700 : 400, fontSize: 17, lineHeight: `${M.rowH - 1}px`, padding: "0 6px", boxSizing: "border-box", whiteSpace: "nowrap", overflow: "hidden", textAlign: s?.num ? "right" : "left", fontFamily: FONT_AR, direction: "ltr", ...editSty}}>
+          <span style={s?.err ? {color: "#C00000"} : undefined}>{s?.text ?? ""}</span>
+          {s?.edit && caret ? <span style={{display: "inline-block", width: 1.5, height: 16, background: "#222", verticalAlign: "middle", marginLeft: 1}} /> : null}
+          {arrow > 0.8 ? <div style={{position: "absolute", right: 2, top: 3, width: 17, height: 17, background: "#fff", border: "1px solid #8D8D8D", fontSize: 8, lineHeight: "16px", textAlign: "center", color: "#222", opacity: arrow}}>{table && table.filterCol === c ? "⏷" : "▼"}</div> : null}
+        </div>
+      );
+    });
+  });
+  const rect = (r1: number, c1: number, r2: number, c2: number) => {
+    const a = rows.indexOf(Math.min(r1, r2)), b = rows.indexOf(Math.max(r1, r2));
+    const ia = a < 0 ? 0 : a, ib = b < 0 ? rows.length - 1 : b;
+    const cA = Math.min(c1, c2), cB = Math.max(c1, c2);
+    return {x: lefts[cA], y: GRID_Y + ia * M.rowH, w: lefts[cB] + COLS[cB] - lefts[cA], h: (ib - ia + 1) * M.rowH};
+  };
+  // table outline
+  let outline: React.ReactNode = null;
+  if (table && table.p > 0.6) {
+    const rb = rect(table.top, table.left, table.bottom, table.right);
+    const hh = table.rowsF !== undefined ? table.rowsF * M.rowH : rb.h;
+    const g = table.glow || 0;
+    outline = <div style={{position: "absolute", left: rb.x, top: rb.y, width: rb.w, height: Math.min(hh, M.rows * M.rowH - (rb.y - GRID_Y)), border: "1.5px solid #4EA72E", boxShadow: g > 0 ? `0 0 ${22 * g}px ${C.green}, inset 0 0 ${12 * g}px ${C.green}66` : "none", pointerEvents: "none", zIndex: 4}} />;
+  }
+  // selection
+  let selEl: React.ReactNode = null;
+  if (sel) {
+    const b = rect(sel.r1, sel.c1, sel.r2, sel.c2);
+    const t = sel.t === undefined ? 1 : sel.t;
+    const single = sel.r1 === sel.r2 && sel.c1 === sel.c2;
+    selEl = (
+      <div style={{position: "absolute", left: b.x, top: b.y, width: b.w * t, height: b.h * t, background: single ? "transparent" : X.greenTint, border: `2.5px solid ${X.green}`, boxSizing: "border-box", pointerEvents: "none", zIndex: 5}}>
+        {t > 0.95 ? <div style={{position: "absolute", right: -5, bottom: -5, width: 8, height: 8, background: X.green, border: "1.5px solid #fff"}} /> : null}
+      </div>
+    );
+  }
+  return (
+    <div style={{position: "absolute", left: 0, top: 0, width: totalW, height: WIN_H, fontFamily: FONT_AR}}>
+      <div style={{position: "absolute", left: 0, top: GRID_Y - M.hdrH, width: totalW, height: bodyH + M.hdrH, background: "#fff"}} />
+      <svg width={totalW} height={WIN_H} style={{position: "absolute", left: 0, top: 0}}>{lines}</svg>
+      {/* column headers */}
+      <div style={{position: "absolute", left: 0, top: GRID_Y - M.hdrH, width: totalW, height: M.hdrH, background: X.hdr, borderBottom: `1px solid ${X.grid}`}} />
+      <svg width={M.rowHdrW} height={M.hdrH} style={{position: "absolute", left: 0, top: GRID_Y - M.hdrH}}><path d={`M${M.rowHdrW - 4} 6 L${M.rowHdrW - 4} ${M.hdrH - 4} L${M.rowHdrW - 18} ${M.hdrH - 4} Z`} fill="#A8A8A8" /></svg>
+      {COLS.map((w, c) => {
+        const on = c >= selC1 && c <= selC2;
+        return (
+          <div key={"ch" + c} style={{position: "absolute", left: lefts[c], top: GRID_Y - M.hdrH, width: w, height: M.hdrH, background: on ? X.hdrSel : "transparent", borderRight: `1px solid ${X.grid}`, borderBottom: on ? `2.5px solid ${X.green}` : "none", textAlign: "center", lineHeight: `${M.hdrH}px`, fontSize: 14, color: on ? X.green : "#444", fontWeight: on ? 700 : 400, boxSizing: "border-box"}}>{colName(c)}</div>
+        );
+      })}
+      {/* row headers */}
+      <div style={{position: "absolute", left: 0, top: GRID_Y, width: M.rowHdrW, height: bodyH, background: X.hdr, borderRight: `1px solid ${X.grid}`}} />
+      {rows.map((r, i) => {
+        const on = r >= selR1 && r <= selR2;
+        const filtered = table && table.filterCol !== undefined && i > 0 && rows[i] - rows[i - 1] > 1;
+        return (
+          <div key={"rh" + i} style={{position: "absolute", left: 0, top: GRID_Y + i * M.rowH, width: M.rowHdrW, height: M.rowH, background: on ? X.hdrSel : "transparent", borderBottom: `1px solid ${X.grid}`, borderRight: on ? `2.5px solid ${X.green}` : "none", textAlign: "center", lineHeight: `${M.rowH}px`, fontSize: 13.5, color: filtered ? "#0F6CBD" : on ? X.green : "#444", fontWeight: on ? 700 : 400, boxSizing: "border-box"}}>{r}</div>
+        );
+      })}
+      {els}
+      {refs.map((q, i) => {
+        const b = cellBox(rows, q.r, q.c);
+        return <div key={"ref" + i} style={{position: "absolute", left: b.x, top: b.y, width: b.w, height: b.h, border: `2px dashed ${q.color}`, boxSizing: "border-box", zIndex: 4, background: `${q.color}14`}} />;
+      })}
+      {outline}
+      {selEl}
+    </div>
+  );
+};
+
+/* ───────── window chrome ───────── */
+export type WinProps = {
+  f: number;
+  fileName?: string;
+  tab: string;
+  ctxTab?: boolean;
+  tableName?: string;
+  nameFocus?: number;
+  nameTyping?: boolean;
+  totalRow?: boolean;
+  nameBox: string;
+  formula?: string;
+  formulaDim?: boolean;
+  editing?: boolean;
+  status?: string;
+  grid: React.ReactNode;
+  overlays?: React.ReactNode;
+};
+
+export const ExcelWindow: React.FC<WinProps> = ({f, fileName = "manzooma_sales_2026.xlsx", tab, ctxTab, tableName = "Table1", nameFocus = 0, nameTyping = false, totalRow = false, nameBox, formula = "", formulaDim = false, editing = false, status = "Ready", grid, overlays}) => {
+  const caret = Math.floor(f / 15) % 2 === 0;
+  const tabs = ctxTab ? [...TAB_NAMES, "Table Design"] : TAB_NAMES;
+  const fy = RIBBON_Y + M.ribbonH;
+  return (
+    <div style={{position: "absolute", left: M.x, top: M.y, width: M.w, height: WIN_H, background: "#fff", borderRadius: 10, overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.55), 0 0 0 1px #0B1220", fontFamily: FONT_AR, color: X.text}}>
+      {/* title bar */}
+      <div style={{position: "absolute", left: 0, top: 0, width: "100%", height: M.titleH, background: X.chrome, display: "flex", alignItems: "center"}}>
+        <div style={{display: "flex", alignItems: "center", gap: 12, paddingLeft: 12}}>
+          <div style={{width: 22, height: 22, borderRadius: 4, background: X.green, display: "flex", alignItems: "center", justifyContent: "center"}}><Icon n="grid" s={16} c="#fff" /></div>
+          <div style={{display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555"}}>AutoSave <div style={{width: 30, height: 14, borderRadius: 8, background: "#ccc", position: "relative"}}><div style={{position: "absolute", left: 2, top: 2, width: 10, height: 10, borderRadius: 5, background: "#fff"}} /></div></div>
+          <Icon n="save" s={17} /><Icon n="undo" s={17} /><Icon n="redo" s={17} />
+        </div>
+        <div style={{position: "absolute", left: 560, width: 680, top: 5, height: 28, display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", border: "1px solid #D0D0D0", borderRadius: 5, padding: "0 12px", fontSize: 14, color: "#555"}}><span>{fileName} - Saved</span><span style={{color: "#888"}}>Search (Alt+Q)</span></div>
+        <div style={{position: "absolute", right: 0, top: 0, display: "flex", fontSize: 16, color: "#222"}}>
+          {["—", "▢", "✕"].map((t) => <div key={t} style={{width: 46, height: M.titleH, textAlign: "center", lineHeight: `${M.titleH}px`}}>{t}</div>)}
+        </div>
+      </div>
+      {/* tabs */}
+      <div style={{position: "absolute", left: 0, top: M.titleH, width: "100%", height: M.tabsH, background: X.chrome}}>
+        {tabs.map((t) => {
+          const b = tabBox(t);
+          const on = t === tab;
+          const ctx = t === "Table Design";
+          return (
+            <div key={t} style={{position: "absolute", left: b.x, top: 0, width: b.w, height: M.tabsH, textAlign: "center", lineHeight: `${M.tabsH - 2}px`, fontSize: 15, fontWeight: on ? 700 : 400, color: ctx ? X.green : "#2B2B2B", background: on ? X.ribbon : "transparent", borderTop: on ? `2px solid ${ctx ? X.green : "transparent"}` : "none", borderRadius: "6px 6px 0 0"}}>
+              {t}
+              {on ? <div style={{position: "absolute", left: 14, right: 14, bottom: 0, height: 3, background: X.green, borderRadius: 2}} /> : null}
+            </div>
+          );
+        })}
+      </div>
+      {/* ribbon */}
+      <div style={{position: "absolute", left: 0, top: RIBBON_Y, width: "100%", height: M.ribbonH, background: X.ribbon, borderTop: `1px solid ${X.border}`, borderBottom: `1px solid ${X.border}`, boxSizing: "border-box", overflow: "hidden"}}>
+        {tab === "Table Design" ? <TableDesignRibbon name={tableName} nameFocus={nameFocus} typing={nameTyping} totalRow={totalRow} caret={caret} /> : tab === "Formulas" ? <FormulasRibbon /> : <HomeRibbon />}
+      </div>
+      {/* formula bar */}
+      <div style={{position: "absolute", left: 0, top: fy, width: "100%", height: M.fbarH, background: "#fff", borderBottom: `1px solid ${X.border}`, display: "flex", alignItems: "center", gap: 8, padding: "0 8px", boxSizing: "border-box"}}>
+        <div style={{width: 126, height: 24, border: "1px solid #ABABAB", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", fontSize: 14.5}}><span>{nameBox}</span><span style={{fontSize: 9, color: "#555"}}>▼</span></div>
+        <div style={{display: "flex", gap: 14, fontSize: 17, color: editing ? "#222" : "#B5B5B5", width: 72, justifyContent: "center"}}><span>✕</span><span style={{color: editing ? X.green : "#B5B5B5"}}>✓</span></div>
+        <div style={{width: 34, textAlign: "center", fontStyle: "italic", fontFamily: "Georgia, serif", fontSize: 17, color: "#444"}}>fx</div>
+        <div style={{flex: 1, height: 24, border: "1px solid #ABABAB", display: "flex", alignItems: "center", padding: "0 8px", fontSize: 15.5, direction: "ltr", fontFamily: FONT_AR}}>
+          <span style={{color: formulaDim ? "#9A9A9A" : X.text}}>{formula}</span>{editing && caret ? <span style={{width: 1.5, height: 16, background: "#222", marginLeft: 1}} /> : null}
+        </div>
+        <div style={{width: 20, textAlign: "center", fontSize: 10, color: "#555"}}>⌄</div>
+      </div>
+      {grid}
+      {/* sheet tabs */}
+      <div style={{position: "absolute", left: 0, top: GRID_Y + M.rows * M.rowH, width: "100%", height: M.sheetH, background: X.chrome, borderTop: `1px solid ${X.border}`, display: "flex", alignItems: "center", boxSizing: "border-box"}}>
+        <div style={{width: 72, display: "flex", justifyContent: "space-around", color: "#555", fontSize: 12}}><span>◀</span><span>▶</span></div>
+        <div style={{height: 28, padding: "0 22px", background: "#fff", borderBottom: `3px solid ${X.green}`, fontWeight: 700, fontSize: 14.5, lineHeight: "26px", color: X.green}}>Sales</div>
+        <div style={{width: 36, textAlign: "center", fontSize: 20, color: "#555"}}>+</div>
+      </div>
+      {/* status bar */}
+      <div style={{position: "absolute", left: 0, top: WIN_H - M.statusH, width: "100%", height: M.statusH, background: X.chrome, borderTop: `1px solid ${X.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", fontSize: 13, color: "#444", boxSizing: "border-box"}}>
+        <span>{status === "Ready" ? "Ready" : "Ready"}</span>
+        <span style={{fontWeight: 600}}>{status === "Ready" ? "" : status}</span>
+        <span style={{display: "flex", gap: 14, alignItems: "center"}}><Icon n="grid" s={14} /><span>−  ─────●─────  +</span><span>100%</span></span>
+      </div>
+      {overlays}
+    </div>
+  );
+};
+
+/** window-local rects of ribbon controls (measured; geometry is font-independent) */
+export const HOME_MERGE = {x: 548, y: 107, w: 140, h: 24};
+export const TD_CONVERT = {x: 196, y: 133, w: 190, h: 24};

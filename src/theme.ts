@@ -1,45 +1,78 @@
-import {loadFont as loadArabic} from '@remotion/google-fonts/IBMPlexSansArabic';
-import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
-import {loadFont as loadUI} from '@remotion/google-fonts/OpenSans';
+import {loadFont as loadAr} from "@remotion/google-fonts/IBMPlexSansArabic";
+import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
 
-const ar = loadArabic('normal', {weights: ['400', '600', '700'], subsets: ['arabic', 'latin']});
-const mono = loadMono('normal', {weights: ['400', '700'], subsets: ['latin']});
-const ui = loadUI('normal', {weights: ['400', '600', '700'], subsets: ['latin']});
-
-export const FONT = `${ar.fontFamily}, 'Segoe UI', Tahoma, sans-serif`;
-export const MONO = `${mono.fontFamily}, Consolas, 'Courier New', monospace`;
-// Excel chrome font (Segoe UI substitute: Open Sans) and cell font (Calibri substitute: Carlito, loaded from src/fonts)
-export const UIFONT = `${ui.fontFamily}, ${ar.fontFamily}, 'Segoe UI', Arial, sans-serif`;
-export const CELLFONT = `Carlito, Calibri, ${ui.fontFamily}, ${ar.fontFamily}, Arial, sans-serif`;
+export const LESSON_NO = "33";
+export const COMP_ID = "XL-L33-Dynamic-Arrays";
+export const OUT_NAME = "xl-l33-dynamic-arrays";
+export const VOICE_FILE = "voiceover_lesson_33.mp3";
+export const LOGO_FILE = "manzooma_logo.svg";
 
 export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const TOTAL_FRAMES = 7200;
-export const LESSON = 46;
-export const COMP_ID = 'XL-L46-PowerQuery-ETL';
-export const VOICE_FILE = 'voiceover_lesson_46.mp3';
-export const LOGO_FILE = 'manzooma_logo.svg';
+export const DURATION = 7200;
+
+// Course progress: lesson 33 of 76 = 43.4% (per the plan)
+export const UNIT_DONE = 33;
+export const UNIT_TOTAL = 76;
+export const UNIT_PROGRESS = UNIT_DONE / UNIT_TOTAL;
+
+export const FONT_AR = loadAr("normal", {
+  weights: ["400", "500", "600", "700"],
+  subsets: ["arabic", "latin"],
+} as never).fontFamily;
+export const FONT_MONO = loadMono("normal", {
+  weights: ["400", "700"],
+  subsets: ["latin"],
+} as never).fontFamily;
+export const MONO = `${FONT_MONO}, ${FONT_AR}, monospace`;
 
 export const C = {
-  bg: '#0F172A',
-  card: '#1E293B',
-  deep: '#0B1222',
-  border: '#334155',
-  muted: '#94A3B8',
-  text: '#F8FAFC',
-  blue: '#38BDF8',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  purple: '#A855F7',
-  gold: '#FBBF24',
+  bg: "#0F172A",
+  panel: "#1E293B",
+  line: "#334155",
+  blue: "#38BDF8",
+  green: "#10B981",
+  amber: "#F59E0B",
+  purple: "#A855F7",
+  red: "#EF4444",
+  text: "#F8FAFC",
+  mute: "#94A3B8",
 };
 
-// Scene starts (absolute seconds) = the real paragraph pauses of the mp3 (0.4-0.8s)
-export const START = {s1: 0, s2: 40.9, s3: 85.8, s4: 130.9, s5: 170.9, s6: 209.9};
-const fr = (s: number) => Math.round(s * FPS);
-const starts = [START.s1, START.s2, START.s3, START.s4, START.s5, START.s6].map(fr);
-const ends = [...starts.slice(1), TOTAL_FRAMES];
-const mk = (i: number) => ({from: starts[i], dur: ends[i] - starts[i]});
-export const SCENES = {s1: mk(0), s2: mk(1), s3: mk(2), s4: mk(3), s5: mk(4), s6: mk(5)};
+// Excel (Microsoft 365 desktop, light theme) palette
+export const X = {
+  green: "#107C41",
+  greenTint: "rgba(16,124,65,0.13)",
+  chrome: "#F3F3F3",
+  ribbon: "#FAFAFA",
+  border: "#D1D1D1",
+  hdr: "#E6E6E6",
+  hdrSel: "#CFCFCF",
+  grid: "#DCDCDC",
+  tblHdr: "#4EA72E",
+  tblBand: "#DCEBD5",
+  text: "#242424",
+  mute: "#616161",
+};
+
+// Fixed UI metrics (shared by every lesson)
+export const M = {
+  x: 60,
+  y: 92,
+  w: 1800,
+  titleH: 38,
+  tabsH: 34,
+  ribbonH: 112,
+  fbarH: 34,
+  hdrH: 24,
+  rowH: 24,
+  rowHdrW: 46,
+  rows: 24,
+  sheetH: 30,
+  statusH: 24,
+};
+export const RIBBON_Y = M.titleH + M.tabsH;
+export const GRID_Y = RIBBON_Y + M.ribbonH + M.fbarH + M.hdrH;
+export const WIN_H = GRID_Y + M.rows * M.rowH + M.sheetH + M.statusH;
+export const COLS: number[] = [100, 130, 150, 50, 100, 130, 150, 50, 100, 130, 150, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80];
