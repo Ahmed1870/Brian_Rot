@@ -1,4 +1,4 @@
-name: Render video
+name: Render SQL Lesson 51 Sequential Scan
 on:
   push:
     branches: [main]
@@ -9,13 +9,20 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Guard - this repo must contain lesson 51 only
+        run: |
+          grep -q "SQL-L51-Sequential-Scan" src/theme.ts
+          grep -q "SQL-L51-Sequential-Scan" package.json
+          test -f public/voiceover_lesson_51.mp3
+          test "$(ls public | wc -l)" = "1"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      - run: npm run render
+      - run: npm install
+      - run: npx remotion render src/index.ts SQL-L51-Sequential-Scan out/sql-l51-sequential-scan.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/sql-l51-sequential-scan.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: Ahmed-SQL-L61
-          path: out/*.mp4
+          name: sql-l51-sequential-scan
+          path: out/sql-l51-sequential-scan.mp4
           if-no-files-found: error

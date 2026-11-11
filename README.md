@@ -1,10 +1,8 @@
-# Manzooma — Lesson 61: JSON & JSONB
-Remotion 2D vector video, 1920x1080 @30fps, 7200 frames (240 s).
-Composition ID: `Ahmed-SQL-L61` · Output: `out/ahmed_sql_lesson61.mp4` (names live in `package.json` "render" + `src/Root.tsx`).
+# Manzooma | SQL From Zero to Professional - Lesson 51 - Sequential Scans & Bottlenecks
 
-    npm install
-    npm run generate-audio   # SFX + music (needed once for local preview)
-    npm start                # Remotion Studio
-    npm run render           # renders out/ahmed_sql_lesson61.mp4
-
-Voiceover: `public/voiceover_lesson_61.mp3` (already has ~1.1 s lead-in, starts at frame 0). Cue times: `src/timeline.json`.
+- Composition id: `SQL-L51-Sequential-Scan` - 1920x1080, 30fps, 7200 frames (4:00)
+- Output: `out/sql-l51-sequential-scan.mp4` - artifact `sql-l51-sequential-scan`
+- Render: `npm install && npm run build`  (GitHub Actions does this automatically on push)
+- Voiceover: public/voiceover_lesson_51.mp3 (240.0s) - the ONLY file in public/
+- Scene boundaries (frames): 0 | 1275 | 2580 | 3890 | 5067 | 6177 | 7200
+- Deploy: `bash deploy.sh` (wipes the old lesson, uploads this one, checks every name before pushing)
