@@ -1,22 +1,21 @@
 {
-  "name": "manzooma-sql-lesson-51-sequential-scan",
+  "name": "manzooma-excel-lesson",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | SQL From Zero to Professional - Lesson 51: Sequential Scans and performance bottlenecks (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts SQL-L51-Sequential-Scan out/sql-l51-sequential-scan.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "build": "remotion render src/index.ts XL-L52-DATA-MODEL out/xl-l52-data-model.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "studio": "remotion studio src/index.ts",
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/cli": "4.0.250",
+    "@remotion/google-fonts": "4.0.250",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "^4.0.0"
+    "remotion": "4.0.250"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "typescript": "^5.4.0"
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
   }
 }
