@@ -6,7 +6,7 @@ import { loadFont as loadAr } from "@remotion/google-fonts/IBMPlexSansArabic";
 import { loadFont as loadMono } from "@remotion/google-fonts/JetBrainsMono";
 import { loadFont as loadCal } from "@remotion/google-fonts/Carlito";
 import { loadFont as loadUi } from "@remotion/google-fonts/OpenSans";
-import { C, XL, M, LOGO, LESSON, TOTAL_LESSONS, UNIT, TOTAL_UNITS, W, H } from "./theme";
+import { C, XL, M, LOGO, LESSON, TOTAL_LESSONS, UNIT, TOTAL_UNITS, W, H, TITLE_EN } from "./theme";
 
 export type S = React.CSSProperties;
 const ar = loadAr("normal", { weights: ["400", "500", "700"], subsets: ["arabic", "latin"] });
@@ -130,9 +130,9 @@ export const Header: React.FC<{ f: number }> = ({ f }) => {
       <Img src={staticFile(LOGO)} style={{ position: "absolute", left: 36, top: 6, width: 72, height: 72, objectFit: "contain" }} />
       <div style={{ position: "absolute", left: 360, top: 14, width: 1200, height: 56, borderRadius: 28, background: C.panel, border: `1px solid ${C.line}`,
         display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 18, direction: "ltr" }}>
-        <span dir="rtl" style={{ fontFamily: FONT.ar, fontSize: 26, fontWeight: 700, color: C.text }}>{`الدرس ${LESSON} من ${TOTAL_LESSONS} | ختام الوحدة ${UNIT} من ${TOTAL_UNITS}`}</span>
+        <span dir="rtl" style={{ fontFamily: FONT.ar, fontSize: 26, fontWeight: 700, color: C.text }}>{`الدرس ${LESSON} من ${TOTAL_LESSONS} | الوحدة ${UNIT} من ${TOTAL_UNITS}`}</span>
         <span style={{ fontFamily: FONT.ui, fontSize: 24, color: C.blue }}>→</span>
-        <span dir="ltr" style={{ fontFamily: FONT.ui, fontSize: 25, fontWeight: 600, color: C.blue }}>Query Folding &amp; Refresh Properties</span>
+        <span dir="ltr" style={{ fontFamily: FONT.ui, fontSize: 25, fontWeight: 600, color: C.blue }}>{TITLE_EN}</span>
       </div>
       <div style={{ position: "absolute", right: 40, top: 22, height: 40, padding: "0 18px", borderRadius: 20, background: C.panel, border: `1px solid ${C.line}`,
         fontFamily: FONT.mono, fontSize: 20, lineHeight: "38px", color: C.dim }}>{`L${LESSON}/${TOTAL_LESSONS}`}</div>
@@ -238,6 +238,16 @@ type Item = { k: string; l: string; ic: string; big?: boolean; dd?: boolean; box
 type Group = { n: string; cols?: Item[][]; rows?: Item[][] };
 const I = (k: string, l: string, ic: string, o: Partial<Item> = {}): Item => ({ k, l, ic, ...o });
 const RIBBONS: Record<string, Group[]> = {
+  PPHome: [
+    { n: "Clipboard", cols: [[I("pst", "Paste", "paste", { big: true, dd: true })]] },
+    { n: "Get External Data", cols: [[I("fdb", "From Database", "db", { big: true, dd: true })], [I("fos", "From Other Sources", "link", { big: true, dd: true })], [I("fex", "Existing Connections", "link", { big: true })]] },
+    { n: "PivotTable", cols: [[I("pvt", "PivotTable", "table", { big: true, dd: true })]] },
+    { n: "Formatting", rows: [[I("dty", "Data Type: Whole Number", "", { box: 210 })], [I("fmt2", "Format: General", "", { box: 210 })]] },
+    { n: "Sort and Filter", cols: [[I("sa", "Sort A to Z", "az"), I("sz", "Sort Z to A", "az"), I("cas", "Clear All Sorts", "minus")]] },
+    { n: "Find", cols: [[I("fnd", "Find", "find", { big: true })]] },
+    { n: "Calculations", cols: [[I("asum", "AutoSum", "sigma", { big: true, dd: true })], [I("kpi", "Create KPI", "chart", { big: true })]] },
+    { n: "View", cols: [[I("dv", "Data View", "table", { big: true })], [I("dgv", "Diagram View", "db2", { big: true })], [I("shh", "Show Hidden", "gen", { big: true })], [I("cav", "Calculation Area", "cols", { big: true })]] },
+  ],
   PQHome: [
     { n: "Close", cols: [[I("cl", "Close & Load", "save", { big: true, dd: true })]] },
     { n: "Query", cols: [[I("rp", "Refresh Preview", "refresh", { big: true, dd: true })], [I("pp", "Properties", "props"), I("ae", "Advanced Editor", "gen"), I("mg", "Manage", "gear", { dd: true })]] },
@@ -330,7 +340,7 @@ const RibbonItems: React.FC<{ tab: string }> = ({ tab }) => {
 export type Sel = { r1: number; c1: number; r2: number; c2: number };
 export type Edit = { r: number; c: number; text: string };
 const colName = (c: number) => { let s = ""; let n = c + 1; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
-export const COLWS = [72, 86, 86, 86, 64, 92];
+export const COLWS = [100, 100, 86, 86, 64, 92];
 const colX = (c: number) => M.rowHdrW + (c < COLWS.length ? COLWS.slice(0, c).reduce((a, b) => a + b, 0) : COLWS.reduce((a, b) => a + b, 0) + (c - COLWS.length) * M.colW);
 const colWd = (c: number) => (c < COLWS.length ? COLWS[c] : M.colW);
 export const cellBox = (r: number, c: number): Box => ({ x: colX(c), y: RY + M.ribbon - 0 + M.fbar + M.colH + r * M.rowH, w: colWd(c), h: M.rowH });
@@ -381,7 +391,7 @@ const FormulaBar: React.FC<{ name: string; text: string; editing?: boolean; w: n
     <Tx x={w - 30} y={RY + M.ribbon + 3} w={20} h={20} size={9} color="#555" align="center">▼</Tx>
   </div>
 );
-const Grid: React.FC<{ w: number; data: string[][]; right: number[]; table: boolean; sel: Sel; edit?: Edit; ants?: Sel; f: number }> = ({ w, data, right, table, sel, edit, ants, f }) => {
+const Grid: React.FC<{ w: number; data: string[][]; right: number[]; tc: number; table: boolean; sel: Sel; edit?: Edit; ants?: Sel; f: number }> = ({ w, data, right, tc, table, sel, edit, ants, f }) => {
   const nC = Math.ceil((w - M.rowHdrW) / M.colW) + 2;
   const gh = M.colH + GRID_ROWS * M.rowH;
   let hl = "", vl = "";
@@ -391,7 +401,7 @@ const Grid: React.FC<{ w: number; data: string[][]; right: number[]; table: bool
   const sb = (a: Sel): Box => { const A = cellBox(Math.min(a.r1, a.r2), Math.min(a.c1, a.c2)), B = cellBox(Math.max(a.r1, a.r2), Math.max(a.c1, a.c2)); return { x: A.x, y: A.y - GY, w: B.x + B.w - A.x, h: B.y + B.h - A.y }; };
   const s = sb({ r1, c1, r2, c2 });
   const multi = r1 !== r2 || c1 !== c2;
-  const tW = COLWS.reduce((a, b) => a + b, 0);
+  const tW = COLWS.slice(0, tc).reduce((a, b) => a + b, 0);
   return (
     <div style={abs(0, GY, w, gh, { overflow: "hidden", background: "#fff" })}>
       {table && <div style={abs(M.rowHdrW, M.colH, tW, M.rowH, { background: XL.tbl })} />}
@@ -484,9 +494,9 @@ export const salesData = (n = 21): string[][] => {
   }
   return rows;
 };
-export const ExcelWin: React.FC<{ f: number; tab?: string; file?: string; name: string; formula: string; sel: Sel; data?: string[][]; edit?: Edit; ants?: Sel;
+export const ExcelWin: React.FC<{ right?: number[]; tableCols?: number; f: number; tab?: string; file?: string; name: string; formula: string; sel: Sel; data?: string[][]; edit?: Edit; ants?: Sel;
   pane?: React.ReactNode; paneW?: number; mode?: string; stats?: string; hover?: string; down?: boolean; children?: React.ReactNode }> =
-  ({ f, tab = "Home", file = "manzooma_sales_2026", name, formula, sel, data, edit, ants, pane, paneW = 0, mode = "Ready", stats, hover, down, children }) => {
+  ({ right, tableCols = 6, f, tab = "Home", file = "manzooma_sales_2026", name, formula, sel, data, edit, ants, pane, paneW = 0, mode = "Ready", stats, hover, down, children }) => {
     const d = data ?? salesData();
     const gw = M.win.w - paneW;
     return (
@@ -494,7 +504,7 @@ export const ExcelWin: React.FC<{ f: number; tab?: string; file?: string; name: 
         <Chrome tab={tab} file={file} />
         {hover && <RibbonHL tab={tab} k={hover} down={down} />}
         <FormulaBar name={name} text={formula} editing={!!edit} w={gw} />
-        <Grid w={gw} data={d} right={[0, 1, 4, 5]} table sel={sel} edit={edit} ants={ants} f={f} />
+        <Grid w={gw} data={d} right={right ?? [0, 1, 4, 5]} tc={tableCols} table sel={sel} edit={edit} ants={ants} f={f} />
         <div style={abs(gw - M.scroll, GY + M.colH, M.scroll, GRID_ROWS * M.rowH, { background: "#F0F0F0" })}><div style={abs(2, 2, 10, 120, { background: "#C1C1C1" })} /></div>
         <SheetBar w={gw} sheet="Sales" />
         <StatusBar w={M.win.w} mode={edit ? "Enter" : mode} stats={stats} />
@@ -703,4 +713,121 @@ export const QueryOptions: React.FC<{ a: number; page: "privacy" | "load"; ignor
     )}
     <Btn x={QO.w - 176} y={QO.h - 42} w={76} h={26} label="OK" def down={okDown} /><Btn x={QO.w - 92} y={QO.h - 42} w={76} h={26} label="Cancel" />
   </Dlg>
+);
+
+// ---------- Sales model used by DAX lessons (one deterministic dataset => every number is consistent) ----------
+export const CUSTOMERS = ["Nile Tech", "Delta Mart", "Cairo Home", "Giza Shop", "Alex Store", "Mansoura"];
+export const BRANCHES = ["Cairo", "Giza", "Alexandria", "Mansoura"];
+export const CATS = ["Electronics", "Furniture", "Office"];
+export type FactRow = { id: number; cust: number; branch: number; cat: number; qty: number; price: number };
+export const FACT: FactRow[] = (() => {
+  const price = [3200, 1850, 450]; const rows: FactRow[] = []; let s = 11;
+  for (let i = 0; i < 48; i++) { s = (s * 48271) % 2147483647; rows.push({ id: 5001 + i, cust: s % 6, branch: (s >> 4) % 4, cat: (s >> 7) % 3, qty: 1 + ((s >> 9) % 6), price: price[(s >> 7) % 3] + 50 * ((s >> 12) % 5) }); }
+  return rows;
+})();
+export const amt = (r: FactRow) => r.qty * r.price;
+export const sumWhere = (p: (r: FactRow) => boolean) => FACT.filter(p).reduce((a, r) => a + amt(r), 0);
+export const custTotal = (c: number, p: (r: FactRow) => boolean = () => true) => sumWhere((r) => r.cust === c && p(r));
+
+// ---------- Power Pivot window ----------
+export type PPCol = { n: string; w: number; r?: boolean; calc?: boolean };
+const PPTABS = ["File", "Home", "Design", "Advanced"];
+const ppTabBox: Record<string, Box> = {};
+{ let x = 8; PPTABS.forEach((t) => { const w = t.length * 7 + 26; ppTabBox[t] = { x, y: M.title, w, h: M.tabs }; x += w; }); }
+const PPY = M.title + M.tabs + M.ribbon;
+const PPChrome = React.memo(() => (
+  <div>
+    <div style={abs(0, 0, M.win.w, M.title + M.tabs, { background: "#F3F3F3" })} />
+    <div style={abs(10, 7, 16, 16, { background: XL.green, borderRadius: 3 })}><svg width={16} height={16} viewBox="0 0 16 16"><path d="M3 4h10v8H3zM3 8h10M8 4v8" stroke="#fff" strokeWidth={1.2} fill="none" /></svg></div>
+    <Tx x={36} y={0} w={640} h={30} size={12.5}>Power Pivot for Excel - manzooma_sales_2026.xlsx</Tx>
+    <Tx x={1260} y={0} w={40} h={30} size={14} align="center" color="#333">—</Tx><Tx x={1310} y={0} w={40} h={30} size={13} align="center" color="#333">☐</Tx><Tx x={1355} y={0} w={40} h={30} size={14} align="center" color="#333">✕</Tx>
+    {PPTABS.map((t) => (
+      <div key={t}>
+        {t === "Home" && <div style={abs(ppTabBox[t].x, M.title + 2, ppTabBox[t].w, M.tabs - 2, { background: "#fff", border: "1px solid #D4D4D4", borderBottom: "none", boxSizing: "border-box" })} />}
+        <Tx x={ppTabBox[t].x} y={M.title} w={ppTabBox[t].w} h={M.tabs} size={12.5} align="center" bold={t === "Home"}>{t}</Tx>
+      </div>
+    ))}
+    <div style={abs(0, M.title + M.tabs, M.win.w, M.ribbon, { background: "#fff", borderTop: "1px solid #D4D4D4", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+    <RibbonItems tab="PPHome" />
+  </div>
+));
+export const PP_ROW0 = PPY + M.fbar + 26; // y of first data row
+export const PP_RH = 22;
+export const ppCellBox = (cols: PPCol[], r: number, c: number): Box => ({ x: 34 + cols.slice(0, c).reduce((a, b) => a + b.w, 0), y: PP_ROW0 + r * PP_RH, w: cols[c].w, h: PP_RH });
+export const PPWin: React.FC<{ f: number; table: string; cols: PPCol[]; rows: string[][]; hi?: number; hiColor?: string; selCol?: number; name: string; formula: string; calc?: { n: string; v: string }[]; dim?: number; children?: React.ReactNode }> =
+  ({ table, cols, rows, hi = -1, hiColor = C.amber, selCol = -1, name, formula, calc = [], dim = 0, children }) => {
+    const gw = cols.reduce((a, b) => a + b.w, 0);
+    return (
+      <Win>
+        <PPChrome />
+        <div style={abs(0, PPY, M.win.w, M.fbar, { background: "#fff", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        <Rect x={6} y={PPY + 3} w={150} h={20} fill="#fff" stroke="#BDBDBD" /><Tx x={10} y={PPY + 3} w={130} h={20} size={12}>{name}</Tx><Tx x={140} y={PPY + 3} w={14} h={20} size={8} color="#555">▼</Tx>
+        <Tx x={166} y={PPY + 3} w={20} h={20} size={13} color="#C42B1C" align="center">✕</Tx><Tx x={188} y={PPY + 3} w={20} h={20} size={13} color={XL.green} align="center">✓</Tx>
+        <Tx x={212} y={PPY + 3} w={22} h={20} size={13} color="#555" align="center" style={{ fontStyle: "italic", fontFamily: FONT.cell }}>fx</Tx>
+        <Rect x={240} y={PPY + 3} w={M.win.w - 256} h={20} fill="#fff" stroke="#E1E1E1" />
+        <Tx x={246} y={PPY + 3} w={M.win.w - 270} h={20} size={13} font={FONT.mono}>{formula}</Tx>
+        <div style={abs(0, PPY + M.fbar, M.win.w, 540 - PPY - M.fbar, { background: "#fff", overflow: "hidden" })}>
+          <div style={abs(0, 0, 34, 26, { background: "#F3F3F3", border: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+          {cols.map((c, i) => {
+            const x = 34 + cols.slice(0, i).reduce((a, b) => a + b.w, 0);
+            return (
+              <div key={c.n}>
+                <div style={abs(x, 0, c.w, 26, { background: i === selCol ? "#CFE7D9" : c.calc ? "#E5E5F7" : "#F3F3F3", border: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+                <Tx x={x + 8} y={0} w={c.w - 28} h={26} size={12.5} bold>{c.n}</Tx><Tx x={x + c.w - 20} y={0} w={14} h={26} size={8} color="#666">▼</Tx>
+              </div>
+            );
+          })}
+          {Array.from({ length: 15 }).map((_, r) => (
+            <div key={r}>
+              <div style={abs(0, 26 + r * PP_RH, 34, PP_RH, { background: "#F3F3F3", border: "1px solid #E1E1E1", boxSizing: "border-box" })} /><Tx x={0} y={26 + r * PP_RH} w={30} h={PP_RH} size={11} align="right" color="#666">{r + 1}</Tx>
+              <div style={abs(34, 26 + r * PP_RH, gw, PP_RH, { background: r === hi ? "rgba(245,158,11,0.20)" : "transparent", borderBottom: "1px solid #E8E8E8", boxSizing: "border-box" })} />
+            </div>
+          ))}
+          {cols.map((c, i) => { const x = 34 + cols.slice(0, i).reduce((a, b) => a + b.w, 0); return <div key={"v" + i} style={abs(x + c.w - 1, 0, 1, 26 + 15 * PP_RH, { background: "#E1E1E1" })} />; })}
+          {rows.map((row, r) => row.map((v, c) => v === "" ? null : <Tx key={r + "_" + c} x={34 + cols.slice(0, c).reduce((a, b) => a + b.w, 0) + 8} y={26 + r * PP_RH} w={cols[c].w - 16} h={PP_RH} size={13} align={cols[c].r ? "right" : "left"} color={cols[c].calc ? "#3B3B8F" : "#111"}>{v}</Tx>))}
+          {hi >= 0 && <div style={abs(34, 26 + hi * PP_RH, gw, PP_RH, { border: `2px solid ${hiColor}`, boxSizing: "border-box" })} />}
+        </div>
+        <div style={abs(0, 540, M.win.w, 100, { background: "#FAFAFA", borderTop: "1px solid #BDBDBD", boxSizing: "border-box" })}>
+          {calc.map((m, i) => (
+            <div key={m.n} style={abs(8 + i * 330, 6, 320, 84, { background: "#fff", border: "1px solid #D4D4D4", boxSizing: "border-box" })}>
+              <Tx x={8} y={4} w={300} h={20} size={12} bold>{m.n}:</Tx><Tx x={8} y={26} w={300} h={22} size={13} font={FONT.mono} color="#1F3A93">{m.v}</Tx>
+            </div>
+          ))}
+        </div>
+        <div style={abs(0, 640, M.win.w, M.sheetBar, { background: "#F3F3F3", borderTop: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        {["Fact_Sales", "Dim_Customer"].map((n, i) => (<div key={n}>{n === table && <div style={abs(8 + i * 110, 640, 110, M.sheetBar, { background: "#fff", borderBottom: `3px solid ${XL.green}`, boxSizing: "border-box" })} />}<Tx x={8 + i * 110} y={640} w={110} h={M.sheetBar - 2} size={12} align="center" bold={n === table} color={n === table ? XL.green : "#333"}>{n}</Tx></div>))}
+        <div style={abs(0, M.win.h - M.status, M.win.w, M.status, { background: "#F3F3F3", borderTop: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        <Tx x={10} y={M.win.h - M.status} w={300} h={M.status} size={11} color="#444">{`Record: ◀ 1 of ${rows.length > 0 ? 48 : 0} ▶`}</Tx>
+        {dim > 0 && <div style={abs(0, 0, M.win.w, M.win.h, { background: `rgba(15,23,42,${dim})` })} />}
+        {children}
+      </Win>
+    );
+  };
+
+// ---------- Slicer + PivotTable Fields pane ----------
+export const Slicer: React.FC<{ x: number; y: number; w: number; title: string; items: string[]; sel: number; hi?: number }> = ({ x, y, w, title, items, sel, hi = -1 }) => (
+  <div style={abs(x, y, w, 34 + items.length * 28, { background: "#fff", border: "1px solid #A6A6A6", boxSizing: "border-box" })}>
+    <div style={abs(0, 0, w, 28, { background: "#F3F3F3", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} /><Tx x={8} y={0} w={w - 40} h={28} size={12.5} bold>{title}</Tx>
+    <Ico n="filter" x={w - 24} y={6} s={14} c={sel >= 0 ? "#333" : "#AAA"} sw={1.6} />
+    {items.map((it, i) => (
+      <div key={it} style={abs(6, 32 + i * 28, w - 12, 24, { background: i === sel ? "#BDD7EE" : i === hi ? "#EAF2FA" : "#fff", border: `1px solid ${i === sel ? "#5B9BD5" : "#C8C8C8"}`, boxSizing: "border-box" })}><Tx x={8} y={0} w={w - 28} h={22} size={12}>{it}</Tx></div>
+    ))}
+  </div>
+);
+export const slicerItem = (x: number, y: number, w: number, i: number): [number, number] => [x + w / 2, y + 32 + i * 28 + 12];
+export const PTFields: React.FC<{ x: number; h: number; rows?: string; vals?: string }> = ({ x, h, rows = "CustomerName", vals = "Total Sales" }) => (
+  <div style={abs(x, 180, M.pane, h, { background: "#fff", borderLeft: "1px solid #C8C8C8", boxSizing: "border-box", overflow: "hidden" })}>
+    <Tx x={12} y={8} w={220} h={22} size={14} bold>PivotTable Fields</Tx><Tx x={M.pane - 28} y={8} w={20} h={22} size={13} color="#555">✕</Tx>
+    <Tx x={12} y={36} w={240} h={18} size={11.5} color="#555">Choose fields to add to report:</Tx>
+    <Rect x={12} y={58} w={M.pane - 24} h={22} fill="#fff" stroke="#BDBDBD" /><Tx x={18} y={58} w={150} h={22} size={12} color="#888">Search</Tx>
+    {["Fact_Sales", "Dim_Customer", "Dim_Branch"].map((n, i) => (<div key={n}><Tx x={14} y={90 + i * 22} w={14} h={20} size={9} color="#555">▶</Tx><Ico n="table" x={32} y={92 + i * 22} s={14} c={XL.green} sw={1.6} /><Tx x={52} y={90 + i * 22} w={180} h={20} size={12}>{n}</Tx></div>))}
+    <Tx x={12} y={170} w={200} h={18} size={11.5} color="#555">Drag fields between areas below:</Tx>
+    {[["Filters", 0, 0], ["Columns", 1, 0], ["Rows", 0, 1], ["Values", 1, 1]].map(([n, cx, cy]) => (
+      <div key={n as string} style={abs(12 + (cx as number) * 124, 194 + (cy as number) * 92, 120, 86, { border: "1px solid #D4D4D4", boxSizing: "border-box" })}>
+        <Tx x={6} y={2} w={100} h={18} size={11} color="#555">{n as string}</Tx>
+        {n === "Rows" && <Rect x={6} y={26} w={106} h={22} fill="#fff" stroke="#BDBDBD"><Tx x={4} y={0} w={96} h={20} size={11}>{rows}</Tx></Rect>}
+        {n === "Values" && <Rect x={6} y={26} w={106} h={22} fill="#fff" stroke="#BDBDBD"><Tx x={4} y={0} w={96} h={20} size={11}>{vals}</Tx></Rect>}
+      </div>
+    ))}
+  </div>
 );

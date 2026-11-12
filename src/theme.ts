@@ -1,11 +1,13 @@
 // Lesson identity + all fixed UI metrics (shared by every lesson via kit.tsx)
-export const LESSON = 51;
+export const LESSON = 58;
 export const TOTAL_LESSONS = 76;
-export const UNIT = 10;
+export const UNIT = 12;
 export const TOTAL_UNITS = 14;
-export const COMP_ID = "XL-L51-Query-Folding";
-export const OUT_NAME = "xl-l51-query-folding";
-export const VOICE = "voiceover_lesson_51.mp3";
+export const TITLE_EN = "Row, Filter Context & Context Transition";
+export const TITLE_AR = "سياق الصف وسياق الفلترة وانتقال السياق";
+export const COMP_ID = "XL-L58-DAX-Contexts";
+export const OUT_NAME = "xl-l58-dax-contexts";
+export const VOICE = "voiceover_lesson_58.mp3";
 export const LOGO = "manzooma-logo-white.svg";
 export const FPS = 30;
 export const W = 1920;

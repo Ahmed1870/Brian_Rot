@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
 env:
-  COMP_ID: XL-L51-Query-Folding
-  OUT_NAME: xl-l51-query-folding
+  COMP_ID: XL-L58-DAX-Contexts
+  OUT_NAME: xl-l58-dax-contexts
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -24,8 +24,8 @@ jobs:
           grep -q "out/$OUT_NAME.mp4" package.json
           grep -q "COMP_ID" src/Root.tsx
           ! grep -q "XL-L" src/Root.tsx
-          test -s public/voiceover_lesson_51.mp3
-          extra=$(find public -type f ! -name 'voiceover_lesson_51.mp3' ! -name 'manzooma-logo-white.svg' | wc -l)
+          test -s public/voiceover_lesson_58.mp3
+          extra=$(find public -type f ! -name 'voiceover_lesson_58.mp3' ! -name 'manzooma-logo-white.svg' | wc -l)
           test "$extra" -eq 0
           test "$(ls .github/workflows | wc -l)" -eq 1
       - name: System libraries for headless Chrome
@@ -40,6 +40,6 @@ jobs:
         run: test -s "out/$OUT_NAME.mp4"
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l51-query-folding
-          path: out/xl-l51-query-folding.mp4
+          name: xl-l58-dax-contexts
+          path: out/xl-l58-dax-contexts.mp4
           if-no-files-found: error

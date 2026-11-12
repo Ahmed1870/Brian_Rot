@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L51-Query-Folding out/xl-l51-query-folding.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L58-DAX-Contexts out/xl-l58-dax-contexts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
