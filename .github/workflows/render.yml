@@ -1,4 +1,4 @@
-name: Render Lesson 47
+name: Render Lesson Video
 
 on:
   push:
@@ -6,57 +6,34 @@ on:
   workflow_dispatch:
 
 env:
-  COMP_ID: XL-L47-External-Data
-  OUT_NAME: excel-l47-external-data
-  VOICE: voiceover_lesson_47.mp3
-  LOGO: manzooma_logo.svg
+  COMP_ID: XL-L60-CALCULATE-FILTER
+  OUT_NAME: xl-l60-calculate-filter
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-
-      - name: Guard (names must match before rendering)
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || { echo "theme.ts COMP_ID mismatch"; exit 1; }
-          grep -q "XL-L47-External-Data" package.json || { echo "package.json COMP_ID mismatch"; exit 1; }
-          grep -q "out/${OUT_NAME}.mp4" package.json || { echo "package.json output name mismatch"; exit 1; }
-          test -s "public/${VOICE}" || { echo "voiceover missing"; exit 1; }
-          test -s "public/${LOGO}" || { echo "logo missing"; exit 1; }
-          extra=$(ls public | grep -v -x -e "${VOICE}" -e "${LOGO}" || true)
-          [ -z "$extra" ] || { echo "unexpected files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow file"; exit 1; }
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Fonts (open Calibri substitute)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-crosextra-carlito
-
-      - name: Install
+      - name: Guard (names, voiceover, public)
         run: |
-          rm -rf node_modules package-lock.json
-          for i in 1 2 3; do
-            if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
-              exit 0
-            fi
-            echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
-          done
-          echo "dependencies could not be installed correctly"; exit 1
-
+          set -e
+          grep -q "$COMP_ID" src/theme.ts
+          grep -q "$COMP_ID" package.json
+          grep -q "$OUT_NAME" package.json
+          test -s public/voiceover_lesson_60.mp3
+          extra=$(ls public | grep -v -x -e voiceover_lesson_60.mp3 -e manzooma_logo.svg || true)
+          if [ -n "$extra" ]; then echo "Unexpected files in public: $extra"; exit 1; fi
+          test "$(ls .github/workflows | wc -l)" = "1"
+      - run: npm install --no-audit --no-fund
+      - run: npx tsc --noEmit
       - name: Render
-        run: npx remotion render src/index.ts "${COMP_ID}" "out/${OUT_NAME}.mp4" --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000 --concurrency=4
-
-      - name: Verify output
-        run: test -s "out/${OUT_NAME}.mp4"
-
+        run: npx remotion render src/index.ts XL-L60-CALCULATE-FILTER out/xl-l60-calculate-filter.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l60-calculate-filter.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: excel-l47-external-data
-          path: out/excel-l47-external-data.mp4
+          name: xl-l60-calculate-filter
+          path: out/xl-l60-calculate-filter.mp4

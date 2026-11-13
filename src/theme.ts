@@ -1,30 +1,44 @@
-// ===== Lesson identity (single source of truth: COMP_ID is used by Root.tsx) =====
-export const COMP_ID = 'XL-L47-External-Data';
-export const LESSON_NN = '47';
-export const OUT_NAME = 'excel-l47-external-data';
-export const VOICE_FILE = 'voiceover_lesson_47.mp3';
-export const LOGO_FILE = 'manzooma_logo.svg';
-
-// ===== Video spec (from the lesson plan) =====
+export const COMP_ID = "XL-L60-CALCULATE-FILTER";
+export const LESSON = 60;
+export const LESSONS = 76;
+export const UNIT = 12;
+export const UNITS = 14;
+export const VOICE = "voiceover_lesson_60.mp3";
+export const LOGO = "manzooma_logo.svg";
 export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const DUR = 7200; // 240s = exact mp3 duration
-export const RENDER_SCALE = 1; // plan for lesson 47 requires Full HD 1920x1080 @ 30fps (no --scale)
+export const DUR = 7200;
 
-// ===== Stage palette (plan) =====
-export const COL = {
-  slate: '#0F172A', panel: '#1E293B', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B',
-  purple: '#A855F7', red: '#EF4444', text: '#F8FAFC', muted: '#94A3B8',
+export const C = {
+  bg: '#0F172A', panel: '#1E293B', panel2: '#162033', line: '#2B3A55', text: '#F8FAFC', dim: '#94A3B8',
+  blue: '#38BDF8', green: '#10B981', amber: '#F59E0B', purple: '#A855F7', red: '#EF4444',
+  xl: '#14532D', cell: '#111C31',
 };
 
-// ===== Excel 365 (Windows, modern) metrics at 100% zoom, logical px. Same for every lesson. =====
-export const XL = {
-  scale: 1.5, winW: 1248, winH: 560, winX: 24, winY: 100,
-  titleH: 32, tabsH: 28, ribbonH: 88, fbarH: 24, colHdrH: 20, rowH: 20, colW: 64,
-  rowHdrW: 30, sheetBarH: 24, statusH: 24, vscroll: 17, visRows: 16,
-  green: '#217346', greenSoft: '#D2E8DB', tint: 'rgba(33,115,70,0.12)',
-  grid: '#E1E1E1', hdrBg: '#F3F3F3', hdrText: '#444444', chrome: '#F3F3F3', chromeLine: '#D1D1D1',
-  titleBg: '#F3F3F3', // modern light title bar (change here if a green title bar is wanted)
-  refColors: ['#2F6FEB', '#E5484D', '#8E4EC6', '#12A150', '#E5A000'],
-};
+// Scene bounds (seconds, from the real mp3) and sentence end times per scene.
+export const SB = [0, 44.9, 87.1, 125.6, 162.0, 202.6, 240];
+export const AN: number[][] = [
+  [12.34, 28.05, 44.9],
+  [54.39, 61.24, 87.1],
+  [98.53, 110.64, 125.59],
+  [132.15, 141.42, 149.0, 161.99],
+  [175.93, 187.43, 202.58],
+  [203.3, 212.87, 220.65, 234.65],
+];
+
+// Illustrative dataset (50,000 rows, total 12,000,000 EGP)
+export const PRODUCTS = [
+  {k: 1, n: 'Charger', cat: 'Power', price: 150, m: 0.18, sales: 3600000},
+  {k: 2, n: 'Earbuds', cat: 'Audio', price: 300, m: 0.31, sales: 3900000},
+  {k: 3, n: 'Power Bank', cat: 'Power', price: 240, m: 0.27, sales: 1800000},
+  {k: 4, n: 'Mouse', cat: 'Accessories', price: 200, m: 0.22, sales: 1500000},
+  {k: 5, n: 'Phone Case', cat: 'Accessories', price: 60, m: 0.38, sales: 600000},
+  {k: 6, n: 'USB Cable', cat: 'Cables', price: 60, m: 0.15, sales: 600000},
+];
+export const STORES = [
+  {k: 1, n: 'Nasr City', r: 'Cairo', sales: 4820000, hm: 2520000},
+  {k: 2, n: 'Dokki', r: 'Giza', sales: 3150000, hm: 1620000},
+  {k: 3, n: 'Smouha', r: 'Alexandria', sales: 2640000, hm: 1380000},
+  {k: 4, n: 'Downtown', r: 'Mansoura', sales: 1390000, hm: 780000},
+];

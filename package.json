@@ -1,21 +1,21 @@
 {
-  "name": "excel-l47-external-data",
+  "name": "manzooma-excel-lesson",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L47-External-Data out/excel-l47-external-data.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L60-CALCULATE-FILTER out/xl-l60-calculate-filter.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.250",
-    "@remotion/google-fonts": "4.0.250",
+    "@remotion/cli": "4.0.290",
+    "@remotion/google-fonts": "4.0.290",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.250"
+    "remotion": "4.0.290"
   },
   "devDependencies": {
     "@types/react": "18.3.12",
-    "typescript": "5.5.4"
+    "typescript": "5.6.3"
   }
 }

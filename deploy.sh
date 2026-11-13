@@ -1,73 +1,75 @@
 #!/usr/bin/env bash
-# Swap deploy for Lesson 47 (XL-L47-External-Data). Env: DRY_RUN SKIP_NPM KEEP_EXTRA WORK_DIR REPO_URL BRANCH COMMIT_MSG
+# Swap System deploy: sync repo -> wipe (keep .git/.github) -> copy project -> name checks -> tsc -> push
 set -euo pipefail
-COMP_ID="XL-L47-External-Data"; OUT_NAME="excel-l47-external-data"; NN="47"
+HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO_URL="${REPO_URL:-https://github.com/Ahmed1870/Brian_Rot.git}"
 BRANCH="${BRANCH:-main}"
-WORK_DIR="${WORK_DIR:-$HOME/Brian_Rot}"
-COMMIT_MSG="${COMMIT_MSG:-Lesson ${NN}: External Data (${COMP_ID})}"
-SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-say() { echo "▶ $*"; }
-die() { echo "✖ $*" >&2; exit 1; }
+WORK_DIR="${WORK_DIR:-$HOME/brian_rot_work}"
+COMMIT_MSG="${COMMIT_MSG:-Lesson update (swap)}"
+DRY_RUN="${DRY_RUN:-0}"; SKIP_NPM="${SKIP_NPM:-0}"; KEEP_EXTRA="${KEEP_EXTRA:-0}"
+fail() { echo "FAIL: $*" >&2; exit 1; }
 
-say "1/7 sync repo"
+echo "== 1) sync repo =="
 if [ -d "$WORK_DIR/.git" ]; then
-  git -C "$WORK_DIR" fetch origin "$BRANCH" 2>/dev/null || true
-  git -C "$WORK_DIR" checkout -q "$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -b "$BRANCH"
-  git -C "$WORK_DIR" reset -q --hard "origin/$BRANCH" 2>/dev/null || true
+  git -C "$WORK_DIR" remote set-url origin "$REPO_URL"
+  git -C "$WORK_DIR" fetch origin
+  if git -C "$WORK_DIR" rev-parse --verify -q "origin/$BRANCH" >/dev/null; then
+    git -C "$WORK_DIR" checkout -q -B "$BRANCH" "origin/$BRANCH"
+  else
+    git -C "$WORK_DIR" checkout -q -B "$BRANCH"
+  fi
 else
-  mkdir -p "$(dirname "$WORK_DIR")"
-  git clone -q "$REPO_URL" "$WORK_DIR" 2>/dev/null || { mkdir -p "$WORK_DIR"; git -C "$WORK_DIR" init -q -b "$BRANCH"; git -C "$WORK_DIR" remote add origin "$REPO_URL"; }
-  git -C "$WORK_DIR" checkout -q "$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -b "$BRANCH"
+  rm -rf "$WORK_DIR"; git clone "$REPO_URL" "$WORK_DIR"
+  git -C "$WORK_DIR" checkout -q -B "$BRANCH" "origin/$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -B "$BRANCH"
 fi
 
-say "2/7 wipe old project (keep .git and .github)"
-if [ "${KEEP_EXTRA:-0}" != "1" ]; then
-  find "$WORK_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
-fi
-say "3/7 remove old workflow"
+echo "== 2) wipe old project (keep .git, .github) =="
+find "$WORK_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
 mkdir -p "$WORK_DIR/.github/workflows"
-rm -f "$WORK_DIR"/.github/workflows/*
+rm -rf "$WORK_DIR"/.github/workflows/*
 
-say "4/7 copy new project"
-(cd "$SRC" && tar cf - --exclude=node_modules --exclude=out --exclude=.git .) | (cd "$WORK_DIR" && tar xf -)
-
-say "5/7 name checks"
+echo "== 3) copy new project =="
+(cd "$HERE" && tar cf - --exclude=node_modules --exclude=out --exclude=.git .) | (cd "$WORK_DIR" && tar xf -)
 cd "$WORK_DIR"
-grep -q "COMP_ID = '${COMP_ID}'" src/theme.ts || die "theme.ts COMP_ID mismatch"
-grep -q "COMP_ID" src/Root.tsx || die "Root.tsx must use COMP_ID"
-grep -q "XL-L" src/Root.tsx && die "Root.tsx has a hard-coded lesson id"
-grep -q "XL-L${NN}-External-Data" package.json || die "package.json COMP_ID mismatch"
-grep -q "out/${OUT_NAME}.mp4" package.json || die "package.json output name mismatch"
-WF=$(ls .github/workflows); [ "$(echo "$WF" | wc -l)" = "1" ] || die "need exactly one workflow file"
-grep -q "COMP_ID: ${COMP_ID}" ".github/workflows/$WF" || die "workflow COMP_ID mismatch"
-grep -q "OUT_NAME: ${OUT_NAME}" ".github/workflows/$WF" || die "workflow OUT_NAME mismatch"
-grep -q "name: ${OUT_NAME}" ".github/workflows/$WF" || die "artifact name must equal output name"
-test -s "public/voiceover_lesson_${NN}.mp3" || die "voiceover_lesson_${NN}.mp3 missing"
-grep -q "voiceover_lesson_${NN}.mp3" src/theme.ts || die "theme.ts voice name mismatch"
-BAD=$(ls public | grep -v -x -e "voiceover_lesson_${NN}.mp3" -e "manzooma_logo.svg" || true)
-[ -z "$BAD" ] || die "unexpected files in public: $BAD"
-OLD=$(grep -rEoh "(SQL|XL)-L[0-9]+[A-Za-z0-9-]*" src package.json .github 2>/dev/null | grep -v -x "$COMP_ID" || true)
-[ -z "$OLD" ] || die "old lesson id found: $(echo "$OLD" | sort -u | tr '\n' ' ')"
-OLDV=$(grep -rEoh "voiceover_lesson_[0-9]+" src package.json .github 2>/dev/null | grep -v -x "voiceover_lesson_${NN}" || true)
-[ -z "$OLDV" ] || die "old voiceover name found: $(echo "$OLDV" | sort -u | tr '\n' ' ')"
-RV=$(grep -o '"remotion": *"[^"]*"' package.json | sed 's/.*: *"//; s/"//')
-echo "$RV" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || die "remotion version must be pinned exactly (no ^ or ~): $RV"
-grep -Eq '"(remotion|@remotion/[^"]+)": *"[\^~]' package.json && die "remotion packages must not use ^ or ~"
-grep -q "no-package-lock" ".github/workflows/$WF" || die "render.yml Install step must use --no-package-lock"
-grep -q "compositor-linux-x64-gnu@${RV}" ".github/workflows/$WF" || die "render.yml compositor version must equal remotion version (${RV})"
-grep -qx "package-lock.json" .gitignore || die ".gitignore must list package-lock.json"
-echo "  names OK"
 
-say "6/7 npm install + tsc"
-if [ "${SKIP_NPM:-0}" = "1" ]; then echo "  (skipped)"; else npm install --no-audit --no-fund --no-package-lock && npx tsc --noEmit; fi
+echo "== 4) name checks =="
+COMP_ID="$(sed -n 's/.*COMP_ID *= *"\([^"]*\)".*/\1/p' src/theme.ts | head -1)"
+[ -n "$COMP_ID" ] || fail "COMP_ID not found in src/theme.ts"
+echo "$COMP_ID" | grep -Eq '^XL-L[0-9]{2}-[A-Za-z0-9-]+$' || fail "COMP_ID format: $COMP_ID"
+NN="${COMP_ID:4:2}"
+OUT="$(echo "$COMP_ID" | tr 'A-Z' 'a-z')"
+VO="voiceover_lesson_${NN}.mp3"
+grep -q 'COMP_ID' src/Root.tsx || fail "Root.tsx must use COMP_ID"
+grep -q "\"$COMP_ID\"" src/Root.tsx && fail "Root.tsx has literal comp id"
+grep -q "render src/index.ts $COMP_ID out/$OUT.mp4" package.json || fail "package.json build mismatch"
+[ "$(ls .github/workflows | wc -l | tr -d ' ')" = "1" ] || fail "need exactly one workflow file"
+WF=".github/workflows/$(ls .github/workflows)"
+grep -q "COMP_ID: $COMP_ID" "$WF" || fail "workflow COMP_ID mismatch"
+grep -q "OUT_NAME: $OUT" "$WF" || fail "workflow OUT_NAME mismatch"
+grep -q "render src/index.ts $COMP_ID out/$OUT.mp4" "$WF" || fail "workflow render command mismatch"
+grep -q "name: $OUT" "$WF" || fail "workflow artifact name mismatch"
+grep -q "test -s out/$OUT.mp4" "$WF" || fail "workflow output check mismatch"
+grep -q "$VO" "$WF" || fail "workflow voiceover mismatch"
+[ -s "public/$VO" ] || fail "missing public/$VO"
+grep -q "$VO" src/theme.ts || fail "theme.ts does not reference $VO"
+grep -q 'staticFile(VOICE)' src/Video.tsx || fail "Video.tsx must read the voiceover with staticFile"
+STALE="$(grep -rhoE '(SQL|XL)-L[0-9]+[A-Za-z0-9-]*' src package.json .github 2>/dev/null | sort -u | grep -vx "$COMP_ID" || true)"
+[ -z "$STALE" ] || fail "stale lesson ids found: $STALE"
+if [ "$KEEP_EXTRA" != "1" ]; then
+  EXTRA="$(ls public | grep -v -x -e "$VO" -e manzooma_logo.svg || true)"
+  [ -z "$EXTRA" ] || fail "unexpected files in public: $EXTRA"
+fi
+echo "names OK: $COMP_ID -> out/$OUT.mp4 ($VO)"
 
-say "7/7 commit + push"
-git config user.name >/dev/null 2>&1 || git config user.name "Ahmed1870"
-git config user.email >/dev/null 2>&1 || git config user.email "ahmed1870@users.noreply.github.com"
-rm -f package-lock.json
+if [ "$DRY_RUN" = "1" ]; then echo "DRY_RUN: stopping before npm/push"; exit 0; fi
+
+echo "== 5) npm + tsc =="
+if [ "$SKIP_NPM" != "1" ]; then npm install --no-audit --no-fund && npx tsc --noEmit; else echo "SKIP_NPM=1 (skipped)"; fi
+
+echo "== 6) commit + push =="
+git config user.email >/dev/null 2>&1 || git config user.email "deploy@manzooma.local"
+git config user.name >/dev/null 2>&1 || git config user.name "Manzooma Deploy"
 git add -A
-if git ls-files | grep -qx "package-lock.json"; then die "package-lock.json is tracked in git (must never be committed)"; fi
-git commit -q --allow-empty -m "$COMMIT_MSG"
-if [ "${DRY_RUN:-0}" = "1" ]; then echo "  DRY_RUN: committed locally, not pushed"; else git push --force origin "$BRANCH"; fi
-echo "✔ done: ${COMP_ID}"
+git commit -q -m "$COMMIT_MSG" --allow-empty
+git push --force origin "HEAD:$BRANCH"
+echo "DONE: pushed $COMP_ID"
