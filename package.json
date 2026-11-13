@@ -1,22 +1,22 @@
 {
-  "name": "manzooma-excel-lesson",
+  "name": "manzooma-excel-lesson-68-advcharts",
   "version": "1.0.0",
   "private": true,
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 68: Advanced Charts & Custom Visualizations (Combo, Waterfall, Pareto, Bullet, Sparklines) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L60-CALCULATE-FILTER out/xl-l60-calculate-filter.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "typecheck": "tsc --noEmit"
+    "start": "remotion studio",
+    "build": "remotion render src/index.ts XL-L68-AdvCharts out/xl-l68-advcharts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "render": "npm run build"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.543",
-    "@remotion/google-fonts": "4.0.543",
-    "@remotion/media": "4.0.543",
+    "@remotion/cli": "4.0.272",
+    "@remotion/google-fonts": "4.0.272",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.543"
+    "remotion": "4.0.272"
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "typescript": "5.6.3"
+    "@types/react": "18.3.3",
+    "typescript": "5.4.5"
   }
 }

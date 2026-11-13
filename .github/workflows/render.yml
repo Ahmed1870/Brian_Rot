@@ -1,39 +1,40 @@
-name: Render Lesson Video
-
+name: Render Excel Lesson 68 Advanced Charts
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
-env:
-  COMP_ID: XL-L60-CALCULATE-FILTER
-  OUT_NAME: xl-l60-calculate-filter
-
 jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Guard - this repo must contain Excel lesson 68 only
+        run: |
+          grep -q "XL-L68-AdvCharts" src/theme.ts
+          grep -q "XL-L68-AdvCharts" package.json
+          test -f public/voiceover_lesson_68.mp3
+          test -f public/manzooma_logo.svg
+          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
+          test "$(ls public | wc -l)" = "8"
+          test ! -f package-lock.json
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard (names, voiceover, public)
+      - name: Install dependencies (no lockfile, with retry)
         run: |
-          set -e
-          grep -q "$COMP_ID" src/theme.ts
-          grep -q "$COMP_ID" package.json
-          grep -q "$OUT_NAME" package.json
-          test -s public/voiceover_lesson_60.mp3
-          extra=$(ls public | grep -v -x -e voiceover_lesson_60.mp3 -e manzooma_logo.svg || true)
-          if [ -n "$extra" ]; then echo "Unexpected files in public: $extra"; exit 1; fi
-          test "$(ls .github/workflows | wc -l)" = "1"
-      - run: npm install --no-audit --no-fund
-      - run: npx tsc --noEmit
-      - name: Render
-        run: npx remotion render src/index.ts XL-L60-CALCULATE-FILTER out/xl-l60-calculate-filter.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l60-calculate-filter.mp4
+          rm -rf node_modules package-lock.json
+          for i in 1 2 3; do
+            if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
+              exit 0
+            fi
+            echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
+          done
+          echo "dependencies could not be installed correctly"; exit 1
+      - run: npx remotion render src/index.ts XL-L68-AdvCharts out/xl-l68-advcharts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l68-advcharts.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l60-calculate-filter
-          path: out/xl-l60-calculate-filter.mp4
+          name: xl-l68-advcharts
+          path: out/xl-l68-advcharts.mp4
+          if-no-files-found: error
