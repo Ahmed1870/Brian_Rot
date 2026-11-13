@@ -1,163 +1,102 @@
-// SC04 — Performance Wrapper & F8 Step Debugging (02:10-02:50).
+// SC04 — Decision Matrix: When to use VBA vs Office Scripts (02:10-02:50).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
 import {Stage, TopBadge, Caption, Check} from '../kit';
+import {VBA_USES, OFFICE_USES} from '../data';
 
 const SC = {from: 3900, dur: 1200};
 
-const CODE_LINES = [
-  {l: 'Sub FormatSalesData()', c: 'blue'},
-  {l: "    ' Performance wrapper + error shield", c: 'green'},
-  {l: '    On Error GoTo SafeExit', c: 'purple'},
-  {l: '    Application.ScreenUpdating = False', c: 'amber'},
-  {l: '    Application.Calculation = xlCalculationManual', c: 'amber'},
-  {l: '    ', c: 'muted'},
-  {l: '    Dim LastRow As Long', c: 'blue'},
-  {l: '    LastRow = Cells(Rows.Count, 1).End(xlUp).Row', c: 'purple'},
-  {l: '    ', c: 'muted'},
-  {l: '    For Each cell In Range("E2:E" & LastRow)', c: 'purple'},
-  {l: '        If cell.Value > 50000 Then', c: 'amber'},
-  {l: "            cell.Interior.Color = RGB(239, 68, 68)", c: 'red'},
-  {l: '        End If', c: 'amber'},
-  {l: '    Next cell', c: 'purple'},
-  {l: '    ', c: 'muted'},
-  {l: 'SafeExit:', c: 'purple'},
-  {l: '    Application.Calculation = xlCalculationAutomatic', c: 'amber'},
-  {l: '    Application.ScreenUpdating = True', c: 'amber'},
-  {l: 'End Sub', c: 'blue'},
-];
+const VBA_ICONS: Record<string, React.ReactNode> = {
+  disk: <svg width="22" height="22" viewBox="0 0 22 22"><rect x="3" y="4" width="16" height="14" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="11" cy="11" r="3" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="11" cy="11" r="0.5" fill="currentColor" /></svg>,
+  outlook: <svg width="22" height="22" viewBox="0 0 22 22"><rect x="3" y="5" width="16" height="12" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M3 6 L11 12 L19 6" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+  form: <svg width="22" height="22" viewBox="0 0 22 22"><rect x="3" y="3" width="16" height="16" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M6 7 H16 M6 11 H16 M6 15 H12" stroke="currentColor" strokeWidth="1.5" /></svg>,
+};
 
-const COLORS: Record<string, string> = {
-  blue: '#38BDF8', green: '#10B981', amber: '#F59E0B', purple: '#A855F7', red: '#EF4444', muted: '#475569',
+const OFFICE_ICONS: Record<string, React.ReactNode> = {
+  web: <svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M3 11 H19 M11 3 a8 8 0 0 1 0 16 a8 8 0 0 1 0 -16" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
+  share: <svg width="22" height="22" viewBox="0 0 22 22"><circle cx="6" cy="11" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="16" cy="6" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="16" cy="16" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M8 11 H14 M8 10 L14 7 M8 12 L14 15" stroke="currentColor" strokeWidth="1.5" /></svg>,
+  flow: <svg width="22" height="22" viewBox="0 0 22 22"><path d="M3 6 H7 L9 3 H19 M3 11 H11 L13 8 H19 M3 16 H7 L9 13 H15" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>,
 };
 
 export const Scene4: React.FC = () => {
   const local = useCurrentFrame();
 
-  const wrapP = interpolate(local, [0, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const stepLine = Math.min(CODE_LINES.length - 1, Math.floor((local - 360) / 30));
-  const shieldP = interpolate(local, [840, 960], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Two columns reveal (0-720)
+  const vbaP = interpolate(local, [0, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const officeP = interpolate(local, [360, 720], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const useP = (col: 'vba' | 'office', i: number) => interpolate(local, [(col === 'vba' ? 60 : 420) + i * 90, (col === 'vba' ? 120 : 480) + i * 90], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Final seal
   const finalSeal = interpolate(local, [1020, 1140], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-
-  const slowSpeed = 850;
-  const fastSpeed = 1.8;
-  const currentSpeed = interpolate(wrapP, [0, 1], [slowSpeed, fastSpeed]);
 
   return (
     <Stage dur={SC.dur} inFx="left" outFx="left">
-      <TopBadge text="Speed Optimization Wrapper ──► Application.ScreenUpdating = False & xlCalculationManual" from={60} to={540} color={C.amber} />
+      <TopBadge text="Engineering Decision Matrix ──► When to use VBA vs Office Scripts" from={60} to={540} color={C.amber} />
 
-      {/* LEFT: VBE with code + F8 highlight */}
-      <div style={{position: 'absolute', left: 80, top: 180, width: 1080, height: 660}}>
-        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, height: '100%', overflow: 'hidden', boxShadow: `0 0 30px ${C.amber}33`}}>
-          <div style={{display: 'flex', alignItems: 'center', padding: '10px 14px', background: C.deep, borderBottom: `1px solid ${C.border}`, gap: 10}}>
-            <span style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>Module1 — FormatSalesData()</span>
-            <span style={{marginLeft: 'auto', fontFamily: FONT, fontSize: 13, color: wrapP > 0.5 ? C.amber : C.muted}}>
-              {wrapP > 0.5 ? 'Turbo Mode ON' : 'Standard Mode'}
-            </span>
+      {/* LEFT: Choose VBA */}
+      <div style={{position: 'absolute', left: 80, top: 180, width: 880, height: 660, opacity: vbaP, transform: `translateX(${(1 - vbaP) * -40}px)`}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14}}>
+          <div style={{width: 50, height: 50, borderRadius: 8, background: C.amber, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 18, fontWeight: 700, boxShadow: `0 0 20px ${C.amber}66`}}>VBA</div>
+          <div>
+            <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.amber}}>{'اختر VBA عندما تحتاج'}</div>
+            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>{'Local desktop-only scenarios'}</div>
           </div>
+        </div>
 
-          <div style={{padding: 18, fontFamily: MONO, fontSize: 13, lineHeight: 2}}>
-            {CODE_LINES.map((line, i) => {
-              const isCurrent = i === stepLine && local >= 360 && local < 840;
-              const isWrap = (i === 3 || i === 4 || i === 16 || i === 17);
-              const wrapHighlight = isWrap && wrapP > 0.5;
-              return (
-                <div key={i} style={{
-                  color: COLORS[line.c] || C.text,
-                  background: isCurrent ? `${C.amber}33` : wrapHighlight ? `${C.amber}22` : 'transparent',
-                  borderLeft: isCurrent ? `3px solid ${C.amber}` : wrapHighlight ? `3px solid ${C.amber}` : '3px solid transparent',
-                  paddingLeft: 8,
-                  marginLeft: -8,
-                  boxShadow: isCurrent ? `0 0 12px ${C.amber}55` : 'none',
-                  whiteSpace: 'pre',
-                }}>
-                  <span style={{color: C.muted, marginRight: 10, width: 20, display: 'inline-block'}}>{i + 1}</span>{line.l || ' '}
-                  {isCurrent && <span style={{color: C.amber, marginLeft: 8}}>F8</span>}
+        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, height: 580, boxShadow: `0 0 30px ${C.amber}33`}}>
+          {VBA_USES.map((u, i) => {
+            const p = useP('vba', i);
+            return (
+              <div key={i} style={{display: 'flex', alignItems: 'center', gap: 14, padding: '20px 14px', opacity: p, borderBottom: i < VBA_USES.length - 1 ? `1px solid ${C.border}` : 'none', transform: `translateX(${(1 - p) * 16}px)`}}>
+                <div style={{width: 56, height: 56, borderRadius: 10, background: C.deep, border: `2px solid ${C.amber}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.amber}}>
+                  {VBA_ICONS[u.icon]}
                 </div>
-              );
-            })}
+                <div style={{flex: 1}}>
+                  <div style={{fontFamily: FONT, fontSize: 17, fontWeight: 600, color: C.text}}>{u.l}</div>
+                </div>
+                <div style={{width: 24, height: 24, borderRadius: 12, background: C.amber, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 12, fontWeight: 700}}>✓</div>
+              </div>
+            );
+          })}
+
+          {/* Bottom note */}
+          <div style={{marginTop: 20, padding: 14, background: C.deep, border: `1px solid ${C.amber}`, borderRadius: 8}}>
+            <div style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginBottom: 4}}>{'COM Objects · UserForms · Local Disk'}</div>
+            <div style={{fontFamily: FONT, fontSize: 13, color: C.amber, fontWeight: 700}}>{'البطل الوحيد للمهام المحلية'}</div>
           </div>
         </div>
       </div>
 
-      {/* RIGHT: Performance + F8 panel */}
-      <div style={{position: 'absolute', left: 1200, top: 180, width: 640, height: 660}}>
-        {/* Speed comparison */}
-        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, marginBottom: 14, boxShadow: `0 0 20px ${C.amber}33`}}>
-          <div style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 14}}>Performance Boost</div>
-
-          <div style={{marginBottom: 12}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
-              <span style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>Without wrapper</span>
-              <span style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700}}>850 ms</span>
-            </div>
-            <div style={{height: 10, background: C.deep, borderRadius: 5, overflow: 'hidden'}}>
-              <div style={{width: '100%', height: '100%', background: C.red}} />
-            </div>
-          </div>
-
+      {/* RIGHT: Choose Office Scripts */}
+      <div style={{position: 'absolute', right: 80, top: 180, width: 880, height: 660, opacity: officeP, transform: `translateX(${(1 - officeP) * 40}px)`}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14}}>
+          <div style={{width: 50, height: 50, borderRadius: 8, background: C.amber, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 13, fontWeight: 700, boxShadow: `0 0 20px ${C.amber}66`, padding: '0 8px'}}>OS</div>
           <div>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
-              <span style={{fontFamily: MONO, fontSize: 12, color: C.green}}>With wrapper</span>
-              <span style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700}}>{currentSpeed.toFixed(1)} ms</span>
-            </div>
-            <div style={{height: 10, background: C.deep, borderRadius: 5, overflow: 'hidden'}}>
-              <div style={{width: `${(currentSpeed / 850) * 100}%`, height: '100%', background: C.green, transition: 'width 0.2s'}} />
-            </div>
-          </div>
-
-          <div style={{marginTop: 14, padding: '8px 12px', background: C.deep, borderRadius: 6, fontFamily: MONO, fontSize: 12, color: C.amber}}>
-            {Math.round(850 / currentSpeed)}x faster than standard
+            <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.amber}}>{'اختر Office Scripts عندما تحتاج'}</div>
+            <div style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>{'Cloud + cross-platform + automated'}</div>
           </div>
         </div>
 
-        {/* F8 key visualization */}
-        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, marginBottom: 14}}>
-          <div style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 14}}>Step-by-Step Debugging</div>
+        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, height: 580, boxShadow: `0 0 30px ${C.amber}33`}}>
+          {OFFICE_USES.map((u, i) => {
+            const p = useP('office', i);
+            return (
+              <div key={i} style={{display: 'flex', alignItems: 'center', gap: 14, padding: '20px 14px', opacity: p, borderBottom: i < OFFICE_USES.length - 1 ? `1px solid ${C.border}` : 'none', transform: `translateX(${(1 - p) * 16}px)`}}>
+                <div style={{width: 56, height: 56, borderRadius: 10, background: C.deep, border: `2px solid ${C.amber}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.amber}}>
+                  {OFFICE_ICONS[u.icon]}
+                </div>
+                <div style={{flex: 1}}>
+                  <div style={{fontFamily: FONT, fontSize: 17, fontWeight: 600, color: C.text}}>{u.l}</div>
+                </div>
+                <div style={{width: 24, height: 24, borderRadius: 12, background: C.amber, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 12, fontWeight: 700}}>✓</div>
+              </div>
+            );
+          })}
 
-          <div style={{display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14}}>
-            <div style={{
-              padding: '12px 22px', background: local >= 360 && local < 840 ? C.amber : C.deep,
-              color: local >= 360 && local < 840 ? '#0B1222' : C.text,
-              border: `2px solid ${C.amber}`, borderRadius: 8, fontFamily: MONO, fontSize: 20, fontWeight: 700,
-              transform: `translateY(${local >= 360 && local < 840 ? 4 : 0}px) scale(${local >= 360 && local < 840 ? 0.95 : 1})`,
-              boxShadow: local >= 360 && local < 840 ? `0 0 20px ${C.amber}` : 'none',
-            }}>F8</div>
-            <div>
-              <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: C.amber}}>Step Into</div>
-              <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>Line {Math.min(stepLine + 1, CODE_LINES.length)} / {CODE_LINES.length}</div>
-            </div>
-          </div>
-
-          {/* Progress dots */}
-          <div style={{display: 'flex', gap: 3, flexWrap: 'wrap'}}>
-            {CODE_LINES.map((_, i) => {
-              const done = i < stepLine;
-              const current = i === stepLine;
-              return (
-                <div key={i} style={{
-                  width: 10, height: 10, borderRadius: 2,
-                  background: current ? C.amber : done ? C.green : C.deep,
-                  border: `1px solid ${current ? C.amber : done ? C.green : C.border}`,
-                }} />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Error shield */}
-        <div style={{background: C.card, border: `2px solid ${C.purple}`, borderRadius: 12, padding: 18, opacity: shieldP, boxShadow: `0 0 20px ${C.purple}33`}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-            <svg width="40" height="40" viewBox="0 0 40 40">
-              <path d="M20 4 L34 10 V20 C34 28 28 34 20 36 C12 34 6 28 6 20 V10 Z" fill="none" stroke={C.purple} strokeWidth="2.5" strokeLinejoin="round" />
-              <path d="M14 20 L18 24 L26 16" fill="none" stroke={C.purple} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div>
-              <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.purple}}>On Error GoTo SafeExit</div>
-              <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginTop: 2}}>{'Code protected from unexpected errors'}</div>
-            </div>
+          {/* Bottom note */}
+          <div style={{marginTop: 20, padding: 14, background: C.deep, border: `1px solid ${C.amber}`, borderRadius: 8}}>
+            <div style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginBottom: 4}}>{'Power Automate · SharePoint · TypeScript'}</div>
+            <div style={{fontFamily: FONT, fontSize: 13, color: C.amber, fontWeight: 700}}>{'الاختيار الذهبي والمستقبلي'}</div>
           </div>
         </div>
       </div>
@@ -166,12 +105,12 @@ export const Scene4: React.FC = () => {
       <div style={{position: 'absolute', left: 0, right: 0, top: 870, display: 'flex', justifyContent: 'center', opacity: finalSeal}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.amber}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.amber}33`}}>
           <Check size={40} p={finalSeal} color={C.amber} />
-          <span style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.amber}}>Turbo + Debugging Ready ──► ScreenUpdating = False + F8 + On Error GoTo</span>
+          <span style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.amber}}>{'Smart Routing ──► Match Tech to Scenario'}</span>
         </div>
       </div>
 
-      <Caption text="Speed Optimization Wrapper ──► Application.ScreenUpdating = False & xlCalculationManual" from={60} to={540} tone="normal" />
-      <Caption text="Debugging & Error Shield ──► Step-by-Step Execution via F8 + On Error GoTo Handler" from={660} to={1140} tone="normal" />
+      <Caption text="Choose VBA For ──► Local File System, Desktop Outlook/Word COM Control & UserForms" from={60} to={540} tone="normal" />
+      <Caption text="Choose Office Scripts For ──► Cross-Platform Web/Desktop, Team Sharing & Power Automate Schedules" from={660} to={1140} tone="normal" />
     </Stage>
   );
 };

@@ -15,12 +15,12 @@ export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const TOTAL_FRAMES = 7200;
-export const LESSON = 72;
+export const LESSON = 73;
 export const TOTAL_LESSONS = 76;
 export const UNIT = 14;
 export const TOTAL_UNITS = 14;
-export const COMP_ID = 'XL-L72-VBAScripts';
-export const VOICE_FILE = 'voiceover_lesson_72.mp3';
+export const COMP_ID = 'XL-L73-OfficeScripts';
+export const VOICE_FILE = 'voiceover_lesson_73.mp3';
 export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {

@@ -1,70 +1,94 @@
-// Lesson 72 — Reading & Editing Core VBA Scripts
-// Realistic VBA code snippets for refactoring demonstration.
+// Lesson 73 — Office Scripts vs VBA Architecture
 
-// BLOATED recorded macro (before refactoring)
-export const VBA_BLOATED = [
-  {n: 1, code: 'Sub FormatReport()', color: 'kw'},
-  {n: 2, code: "    ' Recorded macro - needs cleanup", color: 'comment'},
-  {n: 3, code: '    Range("A1").Select', color: 'select', strike: true},
-  {n: 4, code: '    Selection.Font.Bold = True', color: 'select', strike: true},
-  {n: 5, code: '    Range("A1:E500").Select', color: 'select', strike: true},
-  {n: 6, code: '    Selection.Interior.Color = RGB(16,124,65)', color: 'select', strike: true},
-  {n: 7, code: '    Columns("A:E").Select', color: 'select', strike: true},
-  {n: 8, code: '    Selection.ColumnWidth = 15', color: 'select', strike: true},
-  {n: 9, code: 'End Sub', color: 'kw'},
+// TypeScript Office Script (main + getUsedRange + getValues/setValues)
+export const TS_SCRIPT = [
+  {n: 1, code: 'function main(workbook: ExcelScript.Workbook) {', c: 'kw'},
+  {n: 2, code: '  let sheet = workbook.getActiveWorksheet();', c: 'obj'},
+  {n: 3, code: '  let range = sheet.getUsedRange();', c: 'green'},
+  {n: 4, code: '  let values: string[][] = range.getValues();', c: 'purple'},
+  {n: 5, code: '  for (let i = 0; i < values.length; i++) {', c: 'kw'},
+  {n: 6, code: '    let profit = Number(values[i][3]) - Number(values[i][2]);', c: 'amber'},
+  {n: 7, code: '    values[i][5] = profit.toString();', c: 'amber'},
+  {n: 8, code: '  }', c: 'kw'},
+  {n: 9, code: '  range.setValues(values);', c: 'purple'},
+  {n: 10, code: '}', c: 'kw'},
 ];
 
-// CLEAN refactored macro (after refactoring)
-export const VBA_CLEAN = [
-  {n: 1, code: 'Sub FormatReport()', color: 'kw'},
-  {n: 2, code: "    ' Refactored - direct addressing", color: 'comment'},
-  {n: 3, code: '    Range("A1").Font.Bold = True', color: 'clean'},
-  {n: 4, code: '    Range("A1:E500").Interior.Color = RGB(16,124,65)', color: 'clean'},
-  {n: 5, code: '    Columns("A:E").ColumnWidth = 15', color: 'clean'},
-  {n: 6, code: 'End Sub', color: 'kw'},
-];
-
-// Dynamic LastRow + If + For Each (full enterprise script)
-export const VBA_DYNAMIC = [
-  {n: 1, code: 'Sub FormatSalesData()', color: 'kw'},
-  {n: 2, code: "    ' Dynamic + Optimized VBA", color: 'comment'},
-  {n: 3, code: '    Application.ScreenUpdating = False', color: 'perf'},
-  {n: 4, code: '    Application.Calculation = xlCalculationManual', color: 'perf'},
-  {n: 5, code: '    On Error GoTo SafeExit', color: 'error'},
-  {n: 6, code: '    Dim LastRow As Long', color: 'dim'},
-  {n: 7, code: '    LastRow = Cells(Rows.Count, 1).End(xlUp).Row', color: 'lastrow'},
-  {n: 8, code: '    Dim cell As Range', color: 'dim'},
-  {n: 9, code: '    For Each cell In Range("E2:E" & LastRow)', color: 'loop'},
-  {n: 10, code: '        If cell.Value > 50000 Then', color: 'if'},
-  {n: 11, code: '            cell.Interior.Color = RGB(239, 68, 68)', color: 'action'},
-  {n: 12, code: '        End If', color: 'if'},
-  {n: 13, code: '    Next cell', color: 'loop'},
-  {n: 14, code: 'SafeExit:', color: 'error'},
-  {n: 15, code: '    Application.Calculation = xlCalculationAutomatic', color: 'perf'},
-  {n: 16, code: '    Application.ScreenUpdating = True', color: 'perf'},
-  {n: 17, code: 'End Sub', color: 'kw'},
-];
-
-// Code color mapping
-export const CODE_COLORS = {
-  kw: '#38BDF8',        // keywords (Sub, End Sub, Dim, etc)
-  comment: '#10B981',   // green comments
-  select: '#EF4444',     // red - bloated .Select lines
-  clean: '#10B981',     // green - clean direct addressing
-  perf: '#F59E0B',      // amber - performance wrappers
-  error: '#A855F7',    // purple - error handling
-  dim: '#38BDF8',      // blue - declarations
-  lastrow: '#A855F7',  // purple - dynamic LastRow
-  loop: '#A855F7',     // purple - For Each loop
-  if: '#A855F7',       // purple - conditional
-  action: '#FBBF24',   // gold - actions inside if
+export const TS_COLORS: Record<string, string> = {
+  kw: '#38BDF8',
+  obj: '#10B981',
+  green: '#10B981',
+  purple: '#A855F7',
+  amber: '#F59E0B',
 };
 
-export const VBE_NAV = ['Project Explorer', 'Modules', 'Module1', 'FormatReport'];
+// Comparison matrix: VBA vs Office Scripts
+export const COMPARISON = [
+  {
+    aspect: 'بيئة التشغيل',
+    aspectEn: 'Platform',
+    vba: 'Desktop Only',
+    office: 'Web + Desktop + Mac',
+    vbaBad: true,
+    officeGood: true,
+  },
+  {
+    aspect: 'صيغة الملف',
+    aspectEn: 'File Format',
+    vba: '.xlsm (محظور من IT)',
+    office: '.xlsx (آمن)',
+    vbaBad: true,
+    officeGood: true,
+  },
+  {
+    aspect: 'مكان تخزين الكود',
+    aspectEn: 'Code Storage',
+    vba: 'داخل الملف',
+    office: 'OneDrive / SharePoint',
+    vbaBad: true,
+    officeGood: true,
+  },
+  {
+    aspect: 'التشغيل الخلفي',
+    aspectEn: 'Background Run',
+    vba: 'لا يدعم',
+    office: 'Power Automate',
+    vbaBad: true,
+    officeGood: true,
+  },
+  {
+    aspect: 'المشاركة الجماعية',
+    aspectEn: 'Team Sharing',
+    vba: 'صعب (نسخ يدوي)',
+    office: 'بنقرة زر',
+    vbaBad: true,
+    officeGood: true,
+  },
+];
+
+// Decision matrix - when to use each
+export const VBA_USES = [
+  {icon: 'disk', l: 'الوصول للملفات المحلية على الويندوز'},
+  {icon: 'outlook', l: 'التحكم في Outlook و Word عبر COM'},
+  {icon: 'form', l: 'بناء واجهات إدخال UserForms'},
+];
+
+export const OFFICE_USES = [
+  {icon: 'web', l: 'التعاون السحابي عبر Excel Web'},
+  {icon: 'share', l: 'مشاركة السكربت مع الفريق'},
+  {icon: 'flow', l: 'الجدولة التلقائية عبر Power Automate'},
+];
 
 export const EXEC_STATS = [
   {l: 'الصفوف المعالجة', v: '50,000', s: 'rows', color: '#10B981'},
   {l: 'زمن التنفيذ', v: '1.8', s: 'ms', color: '#38BDF8'},
-  {l: 'سطور .Select المحذوفة', v: '6', s: 'lines', color: '#EF4444'},
-  {l: 'الأخطاء', v: '0', s: 'errors', color: '#A855F7'},
+  {l: 'صيغة الملف', v: '.xlsx', s: 'safe', color: '#A855F7'},
+  {l: 'التدخل البشري', v: '0', s: 'manual', color: '#F59E0B'},
+];
+
+export const POWER_AUTOMATE_TRIGGERS = [
+  {icon: 'mail', l: 'وصول إيميل جديد'},
+  {icon: 'file', l: 'تحديث ملف SharePoint'},
+  {icon: 'time', l: 'جدولة يومية'},
+  {icon: 'team', l: 'رسالة Teams'},
 ];

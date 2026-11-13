@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-72-vbascripts",
+  "name": "manzooma-excel-lesson-73-officescripts",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 72: Reading & Editing Core VBA Scripts (Alt+F11, VBE, .Select Stripping, LastRow, If/For Each, ScreenUpdating=False, F8 Debug) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 73: Office Scripts vs. VBA Architecture (Automate Tab, TypeScript, getUsedRange, getValues/setValues, OneDrive, Power Automate, Decision Matrix) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L72-VBAScripts out/xl-l72-vbascripts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L73-OfficeScripts out/xl-l73-officescripts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
