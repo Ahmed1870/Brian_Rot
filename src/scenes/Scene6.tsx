@@ -1,4 +1,4 @@
-// SC06 — Lesson 74 Completion · Manzooma Academy Outro (03:30-04:00).
+// SC06 — Lesson 75 Completion · Capstone Finale CTA (03:30-04:00).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
@@ -10,7 +10,7 @@ export const Scene6: React.FC = () => {
   const local = useCurrentFrame();
 
   const cardP = interpolate(local, [0, 90], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const progressP = interpolate(local, [120, 420], [0, 0.974], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const progressP = interpolate(local, [120, 420], [0, 0.987], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const nextP = interpolate(local, [420, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const sealP = interpolate(local, [540, 660], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const fadeOut = interpolate(local, [780, 900], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
@@ -28,13 +28,13 @@ export const Scene6: React.FC = () => {
               <Mix style={{fontFamily: FONT, fontSize: 28, fontWeight: 700, color: C.text}}>{'منظومة أكاديمي'}</Mix>
               <div style={{fontFamily: MONO, fontSize: 14, color: C.muted, marginTop: 2}}>{'Manzooma Excel Masterclass Platform'}</div>
             </div>
-            <div style={{marginLeft: 'auto', padding: '8px 16px', background: `${C.green}22`, border: `1px solid ${C.green}`, borderRadius: 999, fontFamily: MONO, fontSize: 13, color: C.green}}>{'Lesson 74 · Complete'}</div>
+            <div style={{marginLeft: 'auto', padding: '8px 16px', background: `${C.green}22`, border: `1px solid ${C.green}`, borderRadius: 999, fontFamily: MONO, fontSize: 13, color: C.green}}>{'Lesson 75 · Complete'}</div>
           </div>
 
           {/* Lesson title */}
           <div style={{textAlign: 'center', marginBottom: 24}}>
-            <Mix style={{fontFamily: FONT, fontSize: 30, fontWeight: 700, color: C.text}}>{'Volatile Functions & Performance Impact'}</Mix>
-            <Mix style={{fontFamily: FONT, fontSize: 18, color: C.muted, marginTop: 6, display: 'block'}}>{'الدوال المتغيرة وتأثيرها على الأداء'}</Mix>
+            <Mix style={{fontFamily: FONT, fontSize: 30, fontWeight: 700, color: C.text}}>{'Performance Tuning & Calculation Management'}</Mix>
+            <Mix style={{fontFamily: FONT, fontSize: 18, color: C.muted, marginTop: 6, display: 'block'}}>{'تحسين أداء ملفات Excel وإدارة الحسابات'}</Mix>
           </div>
 
           {/* Progress */}
@@ -47,20 +47,24 @@ export const Scene6: React.FC = () => {
               <div style={{width: `${progressP * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.blue}, ${C.green})`, boxShadow: `0 0 20px ${C.green}`}} />
             </div>
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: MONO, fontSize: 12, color: C.muted}}>
-              <span>{'الدرس 74 من 76'}</span>
+              <span>{'الدرس 75 من 76'}</span>
               <span>{'الوحدة 14 من 14'}</span>
             </div>
           </div>
 
-          {/* Next lesson card */}
-          <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 18, opacity: nextP, transform: `translateY(${(1 - nextP) * 16}px)`}}>
+          {/* Capstone finale card */}
+          <div style={{background: `linear-gradient(135deg, ${C.deep}, ${C.card})`, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 20, marginBottom: 18, opacity: nextP, transform: `translateY(${(1 - nextP) * 16}px)`, boxShadow: `0 0 30px ${C.amber}33`}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8}}>
+              <div style={{padding: '4px 12px', background: C.amber, color: '#0B1222', borderRadius: 4, fontFamily: MONO, fontSize: 12, fontWeight: 700}}>{'FINAL'}</div>
+              <div style={{fontFamily: FONT, fontSize: 14, color: C.amber, fontWeight: 700}}>{'الدرس الأخير في الكورس'}</div>
+            </div>
             <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-              <div style={{width: 40, height: 40, borderRadius: 8, background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: MONO, fontSize: 14, fontWeight: 700}}>75</div>
+              <div style={{width: 48, height: 48, borderRadius: 10, background: `linear-gradient(135deg, ${C.amber}, ${C.gold})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0B1222', fontFamily: MONO, fontSize: 16, fontWeight: 700, boxShadow: `0 0 15px ${C.amber}66`}}>76</div>
               <div style={{flex: 1}}>
-                <Mix style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.text}}>{'الدرس القادم: تحسين أداء ملفات Excel وإدارة الحسابات'}</Mix>
-                <Mix style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginTop: 2, display: 'block'}}>{'Performance Tuning & Calculation Management · الوحدة 14 من 14'}</Mix>
+                <Mix style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.text}}>{'المشروع التطبيقي الشامل — من البيانات الخام إلى التقرير التنفيذي'}</Mix>
+                <Mix style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginTop: 2, display: 'block'}}>{'Comprehensive Capstone Project · الوحدة 14 من 14'}</Mix>
               </div>
-              <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12 H19 M13 6 L19 12 L13 18" fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12 H19 M13 6 L19 12 L13 18" fill="none" stroke={C.amber} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
           </div>
 
@@ -80,13 +84,13 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', justifyContent: 'center', marginTop: 24, opacity: sealP, transform: `scale(${0.7 + 0.3 * sealP})`}}>
             <div style={{display: 'flex', alignItems: 'center', gap: 12, padding: '10px 22px', background: `linear-gradient(135deg, ${C.green}, ${C.blue})`, borderRadius: 999, boxShadow: `0 0 40px ${C.green}66`}}>
               <Check size={32} p={sealP} />
-              <Mix style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: '#fff'}}>{'Volatile Functions & Performance Impact Mastered'}</Mix>
+              <Mix style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: '#fff'}}>{'Performance Tuning & Calculation Management Mastered'}</Mix>
             </div>
           </div>
         </div>
       </div>
 
-      <Caption text="الدرس 74 من 76 ──► الوحدة 14 من 14 ──► Volatile Functions & Performance Impact Mastered" from={60} to={720} tone="ok" />
+      <Caption text="الدرس 75 من 76 ──► الوحدة 14 من 14 ──► Performance Tuning & Calculation Management Mastered" from={60} to={720} tone="ok" />
     </Stage>
   );
 };

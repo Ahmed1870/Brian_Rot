@@ -1,4 +1,4 @@
-// SC05 — Enterprise Execution: Purge 50,000 rows of volatile formulas (02:50-03:30).
+// SC05 — Enterprise Execution: Full optimization on 50K rows (02:50-03:30).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
@@ -12,8 +12,8 @@ export const Scene5: React.FC = () => {
 
   // File load (0-120)
   const loadP = interpolate(local, [0, 120], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // Refactor pipeline (120-360)
-  const refactorP = interpolate(local, [120, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Optimization pipeline (120-360)
+  const optP = interpolate(local, [120, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   // Stats (360-720)
   const statP = (i: number) => interpolate(local, [360 + i * 60, 420 + i * 60], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   // Benchmark (720-900)
@@ -22,11 +22,11 @@ export const Scene5: React.FC = () => {
   const sealP = interpolate(local, [900, 1180], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
   const latency = (1 - benchP) * 8000 + 1.8;
-  const rowsProcessed = Math.floor(benchP * 50000);
+  const fileSize = Math.max(12, 30 - benchP * 18);
 
   return (
     <Stage dur={SC.dur} inFx="left" outFx="up">
-      <TopBadge text="Enterprise Formula Refactor ──► Replace OFFSET/INDIRECT & Cache TODAY() Across 50,000 Rows" from={60} to={630} color={C.green} />
+      <TopBadge text="Full Workbook Optimization ──► Check Performance + Binary Search + LET + .xlsb on 50,000 Rows" from={60} to={630} color={C.green} />
 
       {/* File load banner */}
       {loadP < 1 && (
@@ -39,23 +39,23 @@ export const Scene5: React.FC = () => {
             </svg>
             <div>
               <div style={{fontFamily: MONO, fontSize: 20, fontWeight: 700, color: C.text}}>{'manzooma_sales_2026.xlsx'}</div>
-              <div style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>{'loading 50,000 rows · OFFSET + INDIRECT + TODAY purged'}</div>
+              <div style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>{'loading 30 MB · ghost cells + linear search · 50,000 rows'}</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* LEFT: Refactor pipeline */}
-      <div style={{position: 'absolute', left: 80, top: 200, width: 1080, opacity: refactorP}}>
-        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'Formula Refactor Pipeline'}</div>
+      {/* LEFT: Optimization pipeline */}
+      <div style={{position: 'absolute', left: 80, top: 200, width: 1080, opacity: optP}}>
+        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'Full Optimization Pipeline'}</div>
         <div style={{background: C.card, border: `2px solid ${C.green}`, borderRadius: 12, padding: 18, boxShadow: `0 0 30px ${C.green}33`}}>
           {[
-            {n: '01', l: 'استبدال OFFSET بـ INDEX', before: '=OFFSET(A1,5,2)', after: '=INDEX(A:A,6)', color: C.purple, done: '50K rows refactored'},
-            {n: '02', l: 'استبدال INDIRECT بـ XLOOKUP', before: '=INDIRECT(B1)', after: '=XLOOKUP(A1,Keys,Sheets)', color: C.purple, done: '50K rows refactored'},
-            {n: '03', l: 'عزل TODAY في خلية واحدة', before: '=TODAY() × 50K', after: '$B$1 = TODAY()', color: C.purple, done: '50K → 1 recalc'},
-            {n: '04', l: 'تقليص نطاقات CF و DV', before: '=$A:$A', after: '=$A$2:$A$50000', color: C.amber, done: '1M cells saved'},
-            {n: '05', l: 'إعادة حساب فورية', before: '8.4s delay', after: '1.8ms', color: C.green, done: '500x faster'},
-            {n: '06', l: 'تحديث الرسوم البيانية', before: 'lagging', after: 'instant', color: C.blue, done: 'live sync'},
+            {n: '01', l: 'Check Performance', act: 'Clean ghost UsedRange', before: '50 MB', after: '22 MB', color: C.amber, done: 'ghost removed'},
+            {n: '02', l: 'Binary Search (2)', act: 'XLOOKUP search_mode = 2', before: '50K steps', after: '16 steps', color: C.purple, done: 'O(log₂ N)'},
+            {n: '03', l: 'LET Caching', act: 'Cache repeated XLOOKUP', before: '100K ops', after: '50K ops', color: C.purple, done: '50% less work'},
+            {n: '04', l: 'Calculation Mode', act: 'Manual + F9 + Multi-thread', before: 'auto (slow)', after: 'manual (fast)', color: C.green, done: '8 cores active'},
+            {n: '05', l: 'Save as .xlsb', act: 'Binary Workbook format', before: '.xlsx 22MB', after: '.xlsb 12MB', color: C.amber, done: '60% smaller'},
+            {n: '06', l: 'Final Recalc', act: '50,000 rows in <2ms', before: '8.4s', after: '1.8ms', color: C.green, done: '500x faster'},
           ].map((step, i) => {
             const p = interpolate(local, [180 + i * 50, 220 + i * 50], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
             return (
@@ -65,10 +65,10 @@ export const Scene5: React.FC = () => {
                 </div>
                 <div style={{flex: 1}}>
                   <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 600, color: C.text}}>{step.l}</div>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 8, marginTop: 4}}>
-                    <span style={{fontFamily: MONO, fontSize: 12, color: C.red, textDecoration: 'line-through'}}>{step.before}</span>
-                    <svg width="14" height="10" viewBox="0 0 14 10"><path d="M2 5 H10 M7 2 L10 5 L7 8" fill="none" stroke={step.color} strokeWidth="1.5" /></svg>
-                    <span style={{fontFamily: MONO, fontSize: 12, color: step.color}}>{step.after}</span>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8, marginTop: 2}}>
+                    <span style={{fontFamily: MONO, fontSize: 11, color: C.red, textDecoration: 'line-through'}}>{step.before}</span>
+                    <svg width="12" height="8" viewBox="0 0 12 8"><path d="M2 4 H8 M6 2 L8 4 L6 6" fill="none" stroke={step.color} strokeWidth="1.5" /></svg>
+                    <span style={{fontFamily: MONO, fontSize: 11, color: step.color}}>{step.after}</span>
                   </div>
                 </div>
                 <div style={{padding: '4px 10px', background: p > 0.5 ? `${step.color}22` : C.deep, border: `1px solid ${step.color}`, borderRadius: 4, fontFamily: MONO, fontSize: 11, color: step.color, fontWeight: 700}}>
@@ -81,12 +81,12 @@ export const Scene5: React.FC = () => {
       </div>
 
       {/* RIGHT: Stats + benchmark */}
-      <div style={{position: 'absolute', left: 1200, top: 200, width: 640, opacity: refactorP}}>
+      <div style={{position: 'absolute', left: 1200, top: 200, width: 640, opacity: optP}}>
         <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'Performance Stats'}</div>
         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14}}>
           {EXEC_STATS.map((s, i) => {
             const p = statP(i);
-            const displayValue = i === 0 && benchP > 0 ? rowsProcessed.toLocaleString() : s.v;
+            const displayValue = i === 2 && benchP > 0 ? `${fileSize.toFixed(0)}MB` : s.v;
             return (
               <div key={i} style={{background: C.card, border: `2px solid ${s.color}`, borderRadius: 10, padding: 14, opacity: p, transform: `translateY(${(1 - p) * 16}px)`, boxShadow: `0 0 20px ${s.color}33`}}>
                 <div style={{fontFamily: FONT, fontSize: 12, color: C.muted}}>{s.l}</div>
@@ -113,9 +113,9 @@ export const Scene5: React.FC = () => {
               </div>
             </div>
             <div>
-              <div style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.text}}>{'Instant Recalculation'}</div>
-              <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginTop: 2}}>{'50,000 rows · zero lag'}</div>
-              <div style={{fontFamily: FONT, fontSize: 12, color: C.green, marginTop: 6, fontWeight: 700}}>{'✓ 500x faster than before'}</div>
+              <div style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.text}}>{'60% Smaller & <2ms'}</div>
+              <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginTop: 2}}>{'50,000 rows · peak stability'}</div>
+              <div style={{fontFamily: FONT, fontSize: 12, color: C.green, marginTop: 6, fontWeight: 700}}>{'✓ 500x faster · 60% smaller'}</div>
             </div>
           </div>
         </div>
@@ -130,14 +130,14 @@ export const Scene5: React.FC = () => {
             <path d="M14 24 L21 31 L34 17" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <div>
-            <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: '#fff'}}>{'Enterprise Speed Optimization Seal'}</div>
-            <div style={{fontFamily: MONO, fontSize: 13, color: '#fff', opacity: 0.9}}>{'Non-Volatile Engine · Manzooma Verified'}</div>
+            <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: '#fff'}}>{'Enterprise Performance Tuning Seal'}</div>
+            <div style={{fontFamily: MONO, fontSize: 13, color: '#fff', opacity: 0.9}}>{'Calculation Management · Manzooma Verified'}</div>
           </div>
         </div>
       </div>
 
-      <Caption text="Enterprise Formula Refactor ──► Replace OFFSET/INDIRECT & Cache TODAY() Across 50,000 Rows" from={60} to={630} tone="ok" />
-      <Caption text="Instant Recalculation Speed ──► High-Speed Non-Volatile Engine Calculating in <2ms" from={660} to={1140} tone="ok" />
+      <Caption text="Full Workbook Optimization ──► Check Performance + Binary Search + LET + .xlsb on 50,000 Rows" from={60} to={630} tone="ok" />
+      <Caption text="60% Smaller & <2ms Speed ──► Enterprise Performance & Calculation Engine Running at Peak Stability" from={660} to={1140} tone="ok" />
     </Stage>
   );
 };

@@ -1,4 +1,4 @@
-// Sound effects for Lesson 74 — Volatile Functions & Performance Impact.
+// Sound effects for Lesson 75 — Performance Tuning & Calculation Management.
 import React from 'react';
 import {Audio, Sequence, staticFile} from 'remotion';
 import {FPS, START} from './theme';
@@ -12,9 +12,10 @@ const CUES: Cue[] = [
   ...cue('sfx_pop.mp3', 0.4, 0.3, [11.0, 17.0]),
   ...cue('sfx_tick.mp3', 0.3, 0.15, [25.0, 27.0]),
 
-  ...cue('sfx_chime.mp3', 0.35, 1.0, [45.0]),
-  ...cue('sfx_pop.mp3', 0.4, 0.3, [52.0, 60.0, 68.0]),
-  ...cue('sfx_tick.mp3', 0.3, 0.15, [80.0]),
+  ...cue('sfx_click.mp3', 0.45, 0.2, [41.0, 47.0, 53.0]),
+  ...cue('sfx_chime.mp3', 0.35, 1.0, [55.0]),
+  ...cue('sfx_key.mp3', 0.4, 0.2, [60.0, 65.0, 70.0]),
+  ...cue('sfx_pop.mp3', 0.4, 0.3, [80.0]),
   ...cue('sfx_chime.mp3', 0.35, 0.8, [82.0]),
 
   ...cue('sfx_pop.mp3', 0.35, 0.3, [88.0, 96.0]),

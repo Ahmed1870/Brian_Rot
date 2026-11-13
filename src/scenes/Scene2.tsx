@@ -1,132 +1,124 @@
-// SC02 — Calculation Tree & Dirty Flag Cascade (00:40-01:25).
+// SC02 — Calculation Modes, F9 Shortcuts & Multi-Threading (00:40-01:25).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
 import {Stage, TopBadge, Caption, Check, Mix} from '../kit';
-import {VOLATILE_FNS} from '../data';
+import {CALC_MODES, RECALC_KEYS} from '../data';
 
 const SC = {from: 1200, dur: 1350};
 
 export const Scene2: React.FC = () => {
   const local = useCurrentFrame();
 
-  // Normal tree reveal (0-360)
-  const treeP = interpolate(local, [0, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // Dirty flag cascade (360-840)
-  const dirtyP = interpolate(local, [360, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const cascadeP = interpolate(local, [540, 840], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Calc options dropdown (0-360)
+  const optP = interpolate(local, [0, 240], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const selP = interpolate(local, [180, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // F9 keys (360-720)
+  const keyP = (i: number) => interpolate(local, [360 + i * 120, 420 + i * 120], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Multi-threaded cores (720-1080)
+  const coreP = interpolate(local, [720, 900], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   // Final seal
   const sealP = interpolate(local, [1080, 1200], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
-  // Tree node positions (root + 3 branches × 3 children)
-  const tree = {
-    root: {x: 250, y: 60, label: 'B2 =SUM(D2:D5)'},
-    branches: [
-      {x: 90, y: 200, label: 'D2 =A2*B2'},
-      {x: 250, y: 200, label: 'D3 =A3*B3'},
-      {x: 410, y: 200, label: 'D4 =OFFSET(...)'},
-    ],
-    leaves: [
-      {x: 60, y: 340, label: 'A2'},
-      {x: 130, y: 340, label: 'B2'},
-      {x: 220, y: 340, label: 'A3'},
-      {x: 290, y: 340, label: 'B3'},
-      {x: 380, y: 340, label: 'A4 ⚠'},
-      {x: 450, y: 340, label: 'TODAY() ⚠'},
-    ],
-  };
-
   return (
     <Stage dur={SC.dur} inFx="left" outFx="left">
-      <TopBadge text="Calculation Dependency Tree ──► Normal Formulas Recalc Only Changed Branches" from={60} to={720} color={C.green} />
+      <TopBadge text="Calculation Modes ──► Automatic | Automatic Except Data Tables | Manual" from={60} to={720} color={C.green} />
 
-      {/* LEFT: Dependency tree visualization */}
-      <div style={{position: 'absolute', left: 80, top: 180, width: 920, height: 680, opacity: treeP}}>
-        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'Calculation Dependency Tree'}</div>
-        <div style={{position: 'relative', width: '100%', height: 600, background: C.card, border: `2px solid ${dirtyP > 0.3 ? C.red : C.green}`, borderRadius: 12, padding: 24, boxShadow: `0 0 30px ${dirtyP > 0.3 ? C.red : C.green}33`}}>
+      {/* LEFT: Formulas tab + Calculation Options dropdown */}
+      <div style={{position: 'absolute', left: 80, top: 180, width: 880, height: 680, opacity: optP}}>
+        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'Formulas → Calculation Options'}</div>
 
-          <svg width="840" height="560" style={{position: 'absolute', left: 24, top: 24}}>
-            {/* Edges root → branches */}
-            {tree.branches.map((b, i) => (
-              <line key={`b${i}`} x1={tree.root.x} y1={tree.root.y + 20} x2={b.x} y2={b.y - 10} stroke={cascadeP > 0.3 ? C.red : C.green} strokeWidth="2.5" opacity={0.8} />
-            ))}
-            {/* Edges branches → leaves */}
-            {tree.leaves.map((l, i) => {
-              const branchIdx = Math.floor(i / 2);
-              const b = tree.branches[branchIdx];
-              return <line key={`l${i}`} x1={b.x} y1={b.y + 20} x2={l.x} y2={l.y - 10} stroke={cascadeP > (i / tree.leaves.length) ? C.red : C.muted} strokeWidth="2" opacity={cascadeP > (i / tree.leaves.length) ? 0.8 : 0.4} />;
-            })}
-          </svg>
-
-          {/* Root node */}
-          <div style={{position: 'absolute', left: 24 + tree.root.x - 90, top: 24 + tree.root.y - 10, padding: '10px 16px', background: C.deep, border: `2px solid ${C.blue}`, borderRadius: 8, fontFamily: MONO, fontSize: 16, color: C.blue, fontWeight: 700, boxShadow: `0 0 15px ${C.blue}66`, whiteSpace: 'nowrap'}}>
-            {tree.root.label}
-          </div>
-
-          {/* Branch nodes */}
-          {tree.branches.map((b, i) => {
-            const isVolatile = i === 2 && dirtyP > 0.3;
-            const isCascaded = cascadeP > 0.2;
-            return (
-              <div key={i} style={{position: 'absolute', left: 24 + b.x - 70, top: 24 + b.y - 10, padding: '8px 14px', background: C.deep, border: `2px solid ${isVolatile ? C.red : isCascaded ? C.amber : C.green}`, borderRadius: 8, fontFamily: MONO, fontSize: 14, color: isVolatile ? C.red : isCascaded ? C.amber : C.green, fontWeight: 700, whiteSpace: 'nowrap'}}>
-                {b.label}
-              </div>
-            );
-          })}
-
-          {/* Leaf nodes */}
-          {tree.leaves.map((l, i) => {
-            const isVolatile = l.label.includes('⚠');
-            const isCascaded = cascadeP > (i / tree.leaves.length);
-            return (
-              <div key={i} style={{position: 'absolute', left: 24 + l.x - 30, top: 24 + l.y - 10, padding: '6px 10px', background: C.deep, border: `1px solid ${isVolatile ? C.red : isCascaded ? C.amber : C.border}`, borderRadius: 6, fontFamily: MONO, fontSize: 13, color: isVolatile ? C.red : isCascaded ? C.amber : C.muted, fontWeight: 600, whiteSpace: 'nowrap'}}>
-                {l.label}
-              </div>
-            );
-          })}
-
-          {/* Dirty flag badge */}
-          {dirtyP > 0.3 && (
-            <div style={{position: 'absolute', right: 24, top: 24, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: `${C.red}22`, border: `2px solid ${C.red}`, borderRadius: 8, opacity: dirtyP}}>
-              <svg width="32" height="32" viewBox="0 0 32 32"><path d="M4 22 L16 4 L28 22 Z" fill="none" stroke={C.red} strokeWidth="2.5" strokeLinejoin="round" /><line x1="16" y1="12" x2="16" y2="17" stroke={C.red} strokeWidth="2.5" strokeLinecap="round" /><circle cx="16" cy="20" r="1.5" fill={C.red} /></svg>
-              <div>
-                <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.red}}>{'DIRTY FLAG'}</div>
-                <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>{'forced cascade'}</div>
-              </div>
+        {/* Ribbon with Formulas tab */}
+        <div style={{background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 14, height: 60, marginBottom: 14}}>
+          {['File', 'Home', 'Insert'].map((t) => (
+            <div key={t} style={{padding: '6px 12px', fontFamily: FONT, fontSize: 13, color: C.muted}}>{t}</div>
+          ))}
+          <div style={{padding: '8px 16px', background: C.green, color: '#0B1222', borderRadius: 4, fontFamily: FONT, fontSize: 14, fontWeight: 700}}>Formulas</div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8, marginLeft: 14}}>
+            <div style={{padding: '8px 14px', background: C.deep, border: `1px solid ${C.green}`, borderRadius: 4, fontFamily: FONT, fontSize: 13, color: C.green, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8}}>
+              Calculation Options
+              <svg width="12" height="8" viewBox="0 0 12 8"><path d="M2 2 L6 6 L10 2" fill="none" stroke={C.green} strokeWidth="1.5" /></svg>
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* Edit trigger indicator */}
-          <div style={{position: 'absolute', right: 24, bottom: 24, padding: '10px 16px', background: C.deep, border: `1px solid ${C.border}`, borderRadius: 6, fontFamily: MONO, fontSize: 13, color: C.muted, opacity: cascadeP}}>
-            {'edit empty cell → 50K recalc'}
+        {/* Dropdown menu */}
+        <div style={{marginLeft: 180, width: 380, background: C.card, border: `2px solid ${C.green}`, borderRadius: 8, padding: 8, boxShadow: `0 12px 30px rgba(2,6,23,0.7), 0 0 20px ${C.green}33`, opacity: selP}}>
+          {CALC_MODES.map((m, i) => (
+            <div key={i} style={{display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: m.active ? `${C.green}22` : 'transparent', borderRadius: 6, cursor: 'pointer', border: m.active ? `1px solid ${m.color}` : '1px solid transparent'}}>
+              <div style={{width: 16, height: 16, borderRadius: 8, border: `2px solid ${m.color}`, background: m.active ? m.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                {m.active && <div style={{width: 4, height: 4, borderRadius: 2, background: '#fff'}} />}
+              </div>
+              <div style={{flex: 1}}>
+                <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: m.active ? m.color : C.text}}>{m.n}</div>
+                <div style={{fontFamily: FONT, fontSize: 11, color: C.muted}}>{m.desc}</div>
+              </div>
+              {m.active && <span style={{fontFamily: MONO, fontSize: 11, color: C.green, fontWeight: 700}}>{'✓ selected'}</span>}
+            </div>
+          ))}
+        </div>
+
+        {/* F9 keys panel */}
+        <div style={{marginTop: 24}}>
+          <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 12}}>{'Precision Recalculation Keys'}</div>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12}}>
+            {RECALC_KEYS.map((k, i) => {
+              const p = keyP(i);
+              return (
+                <div key={i} style={{opacity: p, transform: `translateY(${(1 - p) * 20}px)`, padding: 16, background: C.card, border: `2px solid ${k.color}`, borderRadius: 10, boxShadow: `0 0 15px ${k.color}33`}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8}}>
+                    <div style={{padding: '6px 12px', background: k.color, color: '#0B1222', borderRadius: 6, fontFamily: MONO, fontSize: 16, fontWeight: 700}}>{k.k}</div>
+                  </div>
+                  <div style={{fontFamily: FONT, fontSize: 12, color: C.muted}}>{k.desc}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* RIGHT: 8 Volatile Functions list */}
-      <div style={{position: 'absolute', right: 80, top: 180, width: 760, height: 680, opacity: treeP}}>
-        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'The 8 Volatile Culprits'}</div>
-        <div style={{background: C.card, border: `2px solid ${C.red}`, borderRadius: 12, padding: 18, height: 600, boxShadow: `0 0 30px ${C.red}33`}}>
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12}}>
-            {VOLATILE_FNS.map((fn, i) => {
-              const p = interpolate(local, [120 + i * 40, 160 + i * 40], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+      {/* RIGHT: Multi-threaded cores */}
+      <div style={{position: 'absolute', right: 80, top: 180, width: 880, height: 680, opacity: coreP}}>
+        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'Multi-Threaded Calculation'}</div>
+        <div style={{background: C.card, border: `2px solid ${C.green}`, borderRadius: 12, padding: 22, height: 580, boxShadow: `0 0 30px ${C.green}33`}}>
+          {/* Setting label */}
+          <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18}}>
+            <svg width="28" height="28" viewBox="0 0 28 28"><rect x="4" y="4" width="20" height="20" rx="2" fill="none" stroke={C.green} strokeWidth="2" /><path d="M9 14 L13 18 L19 10" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <div>
+              <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.green}}>{'Enable multi-threaded calculation'}</div>
+              <div style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>{'File → Options → Advanced → Formulas'}</div>
+            </div>
+          </div>
+
+          {/* 8 CPU cores grid */}
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20}}>
+            {Array.from({length: 8}).map((_, i) => {
+              const active = coreP > i / 8;
+              const pulse = 0.7 + Math.sin((local - 720 + i * 5) * 0.2) * 0.3;
               return (
-                <div key={i} style={{padding: '14px 16px', background: C.deep, border: `1px solid ${C.red}`, borderRadius: 8, opacity: p, transform: `translateY(${(1 - p) * 12}px)`}}>
-                  <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.red}}>{fn.n}</div>
-                  <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginTop: 2}}>{fn.desc}</div>
+                <div key={i} style={{padding: 14, background: active ? `${C.green}22` : C.deep, border: `2px solid ${active ? C.green : C.border}`, borderRadius: 10, textAlign: 'center', boxShadow: active ? `0 0 ${10 * pulse}px ${C.green}` : 'none'}}>
+                  <div style={{fontFamily: MONO, fontSize: 12, color: active ? C.green : C.muted, fontWeight: 700}}>{'Core ' + (i + 1)}</div>
+                  <div style={{marginTop: 8, height: 30, background: C.deep, borderRadius: 4, overflow: 'hidden'}}>
+                    <div style={{width: active ? `${60 + Math.sin(local * 0.3 + i) * 30}%` : '0%', height: '100%', background: C.green, transition: 'width 0.2s'}} />
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Warning banner */}
-          <div style={{marginTop: 16, padding: 16, background: `${C.red}22`, border: `1px solid ${C.red}`, borderRadius: 8}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6}}>
-              <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 2 L22 20 H2 Z" fill="none" stroke={C.red} strokeWidth="2" /><line x1="12" y1="9" x2="12" y2="14" stroke={C.red} strokeWidth="2" /><circle cx="12" cy="17" r="1.2" fill={C.red} /></svg>
-              <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.red}}>{'Domino Recalculation Effect'}</div>
+          {/* Performance summary */}
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10}}>
+            <div style={{padding: 12, background: C.deep, border: `1px solid ${C.green}`, borderRadius: 8, textAlign: 'center'}}>
+              <div style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green}}>{'8x'}</div>
+              <div style={{fontFamily: FONT, fontSize: 11, color: C.muted}}>{'parallel cores'}</div>
             </div>
-            <div style={{fontFamily: FONT, fontSize: 13, color: C.muted, lineHeight: 1.6}}>
-              {'أي تعديل (حتى في خلية فارغة) يجبر Excel على إعادة حساب كل الصيغ المعتمدة على هذه الدوال'}
+            <div style={{padding: 12, background: C.deep, border: `1px solid ${C.blue}`, borderRadius: 8, textAlign: 'center'}}>
+              <div style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.blue}}>{'1.8ms'}</div>
+              <div style={{fontFamily: FONT, fontSize: 11, color: C.muted}}>{'recalc time'}</div>
+            </div>
+            <div style={{padding: 12, background: C.deep, border: `1px solid ${C.amber}`, borderRadius: 8, textAlign: 'center'}}>
+              <div style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.amber}}>{'100%'}</div>
+              <div style={{fontFamily: FONT, fontSize: 11, color: C.muted}}>{'CPU usage'}</div>
             </div>
           </div>
         </div>
@@ -134,13 +126,14 @@ export const Scene2: React.FC = () => {
 
       {/* Final seal */}
       <div style={{position: 'absolute', left: 0, right: 0, top: 880, display: 'flex', justifyContent: 'center', opacity: sealP}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.red}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.red}33`}}>
-          <Mix style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.red}}>{'8 Volatile Functions ──► TODAY, NOW, RAND, RANDBETWEEN, OFFSET, INDIRECT, INFO, CELL'}</Mix>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.green}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.green}33`}}>
+          <Check size={40} p={sealP} color={C.green} />
+          <Mix style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.green}}>{'Precision Recalc & Multi-Threading ──► F9 / Shift+F9 / Ctrl+Alt+F9 + All CPU Cores Active'}</Mix>
         </div>
       </div>
 
-      <Caption text="Calculation Dependency Tree ──► Normal Formulas Recalc Only Changed Branches" from={60} to={720} tone="ok" />
-      <Caption text="The 8 Volatile Culprits ──► TODAY, NOW, RAND, RANDBETWEEN, OFFSET, INDIRECT, INFO, CELL" from={840} to={1320} tone="normal" />
+      <Caption text="Calculation Modes ──► Automatic | Automatic Except Data Tables | Manual" from={60} to={720} tone="ok" />
+      <Caption text="Precision Recalc & Multi-Threading ──► F9 / Shift+F9 / Ctrl+Alt+F9 + All CPU Cores Active" from={840} to={1320} tone="ok" />
     </Stage>
   );
 };

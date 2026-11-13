@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-74-volatilefns",
+  "name": "manzooma-excel-lesson-75-perftuning",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 74: Volatile Functions & Performance Impact (Calculation Tree, Dirty Flag, 8 Volatile Fns, INDEX/XLOOKUP/TODAY Cache, A:A Ban) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 75: Performance Tuning & Calculation Management (Calc Options, F9, Multi-threaded, Binary Search, LET, Check Performance, .xlsb) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L74-VolatileFns out/xl-l74-volatilefns.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L75-PerfTuning out/xl-l75-perftuning.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
