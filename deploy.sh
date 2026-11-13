@@ -50,6 +50,10 @@ ok "old project removed"
 (cd "$SRC" && tar --exclude=node_modules --exclude=out --exclude=.git -cf - .) | tar -xf -
 ok "new project copied"
 
+# Ensure git no longer tracks package-lock.json (legacy repos may have committed it)
+git rm --cached --ignore-unmatch package-lock.json 2>/dev/null || true
+rm -f package-lock.json
+
 # ---- 4) name checks (stop before push on any mismatch) ----
 bad=0
 chk() { if ! grep -q -- "$2" "$1" 2>/dev/null; then echo "❌ $1 missing: $2"; bad=1; fi; }
@@ -97,7 +101,9 @@ fi
 git config user.name >/dev/null 2>&1 || git config user.name "Ahmed Gomaa"
 git config user.email >/dev/null 2>&1 || git config user.email "ahmed@users.noreply.github.com"
 rm -f package-lock.json
+git rm --cached --ignore-unmatch package-lock.json 2>/dev/null || true
 git add -A
+git rm --cached --ignore-unmatch package-lock.json 2>/dev/null || true
 git reset HEAD -- package-lock.json 2>/dev/null || true
 rm -f package-lock.json
 if git diff --cached --name-only | grep -q 'package-lock.json'; then

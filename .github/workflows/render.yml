@@ -11,13 +11,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Guard - this repo must contain Excel lesson 71 only
         run: |
-          grep -q "XL-L71-MacroRecorder" src/theme.ts
-          grep -q "XL-L71-MacroRecorder" package.json
-          test -f public/voiceover_lesson_71.mp3
-          test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "8"
-          test ! -f package-lock.json
+          set -e
+          echo "=== Guard checks (verbose) ==="
+          grep -q "XL-L71-MacroRecorder" src/theme.ts && echo "PASS: theme.ts" || { echo "FAIL: theme.ts"; exit 1; }
+          grep -q "XL-L71-MacroRecorder" package.json && echo "PASS: package.json" || { echo "FAIL: package.json"; exit 1; }
+          test -f public/voiceover_lesson_71.mp3 && echo "PASS: voiceover_lesson_71.mp3" || { echo "FAIL: voiceover_lesson_71.mp3"; exit 1; }
+          test -f public/manzooma_logo.svg && echo "PASS: manzooma_logo.svg" || { echo "FAIL: manzooma_logo.svg"; exit 1; }
+          for n in click key tick pop whoosh chime; do
+            test -f public/sfx_$n.mp3 && echo "PASS: sfx_$n.mp3" || { echo "FAIL: sfx_$n.mp3"; exit 1; }
+          done
+          PCOUNT=$(ls public | wc -l)
+          test "$PCOUNT" = "8" && echo "PASS: public has 8 files ($PCOUNT)" || { echo "FAIL: public has $PCOUNT files (expected 8)"; ls public; exit 1; }
+          test ! -f package-lock.json && echo "PASS: no package-lock.json" || { echo "FAIL: package-lock.json exists"; exit 1; }
+          echo "=== All guard checks passed ==="
       - uses: actions/setup-node@v4
         with:
           node-version: 20
