@@ -1,26 +1,28 @@
-import React from 'react';
-import {Audio, Sequence, staticFile} from 'remotion';
-import {SCENES, VOICE_FILE} from './theme';
-import {Backdrop, Chrome} from './kit';
-import {Scene1} from './scenes/Scene1';
-import {Scene2} from './scenes/Scene2';
-import {Scene3} from './scenes/Scene3';
-import {Scene4} from './scenes/Scene4';
-import {Scene5} from './scenes/Scene5';
-import {Scene6} from './scenes/Scene6';
-import {Sfx} from './Sfx';
+import React from "react";
+import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { C, LESSON, LESSONS, UNIT, UNITS, VOICE, DURATION } from "./theme";
+import { SC_START } from "./timing";
+import { TopBadge } from "./kit";
+import { Scene1, Scene2, Scene3 } from "./scenes1";
+import { Scene4, Scene5, Scene6 } from "./scenes2";
 
-export const Video: React.FC = () => (
-  <>
-    <Backdrop />
-    <Audio src={staticFile(VOICE_FILE)} />
-    <Sequence from={SCENES.s1.from} durationInFrames={SCENES.s1.dur}><Scene1 /></Sequence>
-    <Sequence from={SCENES.s2.from} durationInFrames={SCENES.s2.dur}><Scene2 /></Sequence>
-    <Sequence from={SCENES.s3.from} durationInFrames={SCENES.s3.dur}><Scene3 /></Sequence>
-    <Sequence from={SCENES.s4.from} durationInFrames={SCENES.s4.dur}><Scene4 /></Sequence>
-    <Sequence from={SCENES.s5.from} durationInFrames={SCENES.s5.dur}><Scene5 /></Sequence>
-    <Sequence from={SCENES.s6.from} durationInFrames={SCENES.s6.dur}><Scene6 /></Sequence>
-    <Sfx />
-    <Chrome />
-  </>
-);
+const SCENES = [Scene1, Scene2, Scene3, Scene4, Scene5, Scene6];
+
+export const Video: React.FC = () => {
+  const f = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ background: C.bg }}>
+      <Audio src={staticFile(VOICE)} />
+      {SCENES.map((S, i) => {
+        const from = SC_START[i];
+        const end = i + 1 < SCENES.length ? SC_START[i + 1] : DURATION;
+        return (
+          <Sequence key={i} from={from} durationInFrames={end - from}>
+            <S />
+          </Sequence>
+        );
+      })}
+      {f < SC_START[5] + 10 ? <TopBadge lesson={LESSON} lessons={LESSONS} unit={UNIT} units={UNITS} title="Linear Regression & Trend Forecasting Engine" f={f} a={20} b={SC_START[5] + 6} /> : null}
+    </AbsoluteFill>
+  );
+};

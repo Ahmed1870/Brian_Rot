@@ -1,5 +1,4 @@
-import {Config} from '@remotion/cli/config';
+import { Config } from "@remotion/cli/config";
 
-Config.setVideoImageFormat('jpeg');
+Config.setVideoImageFormat("jpeg"); // faster frame capture than png, no alpha needed
 Config.setOverwriteOutput(true);
-Config.setCodec('h264');

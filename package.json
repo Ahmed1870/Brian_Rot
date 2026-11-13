@@ -1,22 +1,21 @@
 {
-  "name": "manzooma-excel-lesson-69-dashboardux",
+  "name": "manzooma-excel-lesson",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 69: Dashboard Design & Executive UX Engine (Z-Pattern, KPI Cards, 3-Color Rule, 3-Layer Workbook, Report Connections, UI Lockdown) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L69-DashboardUX out/xl-l69-dashboardux.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "studio": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts XL-L65-Linear-Regression-Forecasting out/xl-l65-linear-regression-forecasting.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.272",
-    "@remotion/google-fonts": "4.0.272",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.272"
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
-    "typescript": "5.4.5"
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
   }
 }
