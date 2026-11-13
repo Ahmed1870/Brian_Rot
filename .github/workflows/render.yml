@@ -9,6 +9,13 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Remove legacy package-lock.json if committed in a previous lesson
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "⚠ Found package-lock.json in repo (legacy from previous lesson) — removing it"
+            rm -f package-lock.json
+          fi
+          test ! -f package-lock.json && echo "✓ No package-lock.json" || { echo "✗ Cannot remove package-lock.json"; exit 1; }
       - name: Guard - this repo must contain Excel lesson 71 only
         run: |
           set -e
