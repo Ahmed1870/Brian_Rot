@@ -1,4 +1,4 @@
-name: Render Excel Lesson 68 Advanced Charts
+name: Render Excel Lesson 69 Dashboard UX
 on:
   push:
     branches: [main]
@@ -9,11 +9,11 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 68 only
+      - name: Guard - this repo must contain Excel lesson 69 only
         run: |
-          grep -q "XL-L68-AdvCharts" src/theme.ts
-          grep -q "XL-L68-AdvCharts" package.json
-          test -f public/voiceover_lesson_68.mp3
+          grep -q "XL-L69-DashboardUX" src/theme.ts
+          grep -q "XL-L69-DashboardUX" package.json
+          test -f public/voiceover_lesson_69.mp3
           test -f public/manzooma_logo.svg
           for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
           test "$(ls public | wc -l)" = "8"
@@ -31,10 +31,10 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L68-AdvCharts out/xl-l68-advcharts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l68-advcharts.mp4
+      - run: npx remotion render src/index.ts XL-L69-DashboardUX out/xl-l69-dashboardux.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l69-dashboardux.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l68-advcharts
-          path: out/xl-l68-advcharts.mp4
+          name: xl-l69-dashboardux
+          path: out/xl-l69-dashboardux.mp4
           if-no-files-found: error

@@ -1,101 +1,155 @@
+// SC03 — 3-Color Rule & 3-Layer Workbook Architecture (01:25–02:10).
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, SCENES, START} from '../theme';
-import {BULLET, PARETO} from '../data';
-import {CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track} from '../kit';
+import {useCurrentFrame, interpolate} from 'remotion';
+import {C, FONT, MONO} from '../theme';
+import {Stage, TopBadge, Caption, Check} from '../kit';
 
-const S = START.s3;
-const t = (g: number) => sec(g - S);
+const SC = {from: 2550, dur: 1350};
+
+const LAYERS = [
+  {n: '01', name: 'البيانات الخام', sub: 'Raw Data', desc: '50,000 صف معاملات مبيعات — ملف 01_Raw_Data', color: C.muted, lock: false},
+  {n: '02', name: 'الحسابات والجداول', sub: 'Calculations / Staging', desc: 'PivotTables و DAX و Helper Columns — ملف 02_Calculations', color: C.blue, lock: false},
+  {n: '03', name: 'لوحة القيادة التنفيذية', sub: 'Protected Dashboard UI', desc: 'واجهة عرض نظيفة — ملف 03_Executive_Dashboard', color: C.green, lock: true},
+];
+
+const BAD_COLORS = ['#EF4444', '#F59E0B', '#A855F7', '#FBBF24', '#06B6D4', '#10B981', '#38BDF8'];
 
 export const Scene3: React.FC = () => {
-  const f = useCurrentFrame();
-  const cam = camLerp(CAM0, {fx: 420, fy: 360, z: 0.75}, prog(f, t(2), 30));
+  const local = useCurrentFrame();
 
-  const paretoDrawP = prog(f, t(86), 18) * (1 - prog(f, t(130), 12));
-  const eightyMark = prog(f, t(95), 10) * (1 - prog(f, t(130), 12));
-  const bulletDrawP = prog(f, t(100), 18) * (1 - prog(f, t(130), 12));
-  const overlapP = prog(f, t(108), 12) * (1 - prog(f, t(130), 12));
-
-  const maxParetoSales = Math.max(...PARETO.map((d) => d.sales));
-  const pX = 100, pY = 200, pW = 700, pH = 350;
-  const bX = 850, bY = 200, bW = 550, bH = 350;
-  const maxBullet = 350;
+  // Phase 1: rainbow → 3-color (2550→2820)
+  const rainbowOp = interpolate(local, [0, 60, 240, 360], [1, 1, 0.1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const cleanOp = interpolate(local, [120, 300], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Phase 2: 3-layer architecture (2820→3450)
+  const layerP = (i: number) => interpolate(local, [420 + i * 90, 540 + i * 90], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const lockP = interpolate(local, [780, 960], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Phase 3: final seal
+  const sealP = interpolate(local, [1080, 1200], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
   return (
-    <Stage dur={SCENES.s3.dur} inFx="fade" outFx="fade">
-      <ExcelWindow cam={cam}>
-        <ExcelApp file="Charts.xlsx" nameBox="A1" formula="" tab="Insert"
-          cell={() => undefined} colW={() => 80}
-          sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}} thumb={0} thumbSize={0.55}
-        >
-          {/* === PARETO CHART === */}
-          <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 28}}>
-            <rect x={pX} y={pY} width={pW} height={pH} fill={'rgba(255,255,255,0.95)'} stroke={C.purple} strokeWidth={2.5} rx={8} opacity={paretoDrawP} />
-            <text x={pX + pW / 2} y={pY + 25} textAnchor="middle" fill={'#333'} fontFamily={'Segoe UI, sans-serif'} fontSize={14} fontWeight={700} opacity={paretoDrawP}>Pareto Chart (80/20 Rule)</text>
-            <line x1={pX + 40} y1={pY + 50} x2={pX + 40} y2={pY + pH - 30} stroke={'#666'} strokeWidth={1} opacity={paretoDrawP} />
-            {/* Pareto bars (descending) */}
-            {PARETO.map((d, i) => {
-              const gap = (pW - 60) / PARETO.length;
-              const bx = pX + 50 + i * gap;
-              const barH = (d.sales / maxParetoSales) * (pH - 90) * paretoDrawP;
-              const by = pY + pH - 30 - barH;
-              return (
-                <g key={i} opacity={paretoDrawP}>
-                  <rect x={bx} y={by} width={gap - 8} height={barH} fill={`${C.purple}66`} stroke={C.purple} strokeWidth={1} rx={2} />
-                  <text x={bx + (gap - 8) / 2} y={pY + pH - 18} textAnchor="middle" fill={'#444'} fontFamily={'Consolas, monospace'} fontSize={8} transform={`rotate(-30 ${bx + (gap - 8) / 2} ${pY + pH - 18})`}>{d.product.slice(0, 8)}</text>
-                </g>
-              );
-            })}
-            {/* Cumulative % line */}
-            <polyline points={PARETO.map((d, i) => {
-              const gap = (pW - 60) / PARETO.length;
-              const px = pX + 50 + i * gap + (gap - 8) / 2;
-              const py = pY + pH - 30 - (d.cumPct / 100) * (pH - 90) * paretoDrawP;
-              return `${px},${py}`;
-            }).join(' ')} fill={'none'} stroke={C.green} strokeWidth={3} opacity={paretoDrawP} />
-            {PARETO.map((d, i) => {
-              const gap = (pW - 60) / PARETO.length;
-              const px = pX + 50 + i * gap + (gap - 8) / 2;
-              const py = pY + pH - 30 - (d.cumPct / 100) * (pH - 90) * paretoDrawP;
-              return <circle key={i} cx={px} cy={py} r={4} fill={C.green} opacity={paretoDrawP} />;
-            })}
-            {/* 80% cutoff line */}
-            {eightyMark > 0.01 ? (
-              <>
-                <line x1={pX + 40} y1={pY + pH - 30 - 0.8 * (pH - 90)} x2={pX + pW - 10} y2={pY + pH - 30 - 0.8 * (pH - 90)} stroke={C.red} strokeWidth={2} strokeDasharray="6 4" opacity={eightyMark} />
-                <text x={pX + pW - 20} y={pY + pH - 30 - 0.8 * (pH - 90) - 8} textAnchor="end" fill={C.red} fontFamily={'Consolas, monospace'} fontSize={12} fontWeight={700} opacity={eightyMark}>80% cutoff → vital few</text>
-              </>
-            ) : null}
-          </svg>
+    <Stage dur={SC.dur} inFx="left" outFx="left">
+      <TopBadge text="3-Color Restraint Rule ──► Neutral Base + 1 Brand Color + Semantic Alerts" from={60} to={630} color={C.purple} />
 
-          {/* === BULLET CHART === */}
-          <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 28}}>
-            <rect x={bX} y={bY} width={bW} height={bH} fill={'rgba(255,255,255,0.95)'} stroke={C.purple} strokeWidth={2.5} rx={8} opacity={bulletDrawP} />
-            <text x={bX + bW / 2} y={bY + 25} textAnchor="middle" fill={'#333'} fontFamily={'Segoe UI, sans-serif'} fontSize={14} fontWeight={700} opacity={bulletDrawP}>Bullet Chart: Actual vs Target</text>
-            {/* Bullet bars */}
-            {BULLET.map((d, i) => {
-              const rowH = (bH - 60) / BULLET.length;
-              const by = bY + 40 + i * rowH;
-              const targetW = (d.target / maxBullet) * (bW - 100) * bulletDrawP;
-              const actualW = (d.actual / maxBullet) * (bW - 100) * bulletDrawP;
-              return (
-                <g key={i} opacity={bulletDrawP}>
-                  <text x={bX + 10} y={by + rowH / 2 + 4} fill={'#444'} fontFamily={'Consolas, monospace'} fontSize={11} fontWeight={600}>{d.branch}</text>
-                  {/* Target (wide, background) */}
-                  <rect x={bX + 70} y={by + rowH / 2 - 14} width={targetW} height={28} fill={`${C.amber}33`} stroke={`${C.amber}88`} strokeWidth={1} rx={3} />
-                  {/* Actual (narrow, front) — overlap 100% */}
-                  <rect x={bX + 70} y={by + rowH / 2 - 6} width={actualW} height={12} fill={d.actual >= d.target ? C.green : C.red} rx={2} opacity={overlapP > 0.3 ? 1 : 0.5} />
-                  {overlapP > 0.3 ? <text x={bX + 70 + actualW + 5} y={by + rowH / 2 + 4} fill={d.actual >= d.target ? C.green : C.red} fontFamily={'Consolas, monospace'} fontSize={10} fontWeight={700}>{d.actual >= d.target ? '✓' : '✗'} {d.actual}K / {d.target}K</text> : null}
-                </g>
-              );
-            })}
-            {overlapP > 0.3 ? <text x={bX + bW / 2} y={bY + bH - 8} textAnchor="middle" fill={C.purple} fontFamily={'Consolas, monospace'} fontSize={11} fontWeight={700} opacity={overlapP}>Series Overlap = 100% → Actual nested inside Target</text> : null}
-          </svg>
-        </ExcelApp>
-      </ExcelWindow>
+      {/* LEFT: Color palette comparison */}
+      <div style={{position: 'absolute', left: 80, top: 180, width: 820, height: 720}}>
+        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>سيكولوجية الألوان · Color Psychology</div>
 
-      <TopBadge text={'Pareto Chart (80/20 Rule) ──► Auto-Sorts Descending Bars + Cumulative % Line'} from={t(86.0)} to={t(105.0)} />
-      {bulletDrawP > 0.3 ? <Caption text={'Custom Bullet Chart ──► Series Overlap = 100% + Adjusted Gap Width for Actual vs. Target'} from={t(105.0)} to={t(129.0)} tone="ok" /> : null}
+        {/* Rainbow (bad) */}
+        <div style={{position: 'relative', height: 200, background: C.card, border: `2px solid ${C.red}`, borderRadius: 12, padding: 16, marginBottom: 14, opacity: rainbowOp}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10}}>
+            <span style={{background: C.red, color: '#fff', padding: '4px 10px', borderRadius: 4, fontFamily: MONO, fontSize: 14, fontWeight: 700}}>✗ BAD</span>
+            <span style={{fontFamily: FONT, fontSize: 16, color: C.red}}>لوحة قوس قزح صارخة · تشتت الإدارة</span>
+          </div>
+          <div style={{display: 'flex', gap: 8, height: 120}}>
+            {BAD_COLORS.map((c, i) => (
+              <div key={i} style={{flex: 1, background: c, borderRadius: 6, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 8}}>
+                <span style={{fontFamily: MONO, fontSize: 10, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)'}}>{c}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 3-color (good) */}
+        <div style={{position: 'relative', height: 260, background: C.card, border: `2px solid ${C.purple}`, borderRadius: 12, padding: 16, boxShadow: `0 0 30px ${C.purple}44`, opacity: cleanOp, transform: `translateY(${(1 - cleanOp) * 20}px)`}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14}}>
+            <span style={{background: C.green, color: '#0B1222', padding: '4px 10px', borderRadius: 4, fontFamily: MONO, fontSize: 14, fontWeight: 700}}>✓ GOOD</span>
+            <span style={{fontFamily: FONT, fontSize: 16, color: C.purple}}>قاعدة الألوان الثلاثة · 3-Color Restraint</span>
+          </div>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, height: 200}}>
+            <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'}}>
+              <div style={{width: 40, height: 40, borderRadius: 6, background: C.bg, border: `2px solid ${C.muted}`}} />
+              <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: C.muted, marginTop: 8}}>Neutral Base</div>
+              <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>#0F172A</div>
+            </div>
+            <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'}}>
+              <div style={{width: 40, height: 40, borderRadius: 6, background: C.blue}} />
+              <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: C.blue, marginTop: 8}}>Brand Color</div>
+              <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>#38BDF8</div>
+            </div>
+            <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6}}>
+              <div style={{display: 'flex', gap: 6}}>
+                <div style={{width: 18, height: 18, borderRadius: 4, background: C.green}} />
+                <div style={{width: 18, height: 18, borderRadius: 4, background: C.red}} />
+              </div>
+              <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: C.text, marginTop: 4}}>Semantic</div>
+              <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>Green/Red</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Color rule examples */}
+        <div style={{marginTop: 14, display: 'flex', gap: 8, opacity: cleanOp}}>
+          <div style={{flex: 1, background: C.card, borderRadius: 8, padding: 10, border: `1px solid ${C.green}`}}>
+            <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>المستهدف</div>
+            <div style={{fontFamily: MONO, fontSize: 20, fontWeight: 700, color: C.green}}>▲ 102%</div>
+          </div>
+          <div style={{flex: 1, background: C.card, borderRadius: 8, padding: 10, border: `1px solid ${C.red}`}}>
+            <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>انحراف خطر</div>
+            <div style={{fontFamily: MONO, fontSize: 20, fontWeight: 700, color: C.red}}>▼ -8.4%</div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT: 3-Layer Architecture */}
+      <div style={{position: 'absolute', left: 940, top: 180, width: 900, height: 720}}>
+        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>فصل الطبقات · 3-Layer Workbook Model</div>
+
+        <div style={{position: 'relative', height: 660}}>
+          {LAYERS.map((L, i) => {
+            const p = layerP(i);
+            const offX = (1 - p) * 40;
+            return (
+              <React.Fragment key={i}>
+                <div style={{position: 'absolute', left: 0, right: 0, top: i * 200, height: 180, background: C.card, border: `2px solid ${L.color}`, borderRadius: 12, padding: 18, opacity: p, transform: `translateX(${offX}px)`, boxShadow: L.color === C.green && lockP > 0 ? `0 0 30px ${C.green}44` : 'none'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+                    <div style={{width: 50, height: 50, borderRadius: 8, background: L.color, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 22, fontWeight: 700}}>
+                      {L.n}
+                    </div>
+                    <div>
+                      <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text}}>{L.name}</div>
+                      <div style={{fontFamily: MONO, fontSize: 14, color: L.color}}>{L.sub}</div>
+                    </div>
+                    {L.lock && lockP > 0 && (
+                      <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, opacity: lockP, transform: `scale(${0.6 + 0.4 * lockP})`}}>
+                        <svg width="32" height="32" viewBox="0 0 32 32">
+                          <rect x="6" y="14" width="20" height="14" rx="2" fill={C.green} />
+                          <path d="M10 14 V9 a6 6 0 0 1 12 0 V14" fill="none" stroke={C.green} strokeWidth="2.5" />
+                          <circle cx="16" cy="21" r="2" fill="#0B1222" />
+                        </svg>
+                        <span style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: C.green}}>Protected</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{fontFamily: FONT, fontSize: 16, color: C.muted, marginTop: 14}}>{L.desc}</div>
+                  <div style={{marginTop: 10, fontFamily: MONO, fontSize: 12, color: C.muted, background: C.deep, padding: '6px 12px', borderRadius: 6, display: 'inline-block'}}>
+                    {L.n === '01' && '01_Raw_Data'}
+                    {L.n === '02' && '02_Calculations'}
+                    {L.n === '03' && '03_Executive_Dashboard'}
+                  </div>
+                </div>
+
+                {/* Arrow between layers */}
+                {i < LAYERS.length - 1 && (
+                  <div style={{position: 'absolute', left: 440, top: i * 200 + 180, width: 30, height: 20, display: 'flex', justifyContent: 'center', alignItems: 'center', opacity: layerP(i + 1)}}>
+                    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 10 L10 16 L16 10" fill="none" stroke={C.purple} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Final seal */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 900, display: 'flex', justifyContent: 'center', opacity: sealP}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.purple}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.purple}33`}}>
+          <Check size={40} p={sealP} color={C.purple} />
+          <span style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.purple}}>3-Layer Workbook Model ──► Raw Data ──► Calculations ──► Protected Dashboard UI</span>
+        </div>
+      </div>
+
+      <Caption text="3-Color Restraint Rule ──► Neutral Base + 1 Brand Color + Semantic Alerts (Green / Red)" from={60} to={630} tone="normal" />
+      <Caption text="3-Layer Workbook Model ──► Raw Data ──► Calculations ──► Protected Dashboard UI" from={750} to={1320} tone="normal" />
     </Stage>
   );
 };

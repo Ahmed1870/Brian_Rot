@@ -1,82 +1,158 @@
+// SC01 — Dashboard UX Engine: chaotic sheet vs single-screen cockpit (00:00–00:40).
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, SCENES, START, TOTAL_LESSONS, UNIT, TOTAL_UNITS} from '../theme';
-import {CAM0, Caption, ExcelApp, ExcelWindow, Neon, Stage, TopBadge, XL, camLerp, clamp, geo, prog, sec} from '../kit';
+import {useCurrentFrame, interpolate} from 'remotion';
+import {C, FONT, MONO} from '../theme';
+import {Stage, TopBadge, Caption, Chip, Mix, Check, Warn} from '../kit';
 
-const S = START.s1;
-const t = (g: number) => sec(g - S);
+const SC = {from: 0, dur: 1200};
 
 export const Scene1: React.FC = () => {
-  const f = useCurrentFrame();
-  const cam = camLerp(CAM0, {fx: 760, fy: 420, z: 0.7}, prog(f, t(2), 30));
-  const cluttered = prog(f, t(1), 10) * (1 - prog(f, t(6), 10));
-  const consolidated = prog(f, t(6), 16);
+  const local = useCurrentFrame();
+
+  // Chaotic sheet entrance — fades out by frame 540
+  const chaosOp = interpolate(local, [0, 60, 540, 720], [0, 1, 1, 0]);
+  // Cockpit assembly starts at 180, full by 720
+  const cockpitP = interpolate(local, [180, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Final verdict: 5-second clarity check by 1000
+  const sealP = interpolate(local, [900, 1080], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+
+  // KPI card values for the cockpit (static preview)
+  const kpis = [
+    {l: 'إجمالي المبيعات', v: '12.8M', s: 'ج.م', d: '+14.2%', col: C.green},
+    {l: 'صافي الربح', v: '3.21M', s: 'ج.م', d: '+9.8%', col: C.blue},
+    {l: 'هامش الربح', v: '25.0%', s: '', d: '-1.4%', col: C.purple},
+    {l: 'معدل النمو', v: '+14.2%', s: '', d: 'YoY', col: C.amber},
+  ];
 
   return (
-    <Stage dur={SCENES.s1.dur} inFx="fade" outFx="fade">
-      <ExcelWindow cam={cam}>
-        <ExcelApp file="Charts.xlsx" nameBox="A1" formula="" tab="Insert"
-          cell={() => undefined} colW={() => 80}
-          sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}}
-          thumb={0} thumbSize={0.55}
-        >
-          {/* Cluttered: 4 small charts (red, fading) */}
-          {cluttered > 0.01 ? (
-            <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 28}}>
-              {[
-                {x: 100, y: 150, label: 'Sales'},
-                {x: 500, y: 150, label: 'Margin'},
-                {x: 100, y: 400, label: 'Products'},
-                {x: 500, y: 400, label: 'Branches'},
-              ].map((chart, i) => (
-                <g key={i} opacity={cluttered}>
-                  <rect x={chart.x} y={chart.y} width={320} height={180} fill={'rgba(239,68,68,0.08)'} stroke={C.red} strokeWidth={2} rx={8} />
-                  <text x={chart.x + 160} y={chart.y + 95} textAnchor="middle" fill={C.red} fontFamily={'Consolas, monospace'} fontSize={14} fontWeight={700}>{chart.label}</text>
-                  <rect x={chart.x + 20} y={chart.y + 110} width={40} height={50} fill={C.red} opacity={0.3} />
-                  <rect x={chart.x + 70} y={chart.y + 90} width={40} height={70} fill={C.red} opacity={0.3} />
-                  <rect x={chart.x + 120} y={chart.y + 60} width={40} height={100} fill={C.red} opacity={0.3} />
-                  <rect x={chart.x + 170} y={chart.y + 80} width={40} height={80} fill={C.red} opacity={0.3} />
-                  <rect x={chart.x + 220} y={chart.y + 100} width={40} height={60} fill={C.red} opacity={0.3} />
-                </g>
-              ))}
-              <text x={500} y={80} textAnchor="middle" fill={C.red} fontFamily={'Consolas, monospace'} fontSize={20} fontWeight={700} opacity={cluttered}>⚠ CLUTTERED: 4 separate charts → confusing</text>
-            </svg>
-          ) : null}
+    <Stage dur={SC.dur} inFx="fade" outFx="left">
+      <TopBadge text="الدرس 69 من 76 ──► الوحدة 13 من 14 ──► Dashboard Design & Executive UX Engine" from={60} to={1140} color={C.blue} />
 
-          {/* Consolidated: advanced charts (blue, appearing) */}
-          {consolidated > 0.01 ? (
-            <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 28}}>
-              {/* Big Combo chart */}
-              <rect x={100} y={120} width={600} height={420} fill={'rgba(56,189,248,0.06)'} stroke={C.blue} strokeWidth={2.5} rx={10} opacity={consolidated} />
-              <text x={400} y={150} textAnchor="middle" fill={C.blue} fontFamily={'Consolas, monospace'} fontSize={18} fontWeight={700} opacity={consolidated}>Combo Chart (Sales + Margin%)</text>
-              {/* Combo bars + line */}
-              {[200, 280, 360, 440, 520, 600].map((x, i) => {
-                const heights = [140, 100, 85, 60, 48, 35];
-                return <rect key={i} x={x - 25} y={510 - heights[i]} width={50} height={heights[i]} fill={`${C.blue}55`} stroke={C.blue} strokeWidth={2} rx={3} opacity={consolidated} />;
-              })}
-              {/* Combo line (margin %) */}
-              <polyline points={`175,360 255,390 335,340 415,410 495,380 575,430`} fill={'none'} stroke={C.green} strokeWidth={3} opacity={consolidated} />
+      {/* Chaotic sheet on the left */}
+      <div style={{position: 'absolute', left: 80, top: 200, width: 760, height: 620, opacity: chaosOp}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14}}>
+          <Warn size={42} color={C.red} />
+          <div style={{fontFamily: FONT, fontSize: 28, fontWeight: 700, color: C.red}}>شيت مزدحم · تدوّه الإدارة</div>
+        </div>
+        <div style={{position: 'relative', width: '100%', height: 560, background: C.card, border: `2px solid ${C.red}`, borderRadius: 12, overflow: 'hidden', boxShadow: `0 0 30px ${C.red}33`}}>
+          <svg width="760" height="560" style={{position: 'absolute', inset: 0}}>
+            {/* Tiny cells scattered everywhere */}
+            {Array.from({length: 18}).map((_, i) => {
+              const x = 20 + (i % 6) * 120 + Math.sin(i) * 30;
+              const y = 30 + Math.floor(i / 6) * 80 + Math.cos(i) * 20;
+              const w = 80 + (i * 13) % 60;
+              const h = 30 + (i * 7) % 30;
+              const c = ['#EF4444', '#F59E0B', '#A855F7', '#FBBF24'][i % 4];
+              return <rect key={i} x={x} y={y} width={w} height={h} fill={c} fillOpacity={0.15} stroke={c} strokeWidth={1} />;
+            })}
+            {/* Random mini charts */}
+            {Array.from({length: 4}).map((_, i) => (
+              <g key={i} transform={`translate(${50 + i * 180}, ${420})`}>
+                <rect width="160" height="100" fill="#0B1222" stroke="#334155" />
+                <polyline
+                  points={Array.from({length: 8}).map((_, j) => `${j * 20},${80 - (Math.sin(i + j) * 30 + 40)}`).join(' ')}
+                  fill="none"
+                  stroke={['#EF4444', '#F59E0B', '#A855F7', '#FBBF24'][i]}
+                  strokeWidth={2}
+                />
+              </g>
+            ))}
+            {/* Scroll indicator */}
+            <g transform="translate(720, 540)">
+              <rect x="-30" y="-20" width="30" height="20" fill="#1E293B" stroke="#475569" />
+              <path d="M-20,-10 L-10,0 L-20,10" fill="none" stroke="#94A3B8" strokeWidth={2} />
+            </g>
+            <text x="640" y="555" fontFamily="monospace" fontSize="12" fill="#94A3B8">scroll ▼</text>
+          </svg>
+        </div>
+      </div>
 
-              {/* Waterfall */}
-              <rect x={750} y={120} width={500} height={420} fill={'rgba(56,189,248,0.06)'} stroke={C.blue} strokeWidth={2.5} rx={10} opacity={consolidated} />
-              <text x={1000} y={150} textAnchor="middle" fill={C.blue} fontFamily={'Consolas, monospace'} fontSize={18} fontWeight={700} opacity={consolidated}>Waterfall (Revenue → Profit)</text>
+      {/* Arrow showing transformation */}
+      <div style={{position: 'absolute', left: 840, top: 470, opacity: interpolate(local, [240, 360, 540], [0, 1, 0])}}>
+        <svg width="80" height="60" viewBox="0 0 80 60">
+          <path d="M5 30 L70 30 M55 15 L70 30 L55 45" fill="none" stroke={C.blue} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
 
-              {/* Pareto */}
-              <rect x={100} y={580} width={500} height={300} fill={'rgba(56,189,248,0.06)'} stroke={C.blue} strokeWidth={2.5} rx={10} opacity={consolidated} />
-              <text x={350} y={610} textAnchor="middle" fill={C.blue} fontFamily={'Consolas, monospace'} fontSize={18} fontWeight={700} opacity={consolidated}>Pareto 80/20</text>
+      {/* Clean dashboard cockpit on the right */}
+      <div style={{position: 'absolute', left: 920, top: 200, width: 920, height: 620, opacity: interpolate(local, [360, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14}}>
+          <div style={{width: 42, height: 42, borderRadius: 21, background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${C.blue}`}}>
+            <svg width="22" height="22" viewBox="0 0 22 22"><rect x="2" y="2" width="8" height="8" fill="#fff" /><rect x="12" y="2" width="8" height="8" fill="#fff" opacity="0.7" /><rect x="2" y="12" width="8" height="8" fill="#fff" opacity="0.7" /><rect x="12" y="12" width="8" height="8" fill="#fff" /></svg>
+          </div>
+          <div style={{fontFamily: FONT, fontSize: 28, fontWeight: 700, color: C.blue}}>شاشة قيادة تنفيذية · No-Scroll Cockpit</div>
+        </div>
+        <div style={{position: 'relative', width: '100%', height: 560, background: C.card, border: `2px solid ${C.blue}`, borderRadius: 12, overflow: 'hidden', boxShadow: `0 0 40px ${C.blue}55`}}>
+          {/* Title bar */}
+          <div style={{position: 'absolute', left: 0, top: 0, right: 0, height: 56, background: C.deep, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 20px', opacity: cockpitP}}>
+            <span style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.text}}>لوحة قيادة المبيعات · manzooma_sales_2026.xlsx</span>
+            <span style={{marginLeft: 'auto', fontFamily: MONO, fontSize: 14, color: C.muted}}>50,000 rows · &lt;2ms</span>
+          </div>
 
-              {/* Bullet */}
-              <rect x={650} y={580} width={600} height={300} fill={'rgba(56,189,248,0.06)'} stroke={C.blue} strokeWidth={2.5} rx={10} opacity={consolidated} />
-              <text x={950} y={610} textAnchor="middle" fill={C.blue} fontFamily={'Consolas, monospace'} fontSize={18} fontWeight={700} opacity={consolidated}>Bullet Chart (Actual vs Target)</text>
+          {/* KPI cards row */}
+          <div style={{position: 'absolute', left: 16, right: 16, top: 70, height: 130, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12}}>
+            {kpis.map((k, i) => {
+              const cardP = interpolate(local, [180 + i * 40, 360 + i * 40], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+              return (
+                <div key={i} style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, opacity: cardP, transform: `translateY(${(1 - cardP) * 20}px)`}}>
+                  <div style={{fontFamily: FONT, fontSize: 12, color: C.muted}}>{k.l}</div>
+                  <div style={{fontFamily: MONO, fontSize: 26, fontWeight: 700, color: k.col, marginTop: 6}}>{k.v}</div>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4}}>
+                    <span style={{fontFamily: MONO, fontSize: 13, color: k.d.startsWith('-') ? C.red : C.green}}>{k.d.startsWith('-') ? '▼' : '▲'} {k.d}</span>
+                    <svg width="50" height="20">
+                      <polyline points="" />
+                    </svg>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-              <text x={640} y={100} textAnchor="middle" fill={C.blue} fontFamily={'Consolas, monospace'} fontSize={22} fontWeight={700} opacity={consolidated}>✓ CONSOLIDATED: Advanced Charts tell the full story</text>
-            </svg>
-          ) : null}
-        </ExcelApp>
-      </ExcelWindow>
-      <div style={{position: 'absolute', right: 56, top: 80, opacity: prog(f, t(1), 12)}}><div style={{fontFamily: MONO, fontSize: 16, color: C.muted, textAlign: 'right'}}>الدرس 68 من 76 · الوحدة 13 من 14</div></div>
-      <TopBadge text={'الدرس 68 من 76 | الوحدة 13 من 14 ──► Advanced Charts & Custom Visualizations Engine'} from={t(2.0)} to={t(18.0)} />
-      <Caption text={'Executive Visual Storytelling ──► Combo, Waterfall, Pareto & Bullet Chart Architecture'} from={t(18.0)} to={t(39.0)} />
+          {/* Charts area */}
+          <div style={{position: 'absolute', left: 16, right: 16, top: 215, bottom: 16, display: 'grid', gridTemplateColumns: '1.4fr 1fr', gridTemplateRows: '1fr 1fr', gap: 12}}>
+            {/* Big trend chart */}
+            <div style={{gridColumn: '1', gridRow: '1 / 3', background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12, opacity: cockpitP}}>
+              <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginBottom: 6}}>اتجاه المبيعات الشهري</div>
+              <svg width="100%" height="92%" viewBox="0 0 400 220" preserveAspectRatio="none">
+                <polyline points="20,180 50,160 80,175 110,140 140,120 170,130 200,100 230,110 260,125 290,95 320,80 350,60" fill="none" stroke={C.blue} strokeWidth={3} />
+                <polyline points="20,180 50,160 80,175 110,140 140,120 170,130 200,100 230,110 260,125 290,95 320,80 350,60 350,200 20,200" fill={C.blue} fillOpacity={0.15} stroke="none" />
+              </svg>
+            </div>
+            {/* Donut */}
+            <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12, opacity: cockpitP}}>
+              <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginBottom: 6}}>توزيع الفئات</div>
+              <svg width="100%" height="80%" viewBox="0 0 200 160">
+                <circle cx="100" cy="80" r="55" fill="none" stroke="#334155" strokeWidth="22" />
+                <circle cx="100" cy="80" r="55" fill="none" stroke={C.blue} strokeWidth="22" strokeDasharray="120 345" transform="rotate(-90 100 80)" />
+                <circle cx="100" cy="80" r="55" fill="none" stroke={C.green} strokeWidth="22" strokeDasharray="80 345" strokeDashoffset="-120" transform="rotate(-90 100 80)" />
+                <circle cx="100" cy="80" r="55" fill="none" stroke={C.purple} strokeWidth="22" strokeDasharray="60 345" strokeDashoffset="-200" transform="rotate(-90 100 80)" />
+                <text x="100" y="78" textAnchor="middle" fill={C.text} fontFamily="monospace" fontSize="14" fontWeight="700">5 فئات</text>
+                <text x="100" y="95" textAnchor="middle" fill={C.muted} fontFamily="monospace" fontSize="10">2026</text>
+              </svg>
+            </div>
+            {/* Branch bars */}
+            <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12, opacity: cockpitP}}>
+              <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginBottom: 6}}>حصة الفروع</div>
+              <svg width="100%" height="80%" viewBox="0 0 200 120" preserveAspectRatio="none">
+                {[60, 80, 40, 100, 50, 30].map((v, i) => (
+                  <rect key={i} x={10 + i * 32} y={110 - v} width="22" height={v} fill={C.green} rx={2} />
+                ))}
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Final seal */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 850, display: 'flex', justifyContent: 'center', opacity: sealP}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.green}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.green}33`}}>
+          <Check size={40} p={sealP} />
+          <Mix style={{fontFamily: FONT, fontSize: 24, fontWeight: 700, color: C.green}}>5-Second Executive Clarity ──► Single-Screen No-Scroll Cockpit</Mix>
+        </div>
+      </div>
+
+      <Caption text="الدرس 69 من 76 ──► Dashboard Design & Executive UX Engine" from={60} to={540} tone="normal" />
+      <Caption text="5-Second Executive Clarity ──► Single-Screen No-Scroll Cockpit Architecture" from={660} to={1140} tone="ok" />
     </Stage>
   );
 };

@@ -1,143 +1,185 @@
+// SC02 — Z-Pattern Visual Hierarchy & KPI Cards · Snap to Grid (00:40–01:25).
 import React from 'react';
-import {useCurrentFrame} from 'remotion';
-import {C, MONO, SCENES, START} from '../theme';
-import {COMBO_DATA, WATERFALL} from '../data';
-import {CAM0, Caption, Cursor, ExcelApp, ExcelWindow, Neon, Ripple, Stage, TopBadge, XL, camLerp, cellCenter, clamp, dwell, geo, prog, sec, track} from '../kit';
+import {useCurrentFrame, interpolate, spring} from 'remotion';
+import {C, FONT, FPS, MONO} from '../theme';
+import {Stage, TopBadge, Caption, Chip, Mix, Check} from '../kit';
+import {KPI, fmt, fmtCompact} from '../data';
 
-const S = START.s2;
-const t = (g: number) => sec(g - S);
-const colW = (c: number) => [0, 100, 100, 100, 100, 100, 100][c] ?? XL.colW;
+const SC = {from: 1200, dur: 1350};
+
+const Spark: React.FC<{data: number[]; color: string; w?: number; h?: number}> = ({data, color, w = 90, h = 26}) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const r = max - min || 1;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / r) * (h - 4) - 2}`).join(' ');
+  return (
+    <svg width={w} height={h}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} />
+      <circle cx={w} cy={h - ((data[data.length - 1] - min) / r) * (h - 4) - 2} r={3} fill={color} />
+    </svg>
+  );
+};
 
 export const Scene2: React.FC = () => {
-  const f = useCurrentFrame();
-  const cam = camLerp(CAM0, {fx: 420, fy: 360, z: 0.75}, prog(f, t(2), 30));
+  const local = useCurrentFrame();
 
-  // Phase 1: Combo chart (42-55s) — flat line (red) → secondary axis lift (green)
-  const flatP = prog(f, t(42), 10) * (1 - prog(f, t(48), 8));
-  const liftP = prog(f, t(48), 14) * (1 - prog(f, t(85), 12));
-  const comboDrawP = prog(f, t(44), 16);
+  // Z-pattern trace progress (1200→1560)
+  const zTrace = interpolate(local, [0, 240], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // KPI cards reveal one by one (1560→2040)
+  const kpiReveal = (i: number) => interpolate(local, [360 + i * 80, 440 + i * 80], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Snap to Grid (2040→2550)
+  const snapP = interpolate(local, [840, 1080], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Snap glow pulse
+  const snapGlow = Math.max(0, Math.sin((local - 840) * 0.2));
 
-  // Phase 2: Waterfall (55-85s)
-  const waterfallP = prog(f, t(58), 18) * (1 - prog(f, t(85), 12));
-  const setAsTotalP = prog(f, t(72), 12) * (1 - prog(f, t(85), 12));
-
-  const maxSales = Math.max(...COMBO_DATA.map((d) => d.sales));
-  const maxWaterfall = Math.max(...WATERFALL.map((d) => Math.abs(d.value)));
-
-  const chartX = 100, chartY = 200, chartW = 700, chartH = 350;
-  const wfX = 850, wfY = 200, wfW = 550, wfH = 350;
+  // Z-pattern path points (in dashboard grid coords)
+  const zPoints = [
+    {x: 80, y: 90},    // top-left
+    {x: 1840, y: 90},  // top-right
+    {x: 80, y: 540},   // middle-left
+    {x: 1840, y: 540}, // middle-right
+  ];
 
   return (
-    <Stage dur={SCENES.s2.dur} inFx="fade" outFx="fade">
-      <ExcelWindow cam={cam}>
-        <ExcelApp file="Charts.xlsx" nameBox="A1" formula="" tab="Insert"
-          cell={(r, c) => {
-            if (r === 1 && c <= 6) {
-              const h = ['Branch', 'Sales', 'Margin%', '', '', ''];
-              return {t: h[c - 1] || '', b: true, bg: '#E2EFDA', al: 'l'};
-            }
-            const idx = r - 2;
-            if (idx < COMBO_DATA.length && c <= 3) {
-              const row = COMBO_DATA[idx];
-              if (c === 1) return {t: row.branch};
-              if (c === 2) return {t: (row.sales / 1000000).toFixed(1) + 'M', al: 'r'};
-              if (c === 3) return {t: row.margin.toFixed(1) + '%', al: 'r'};
-            }
-            return undefined;
-          }} colW={colW}
-          sel={{r1: 1, c1: 1, r2: 1, c2: 1}} active={{r: 1, c: 1}} thumb={0} thumbSize={0.55}
-        >
-          {/* === COMBO CHART === */}
-          <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 28}}>
-            {/* Chart frame */}
-            <rect x={chartX} y={chartY} width={chartW} height={chartH} fill={'rgba(255,255,255,0.95)'} stroke={liftP > 0.3 ? C.green : C.red} strokeWidth={2.5} rx={8} opacity={comboDrawP} />
-            <text x={chartX + chartW / 2} y={chartY + 25} textAnchor="middle" fill={'#333'} fontFamily={'Segoe UI, sans-serif'} fontSize={14} fontWeight={700} opacity={comboDrawP}>Combo Chart: Sales (M) + Margin %</text>
-            {/* Y-axis left (Sales) */}
-            <line x1={chartX + 40} y1={chartY + 50} x2={chartX + 40} y2={chartY + chartH - 30} stroke={'#666'} strokeWidth={1} opacity={comboDrawP} />
-            {/* Bars */}
-            {COMBO_DATA.map((d, i) => {
-              const barW = 60, gap = (chartW - 80) / COMBO_DATA.length;
-              const bx = chartX + 50 + i * gap;
-              const barH = (d.sales / maxSales) * (chartH - 90) * comboDrawP;
-              const by = chartY + chartH - 30 - barH;
-              return <rect key={i} x={bx} y={by} width={barW} height={barH} fill={`${C.blue}88`} stroke={C.blue} strokeWidth={1.5} rx={3} opacity={comboDrawP} />;
-            })}
-            {/* Margin line — FLAT (before secondary axis) */}
-            {flatP > 0.01 ? (
-              <line x1={chartX + 50} y1={chartY + chartH - 35} x2={chartX + chartW - 20} y2={chartY + chartH - 35} stroke={C.red} strokeWidth={3} opacity={flatP} />
-            ) : null}
-            {/* Margin line — LIFTED (after secondary axis) */}
-            {liftP > 0.01 ? (
-              <>
-                <line x1={chartX + chartW - 10} y1={chartY + 50} x2={chartX + chartW - 10} y2={chartY + chartH - 30} stroke={C.green} strokeWidth={1.5} opacity={liftP} />
-                {COMBO_DATA.map((d, i) => {
-                  const gap = (chartW - 80) / COMBO_DATA.length;
-                  const px = chartX + 50 + i * gap + 30;
-                  const py = chartY + chartH - 30 - (d.margin / 40) * (chartH - 90) * liftP;
-                  return <circle key={i} cx={px} cy={py} r={5} fill={C.green} opacity={liftP} />;
-                })}
-                <polyline points={COMBO_DATA.map((d, i) => {
-                  const gap = (chartW - 80) / COMBO_DATA.length;
-                  const px = chartX + 50 + i * gap + 30;
-                  const py = chartY + chartH - 30 - (d.margin / 40) * (chartH - 90) * liftP;
-                  return `${px},${py}`;
-                }).join(' ')} fill={'none'} stroke={C.green} strokeWidth={3} opacity={liftP} />
-                <text x={chartX + chartW - 5} y={chartY + 45} fill={C.green} fontFamily={'Consolas, monospace'} fontSize={11} fontWeight={700} opacity={liftP}>2nd Axis</text>
-              </>
-            ) : null}
-            {flatP > 0.3 ? <text x={chartX + chartW / 2} y={chartY + chartH - 45} textAnchor="middle" fill={C.red} fontFamily={'Consolas, monospace'} fontSize={12} fontWeight={700} opacity={flatP}>⚠ Margin line FLAT — single axis</text> : null}
-          </svg>
+    <Stage dur={SC.dur} inFx="left" outFx="left">
+      <TopBadge text="Z-Pattern Visual Hierarchy ──► Top Filters ──► Executive KPI Cards ──► Core Charts" from={60} to={720} color={C.green} />
 
-          {/* === WATERFALL CHART === */}
-          <svg width={XL.W} height={XL.H} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 28}}>
-            <rect x={wfX} y={wfY} width={wfW} height={wfH} fill={'rgba(255,255,255,0.95)'} stroke={setAsTotalP > 0.3 ? C.green : C.blue} strokeWidth={2.5} rx={8} opacity={waterfallP} />
-            <text x={wfX + wfW / 2} y={wfY + 25} textAnchor="middle" fill={'#333'} fontFamily={'Segoe UI, sans-serif'} fontSize={14} fontWeight={700} opacity={waterfallP}>Waterfall: Revenue → Net Profit</text>
-            <line x1={wfX + 40} y1={wfY + 50} x2={wfX + 40} y2={wfY + wfH - 30} stroke={'#666'} strokeWidth={1} opacity={waterfallP} />
-            {/* Waterfall bars */}
-            {(() => {
-              let cumY = wfY + wfH - 30;
-              return WATERFALL.map((d, i) => {
-                const barW = 50, gap = (wfW - 60) / WATERFALL.length;
-                const bx = wfX + 50 + i * gap;
-                const barH = (Math.abs(d.value) / maxWaterfall) * (wfH - 90) * waterfallP;
-                let by: number;
-                if (d.type === 'total') {
-                  by = wfY + wfH - 30 - barH;
-                  cumY = by;
-                } else {
-                  by = cumY - barH;
-                  cumY = by;
-                }
-                const color = d.type === 'total' ? (setAsTotalP > 0.3 && i === WATERFALL.length - 1 ? C.green : C.blue) : C.red;
-                return (
-                  <g key={i} opacity={waterfallP}>
-                    <rect x={bx} y={by} width={barW} height={barH} fill={`${color}88`} stroke={color} strokeWidth={1.5} rx={2} />
-                    {setAsTotalP > 0.3 && d.type === 'total' ? (
-                      <>
-                        <line x1={bx - 5} y1={wfY + wfH - 30} x2={bx + barW + 5} y2={wfY + wfH - 30} stroke={C.green} strokeWidth={2} strokeDasharray="4 2" opacity={setAsTotalP} />
-                        <text x={bx + barW / 2} y={wfY + wfH - 15} textAnchor="middle" fill={C.green} fontFamily={'Consolas, monospace'} fontSize={9} fontWeight={700} opacity={setAsTotalP}>Set as Total ✓</text>
-                      </>
-                    ) : null}
-                    <text x={bx + barW / 2} y={by - 5} textAnchor="middle" fill={'#444'} fontFamily={'Consolas, monospace'} fontSize={9} opacity={waterfallP}>{d.label}</text>
-                  </g>
-                );
-              });
-            })()}
-          </svg>
-        </ExcelApp>
-      </ExcelWindow>
+      {/* Dashboard frame */}
+      <div style={{position: 'absolute', left: 80, top: 150, width: 1760, height: 740, background: C.card, border: `2px solid ${C.border}`, borderRadius: 14, overflow: 'hidden'}}>
+        {/* Title bar */}
+        <div style={{position: 'absolute', left: 0, top: 0, right: 0, height: 70, background: C.deep, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 24px'}}>
+          <div style={{width: 36, height: 36, background: C.green, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <svg width="20" height="20" viewBox="0 0 20 20"><rect x="2" y="2" width="7" height="7" fill="#fff" /><rect x="11" y="2" width="7" height="7" fill="#fff" opacity="0.8" /><rect x="2" y="11" width="7" height="7" fill="#fff" opacity="0.8" /><rect x="11" y="11" width="7" height="7" fill="#fff" /></svg>
+          </div>
+          <span style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginLeft: 14}}>لوحة قيادة المبيعات التنفيذية</span>
+          {/* Filter chips */}
+          <div style={{marginLeft: 'auto', display: 'flex', gap: 10}}>
+            {['الفرع: الكل', 'السنة: 2026', 'الفئة: الكل'].map((x, i) => (
+              <div key={i} style={{padding: '8px 16px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, fontFamily: FONT, fontSize: 13, color: C.muted}}>
+                {x}
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* Badge */}
-      <div style={{position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', opacity: clamp(prog(f, t(42), 12) * (1 - prog(f, t(85), 12)))}}>
-        <div style={{display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(11,18,34,0.95)', border: `2px solid ${C.border}`, borderRadius: 12, padding: '8px 18px'}}>
-          {flatP > 0.3 ? <span style={{fontFamily: MONO, fontSize: 16, fontWeight: 700, color: C.red}}>⚠ Single axis → margin line flat</span> : null}
-          {liftP > 0.3 && flatP < 0.3 ? <span style={{fontFamily: MONO, fontSize: 16, fontWeight: 700, color: C.green}}>✓ Secondary Axis → margin line visible</span> : null}
-          {waterfallP > 0.3 ? <span style={{fontFamily: MONO, fontSize: 16, fontWeight: 700, color: C.blue}}>| Waterfall → Set as Total anchors</span> : null}
+        {/* Snap-to-grid ghost guides */}
+        <div style={{position: 'absolute', inset: 0, opacity: snapP * 0.5, pointerEvents: 'none'}}>
+          <svg width="1760" height="740" style={{position: 'absolute', inset: 0}}>
+            {/* Vertical guides */}
+            {[20, 460, 900, 1340, 1740].map((x) => (
+              <line key={`v${x}`} x1={x} y1={90} x2={x} y2={680} stroke={C.green} strokeWidth={1} strokeDasharray="6 6" />
+            ))}
+            {/* Horizontal guides */}
+            <line x1={20} y1={90} x2={1740} y2={90} stroke={C.green} strokeWidth={1} strokeDasharray="6 6" />
+            <line x1={20} y1={250} x2={1740} y2={250} stroke={C.green} strokeWidth={1} strokeDasharray="6 6" />
+            <line x1={20} y1={680} x2={1740} y2={680} stroke={C.green} strokeWidth={1} strokeDasharray="6 6" />
+          </svg>
+        </div>
+
+        {/* Z-pattern trace */}
+        <svg width="1760" height="740" style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+          <defs>
+            <linearGradient id="zpath" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={C.green} stopOpacity="0.2" />
+              <stop offset="100%" stopColor={C.green} stopOpacity="1" />
+            </linearGradient>
+          </defs>
+          {/* Top horizontal */}
+          <line x1={zPoints[0].x} y1={zPoints[0].y} x2={zPoints[0].x + (zPoints[1].x - zPoints[0].x) * Math.min(1, zTrace * 2)} y2={zPoints[0].y} stroke="url(#zpath)" strokeWidth={3} strokeDasharray="8 6" />
+          {/* Diagonal to middle */}
+          {zTrace > 0.5 && (
+            <line
+              x1={zPoints[1].x}
+              y1={zPoints[1].y}
+              x2={zPoints[2].x + (zPoints[3].x - zPoints[2].x) * Math.max(0, (zTrace - 0.5) * 2)}
+              y2={zPoints[3].y}
+              stroke={C.green}
+              strokeWidth={3}
+              strokeDasharray="8 6"
+              opacity={Math.min(1, (zTrace - 0.5) * 2)}
+            />
+          )}
+          {/* Bottom horizontal */}
+          {zTrace > 0.5 && (
+            <line x1={zPoints[2].x} y1={zPoints[2].y} x2={zPoints[2].x + (zPoints[3].x - zPoints[2].x) * Math.min(1, (zTrace - 0.5) * 2)} y2={zPoints[2].y} stroke={C.green} strokeWidth={3} strokeDasharray="8 6" opacity={Math.min(1, (zTrace - 0.5) * 2)} />
+          )}
+          {/* Eye icon following Z path */}
+          {zTrace < 1 && (() => {
+            const seg = Math.floor(zTrace * 3);
+            const segT = (zTrace * 3) % 1;
+            const a = zPoints[seg] || zPoints[0];
+            const b = zPoints[Math.min(seg + 1, 3)] || zPoints[3];
+            const eyeX = a.x + (b.x - a.x) * segT;
+            const eyeY = a.y + (b.y - a.y) * segT;
+            return (
+              <g transform={`translate(${eyeX}, ${eyeY})`}>
+                <ellipse cx={0} cy={0} rx={14} ry={9} fill="none" stroke={C.green} strokeWidth={2} />
+                <circle cx={0} cy={0} r={5} fill={C.green} />
+              </g>
+            );
+          })()}
+        </svg>
+
+        {/* KPI Cards row (4 cards) */}
+        <div style={{position: 'absolute', left: 20, right: 20, top: 90, height: 160, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, padding: '0 14px'}}>
+          {KPI.map((k, i) => {
+            const p = kpiReveal(i);
+            const offY = (1 - p) * 24;
+            return (
+              <div key={i} style={{position: 'relative', background: C.deep, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, opacity: p, transform: `translateY(${offY}px)`, boxShadow: snapP > 0 && snapP < 1 ? `0 0 ${20 * snapGlow}px ${C.green}66` : 'none'}}>
+                <div style={{fontFamily: FONT, fontSize: 13, color: C.muted}}>{k.label}</div>
+                <div style={{fontFamily: MONO, fontSize: 28, fontWeight: 700, color: k.color, marginTop: 4}}>{fmt(k.value, k.fmt as 'currency' | 'percent' | 'int')}{k.suffix}</div>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 6}}>
+                  <div>
+                    <span style={{fontFamily: MONO, fontSize: 12, color: k.arrow >= 0 ? C.green : C.red, fontWeight: 700}}>{k.arrow >= 0 ? '▲' : '▼'} {Math.abs(k.arrow).toFixed(1)}%</span>
+                    <div style={{fontFamily: MONO, fontSize: 10, color: C.muted, marginTop: 2}}>vs 2025</div>
+                  </div>
+                  <Spark data={k.spark} color={k.color} />
+                </div>
+                {/* Snap badge */}
+                {snapP > 0.3 && (
+                  <div style={{position: 'absolute', right: 8, top: 8, fontSize: 10, fontFamily: MONO, color: C.green, opacity: snapP}}> snapped ✓</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Charts area */}
+        <div style={{position: 'absolute', left: 20, right: 20, top: 270, bottom: 30, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 14, padding: '0 14px'}}>
+          <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, opacity: interpolate(local, [560, 720], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+            <div style={{fontFamily: FONT, fontSize: 14, color: C.muted, marginBottom: 8}}>اتجاه المبيعات الشهري · 2026</div>
+            <svg width="100%" height="200" viewBox="0 0 600 200" preserveAspectRatio="none">
+              <polyline points="20,170 70,150 120,165 170,120 220,100 270,110 320,80 370,90 420,100 470,75 520,60 570,40" fill="none" stroke={C.green} strokeWidth={3} />
+              <polyline points="20,170 70,150 120,165 170,120 220,100 270,110 320,80 370,90 420,100 470,75 520,60 570,40 570,195 20,195" fill={C.green} fillOpacity={0.15} stroke="none" />
+            </svg>
+          </div>
+          <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, opacity: interpolate(local, [640, 760], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+            <div style={{fontFamily: FONT, fontSize: 14, color: C.muted, marginBottom: 8}}>{'توزيع الفئات'}</div>
+            <svg width="400" height="200" viewBox="0 0 200 180" preserveAspectRatio="xMidYMid meet">
+              <circle cx="100" cy="90" r="60" fill="none" stroke="#334155" strokeWidth="24" />
+              <circle cx="100" cy="90" r="60" fill="none" stroke={C.blue} strokeWidth="24" strokeDasharray="130 377" transform="rotate(-90 100 90)" />
+              <circle cx="100" cy="90" r="60" fill="none" stroke={C.green} strokeWidth="24" strokeDasharray="85 377" strokeDashoffset="-130" transform="rotate(-90 100 90)" />
+              <circle cx="100" cy="90" r="60" fill="none" stroke={C.purple} strokeWidth="24" strokeDasharray="55 377" strokeDashoffset="-215" transform="rotate(-90 100 90)" />
+            </svg>
+          </div>
         </div>
       </div>
 
-      <TopBadge text={'Combo Chart & Secondary Axis ──► Combine Currency Columns with Percentage Lines Cleanly'} from={t(42.0)} to={t(60.0)} />
-      {waterfallP > 0.3 ? <Caption text={'Waterfall Financial Bridge ──► Trace Revenue to Net Profit Using Set as Total Anchors'} from={t(60.0)} to={t(84.0)} tone="ok" /> : null}
+      {/* Alt+Drag hint */}
+      <div style={{position: 'absolute', left: 80, top: 900, display: 'flex', alignItems: 'center', gap: 14, opacity: snapP}}>
+        <div style={{background: C.deep, border: `2px solid ${C.green}`, borderRadius: 8, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: `0 0 20px ${C.green}55`}}>
+          <span style={{fontFamily: MONO, fontSize: 22, fontWeight: 700, color: C.green, padding: '4px 12px', background: C.card, borderRadius: 4, border: `1px solid ${C.green}`}}>Alt</span>
+          <span style={{fontFamily: FONT, fontSize: 20, color: C.text}}>+</span>
+          <svg width="50" height="20"><path d="M5 10 L40 10 M30 4 L40 10 L30 16" fill="none" stroke={C.green} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <span style={{fontFamily: FONT, fontSize: 18, fontWeight: 600, color: C.green}}>Snap to Grid · محاذاة دقيقة</span>
+        </div>
+        <Check size={36} p={snapP} />
+        <Mix style={{fontFamily: FONT, fontSize: 20, fontWeight: 600, color: C.green}}>Uniform Card Padding ✓</Mix>
+      </div>
+
+      <Caption text="Z-Pattern Visual Hierarchy ──► Top Filters ──► Executive KPI Cards ──► Core Charts" from={60} to={720} tone="ok" />
+      <Caption text="Precision Alignment ──► Use Alt + Drag (Snap to Grid) & Uniform Card Padding" from={840} to={1320} tone="ok" />
     </Stage>
   );
 };

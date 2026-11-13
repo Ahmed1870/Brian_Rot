@@ -1,7 +1,7 @@
+*.log
+.DS_Store
+.cache/
+build/
 node_modules/
 out/
-.cache/
-.DS_Store
-*.log
 package-lock.json
-build/

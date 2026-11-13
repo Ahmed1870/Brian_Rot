@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-68-advcharts",
+  "name": "manzooma-excel-lesson-69-dashboardux",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 68: Advanced Charts & Custom Visualizations (Combo, Waterfall, Pareto, Bullet, Sparklines) (4:00, 1920x1080, 30fps) [XL-L68-AdvCharts]",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 69: Dashboard Design & Executive UX Engine (Z-Pattern, KPI Cards, 3-Color Rule, 3-Layer Workbook, Report Connections, UI Lockdown) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L68-AdvCharts out/xl-l68-advcharts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L69-DashboardUX out/xl-l69-dashboardux.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {
