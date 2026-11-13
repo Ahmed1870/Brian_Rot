@@ -1,4 +1,4 @@
-// SC01 — Task Automation with Macro Recorder Engine (00:00-00:40).
+// SC01 — Reading & Editing Core VBA Scripts Engine (00:00-00:40).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
@@ -10,52 +10,36 @@ export const Scene1: React.FC = () => {
   const local = useCurrentFrame();
 
   const chaosOp = interpolate(local, [0, 60, 540, 720], [0, 1, 1, 0]);
-  const macroP = interpolate(local, [180, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const vbaP = interpolate(local, [180, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const sealP = interpolate(local, [900, 1080], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-
-  // Manual steps on the left (the repetitive workflow)
-  const manualSteps = [
-    'افتح ملف التصدير الأسبوعي',
-    'حدد صف الترويسة',
-    'لوّن الخلفية يدوياً',
-    'اضبط عرض كل عمود',
-    'كرر لكل صف',
-    'أضف معادلة الإجمالي',
-    'كرر العملية كل أسبوع',
-  ];
 
   return (
     <Stage dur={SC.dur} inFx="fade" outFx="left">
-      <TopBadge text="الدرس 71 من 76 ──► بداية الوحدة 14 من 14 ──► Task Automation with Macro Recorder Engine" from={60} to={1140} color={C.blue} />
+      <TopBadge text="الدرس 72 من 76 ──► الوحدة 14 من 14 ──► Reading & Editing Core VBA Scripts Engine" from={60} to={1140} color={C.blue} />
 
-      {/* LEFT: Repetitive manual work */}
+      {/* LEFT: Rigid recorded macro breaking */}
       <div style={{position: 'absolute', left: 80, top: 200, width: 760, height: 620, opacity: chaosOp}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14}}>
           <svg width="42" height="42" viewBox="0 0 42 42"><path d="M21 4 L38 36 H4 Z" fill="none" stroke={C.red} strokeWidth="3" strokeLinejoin="round" /><line x1="21" y1="16" x2="21" y2="26" stroke={C.red} strokeWidth="3" strokeLinecap="round" /><circle cx="21" cy="32" r="2" fill={C.red} /></svg>
-          <div style={{fontFamily: FONT, fontSize: 28, fontWeight: 700, color: C.red}}>تكرار يدوي مرهق · ساعات كل أسبوع</div>
+          <div style={{fontFamily: FONT, fontSize: 26, fontWeight: 700, color: C.red}}>ماكرو جامد · بيتكسر مع زيادة الصفوف</div>
         </div>
         <div style={{position: 'relative', width: '100%', height: 560, background: C.card, border: `2px solid ${C.red}`, borderRadius: 12, overflow: 'hidden', boxShadow: `0 0 30px ${C.red}33`}}>
-          {/* Clock */}
-          <div style={{position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 8, background: C.deep, padding: '8px 14px', borderRadius: 8, border: `1px solid ${C.red}`}}>
-            <svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7.5" fill="none" stroke={C.red} strokeWidth="1.5" /><path d="M9 4.5 V9 L12.5 11" fill="none" stroke={C.red} strokeWidth="1.5" strokeLinecap="round" /></svg>
-            <span style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700}}>4h 30m / أسبوع</span>
+          {/* Code with fixed range */}
+          <div style={{padding: 18, fontFamily: MONO, fontSize: 14, lineHeight: 1.8}}>
+            <div style={{color: C.muted, marginBottom: 8}}>{'— Recorded Macro (RIGID) —'}</div>
+            <div style={{color: C.blue}}>Sub FormatReport()</div>
+            <div style={{color: C.muted}}>    <span style={{color: C.green}}>'</span> Fixed to 500 rows</div>
+            <div style={{color: C.red, textDecoration: 'line-through'}}>    Range("A1:E500").Select</div>
+            <div style={{color: C.red, textDecoration: 'line-through'}}>    Selection.Font.Bold = True</div>
+            <div style={{color: C.blue}}>End Sub</div>
           </div>
-          {/* Manual steps list */}
-          <div style={{padding: '20px 24px'}}>
-            {manualSteps.map((step, i) => {
-              const stepP = interpolate(local, [60 + i * 30, 90 + i * 30], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-              return (
-                <div key={i} style={{display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', opacity: stepP, borderBottom: i < manualSteps.length - 1 ? `1px solid ${C.border}` : 'none'}}>
-                  <div style={{width: 28, height: 28, borderRadius: 4, background: C.red, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 12, fontWeight: 700}}>
-                    {i + 1}
-                  </div>
-                  <span style={{fontFamily: FONT, fontSize: 16, color: C.text, flex: 1}}>{step}</span>
-                  {i > 0 && (
-                    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 10 H15 M11 5 L16 10 L11 15" fill="none" stroke={C.muted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  )}
-                </div>
-              );
-            })}
+
+          {/* Error message */}
+          <div style={{position: 'absolute', left: 0, right: 0, bottom: 0, background: C.red, color: '#fff', padding: 18, fontFamily: FONT, fontSize: 16, fontWeight: 700}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+              <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#fff" strokeWidth="2" /><line x1="8" y1="8" x2="16" y2="16" stroke="#fff" strokeWidth="2" /><line x1="16" y1="8" x2="8" y2="16" stroke="#fff" strokeWidth="2" /></svg>
+              <span>⚠ Error: Row 501+ not formatted (hardcoded range)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -67,49 +51,50 @@ export const Scene1: React.FC = () => {
         </svg>
       </div>
 
-      {/* RIGHT: Macro Recorder Engine */}
+      {/* RIGHT: Adaptive VBA */}
       <div style={{position: 'absolute', left: 920, top: 200, width: 920, height: 620, opacity: interpolate(local, [360, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14}}>
           <div style={{width: 42, height: 42, borderRadius: 8, background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${C.blue}`}}>
-            <svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="5" fill="none" stroke="#fff" strokeWidth="2" /><circle cx="11" cy="11" r="2" fill="#fff" /></svg>
+            <svg width="22" height="22" viewBox="0 0 22 22"><rect x="4" y="3" width="14" height="16" rx="1" fill="none" stroke="#fff" strokeWidth="2" /><path d="M7 7 H15 M7 10 H15 M7 13 H12" stroke="#fff" strokeWidth="1.5" /></svg>
           </div>
-          <div style={{fontFamily: FONT, fontSize: 28, fontWeight: 700, color: C.blue}}>Macro Recorder · أتمتة فورية</div>
+          <div style={{fontFamily: FONT, fontSize: 26, fontWeight: 700, color: C.blue}}>Core VBA Scripts · مرن وديناميكي</div>
         </div>
         <div style={{position: 'relative', width: '100%', height: 560, background: C.card, border: `2px solid ${C.blue}`, borderRadius: 12, overflow: 'hidden', boxShadow: `0 0 40px ${C.blue}55`}}>
-          {/* Macro recorder header */}
-          <div style={{position: 'absolute', left: 0, top: 0, right: 0, height: 56, background: C.deep, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 20px', opacity: macroP}}>
-            <div style={{width: 12, height: 12, borderRadius: 6, background: C.red, marginRight: 8, boxShadow: `0 0 8px ${C.red}`}} />
-            <span style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700}}>REC</span>
-            <span style={{fontFamily: FONT, fontSize: 16, color: C.text, marginLeft: 16}}>Recording: FormatWeeklyReport</span>
-            <span style={{marginLeft: 'auto', fontFamily: MONO, fontSize: 12, color: C.muted}}>00:0{Math.min(9, Math.floor(local / 30))}</span>
+          {/* VBE-like header */}
+          <div style={{position: 'absolute', left: 0, top: 0, right: 0, height: 44, background: C.deep, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 16px'}}>
+            <div style={{display: 'flex', gap: 6, marginRight: 16}}>
+              <div style={{width: 12, height: 12, borderRadius: 6, background: '#FF5F57'}} />
+              <div style={{width: 12, height: 12, borderRadius: 6, background: '#FEBC2E'}} />
+              <div style={{width: 12, height: 12, borderRadius: 6, background: '#28C840'}} />
+            </div>
+            <span style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>Module1 (Code) — VBAProject</span>
           </div>
 
-          {/* VBA code stream */}
-          <div style={{position: 'absolute', left: 16, right: 16, top: 70, bottom: 100, background: C.deep, borderRadius: 8, border: `1px solid ${C.border}`, padding: 16, fontFamily: MONO, fontSize: 13, color: C.text, overflow: 'hidden', opacity: macroP}}>
-            <div style={{color: C.muted, marginBottom: 8}}>{'— Macro Recorder Output —'}</div>
+          {/* Dynamic VBA code */}
+          <div style={{position: 'absolute', left: 16, right: 16, top: 60, bottom: 80, fontFamily: MONO, fontSize: 14, lineHeight: 1.7, opacity: vbaP}}>
             {[
-              'Sub FormatWeeklyReport()',
-              '    Range("A1:F1").Select',
-              '    Selection.Font.Bold = True',
-              '    Selection.Interior.Color = RGB(16,124,65)',
-              '    Columns.AutoFit',
-              '    Range("G2").Formula = "=SUM(B2:F2)"',
-              'End Sub',
+              {l: 'Sub FormatReport()', c: C.blue, delay: 0},
+              {l: "    ' Refactored - dynamic", c: C.green, delay: 1},
+              {l: '    Dim LastRow As Long', c: C.blue, delay: 2},
+              {l: '    LastRow = Cells(Rows.Count, 1).End(xlUp).Row', c: C.purple, delay: 3},
+              {l: '    Range("A1:E" & LastRow).Font.Bold = True', c: C.green, delay: 4},
+              {l: '    Application.ScreenUpdating = False', c: C.amber, delay: 5},
+              {l: 'End Sub', c: C.blue, delay: 6},
             ].map((line, i) => {
               const lp = interpolate(local, [300 + i * 30, 330 + i * 30], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
               return (
-                <div key={i} style={{opacity: lp, transform: `translateX(${(1 - lp) * 20}px)`, color: line.startsWith('Sub') || line.startsWith('End') ? C.blue : line.includes('Selection') ? C.green : line.includes('Range') ? C.amber : C.text}}>
-                  <span style={{color: C.muted, marginRight: 8}}>{i + 1}</span>{line}
+                <div key={i} style={{opacity: lp, transform: `translateX(${(1 - lp) * 20}px)`, color: line.c}}>
+                  <span style={{color: C.muted, marginRight: 12, width: 20, display: 'inline-block'}}>{i + 1}</span>{line.l}
                 </div>
               );
             })}
           </div>
 
-          {/* One-click replay button */}
-          <div style={{position: 'absolute', left: 0, right: 0, bottom: 20, display: 'flex', justifyContent: 'center', opacity: macroP}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 12, background: C.blue, color: '#0B1222', padding: '14px 30px', borderRadius: 8, fontWeight: 700, fontFamily: FONT, fontSize: 18, boxShadow: `0 0 20px ${C.blue}66`}}>
-              <svg width="22" height="22" viewBox="0 0 22 22"><polygon points="6,4 18,11 6,18" fill="#0B1222" /></svg>
-              <span>تشغيل بضغطة واحدة · One-Click Replay</span>
+          {/* Adaptive badge */}
+          <div style={{position: 'absolute', left: 0, right: 0, bottom: 20, display: 'flex', justifyContent: 'center', opacity: vbaP}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 12, background: C.blue, color: '#0B1222', padding: '12px 26px', borderRadius: 8, fontWeight: 700, fontFamily: FONT, fontSize: 16, boxShadow: `0 0 20px ${C.blue}66`}}>
+              <svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 10 H17 M11 5 L17 10 L11 15" fill="none" stroke="#0B1222" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <span>يتكيف مع أي عدد صفوف تلقائياً</span>
             </div>
           </div>
         </div>
@@ -119,12 +104,12 @@ export const Scene1: React.FC = () => {
       <div style={{position: 'absolute', left: 0, right: 0, top: 850, display: 'flex', justifyContent: 'center', opacity: sealP}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.green}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.green}33`}}>
           <Check size={40} p={sealP} />
-          <Mix style={{fontFamily: FONT, fontSize: 24, fontWeight: 700, color: C.green}}>Zero-Code Workflow Automation ──► Record Once, Replay in One Click</Mix>
+          <Mix style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.green}}>Dynamic Code Refactoring ──► Rigid Macros → Adaptive VBA Logic</Mix>
         </div>
       </div>
 
-      <Caption text="الدرس 71 من 76 ──► Task Automation with Macro Recorder Engine" from={60} to={540} tone="normal" />
-      <Caption text="Zero-Code Workflow Automation ──► Record Repetitive Actions Once, Replay in One Click" from={660} to={1140} tone="ok" />
+      <Caption text="الدرس 72 من 76 ──► Reading & Editing Core VBA Scripts Engine" from={60} to={540} tone="normal" />
+      <Caption text="Dynamic Code Refactoring ──► Transforming Rigid Recorded Macros into Adaptive VBA Logic" from={660} to={1140} tone="ok" />
     </Stage>
   );
 };

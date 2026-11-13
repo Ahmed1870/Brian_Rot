@@ -1,161 +1,177 @@
-// SC04 — Assign Macro, QAT & Safe Shortcuts (02:10-02:50).
+// SC04 — Performance Wrapper & F8 Step Debugging (02:10-02:50).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
 import {Stage, TopBadge, Caption, Check} from '../kit';
-import {RECORD_DIALOG, SHORTCUT_KEYS} from '../data';
 
 const SC = {from: 3900, dur: 1200};
+
+const CODE_LINES = [
+  {l: 'Sub FormatSalesData()', c: 'blue'},
+  {l: "    ' Performance wrapper + error shield", c: 'green'},
+  {l: '    On Error GoTo SafeExit', c: 'purple'},
+  {l: '    Application.ScreenUpdating = False', c: 'amber'},
+  {l: '    Application.Calculation = xlCalculationManual', c: 'amber'},
+  {l: '    ', c: 'muted'},
+  {l: '    Dim LastRow As Long', c: 'blue'},
+  {l: '    LastRow = Cells(Rows.Count, 1).End(xlUp).Row', c: 'purple'},
+  {l: '    ', c: 'muted'},
+  {l: '    For Each cell In Range("E2:E" & LastRow)', c: 'purple'},
+  {l: '        If cell.Value > 50000 Then', c: 'amber'},
+  {l: "            cell.Interior.Color = RGB(239, 68, 68)", c: 'red'},
+  {l: '        End If', c: 'amber'},
+  {l: '    Next cell', c: 'purple'},
+  {l: '    ', c: 'muted'},
+  {l: 'SafeExit:', c: 'purple'},
+  {l: '    Application.Calculation = xlCalculationAutomatic', c: 'amber'},
+  {l: '    Application.ScreenUpdating = True', c: 'amber'},
+  {l: 'End Sub', c: 'blue'},
+];
+
+const COLORS: Record<string, string> = {
+  blue: '#38BDF8', green: '#10B981', amber: '#F59E0B', purple: '#A855F7', red: '#EF4444', muted: '#475569',
+};
 
 export const Scene4: React.FC = () => {
   const local = useCurrentFrame();
 
-  // Three execution methods (0-720)
-  const methodP = (i: number) => interpolate(local, [0 + i * 120, 60 + i * 120], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // Shortcut demo (540-840)
-  const shortcutP = interpolate(local, [540, 720], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const keyPress = (i: number) => interpolate(local, [600 + i * 60, 630 + i * 60, 690 + i * 60], [0, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // Clean recording tips (840-1200)
-  const tipP = interpolate(local, [840, 960], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const finalSeal = interpolate(local, [1080, 1180], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const wrapP = interpolate(local, [0, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const stepLine = Math.min(CODE_LINES.length - 1, Math.floor((local - 360) / 30));
+  const shieldP = interpolate(local, [840, 960], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const finalSeal = interpolate(local, [1020, 1140], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+
+  const slowSpeed = 850;
+  const fastSpeed = 1.8;
+  const currentSpeed = interpolate(wrapP, [0, 1], [slowSpeed, fastSpeed]);
 
   return (
     <Stage dur={SC.dur} inFx="left" outFx="left">
-      <TopBadge text="One-Click Execution UI ──► Assign Macro to Shapes & Quick Access Toolbar" from={60} to={540} color={C.amber} />
+      <TopBadge text="Speed Optimization Wrapper ──► Application.ScreenUpdating = False & xlCalculationManual" from={60} to={540} color={C.amber} />
 
-      {/* Three execution methods */}
-      <div style={{position: 'absolute', left: 80, top: 180, right: 80}}>
-        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>3 طرق احترافية لتشغيل الماكرو</div>
-        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18}}>
-          {/* Method 1: Custom Shape + Assign Macro */}
-          <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, opacity: methodP(0), boxShadow: `0 0 20px ${C.amber}33`}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14}}>
-              <div style={{width: 36, height: 36, borderRadius: 8, background: C.amber, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 16, fontWeight: 700}}>1</div>
-              <div>
-                <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.amber}}>Custom Shape Button</div>
-                <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>Insert → Shapes → Assign Macro</div>
-              </div>
-            </div>
-            {/* Shape mock */}
-            <div style={{position: 'relative', height: 120, background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-              <div style={{padding: '14px 30px', background: `linear-gradient(135deg, ${C.amber}, ${C.gold})`, color: '#0B1222', borderRadius: 8, fontFamily: FONT, fontSize: 16, fontWeight: 700, boxShadow: `0 4px 12px ${C.amber}66`, cursor: 'pointer'}}>
-                ▶ تنسيق التقرير
-              </div>
-              {/* Right-click menu */}
-              {methodP(0) > 0.8 && (
-                <div style={{position: 'absolute', right: 8, top: 8, background: C.card, border: `1px solid ${C.amber}`, borderRadius: 6, padding: '6px 10px', fontFamily: FONT, fontSize: 11, color: C.amber, fontWeight: 700}}>
-                  Assign Macro →
-                </div>
-              )}
-            </div>
+      {/* LEFT: VBE with code + F8 highlight */}
+      <div style={{position: 'absolute', left: 80, top: 180, width: 1080, height: 660}}>
+        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, height: '100%', overflow: 'hidden', boxShadow: `0 0 30px ${C.amber}33`}}>
+          <div style={{display: 'flex', alignItems: 'center', padding: '10px 14px', background: C.deep, borderBottom: `1px solid ${C.border}`, gap: 10}}>
+            <span style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>Module1 — FormatSalesData()</span>
+            <span style={{marginLeft: 'auto', fontFamily: FONT, fontSize: 13, color: wrapP > 0.5 ? C.amber : C.muted}}>
+              {wrapP > 0.5 ? 'Turbo Mode ON' : 'Standard Mode'}
+            </span>
           </div>
 
-          {/* Method 2: QAT */}
-          <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, opacity: methodP(1), boxShadow: `0 0 20px ${C.amber}33`}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14}}>
-              <div style={{width: 36, height: 36, borderRadius: 8, background: C.amber, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 16, fontWeight: 700}}>2</div>
-              <div>
-                <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.amber}}>Quick Access Toolbar</div>
-                <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>Pin to QAT · always visible</div>
-              </div>
-            </div>
-            {/* QAT mock */}
-            <div style={{position: 'relative', height: 120, background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12}}>
-              <div style={{display: 'flex', gap: 6, marginBottom: 12, borderBottom: `1px solid ${C.border}`, paddingBottom: 10}}>
-                {/* Standard QAT icons */}
-                {[0, 1, 2].map((i) => (
-                  <div key={i} style={{width: 28, height: 28, borderRadius: 4, background: C.card, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                    <div style={{width: 12, height: 12, background: C.muted, borderRadius: 2}} />
-                  </div>
-                ))}
-                {/* Our macro icon */}
-                <div style={{width: 28, height: 28, borderRadius: 4, background: C.amber, border: `2px solid ${C.amber}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 12px ${C.amber}`}}>
-                  <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="3,2 12,7 3,12" fill="#0B1222" /></svg>
+          <div style={{padding: 18, fontFamily: MONO, fontSize: 13, lineHeight: 2}}>
+            {CODE_LINES.map((line, i) => {
+              const isCurrent = i === stepLine && local >= 360 && local < 840;
+              const isWrap = (i === 3 || i === 4 || i === 16 || i === 17);
+              const wrapHighlight = isWrap && wrapP > 0.5;
+              return (
+                <div key={i} style={{
+                  color: COLORS[line.c] || C.text,
+                  background: isCurrent ? `${C.amber}33` : wrapHighlight ? `${C.amber}22` : 'transparent',
+                  borderLeft: isCurrent ? `3px solid ${C.amber}` : wrapHighlight ? `3px solid ${C.amber}` : '3px solid transparent',
+                  paddingLeft: 8,
+                  marginLeft: -8,
+                  boxShadow: isCurrent ? `0 0 12px ${C.amber}55` : 'none',
+                  whiteSpace: 'pre',
+                }}>
+                  <span style={{color: C.muted, marginRight: 10, width: 20, display: 'inline-block'}}>{i + 1}</span>{line.l || ' '}
+                  {isCurrent && <span style={{color: C.amber, marginLeft: 8}}>F8</span>}
                 </div>
-                <div style={{width: 28, height: 28, borderRadius: 4, background: C.card, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <span style={{fontFamily: MONO, fontSize: 14, color: C.muted}}>▼</span>
-                </div>
-              </div>
-              <div style={{fontFamily: FONT, fontSize: 12, color: C.amber, textAlign: 'center'}}>▲ أيقونة الماكرو مثبّتة في QAT</div>
-              <div style={{marginTop: 10, padding: '6px 10px', background: C.deep, border: `1px solid ${C.border}`, borderRadius: 4, fontFamily: MONO, fontSize: 11, color: C.muted, textAlign: 'center'}}>Excel Options → Quick Access Toolbar → Customize</div>
-            </div>
-          </div>
-
-          {/* Method 3: Keyboard Shortcut */}
-          <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, opacity: methodP(2), boxShadow: `0 0 20px ${C.amber}33`}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14}}>
-              <div style={{width: 36, height: 36, borderRadius: 8, background: C.amber, color: '#0B1222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 16, fontWeight: 700}}>3</div>
-              <div>
-                <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.amber}}>Safe Keyboard Shortcut</div>
-                <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>Ctrl + Shift + Letter</div>
-              </div>
-            </div>
-            <div style={{position: 'relative', height: 120, background: C.deep, border: `1px solid ${C.border}`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10}}>
-              {SHORTCUT_KEYS.map((k, i) => {
-                const press = keyPress(i);
-                return (
-                  <div key={i} style={{
-                    width: 60, height: 60, borderRadius: 8,
-                    background: press > 0.3 ? k.color : C.card,
-                    color: press > 0.3 ? '#0B1222' : C.muted,
-                    border: `2px solid ${k.color}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: MONO, fontSize: 22, fontWeight: 700,
-                    transform: `translateY(${press > 0.5 ? 4 : 0}px) scale(${press > 0.5 ? 0.95 : 1})`,
-                    boxShadow: press > 0.5 ? `0 0 20px ${k.color}` : 'none',
-                    transition: 'all 0.1s',
-                  }}>
-                    {k.k}
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{marginTop: 8, fontFamily: FONT, fontSize: 12, color: C.green, textAlign: 'center'}}>✓ آمن · ما يتعارضش مع Ctrl+C / Ctrl+S</div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Clean recording tips */}
-      <div style={{position: 'absolute', left: 80, top: 540, right: 80, opacity: tipP}}>
-        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>Clean Recording Tips · خطوات نظيفة</div>
-        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14}}>
-          <div style={{background: C.card, border: `1px solid ${C.green}`, borderRadius: 10, padding: 16}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10}}>
-              <Check size={32} p={tipP} />
-              <span style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.green}}>Do · اعمل</span>
+      {/* RIGHT: Performance + F8 panel */}
+      <div style={{position: 'absolute', left: 1200, top: 180, width: 640, height: 660}}>
+        {/* Speed comparison */}
+        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, marginBottom: 14, boxShadow: `0 0 20px ${C.amber}33`}}>
+          <div style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 14}}>Performance Boost</div>
+
+          <div style={{marginBottom: 12}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+              <span style={{fontFamily: MONO, fontSize: 12, color: C.muted}}>Without wrapper</span>
+              <span style={{fontFamily: MONO, fontSize: 14, color: C.red, fontWeight: 700}}>850 ms</span>
             </div>
-            <div style={{fontFamily: FONT, fontSize: 13, color: C.text, lineHeight: 1.8}}>
-              ✓ خطط خطواتك قبل التسجيل<br />
-              ✓ استخدم Select بدقة<br />
-              ✓ فعّل Relative References للجداول<br />
-              ✓ اختبر الماكرو على نسخة احتياطية
+            <div style={{height: 10, background: C.deep, borderRadius: 5, overflow: 'hidden'}}>
+              <div style={{width: '100%', height: '100%', background: C.red}} />
             </div>
           </div>
-          <div style={{background: C.card, border: `1px solid ${C.red}`, borderRadius: 10, padding: 16}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10}}>
-              <svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke={C.red} strokeWidth="2" /><line x1="9" y1="9" x2="23" y2="23" stroke={C.red} strokeWidth="3" strokeLinecap="round" /></svg>
-              <span style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.red}}>Don't · ت avoids</span>
+
+          <div>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+              <span style={{fontFamily: MONO, fontSize: 12, color: C.green}}>With wrapper</span>
+              <span style={{fontFamily: MONO, fontSize: 14, color: C.green, fontWeight: 700}}>{currentSpeed.toFixed(1)} ms</span>
             </div>
-            <div style={{fontFamily: FONT, fontSize: 13, color: C.text, lineHeight: 1.8}}>
-              ✗ نقرات عشوائية أثناء التسجيل<br />
-              ✗ تمرير Scroll غير ضروري<br />
-              ✗ اختيار خلايا بالخطأ<br />
-              ✗ حفظ بصيغة .xlsx العادية
+            <div style={{height: 10, background: C.deep, borderRadius: 5, overflow: 'hidden'}}>
+              <div style={{width: `${(currentSpeed / 850) * 100}%`, height: '100%', background: C.green, transition: 'width 0.2s'}} />
+            </div>
+          </div>
+
+          <div style={{marginTop: 14, padding: '8px 12px', background: C.deep, borderRadius: 6, fontFamily: MONO, fontSize: 12, color: C.amber}}>
+            {Math.round(850 / currentSpeed)}x faster than standard
+          </div>
+        </div>
+
+        {/* F8 key visualization */}
+        <div style={{background: C.card, border: `2px solid ${C.amber}`, borderRadius: 12, padding: 18, marginBottom: 14}}>
+          <div style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 14}}>Step-by-Step Debugging</div>
+
+          <div style={{display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14}}>
+            <div style={{
+              padding: '12px 22px', background: local >= 360 && local < 840 ? C.amber : C.deep,
+              color: local >= 360 && local < 840 ? '#0B1222' : C.text,
+              border: `2px solid ${C.amber}`, borderRadius: 8, fontFamily: MONO, fontSize: 20, fontWeight: 700,
+              transform: `translateY(${local >= 360 && local < 840 ? 4 : 0}px) scale(${local >= 360 && local < 840 ? 0.95 : 1})`,
+              boxShadow: local >= 360 && local < 840 ? `0 0 20px ${C.amber}` : 'none',
+            }}>F8</div>
+            <div>
+              <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: C.amber}}>Step Into</div>
+              <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>Line {Math.min(stepLine + 1, CODE_LINES.length)} / {CODE_LINES.length}</div>
+            </div>
+          </div>
+
+          {/* Progress dots */}
+          <div style={{display: 'flex', gap: 3, flexWrap: 'wrap'}}>
+            {CODE_LINES.map((_, i) => {
+              const done = i < stepLine;
+              const current = i === stepLine;
+              return (
+                <div key={i} style={{
+                  width: 10, height: 10, borderRadius: 2,
+                  background: current ? C.amber : done ? C.green : C.deep,
+                  border: `1px solid ${current ? C.amber : done ? C.green : C.border}`,
+                }} />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Error shield */}
+        <div style={{background: C.card, border: `2px solid ${C.purple}`, borderRadius: 12, padding: 18, opacity: shieldP, boxShadow: `0 0 20px ${C.purple}33`}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <path d="M20 4 L34 10 V20 C34 28 28 34 20 36 C12 34 6 28 6 20 V10 Z" fill="none" stroke={C.purple} strokeWidth="2.5" strokeLinejoin="round" />
+              <path d="M14 20 L18 24 L26 16" fill="none" stroke={C.purple} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div>
+              <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.purple}}>On Error GoTo SafeExit</div>
+              <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginTop: 2}}>{'Code protected from unexpected errors'}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Final seal */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 860, display: 'flex', justifyContent: 'center', opacity: finalSeal}}>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 870, display: 'flex', justifyContent: 'center', opacity: finalSeal}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.amber}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.amber}33`}}>
           <Check size={40} p={finalSeal} color={C.amber} />
-          <span style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.amber}}>One-Click Execution Ready ──► Button + QAT + Ctrl+Shift+M</span>
+          <span style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.amber}}>Turbo + Debugging Ready ──► ScreenUpdating = False + F8 + On Error GoTo</span>
         </div>
       </div>
 
-      <Caption text="One-Click Execution UI ──► Assign Macro to Custom Shapes & Quick Access Toolbar (QAT)" from={60} to={540} tone="normal" />
-      <Caption text="Safe Keyboard Shortcuts ──► Use Ctrl + Shift + Letter & Record Clean Steps Only" from={660} to={1140} tone="normal" />
+      <Caption text="Speed Optimization Wrapper ──► Application.ScreenUpdating = False & xlCalculationManual" from={60} to={540} tone="normal" />
+      <Caption text="Debugging & Error Shield ──► Step-by-Step Execution via F8 + On Error GoTo Handler" from={660} to={1140} tone="normal" />
     </Stage>
   );
 };

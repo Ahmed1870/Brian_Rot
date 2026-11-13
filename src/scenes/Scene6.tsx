@@ -1,4 +1,4 @@
-// SC06 — Lesson 71 Completion · Manzooma Academy Outro (03:30-04:00).
+// SC06 — Lesson 72 Completion · Manzooma Academy Outro (03:30-04:00).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
@@ -10,12 +10,12 @@ export const Scene6: React.FC = () => {
   const local = useCurrentFrame();
 
   const cardP = interpolate(local, [0, 90], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const progressP = interpolate(local, [120, 420], [0, 0.934], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const progressP = interpolate(local, [120, 420], [0, 0.947], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const nextP = interpolate(local, [420, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const sealP = interpolate(local, [540, 660], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const fadeOut = interpolate(local, [780, 900], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
-  const lessonsDone = 71;
+  const lessonsDone = 72;
   const totalLessons = 76;
   const unitsDone = 14;
   const totalUnits = 14;
@@ -27,19 +27,19 @@ export const Scene6: React.FC = () => {
           {/* Header */}
           <div style={{display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24}}>
             <div style={{width: 64, height: 64, borderRadius: 12, background: `linear-gradient(135deg, ${C.green}, ${C.blue})`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-              <svg width="36" height="36" viewBox="0 0 36 36"><circle cx="18" cy="18" r="9" fill="none" stroke="#fff" strokeWidth="2" /><circle cx="18" cy="18" r="3.5" fill="#fff" /></svg>
+              <svg width="36" height="36" viewBox="0 0 36 36"><rect x="6" y="5" width="24" height="26" rx="2" fill="none" stroke="#fff" strokeWidth="2" /><path d="M10 11 H26 M10 16 H26 M10 21 H22" stroke="#fff" strokeWidth="1.5" /></svg>
             </div>
             <div>
               <Mix style={{fontFamily: FONT, fontSize: 28, fontWeight: 700, color: C.text}}>منظومة أكاديمي</Mix>
               <div style={{fontFamily: MONO, fontSize: 14, color: C.muted, marginTop: 2}}>Manzooma Excel Masterclass Platform</div>
             </div>
-            <div style={{marginLeft: 'auto', padding: '8px 16px', background: `${C.green}22`, border: `1px solid ${C.green}`, borderRadius: 999, fontFamily: MONO, fontSize: 13, color: C.green}}>Lesson 71 · Complete</div>
+            <div style={{marginLeft: 'auto', padding: '8px 16px', background: `${C.green}22`, border: `1px solid ${C.green}`, borderRadius: 999, fontFamily: MONO, fontSize: 13, color: C.green}}>Lesson 72 · Complete</div>
           </div>
 
           {/* Lesson title */}
           <div style={{textAlign: 'center', marginBottom: 24}}>
-            <Mix style={{fontFamily: FONT, fontSize: 32, fontWeight: 700, color: C.text}}>Task Automation with Macro Recorder</Mix>
-            <Mix style={{fontFamily: FONT, fontSize: 18, color: C.muted, marginTop: 6, display: 'block'}}>أتمتة المهام باستخدام Macro Recorder</Mix>
+            <Mix style={{fontFamily: FONT, fontSize: 30, fontWeight: 700, color: C.text}}>Reading & Editing Core VBA Scripts</Mix>
+            <Mix style={{fontFamily: FONT, fontSize: 18, color: C.muted, marginTop: 6, display: 'block'}}>قراءة وتعديل أكواد VBA الأساسية</Mix>
           </div>
 
           {/* Progress */}
@@ -60,10 +60,10 @@ export const Scene6: React.FC = () => {
           {/* Next lesson card */}
           <div style={{background: C.deep, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 18, opacity: nextP, transform: `translateY(${(1 - nextP) * 16}px)`}}>
             <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-              <div style={{width: 40, height: 40, borderRadius: 8, background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: MONO, fontSize: 14, fontWeight: 700}}>72</div>
+              <div style={{width: 40, height: 40, borderRadius: 8, background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: MONO, fontSize: 14, fontWeight: 700}}>73</div>
               <div style={{flex: 1}}>
-                <Mix style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.text}}>الدرس القادم: قراءة وتعديل أكواد VBA الأساسية</Mix>
-                <Mix style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginTop: 2, display: 'block'}}>Reading & Editing Core VBA Scripts Engine · الوحدة 14 من 14</Mix>
+                <Mix style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.text}}>الدرس القادم: Office Scripts والفرق بينها وبين VBA</Mix>
+                <Mix style={{fontFamily: MONO, fontSize: 12, color: C.muted, marginTop: 2, display: 'block'}}>Office Scripts vs. VBA Architecture · الوحدة 14 من 14</Mix>
               </div>
               <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12 H19 M13 6 L19 12 L13 18" fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
@@ -85,13 +85,13 @@ export const Scene6: React.FC = () => {
           <div style={{display: 'flex', justifyContent: 'center', marginTop: 24, opacity: sealP, transform: `scale(${0.7 + 0.3 * sealP})`}}>
             <div style={{display: 'flex', alignItems: 'center', gap: 12, padding: '10px 22px', background: `linear-gradient(135deg, ${C.green}, ${C.blue})`, borderRadius: 999, boxShadow: `0 0 40px ${C.green}66`}}>
               <Check size={32} p={sealP} />
-              <Mix style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: '#fff'}}>Task Automation with Macro Recorder Mastered</Mix>
+              <Mix style={{fontFamily: FONT, fontSize: 18, fontWeight: 700, color: '#fff'}}>Reading & Editing Core VBA Scripts Mastered</Mix>
             </div>
           </div>
         </div>
       </div>
 
-      <Caption text="الدرس 71 من 76 ──► الوحدة 14 من 14 ──► Task Automation with Macro Recorder Mastered" from={60} to={720} tone="ok" />
+      <Caption text="الدرس 72 من 76 ──► الوحدة 14 من 14 ──► Reading & Editing Core VBA Scripts Mastered" from={60} to={720} tone="ok" />
     </Stage>
   );
 };

@@ -1,11 +1,11 @@
 {
-  "name": "manzooma-excel-lesson-71-macrorecorder",
+  "name": "manzooma-excel-lesson-72-vbascripts",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 71: Task Automation with Macro Recorder (Developer Tab, Absolute vs Relative, .xlsm vs PERSONAL.XLSB, Assign Macro, QAT, Ctrl+Shift) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 72: Reading & Editing Core VBA Scripts (Alt+F11, VBE, .Select Stripping, LastRow, If/For Each, ScreenUpdating=False, F8 Debug) (4:00, 1920x1080, 30fps)",
   "scripts": {
     "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L71-MacroRecorder out/xl-l71-macrorecorder.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L72-VBAScripts out/xl-l72-vbascripts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "render": "npm run build"
   },
   "dependencies": {

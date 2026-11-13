@@ -1,4 +1,4 @@
-name: Render Excel Lesson 71 Macro Recorder
+name: Render Excel Lesson 72 VBA Scripts
 on:
   push:
     branches: [main]
@@ -16,13 +16,13 @@ jobs:
             rm -f package-lock.json
           fi
           test ! -f package-lock.json && echo "✓ No package-lock.json" || { echo "✗ Cannot remove package-lock.json"; exit 1; }
-      - name: Guard - this repo must contain Excel lesson 71 only
+      - name: Guard - this repo must contain Excel lesson 72 only
         run: |
           set -e
           echo "=== Guard checks (verbose) ==="
-          grep -q "XL-L71-MacroRecorder" src/theme.ts && echo "PASS: theme.ts" || { echo "FAIL: theme.ts"; exit 1; }
-          grep -q "XL-L71-MacroRecorder" package.json && echo "PASS: package.json" || { echo "FAIL: package.json"; exit 1; }
-          test -f public/voiceover_lesson_71.mp3 && echo "PASS: voiceover_lesson_71.mp3" || { echo "FAIL: voiceover_lesson_71.mp3"; exit 1; }
+          grep -q "XL-L72-VBAScripts" src/theme.ts && echo "PASS: theme.ts" || { echo "FAIL: theme.ts"; exit 1; }
+          grep -q "XL-L72-VBAScripts" package.json && echo "PASS: package.json" || { echo "FAIL: package.json"; exit 1; }
+          test -f public/voiceover_lesson_72.mp3 && echo "PASS: voiceover_lesson_72.mp3" || { echo "FAIL: voiceover_lesson_72.mp3"; exit 1; }
           test -f public/manzooma_logo.svg && echo "PASS: manzooma_logo.svg" || { echo "FAIL: manzooma_logo.svg"; exit 1; }
           for n in click key tick pop whoosh chime; do
             test -f public/sfx_$n.mp3 && echo "PASS: sfx_$n.mp3" || { echo "FAIL: sfx_$n.mp3"; exit 1; }
@@ -44,10 +44,10 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L71-MacroRecorder out/xl-l71-macrorecorder.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l71-macrorecorder.mp4
+      - run: npx remotion render src/index.ts XL-L72-VBAScripts out/xl-l72-vbascripts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l72-vbascripts.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l71-macrorecorder
-          path: out/xl-l71-macrorecorder.mp4
+          name: xl-l72-vbascripts
+          path: out/xl-l72-vbascripts.mp4
           if-no-files-found: error

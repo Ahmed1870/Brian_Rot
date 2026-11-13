@@ -1,4 +1,4 @@
-// Sound effects for Lesson 71 — Macro Recorder Automation.
+// Sound effects for Lesson 72 — Reading & Editing Core VBA Scripts.
 import React from 'react';
 import {Audio, Sequence, staticFile} from 'remotion';
 import {FPS, START} from './theme';
@@ -7,32 +7,31 @@ type Cue = {at: number; file: string; vol: number; dur: number};
 const cue = (file: string, vol: number, dur: number, times: number[]): Cue[] => times.map((at) => ({at, file, vol, dur}));
 
 const CUES: Cue[] = [
-  // SC01 — automation engine intro
+  // SC01 — VBA engine intro
   ...cue('sfx_whoosh.mp3', 0.28, 0.7, [START.s2, START.s3, START.s4, START.s5, START.s6].map((s) => s - 0.25)),
   ...cue('sfx_chime.mp3', 0.35, 1.0, [5.5]),
   ...cue('sfx_pop.mp3', 0.4, 0.3, [11.0, 17.0]),
   ...cue('sfx_tick.mp3', 0.3, 0.15, [25.0, 27.0]),
 
-  // SC02 — developer tab + relative references
-  ...cue('sfx_click.mp3', 0.4, 0.2, [41.0, 47.0, 53.0]),
-  ...cue('sfx_pop.mp3', 0.4, 0.3, [50.0]),
-  ...cue('sfx_tick.mp3', 0.3, 0.15, [60.0, 68.0]),
-  ...cue('sfx_pop.mp3', 0.4, 0.3, [80.0]),
+  // SC02 — Alt+F11 + VBE + .Select stripping
+  ...cue('sfx_key.mp3', 0.45, 0.2, [41.0, 42.0]),
+  ...cue('sfx_chime.mp3', 0.35, 1.0, [45.0]),
+  ...cue('sfx_pop.mp3', 0.4, 0.3, [52.0, 60.0]),
+  ...cue('sfx_tick.mp3', 0.3, 0.15, [70.0, 75.0, 80.0]),
   ...cue('sfx_chime.mp3', 0.35, 0.8, [82.0]),
 
-  // SC03 — storage scope + file types
-  ...cue('sfx_pop.mp3', 0.35, 0.3, [88.0, 96.0]),
+  // SC03 — LastRow + If + For Each
+  ...cue('sfx_pop.mp3', 0.4, 0.3, [88.0]),
+  ...cue('sfx_tick.mp3', 0.3, 0.15, [95.0, 100.0, 110.0]),
   ...cue('sfx_chime.mp3', 0.35, 1.0, [99.0]),
   ...cue('sfx_whoosh.mp3', 0.25, 0.5, [110.0]),
-  ...cue('sfx_tick.mp3', 0.3, 0.15, [115.0, 122.0]),
   ...cue('sfx_pop.mp3', 0.35, 0.3, [125.0]),
 
-  // SC04 — assign macro + shortcut
-  ...cue('sfx_click.mp3', 0.45, 0.2, [132.0, 138.0, 144.0]),
+  // SC04 — ScreenUpdating + F8
+  ...cue('sfx_click.mp3', 0.45, 0.2, [132.0, 138.0]),
   ...cue('sfx_chime.mp3', 0.35, 1.0, [148.0]),
-  ...cue('sfx_key.mp3', 0.4, 0.2, [155.0, 158.0, 160.0]),
+  ...cue('sfx_key.mp3', 0.4, 0.2, [155.0, 158.0, 160.0, 163.0, 166.0]),
   ...cue('sfx_pop.mp3', 0.4, 0.3, [165.0, 170.0]),
-  ...cue('sfx_chime.mp3', 0.35, 0.7, [168.0]),
 
   // SC05 — enterprise execution
   ...cue('sfx_whoosh.mp3', 0.3, 0.6, [171.0]),
