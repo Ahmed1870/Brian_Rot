@@ -1,40 +1,43 @@
-name: Render Excel Lesson 61 Filter Removal
+name: Render lesson video
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: {}
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain Excel lesson 61 only
-        run: |
-          grep -q "XL-L61-FilterRemoval" src/theme.ts
-          grep -q "XL-L61-FilterRemoval" package.json
-          test -f public/voiceover_lesson_61.mp3
-          test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "8"
-          test ! -f package-lock.json
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies (no lockfile, with retry)
+      - name: Guard (names, voiceover, public)
+        run: |
+          set -e
+          grep -q "XL-L55-FILTER-PROPAGATION" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
+          grep -q "XL-L55-FILTER-PROPAGATION" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
+          grep -q "xl-l55-filter-propagation.mp4" package.json || { echo "output name missing in package.json"; exit 1; }
+          test -s public/voiceover_lesson_55.mp3 || { echo "voiceover missing"; exit 1; }
+          extra=$(ls public | grep -vxE "voiceover_lesson_55.mp3|manzooma_logo.svg" || true)
+          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
+          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
+      - name: Install
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L61-FilterRemoval out/xl-l61-filterremoval.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l61-filterremoval.mp4
+      - name: Render
+        run: npx remotion render src/index.ts XL-L55-FILTER-PROPAGATION out/xl-l55-filter-propagation.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - name: Check output
+        run: test -s out/xl-l55-filter-propagation.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l61-filterremoval
-          path: out/xl-l61-filterremoval.mp4
-          if-no-files-found: error
+          name: xl-l55-filter-propagation
+          path: out/xl-l55-filter-propagation.mp4

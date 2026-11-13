@@ -1,44 +1,20 @@
-// Manzooma — Lesson 61: ALL, ALLEXCEPT & Remove Filters Engine (DAX).
-
-/* ------------------------------------------------------------------ PivotTable data (Scenes 1-4) */
-export const PIVOT_ROWS = [
-  {branch: 'Cairo',       sales: 285000, pct: 0},
-  {branch: 'Alexandria',  sales: 195000, pct: 0},
-  {branch: 'Giza',         sales: 165000, pct: 0},
-  {branch: 'Mansoura',    sales: 120000, pct: 0},
-  {branch: 'Tanta',       sales:  95000, pct: 0},
-];
-export const GRAND_TOTAL = PIVOT_ROWS.reduce((s, r) => s + r.sales, 0); // 860000
-// % of Total = sales / GRAND_TOTAL
-export const PIVOT_WITH_PCT = PIVOT_ROWS.map((r) => ({...r, pct: +(r.sales / GRAND_TOTAL * 100).toFixed(1)}));
-
-// DAX measures
-export const MEASURE_ALL = 'All Sales = CALCULATE([Total Sales], ALL(Fact_Sales))';
-export const MEASURE_PCT = '% Total = DIVIDE([Total Sales], [All Sales])';
-export const MEASURE_ALLEXCEPT = 'Cat Total = CALCULATE([Total Sales], ALLEXCEPT(Dim_Product, Dim_Product[Category]))';
-export const MEASURE_REMOVEFILTERS = 'CALCULATE([Total Sales], REMOVEFILTERS(Dim_Product[SubCategory]))';
-export const MEASURE_DIVIDE_SAFE = 'DIVIDE([Total Sales], [All Sales], 0)';
-export const MEASURE_UNSAFE = '[Total Sales] / [All Sales]';
-
-// Error display
-export const DIV_ERROR = '#DIV/0!';
-
-/* ------------------------------------------------------------------ big sales (Scene 5) */
-const BIG_BRANCHES = ['Cairo', 'Alexandria', 'Giza', 'Mansoura', 'Tanta'];
-const BIG_PRODUCTS = ['Wireless Mouse', 'USB-C Cable', 'Laptop Stand', 'Office Chair', 'Notebook A5', 'Desk Lamp', 'Monitor 24"', 'Keyboard'];
-
-export type BigSale = {id: string; branch: string; product: string; amount: number; pct: number};
-
-export const bigSale = (n: number): BigSale => {
-  const h = (n * 2654435761) >>> 0;
-  const branch = BIG_BRANCHES[(h >>> 13) % BIG_BRANCHES.length];
-  const product = BIG_PRODUCTS[(h >>> 3) % BIG_PRODUCTS.length];
-  const amount = 100 + ((h >>> 9) % 4900);
-  const pct = +((amount / 5000) * 100).toFixed(2);
-  return {id: `ORD-${5000 + n}`, branch, product, amount, pct};
+// Illustrative star-schema data for lesson 55 (Fact_Sales + Dim_Product/Customer/Date).
+export const num = (n: number): string => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const h = (a: number, b: number): number => {
+  let x = Math.imul(a + 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35);
+  x ^= x >>> 15; x = Math.imul(x, 0x2c1b3c6d); x ^= x >>> 12; x = Math.imul(x, 0x297a2d39); x ^= x >>> 15;
+  return (x >>> 0) / 4294967296;
 };
-
-export const BIG_ROWS = 50000;
-export const BIG_LAST = BIG_ROWS + 1;
-export const fmtInt = (n: number) => n.toLocaleString('en-US');
-export const fmtPct = (n: number) => n.toFixed(1) + '%';
+export const FACT_COLS = ["SalesKey", "OrderDateKey", "ShipDateKey", "ProductKey", "CustomerKey", "Qty", "Amount"];
+const PRICE = [18500, 450, 1200, 4200, 650, 900, 5200, 2100, 1500, 1800];
+export const factRow = (i: number): string[] => {
+  const mo = 1 + Math.floor(h(i, 1) * 6), d = 1 + Math.floor(h(i, 2) * 22), sd = d + 1 + Math.floor(h(i, 3) * 5);
+  const p = 1 + Math.floor(h(i, 4) * 480), q = 1 + Math.floor(h(i, 5) * 5);
+  const key = (m: number, dd: number): string => "2026" + String(m).padStart(2, "0") + String(dd).padStart(2, "0");
+  return [String(100001 + i), key(mo, d), key(mo, sd), String(p), String(1 + Math.floor(h(i, 6) * 3000)), String(q), num(q * PRICE[(p - 1) % 10])];
+};
+export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+export const ORDER_TOT = [412350, 438900, 455200, 470100, 502800, 531400];
+const PREV = 380200;
+export const SHIP_TOT = ORDER_TOT.map((o, i) => Math.round(o * 0.35 + (i === 0 ? PREV : ORDER_TOT[i - 1]) * 0.65));
+export const N_ROWS = 50000;
