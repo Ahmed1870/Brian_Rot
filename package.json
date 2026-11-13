@@ -2,7 +2,7 @@
   "name": "manzooma-excel-lesson-68-advcharts",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 68: Advanced Charts & Custom Visualizations (Combo, Waterfall, Pareto, Bullet, Sparklines) (4:00, 1920x1080, 30fps)",
+  "description": "Manzooma | Excel From Zero to Professional - Lesson 68: Advanced Charts & Custom Visualizations (Combo, Waterfall, Pareto, Bullet, Sparklines) (4:00, 1920x1080, 30fps) [XL-L68-AdvCharts]",
   "scripts": {
     "start": "remotion studio",
     "build": "remotion render src/index.ts XL-L68-AdvCharts out/xl-l68-advcharts.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
