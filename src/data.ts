@@ -1,94 +1,55 @@
-// Lesson 73 — Office Scripts vs VBA Architecture
+// Lesson 74 — Volatile Functions & Performance Impact
 
-// TypeScript Office Script (main + getUsedRange + getValues/setValues)
-export const TS_SCRIPT = [
-  {n: 1, code: 'function main(workbook: ExcelScript.Workbook) {', c: 'kw'},
-  {n: 2, code: '  let sheet = workbook.getActiveWorksheet();', c: 'obj'},
-  {n: 3, code: '  let range = sheet.getUsedRange();', c: 'green'},
-  {n: 4, code: '  let values: string[][] = range.getValues();', c: 'purple'},
-  {n: 5, code: '  for (let i = 0; i < values.length; i++) {', c: 'kw'},
-  {n: 6, code: '    let profit = Number(values[i][3]) - Number(values[i][2]);', c: 'amber'},
-  {n: 7, code: '    values[i][5] = profit.toString();', c: 'amber'},
-  {n: 8, code: '  }', c: 'kw'},
-  {n: 9, code: '  range.setValues(values);', c: 'purple'},
-  {n: 10, code: '}', c: 'kw'},
+export const VOLATILE_FNS = [
+  {n: 'TODAY()', desc: 'تاريخ اليوم', color: '#EF4444'},
+  {n: 'NOW()', desc: 'الوقت الحالي', color: '#EF4444'},
+  {n: 'RAND()', desc: 'رقم عشوائي', color: '#EF4444'},
+  {n: 'RANDBETWEEN()', desc: 'رقم بين حدّين', color: '#EF4444'},
+  {n: 'OFFSET()', desc: 'إزاحة نطاق', color: '#EF4444'},
+  {n: 'INDIRECT()', desc: 'مرجع نصي', color: '#EF4444'},
+  {n: 'INFO()', desc: 'معلومات النظام', color: '#EF4444'},
+  {n: 'CELL()', desc: 'خصائص الخلية', color: '#EF4444'},
 ];
 
-export const TS_COLORS: Record<string, string> = {
-  kw: '#38BDF8',
-  obj: '#10B981',
-  green: '#10B981',
-  purple: '#A855F7',
-  amber: '#F59E0B',
-};
-
-// Comparison matrix: VBA vs Office Scripts
-export const COMPARISON = [
+export const REPLACEMENTS = [
   {
-    aspect: 'بيئة التشغيل',
-    aspectEn: 'Platform',
-    vba: 'Desktop Only',
-    office: 'Web + Desktop + Mac',
-    vbaBad: true,
-    officeGood: true,
+    bad: 'OFFSET(A1, 5, 2)',
+    badLabel: 'Volatile',
+    good: 'INDEX(A:A, 6)',
+    goodLabel: 'Non-Volatile',
+    desc: 'استبدال OFFSET بـ INDEX',
+    badColor: '#EF4444',
+    goodColor: '#A855F7',
   },
   {
-    aspect: 'صيغة الملف',
-    aspectEn: 'File Format',
-    vba: '.xlsm (محظور من IT)',
-    office: '.xlsx (آمن)',
-    vbaBad: true,
-    officeGood: true,
+    bad: 'INDIRECT("Sheet" & A1)',
+    badLabel: 'Volatile',
+    good: 'XLOOKUP(A1, Keys, Sheets)',
+    goodLabel: 'Non-Volatile',
+    desc: 'استبدال INDIRECT بـ XLOOKUP',
+    badColor: '#EF4444',
+    goodColor: '#A855F7',
   },
   {
-    aspect: 'مكان تخزين الكود',
-    aspectEn: 'Code Storage',
-    vba: 'داخل الملف',
-    office: 'OneDrive / SharePoint',
-    vbaBad: true,
-    officeGood: true,
-  },
-  {
-    aspect: 'التشغيل الخلفي',
-    aspectEn: 'Background Run',
-    vba: 'لا يدعم',
-    office: 'Power Automate',
-    vbaBad: true,
-    officeGood: true,
-  },
-  {
-    aspect: 'المشاركة الجماعية',
-    aspectEn: 'Team Sharing',
-    vba: 'صعب (نسخ يدوي)',
-    office: 'بنقرة زر',
-    vbaBad: true,
-    officeGood: true,
+    bad: '=TODAY() × 50,000 rows',
+    badLabel: '50K recalcs',
+    good: '$B$1 = TODAY()',
+    goodLabel: '1 recalc',
+    desc: 'عزل TODAY في خلية واحدة',
+    badColor: '#EF4444',
+    goodColor: '#A855F7',
   },
 ];
 
-// Decision matrix - when to use each
-export const VBA_USES = [
-  {icon: 'disk', l: 'الوصول للملفات المحلية على الويندوز'},
-  {icon: 'outlook', l: 'التحكم في Outlook و Word عبر COM'},
-  {icon: 'form', l: 'بناء واجهات إدخال UserForms'},
-];
-
-export const OFFICE_USES = [
-  {icon: 'web', l: 'التعاون السحابي عبر Excel Web'},
-  {icon: 'share', l: 'مشاركة السكربت مع الفريق'},
-  {icon: 'flow', l: 'الجدولة التلقائية عبر Power Automate'},
+export const TRAPS = [
+  {n: 'Conditional Formatting', desc: 'التنسيق الشرطي على عمود كامل', icon: 'cf'},
+  {n: 'Data Validation', desc: 'التحقق من البيانات على نطاق واسع', icon: 'dv'},
+  {n: 'Named Ranges', desc: 'الأسماء المعرفة على A:A', icon: 'nr'},
 ];
 
 export const EXEC_STATS = [
-  {l: 'الصفوف المعالجة', v: '50,000', s: 'rows', color: '#10B981'},
-  {l: 'زمن التنفيذ', v: '1.8', s: 'ms', color: '#38BDF8'},
-  {l: 'صيغة الملف', v: '.xlsx', s: 'safe', color: '#A855F7'},
-  {l: 'التدخل البشري', v: '0', s: 'manual', color: '#F59E0B'},
-];
-
-export const POWER_AUTOMATE_TRIGGERS = [
-  {icon: 'mail', l: 'وصول إيميل جديد'},
-  {icon: 'file', l: 'تحديث ملف SharePoint'},
-  {icon: 'time', l: 'جدولة يومية'},
-  {icon: 'team', l: 'رسالة Teams'},
+  {l: 'الصفوف المعاد حسابها', v: '50,000', s: 'rows', color: '#10B981'},
+  {l: 'زمن إعادة الحساب', v: '1.8', s: 'ms', color: '#38BDF8'},
+  {l: 'الدوال المتغيرة المحذوفة', v: '50K+', s: 'removed', color: '#EF4444'},
+  {l: 'تحسين الأداء', v: '500x', s: 'faster', color: '#A855F7'},
 ];

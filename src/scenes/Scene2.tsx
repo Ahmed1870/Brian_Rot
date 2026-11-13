@@ -1,144 +1,146 @@
-// SC02 — Automate Tab & TypeScript Workbook APIs (00:40-01:25).
+// SC02 — Calculation Tree & Dirty Flag Cascade (00:40-01:25).
 import React from 'react';
 import {useCurrentFrame, interpolate} from 'remotion';
 import {C, FONT, MONO} from '../theme';
 import {Stage, TopBadge, Caption, Check, Mix} from '../kit';
-import {TS_SCRIPT, TS_COLORS} from '../data';
+import {VOLATILE_FNS} from '../data';
 
 const SC = {from: 1200, dur: 1350};
 
 export const Scene2: React.FC = () => {
   const local = useCurrentFrame();
 
-  // Automate tab reveal (0-180)
-  const tabP = interpolate(local, [0, 120], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // Code editor (120-480)
-  const codeP = interpolate(local, [120, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // Record Actions button (360-720)
-  const recordP = interpolate(local, [360, 480], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  // Bulk array transfer (720-1080)
-  const bulkP = interpolate(local, [720, 900], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Normal tree reveal (0-360)
+  const treeP = interpolate(local, [0, 360], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Dirty flag cascade (360-840)
+  const dirtyP = interpolate(local, [360, 540], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const cascadeP = interpolate(local, [540, 840], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   // Final seal
   const sealP = interpolate(local, [1080, 1200], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
+  // Tree node positions (root + 3 branches × 3 children)
+  const tree = {
+    root: {x: 250, y: 60, label: 'B2 =SUM(D2:D5)'},
+    branches: [
+      {x: 90, y: 200, label: 'D2 =A2*B2'},
+      {x: 250, y: 200, label: 'D3 =A3*B3'},
+      {x: 410, y: 200, label: 'D4 =OFFSET(...)'},
+    ],
+    leaves: [
+      {x: 60, y: 340, label: 'A2'},
+      {x: 130, y: 340, label: 'B2'},
+      {x: 220, y: 340, label: 'A3'},
+      {x: 290, y: 340, label: 'B3'},
+      {x: 380, y: 340, label: 'A4 ⚠'},
+      {x: 450, y: 340, label: 'TODAY() ⚠'},
+    ],
+  };
+
   return (
     <Stage dur={SC.dur} inFx="left" outFx="left">
-      <TopBadge text="Automate Tab & TypeScript ──► function main(workbook) + getUsedRange() + getValues/setValues" from={60} to={720} color={C.green} />
+      <TopBadge text="Calculation Dependency Tree ──► Normal Formulas Recalc Only Changed Branches" from={60} to={720} color={C.green} />
 
-      {/* Ribbon with Automate tab */}
-      <div style={{position: 'absolute', left: 80, top: 170, width: 1760, height: 90, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 14, opacity: tabP}}>
-        {['File', 'Home', 'Insert', 'Data', 'Review', 'View'].map((t) => (
-          <div key={t} style={{padding: '6px 12px', fontFamily: FONT, fontSize: 14, color: C.muted}}>{t}</div>
-        ))}
-        <div style={{padding: '8px 16px', background: C.green, color: '#0B1222', borderRadius: 4, fontFamily: FONT, fontSize: 14, fontWeight: 700, boxShadow: `0 0 15px ${C.green}55`}}>Automate</div>
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginLeft: 14}}>
-          <div style={{width: 50, height: 50, borderRadius: 6, background: C.deep, border: `2px solid ${C.green}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 15px ${C.green}55`}}>
-            <svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="6" fill="none" stroke={C.green} strokeWidth="2" /><circle cx="11" cy="11" r="2" fill={C.green} /></svg>
+      {/* LEFT: Dependency tree visualization */}
+      <div style={{position: 'absolute', left: 80, top: 180, width: 920, height: 680, opacity: treeP}}>
+        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'Calculation Dependency Tree'}</div>
+        <div style={{position: 'relative', width: '100%', height: 600, background: C.card, border: `2px solid ${dirtyP > 0.3 ? C.red : C.green}`, borderRadius: 12, padding: 24, boxShadow: `0 0 30px ${dirtyP > 0.3 ? C.red : C.green}33`}}>
+
+          <svg width="840" height="560" style={{position: 'absolute', left: 24, top: 24}}>
+            {/* Edges root → branches */}
+            {tree.branches.map((b, i) => (
+              <line key={`b${i}`} x1={tree.root.x} y1={tree.root.y + 20} x2={b.x} y2={b.y - 10} stroke={cascadeP > 0.3 ? C.red : C.green} strokeWidth="2.5" opacity={0.8} />
+            ))}
+            {/* Edges branches → leaves */}
+            {tree.leaves.map((l, i) => {
+              const branchIdx = Math.floor(i / 2);
+              const b = tree.branches[branchIdx];
+              return <line key={`l${i}`} x1={b.x} y1={b.y + 20} x2={l.x} y2={l.y - 10} stroke={cascadeP > (i / tree.leaves.length) ? C.red : C.muted} strokeWidth="2" opacity={cascadeP > (i / tree.leaves.length) ? 0.8 : 0.4} />;
+            })}
+          </svg>
+
+          {/* Root node */}
+          <div style={{position: 'absolute', left: 24 + tree.root.x - 90, top: 24 + tree.root.y - 10, padding: '10px 16px', background: C.deep, border: `2px solid ${C.blue}`, borderRadius: 8, fontFamily: MONO, fontSize: 16, color: C.blue, fontWeight: 700, boxShadow: `0 0 15px ${C.blue}66`, whiteSpace: 'nowrap'}}>
+            {tree.root.label}
           </div>
-          <span style={{fontFamily: FONT, fontSize: 11, color: C.green, fontWeight: 700}}>Record Actions</span>
-        </div>
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4}}>
-          <div style={{width: 50, height: 50, borderRadius: 6, background: C.deep, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <svg width="22" height="22" viewBox="0 0 22 22"><rect x="4" y="3" width="14" height="16" rx="1" fill="none" stroke={C.muted} strokeWidth="1.5" /><path d="M7 7 H15 M7 10 H15 M7 13 H12" stroke={C.muted} strokeWidth="1.5" /></svg>
+
+          {/* Branch nodes */}
+          {tree.branches.map((b, i) => {
+            const isVolatile = i === 2 && dirtyP > 0.3;
+            const isCascaded = cascadeP > 0.2;
+            return (
+              <div key={i} style={{position: 'absolute', left: 24 + b.x - 70, top: 24 + b.y - 10, padding: '8px 14px', background: C.deep, border: `2px solid ${isVolatile ? C.red : isCascaded ? C.amber : C.green}`, borderRadius: 8, fontFamily: MONO, fontSize: 14, color: isVolatile ? C.red : isCascaded ? C.amber : C.green, fontWeight: 700, whiteSpace: 'nowrap'}}>
+                {b.label}
+              </div>
+            );
+          })}
+
+          {/* Leaf nodes */}
+          {tree.leaves.map((l, i) => {
+            const isVolatile = l.label.includes('⚠');
+            const isCascaded = cascadeP > (i / tree.leaves.length);
+            return (
+              <div key={i} style={{position: 'absolute', left: 24 + l.x - 30, top: 24 + l.y - 10, padding: '6px 10px', background: C.deep, border: `1px solid ${isVolatile ? C.red : isCascaded ? C.amber : C.border}`, borderRadius: 6, fontFamily: MONO, fontSize: 13, color: isVolatile ? C.red : isCascaded ? C.amber : C.muted, fontWeight: 600, whiteSpace: 'nowrap'}}>
+                {l.label}
+              </div>
+            );
+          })}
+
+          {/* Dirty flag badge */}
+          {dirtyP > 0.3 && (
+            <div style={{position: 'absolute', right: 24, top: 24, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: `${C.red}22`, border: `2px solid ${C.red}`, borderRadius: 8, opacity: dirtyP}}>
+              <svg width="32" height="32" viewBox="0 0 32 32"><path d="M4 22 L16 4 L28 22 Z" fill="none" stroke={C.red} strokeWidth="2.5" strokeLinejoin="round" /><line x1="16" y1="12" x2="16" y2="17" stroke={C.red} strokeWidth="2.5" strokeLinecap="round" /><circle cx="16" cy="20" r="1.5" fill={C.red} /></svg>
+              <div>
+                <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.red}}>{'DIRTY FLAG'}</div>
+                <div style={{fontFamily: MONO, fontSize: 11, color: C.muted}}>{'forced cascade'}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit trigger indicator */}
+          <div style={{position: 'absolute', right: 24, bottom: 24, padding: '10px 16px', background: C.deep, border: `1px solid ${C.border}`, borderRadius: 6, fontFamily: MONO, fontSize: 13, color: C.muted, opacity: cascadeP}}>
+            {'edit empty cell → 50K recalc'}
           </div>
-          <span style={{fontFamily: FONT, fontSize: 11, color: C.muted}}>New Script</span>
-        </div>
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4}}>
-          <div style={{width: 50, height: 50, borderRadius: 6, background: C.deep, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <svg width="22" height="22" viewBox="0 0 22 22"><path d="M3 6 H19 M3 11 H19 M3 16 H13" stroke={C.muted} strokeWidth="1.5" /></svg>
-          </div>
-          <span style={{fontFamily: FONT, fontSize: 11, color: C.muted}}>All Scripts</span>
         </div>
       </div>
 
-      {/* LEFT: Code editor with TypeScript */}
-      <div style={{position: 'absolute', left: 80, top: 280, width: 1080, height: 580, opacity: codeP}}>
-        <div style={{background: C.card, border: `2px solid ${C.green}`, borderRadius: 12, height: '100%', overflow: 'hidden', boxShadow: `0 0 30px ${C.green}33`}}>
-          <div style={{display: 'flex', alignItems: 'center', padding: '10px 14px', background: C.deep, borderBottom: `1px solid ${C.border}`, gap: 10}}>
-            <span style={{fontFamily: MONO, fontSize: 13, color: C.muted}}>{'Code.ts — TypeScript'}</span>
-            <span style={{marginLeft: 'auto', fontFamily: FONT, fontSize: 13, color: C.green}}>{'.osts script on OneDrive'}</span>
-          </div>
-
-          <div style={{padding: 18, fontFamily: MONO, fontSize: 14, lineHeight: 2}}>
-            {TS_SCRIPT.map((line, i) => {
-              const lp = interpolate(local, [120 + i * 30, 150 + i * 30], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-              const isGetValues = line.code.includes('getValues') || line.code.includes('setValues');
-              const isBulk = isGetValues && bulkP > 0.3;
+      {/* RIGHT: 8 Volatile Functions list */}
+      <div style={{position: 'absolute', right: 80, top: 180, width: 760, height: 680, opacity: treeP}}>
+        <div style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 14}}>{'The 8 Volatile Culprits'}</div>
+        <div style={{background: C.card, border: `2px solid ${C.red}`, borderRadius: 12, padding: 18, height: 600, boxShadow: `0 0 30px ${C.red}33`}}>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12}}>
+            {VOLATILE_FNS.map((fn, i) => {
+              const p = interpolate(local, [120 + i * 40, 160 + i * 40], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
               return (
-                <div key={i} style={{
-                  opacity: lp,
-                  transform: `translateX(${(1 - lp) * 16}px)`,
-                  color: TS_COLORS[line.c] || C.text,
-                  background: isBulk ? `${C.purple}22` : 'transparent',
-                  borderLeft: isBulk ? `3px solid ${C.purple}` : '3px solid transparent',
-                  paddingLeft: 8,
-                  marginLeft: -8,
-                  boxShadow: isBulk ? `0 0 12px ${C.purple}55` : 'none',
-                }}>
-                  <span style={{color: C.muted, marginRight: 12, width: 20, display: 'inline-block'}}>{line.n}</span>{line.code}
+                <div key={i} style={{padding: '14px 16px', background: C.deep, border: `1px solid ${C.red}`, borderRadius: 8, opacity: p, transform: `translateY(${(1 - p) * 12}px)`}}>
+                  <div style={{fontFamily: MONO, fontSize: 18, fontWeight: 700, color: C.red}}>{fn.n}</div>
+                  <div style={{fontFamily: FONT, fontSize: 12, color: C.muted, marginTop: 2}}>{fn.desc}</div>
                 </div>
               );
             })}
           </div>
-        </div>
-      </div>
 
-      {/* RIGHT: UsedRange + Bulk array transfer */}
-      <div style={{position: 'absolute', left: 1200, top: 280, width: 640, height: 580, opacity: codeP}}>
-        {/* getUsedRange */}
-        <div style={{background: C.card, border: `2px solid ${C.green}`, borderRadius: 12, padding: 18, marginBottom: 14, boxShadow: `0 0 20px ${C.green}33`}}>
-          <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 10}}>{'getUsedRange() · التقاط البيانات'}</div>
-          <div style={{background: C.deep, borderRadius: 6, padding: 12, fontFamily: MONO, fontSize: 12, color: C.green}}>
-            sheet.getUsedRange()
-          </div>
-          {/* Mini grid */}
-          <div style={{marginTop: 10, display: 'grid', gridTemplateColumns: '32px 1fr 1fr 1fr', gap: 1, fontFamily: MONO, fontSize: 10}}>
-            <div style={{padding: '3px', background: C.card, color: C.muted}} />
-            {['A', 'B', 'C'].map((c) => <div key={c} style={{padding: '3px', background: C.card, color: C.muted, textAlign: 'center'}}>{c}</div>)}
-            {[1, 2, 3, 4].map((r, ri) => (
-              <React.Fragment key={r}>
-                <div style={{padding: '3px', background: C.card, color: C.muted, textAlign: 'center'}}>{r}</div>
-                {Array.from({length: 3}).map((_, ci) => <div key={ci} style={{padding: '4px', background: C.bg, border: `1px solid ${ri === 3 ? C.green : C.border}`, color: ri === 3 ? C.green : C.text}}>{ri === 3 ? '50K' : `data`}</div>)}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        {/* Bulk array transfer */}
-        <div style={{background: C.card, border: `2px solid ${C.purple}`, borderRadius: 12, padding: 18, opacity: bulkP, boxShadow: `0 0 20px ${C.purple}33`}}>
-          <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.purple, marginBottom: 10}}>{'Bulk Array Transfer'}</div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10}}>
-            <div style={{padding: '8px 12px', background: C.deep, border: `1px solid ${C.green}`, borderRadius: 6, fontFamily: MONO, fontSize: 12, color: C.green}}>{'getValues()'}</div>
-            <svg width="20" height="14" viewBox="0 0 20 14"><path d="M2 7 H16 M11 2 L16 7 L11 12" fill="none" stroke={C.purple} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <div style={{padding: '8px 12px', background: C.deep, border: `1px solid ${C.purple}`, borderRadius: 6, fontFamily: MONO, fontSize: 12, color: C.purple}}>{'[[...],[...]]'}</div>
-            <svg width="20" height="14" viewBox="0 0 20 14"><path d="M2 7 H16 M11 2 L16 7 L11 12" fill="none" stroke={C.purple} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <div style={{padding: '8px 12px', background: C.deep, border: `1px solid ${C.amber}`, borderRadius: 6, fontFamily: MONO, fontSize: 12, color: C.amber}}>{'setValues()'}</div>
-          </div>
-          <div style={{fontFamily: FONT, fontSize: 12, color: C.muted}}>{'دفعة واحدة · مش خلية بخلية'}</div>
-        </div>
-
-        {/* Record Actions badge */}
-        <div style={{marginTop: 14, display: 'flex', alignItems: 'center', gap: 10, opacity: recordP, padding: 14, background: C.card, border: `1px solid ${C.green}`, borderRadius: 10}}>
-          <div style={{width: 36, height: 36, borderRadius: 18, background: C.green, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="5" fill="#0B1222" /></svg>
-          </div>
-          <div>
-            <div style={{fontFamily: FONT, fontSize: 14, fontWeight: 700, color: C.green}}>{'Record Actions · يسجل خطواتك'}</div>
-            <div style={{fontFamily: FONT, fontSize: 11, color: C.muted}}>{'يكتب كود TypeScript تلقائياً'}</div>
+          {/* Warning banner */}
+          <div style={{marginTop: 16, padding: 16, background: `${C.red}22`, border: `1px solid ${C.red}`, borderRadius: 8}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6}}>
+              <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 2 L22 20 H2 Z" fill="none" stroke={C.red} strokeWidth="2" /><line x1="12" y1="9" x2="12" y2="14" stroke={C.red} strokeWidth="2" /><circle cx="12" cy="17" r="1.2" fill={C.red} /></svg>
+              <div style={{fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.red}}>{'Domino Recalculation Effect'}</div>
+            </div>
+            <div style={{fontFamily: FONT, fontSize: 13, color: C.muted, lineHeight: 1.6}}>
+              {'أي تعديل (حتى في خلية فارغة) يجبر Excel على إعادة حساب كل الصيغ المعتمدة على هذه الدوال'}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Final seal */}
       <div style={{position: 'absolute', left: 0, right: 0, top: 880, display: 'flex', justifyContent: 'center', opacity: sealP}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.green}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.green}33`}}>
-          <Check size={40} p={sealP} color={C.green} />
-          <Mix style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.green}}>{'High-Speed Cloud APIs ──► getUsedRange + Bulk getValues/setValues'}</Mix>
+        <div style={{display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `2px solid ${C.red}`, borderRadius: 999, padding: '12px 30px', boxShadow: `0 0 30px ${C.red}33`}}>
+          <Mix style={{fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.red}}>{'8 Volatile Functions ──► TODAY, NOW, RAND, RANDBETWEEN, OFFSET, INDIRECT, INFO, CELL'}</Mix>
         </div>
       </div>
 
-      <Caption text="Automate Tab & TypeScript ──► function main(workbook) + Record Actions" from={60} to={720} tone="ok" />
-      <Caption text="High-Speed Cloud APIs ──► getUsedRange() + Bulk getValues() & setValues() Arrays" from={840} to={1320} tone="ok" />
+      <Caption text="Calculation Dependency Tree ──► Normal Formulas Recalc Only Changed Branches" from={60} to={720} tone="ok" />
+      <Caption text="The 8 Volatile Culprits ──► TODAY, NOW, RAND, RANDBETWEEN, OFFSET, INDIRECT, INFO, CELL" from={840} to={1320} tone="normal" />
     </Stage>
   );
 };
