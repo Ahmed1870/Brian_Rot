@@ -1,39 +1,37 @@
-// Lesson identity + all fixed UI metrics (shared by every lesson via kit.tsx)
-export const LESSON = 59;
-export const TOTAL_LESSONS = 76;
-export const UNIT = 12;
-export const TOTAL_UNITS = 14;
-export const TITLE_EN = "Aggregators vs. Iterators in DAX";
-export const TITLE_AR = "دوال التجميع والتكرار في DAX";
-export const COMP_ID = "XL-L59-Aggregators-Iterators";
-export const OUT_NAME = "xl-l59-aggregators-iterators";
-export const VOICE = "voiceover_lesson_59.mp3";
-export const LOGO = "manzooma-logo-white.svg";
+import {loadFont as loadArabic} from '@remotion/google-fonts/IBMPlexSansArabic';
+import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
+import {loadFont as loadUI} from '@remotion/google-fonts/OpenSans';
+
+const ar = loadArabic('normal', {weights: ['400', '600', '700'], subsets: ['arabic', 'latin']});
+const mono = loadMono('normal', {weights: ['400', '700'], subsets: ['latin']});
+const ui = loadUI('normal', {weights: ['400', '600', '700'], subsets: ['latin']});
+
+export const FONT = `${ar.fontFamily}, 'Segoe UI', Tahoma, sans-serif`;
+export const MONO = `${mono.fontFamily}, Consolas, 'Courier New', monospace`;
+export const UIFONT = `${ui.fontFamily}, 'Segoe UI', Arial, sans-serif`;
+export const CELLFONT = `Carlito, Calibri, ${ui.fontFamily}, Arial, sans-serif`;
+
 export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const DURATION = 7200;
+export const TOTAL_FRAMES = 7200;
+export const LESSON = 71;
+export const TOTAL_LESSONS = 76;
+export const UNIT = 14;
+export const TOTAL_UNITS = 14;
+export const COMP_ID = 'XL-L71-MacroRecorder';
+export const VOICE_FILE = 'voiceover_lesson_71.mp3';
+export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {
-  bg: "#0F172A", panel: "#1E293B", panel2: "#273449", line: "#334155",
-  blue: "#38BDF8", green: "#10B981", amber: "#F59E0B", purple: "#A855F7",
-  red: "#EF4444", text: "#F8FAFC", dim: "#94A3B8",
+  bg: '#0F172A', card: '#1E293B', deep: '#0B1222', border: '#334155', muted: '#94A3B8',
+  text: '#F8FAFC', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B', red: '#EF4444',
+  purple: '#A855F7', gold: '#FBBF24', cyan: '#06B6D4',
 };
 
-// Excel/Windows look (light UI inside the dark stage)
-export const XL = {
-  green: "#217346", greenLight: "#D3EBDD", greenFill: "rgba(33,115,70,0.13)",
-  bar: "#F3F3F3", ribbon: "#FFFFFF", line: "#D4D4D4", hdr: "#F0F0F0", hdrSel: "#D3D3D3",
-  grid: "#E1E1E1", text: "#262626", dim: "#6B6B6B", tbl: "#4472C4", band: "#D9E1F2",
-  dlg: "#F0F0F0", hover: "#E5F3FB", hoverLine: "#99D1FF",
-};
-
-// Metrics at 100% (nominal px); the window is drawn at Z x for legibility on phones.
-export const M = {
-  Z: 1.3,
-  win: { x: 50, y: 92, w: 1400, h: 690 },
-  title: 30, tabs: 28, ribbon: 96, fbar: 26, colH: 20, rowH: 20, rowHdrW: 30, colW: 64,
-  sheetBar: 27, status: 23, scroll: 14, pane: 268, pqLeft: 190, pqRight: 262,
-};
-export const gx = (nx: number) => M.win.x + nx * M.Z;
-export const gy = (ny: number) => M.win.y + ny * M.Z;
+export const START = {s1: 0, s2: 40, s3: 85, s4: 130, s5: 170, s6: 210};
+const fr = (s: number) => Math.round(s * FPS);
+const starts = [START.s1, START.s2, START.s3, START.s4, START.s5, START.s6].map(fr);
+const ends = [...starts.slice(1), TOTAL_FRAMES];
+const mk = (i: number) => ({from: starts[i], dur: ends[i] - starts[i]});
+export const SCENES = {s1: mk(0), s2: mk(1), s3: mk(2), s4: mk(3), s5: mk(4), s6: mk(5)};
