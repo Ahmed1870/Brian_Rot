@@ -1,5 +1,6 @@
 import React from 'react';
-import {AbsoluteFill, Audio, Img, staticFile} from 'remotion';
+import {Audio} from '@remotion/media';
+import {AbsoluteFill, Img, staticFile} from 'remotion';
 import {AR, AppWin, Card, Chrome, Click, CursorProvider, Dax, Dialog, GCol, Grid, Hit, Ic, MONO, PP, Scene, Tag, WW, XL, eo, fadeIn, fmt, okPt, pick, pr, ribPt, sheetPt, tabPt, typed, useT} from './kit';
 import {AN, C, LESSON, LESSONS, LOGO, PRODUCTS, SB, STORES, UNIT, UNITS, VOICE} from './theme';
 
