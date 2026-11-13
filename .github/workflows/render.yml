@@ -1,44 +1,45 @@
-name: render-xl-l65-linear-regression-forecasting
+name: Render lesson video
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
-concurrency:
-  group: render-${{ github.ref }}
-  cancel-in-progress: true
 env:
-  COMP_ID: XL-L65-Linear-Regression-Forecasting
-  OUT_NAME: xl-l65-linear-regression-forecasting
+  COMP_ID: XL-L59-Aggregators-Iterators
+  OUT_NAME: xl-l59-aggregators-iterators
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard (names, voiceover, public)
+      - name: Guard (names must match everywhere)
         run: |
-          set -e
-          grep -q "\"$COMP_ID\"" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
-          grep -q "$COMP_ID" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
-          test -s public/voiceover_lesson_65.mp3 || { echo "voiceover missing"; exit 1; }
-          extra=$(ls public | grep -v -x -e voiceover_lesson_65.mp3 -e manzooma_logo.svg || true)
-          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
-      - name: Install
-        run: npm install --no-audit --no-fund
-      - name: Typecheck
-        run: npx tsc --noEmit
-      - name: Browser
-        run: npx remotion browser ensure
+          set -euo pipefail
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "OUT_NAME = \"$OUT_NAME\"" src/theme.ts
+          grep -q "$COMP_ID" package.json
+          grep -q "out/$OUT_NAME.mp4" package.json
+          grep -q "COMP_ID" src/Root.tsx
+          ! grep -q "XL-L" src/Root.tsx
+          test -s public/voiceover_lesson_59.mp3
+          extra=$(find public -type f ! -name 'voiceover_lesson_59.mp3' ! -name 'manzooma-logo-white.svg' | wc -l)
+          test "$extra" -eq 0
+          test "$(ls .github/workflows | wc -l)" -eq 1
+      - name: System libraries for headless Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2
+      - run: npm install --no-audit --no-fund
+      - run: npx tsc --noEmit
       - name: Render
-        run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+        run: npx remotion render src/index.ts "$COMP_ID" "out/$OUT_NAME.mp4" --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
       - name: Verify output
-        run: test -s out/$OUT_NAME.mp4
+        run: test -s "out/$OUT_NAME.mp4"
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l65-linear-regression-forecasting
-          path: out/xl-l65-linear-regression-forecasting.mp4
+          name: xl-l59-aggregators-iterators
+          path: out/xl-l59-aggregators-iterators.mp4
           if-no-files-found: error

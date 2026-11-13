@@ -1,430 +1,896 @@
-// ===== Shared Excel-UI kit (2D SVG/HTML). Written once, reused by every lesson. =====
+// Shared Manzooma lesson kit: primitives, cursor, stage chrome, Excel UI, Power Query UI.
+// Written once, reused by every lesson (change content in scenes, not here).
 import React from "react";
-import { Img, staticFile } from "remotion";
-import { C, M, GRID_Y, LOGO } from "./theme";
-import { FAR, FUI, FMONO } from "./fonts";
+import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { loadFont as loadAr } from "@remotion/google-fonts/IBMPlexSansArabic";
+import { loadFont as loadMono } from "@remotion/google-fonts/JetBrainsMono";
+import { loadFont as loadCal } from "@remotion/google-fonts/Carlito";
+import { loadFont as loadUi } from "@remotion/google-fonts/OpenSans";
+import { C, XL, M, LOGO, LESSON, TOTAL_LESSONS, UNIT, TOTAL_UNITS, W, H, TITLE_EN, TITLE_AR } from "./theme";
 
-/* ---------- helpers ---------- */
+export type S = React.CSSProperties;
+const ar = loadAr("normal", { weights: ["400", "500", "700"], subsets: ["arabic", "latin"] });
+const mono = loadMono("normal", { weights: ["400", "700"], subsets: ["latin"] });
+const cal = loadCal("normal", { weights: ["400", "700"], subsets: ["latin"] });
+const ui = loadUi("normal", { weights: ["400", "600"], subsets: ["latin"] });
+export const FONT = {
+  ar: `${ar.fontFamily}, sans-serif`,
+  mono: `${mono.fontFamily}, monospace`,
+  cell: `${cal.fontFamily}, Calibri, sans-serif`,
+  ui: `${ui.fontFamily}, "Segoe UI", sans-serif`,
+};
+
+// ---------- math helpers ----------
 export const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-export const prog = (f: number, a: number, b: number) => clamp((f - a) / Math.max(1, b - a));
-export const eo = (t: number) => 1 - Math.pow(1 - t, 3);
+export const prog = (f: number, a: number, b: number) => clamp((f - a) / (b - a));
+export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const eio = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-export const typed = (s: string, f: number, a: number, cps = 16) =>
-  s.slice(0, Math.max(0, Math.min(s.length, Math.floor(((f - a) / 30) * cps))));
-export const colL = (i: number): string => {
-  let s = ""; let n = i + 1;
-  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
-  return s;
-};
-export const addr = (c: number, r: number) => colL(c) + (r + 1);
-export const parse = (a: string) => {
-  const m = /^([A-Z]+)(\d+)$/.exec(a) as RegExpExecArray;
-  let c = 0; for (const ch of m[1]) c = c * 26 + (ch.charCodeAt(0) - 64);
-  return { c: c - 1, r: parseInt(m[2], 10) - 1 };
-};
-export const vis = (f: number, a: number, b: number, fade = 8) =>
-  eo(prog(f, a, a + fade)) * (1 - eo(prog(f, b - fade, b)));
+export const eo = (t: number) => 1 - Math.pow(1 - t, 3);
+export const sec = (s: number) => Math.round(s * 30);
+export const typed = (s: string, f: number, t0: number, cps = 16) =>
+  s.slice(0, Math.max(0, Math.min(s.length, Math.floor(((f - t0) * cps) / 30))));
+export const fmt = (n: number) => n.toLocaleString("en-US");
 
-/* ---------- top badge, caption, logo ---------- */
-export const Logo: React.FC<{ h?: number; invert?: boolean }> = ({ h = 44, invert = true }) => (
-  <Img src={staticFile(LOGO)} style={{ height: h, width: h * (300 / 260), filter: invert ? "invert(1)" : "none" }} />
+// ---------- tiny layout primitives ----------
+export const abs = (x: number, y: number, w: number, h: number, extra: S = {}): S => ({
+  position: "absolute", left: x, top: y, width: w, height: h, ...extra,
+});
+type TxP = { x: number; y: number; w?: number; h?: number; size?: number; color?: string; bold?: boolean;
+  align?: "left" | "center" | "right"; font?: string; style?: S; children?: React.ReactNode };
+export const Tx: React.FC<TxP> = ({ x, y, w = 400, h = 20, size = 12, color = XL.text, bold, align = "left", font, style, children }) => (
+  <div style={{ position: "absolute", left: x, top: y, width: w, height: h, lineHeight: `${h}px`, fontSize: size,
+    color, fontWeight: bold ? 700 : 400, textAlign: align, whiteSpace: "nowrap", overflow: "hidden",
+    fontFamily: font ?? FONT.ui, ...style }}>{children}</div>
+);
+export const Rect: React.FC<{ x: number; y: number; w: number; h: number; fill?: string; stroke?: string; sw?: number; r?: number; style?: S; children?: React.ReactNode }> =
+  ({ x, y, w, h, fill = "transparent", stroke, sw = 1, r = 0, style, children }) => (
+    <div style={{ position: "absolute", left: x, top: y, width: w, height: h, background: fill, borderRadius: r,
+      boxSizing: "border-box", border: stroke ? `${sw}px solid ${stroke}` : undefined, ...style }}>{children}</div>
+  );
+// neon highlight ring (two flat strokes, no blur = cheap to render)
+export const Neon: React.FC<{ x: number; y: number; w: number; h: number; c: string; a?: number; r?: number; pulse?: number }> =
+  ({ x, y, w, h, c, a = 1, r = 6, pulse = 0 }) => (
+    <div style={{ position: "absolute", left: x - 5, top: y - 5, width: w + 10, height: h + 10, opacity: a, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", inset: -3 - pulse, borderRadius: r + 6, border: `2px solid ${c}`, opacity: 0.35 }} />
+      <div style={{ position: "absolute", inset: 0, borderRadius: r + 3, border: `3px solid ${c}`, boxSizing: "border-box" }} />
+    </div>
+  );
+
+// ---------- icons (generic, own drawing; no Microsoft artwork) ----------
+const ICO: Record<string, string> = {
+  paste: "M9 3h6v3H9zM6 5h3M15 5h3M6 5v16h12V5", cut: "M6 3l9 12M18 3L9 15M7 17a2.5 2.5 0 1 0 .1 0M17 17a2.5 2.5 0 1 0 .1 0",
+  copy: "M8 8h11v13H8zM5 16V3h11", brush: "M4 20c3 0 4-1 4-3l9-9-3-3-9 9c-2 0-3 1-1 6zM14 5l3 3",
+  refresh: "M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5", table: "M3 5h18v14H3zM3 10h18M3 15h18M9 5v14M15 5v14",
+  filter: "M3 4h18l-7 9v7l-4-2v-5z", sort: "M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4",
+  az: "M4 7l3-4 3 4M7 3v9M4 21h6l-6-7h6M15 4v16M12 17l3 3 3-3", db: "M5 6c0-2 14-2 14 0v12c0 2-14 2-14 0zM5 6c0 2 14 2 14 0M5 12c0 2 14 2 14 0",
+  link: "M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1",
+  gear: "M12 8a4 4 0 1 0 .1 0M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2",
+  search: "M10 4a6 6 0 1 0 .1 0M15 15l6 6", save: "M4 4h14l2 2v14H4zM8 4v6h8V4M8 20v-6h8v6",
+  undo: "M9 6L4 11l5 5M4 11h9a6 6 0 0 1 0 10h-3", redo: "M15 6l5 5-5 5M20 11h-9a6 6 0 0 0 0 10h3",
+  query: "M5 4h14v16H5zM9 9h6M9 13h6M9 17h3", props: "M4 5h16M4 10h16M4 15h10M17 14l3 3-3 3",
+  sigma: "M18 4H6l7 8-7 8h12", borders: "M4 4h16v16H4zM12 4v16M4 12h16", fill: "M5 13l7-8 7 8-7 7zM20 14c1 2 2 3 0 4",
+  alignl: "M4 6h16M4 10h10M4 14h16M4 18h10", alignc: "M4 6h16M7 10h10M4 14h16M7 18h10", alignr: "M4 6h16M10 10h10M4 14h16M10 18h10",
+  merge: "M4 6h6v12H4zM14 6h6v12h-6zM10 12h4", chart: "M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-8",
+  cond: "M4 4h16v16H4zM4 10h16M10 4v16", plus: "M12 5v14M5 12h14", minus: "M5 12h14", merge2: "M5 5v6a4 4 0 0 0 4 4h6M15 11l4 4-4 4",
+  gen: "M4 4h16v16H4zM8 9h8M8 13h8", stock: "M4 18l5-6 4 3 7-9", find: "M10 4a6 6 0 1 0 .1 0M15 15l6 6M7 10h6",
+  warn: "M12 3l10 18H2zM12 10v5M12 18v1", db2: "M4 7h16M4 12h16M4 17h16M8 4v16", cols: "M4 4h16v16H4zM9 4v16M15 4v16",
+  rows: "M4 4h16v16H4zM4 9h16M4 15h16", group: "M4 6h10M8 12h10M4 18h10", what: "M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 1 0 .1 0",
+};
+export const Ico: React.FC<{ n: string; x: number; y: number; s?: number; c?: string; sw?: number }> = ({ n, x, y, s = 16, c = "#444", sw = 1.8 }) => (
+  <svg style={{ position: "absolute", left: x, top: y }} width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+    <path d={ICO[n] ?? ICO.gen} />
+  </svg>
 );
 
-const Pill: React.FC<{ children: React.ReactNode; col?: string }> = ({ children, col = C.cyan }) => (
-  <div style={{ background: C.panel, border: `1.5px solid ${col}`, color: C.text, borderRadius: 22, padding: "0 20px", height: 40, display: "flex", alignItems: "center", fontSize: 22, whiteSpace: "nowrap" }}>{children}</div>
-);
-
-export const TopBadge: React.FC<{ lesson: number; lessons: number; unit: number; units: number; title: string; f: number; a?: number; b?: number }> = ({ lesson, lessons, unit, units, title, f, a = 0, b = 99999 }) => {
-  const o = vis(f, a, b, 12);
+// ---------- cursor ----------
+export type WP = { t: number; x: number; y: number; click?: boolean; right?: boolean };
+export const curPos = (w: WP[], f: number): [number, number] => {
+  if (f <= w[0].t) return [w[0].x, w[0].y];
+  for (let i = 0; i < w.length - 1; i++) {
+    const a = w[i], b = w[i + 1];
+    if (f <= b.t) { const p = eio(prog(f, a.t, b.t)); return [lerp(a.x, b.x, p), lerp(a.y, b.y, p)]; }
+  }
+  const l = w[w.length - 1];
+  return [l.x, l.y];
+};
+export const Cursor: React.FC<{ wps: WP[]; f: number; fade?: number }> = ({ wps, f, fade = 1 }) => {
+  const [x, y] = curPos(wps, f);
+  const ripples = wps.filter((w) => w.click && f >= w.t && f < w.t + 16);
+  const down = wps.some((w) => w.click && f >= w.t && f < w.t + 4);
   return (
-    <div style={{ position: "absolute", left: 24, top: 8, right: 24, height: 46, display: "flex", alignItems: "center", gap: 14, fontFamily: FAR, direction: "ltr" }}>
-      <Logo h={52} />
-      <div style={{ opacity: o, display: "flex", gap: 12, alignItems: "center", transform: `translateY(${(1 - o) * -8}px)` }}>
-        <Pill><span dir="rtl">الدرس {lesson} من {lessons}</span></Pill>
-        <Pill col={C.green}><span dir="rtl">الوحدة {unit} من {units}</span></Pill>
-        <Pill col={C.cyan}><span style={{ fontFamily: FUI, fontWeight: 700, fontSize: 23 }}>{title}</span></Pill>
+    <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, pointerEvents: "none", opacity: fade }}>
+      {ripples.map((w) => {
+        const p = prog(f, w.t, w.t + 16);
+        return <div key={"r" + w.t} style={{ position: "absolute", left: w.x - 22 * p - 4, top: w.y - 22 * p - 4, width: 44 * p + 8, height: 44 * p + 8,
+          borderRadius: 40, border: `3px solid ${w.right ? C.purple : C.blue}`, opacity: 1 - p }} />;
+      })}
+      <svg style={{ position: "absolute", left: x, top: y, transform: down ? "scale(0.9)" : "none", transformOrigin: "0 0" }} width={28} height={38} viewBox="0 0 13 17">
+        <path d="M0.5 0.5 L0.5 13.5 L3.7 10.6 L6 16 L8.3 15 L6 9.8 L10.6 9.8 Z" fill="#fff" stroke="#111" strokeWidth={1} strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+};
+export const clickedSince = (w: WP[], f: number, i: number) => f - w[i].t; // frames since click i (negative = not yet)
+
+// ---------- stage chrome ----------
+export const Stage: React.FC<{ dur: number; fin?: number; fout?: number; children?: React.ReactNode }> = ({ dur, fin = 10, fout = 10, children }) => {
+  const f = useCurrentFrame();
+  const o = Math.min(fin ? prog(f, 0, fin) : 1, fout ? 1 - prog(f, dur - fout, dur) : 1);
+  return (
+    <AbsoluteFill style={{ background: C.bg, opacity: o }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(1200px 700px at 50% 45%, #16213a 0%, #0F172A 70%)" }} />
+      {children}
+    </AbsoluteFill>
+  );
+};
+export const Header: React.FC<{ f: number }> = ({ f }) => {
+  const a = eo(prog(f, 0, 14));
+  return (
+    <div style={{ position: "absolute", left: 0, top: 0, width: W, height: 84, opacity: a }}>
+      <Img src={staticFile(LOGO)} style={{ position: "absolute", left: 36, top: 6, width: 72, height: 72, objectFit: "contain" }} />
+      <div style={{ position: "absolute", left: 360, top: 14, width: 1200, height: 56, borderRadius: 28, background: C.panel, border: `1px solid ${C.line}`,
+        display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 18, direction: "ltr" }}>
+        <span dir="rtl" style={{ fontFamily: FONT.ar, fontSize: 26, fontWeight: 700, color: C.text }}>{`الدرس ${LESSON} من ${TOTAL_LESSONS} | الوحدة ${UNIT} من ${TOTAL_UNITS}`}</span>
+        <span style={{ fontFamily: FONT.ui, fontSize: 24, color: C.blue }}>→</span>
+        <span dir="ltr" style={{ fontFamily: FONT.ui, fontSize: 25, fontWeight: 600, color: C.blue }}>{TITLE_EN}</span>
+      </div>
+      <div style={{ position: "absolute", right: 40, top: 22, height: 40, padding: "0 18px", borderRadius: 20, background: C.panel, border: `1px solid ${C.line}`,
+        fontFamily: FONT.mono, fontSize: 20, lineHeight: "38px", color: C.dim }}>{`L${LESSON}/${TOTAL_LESSONS}`}</div>
+    </div>
+  );
+};
+export const Caption: React.FC<{ f: number; t0: number; t1: number; color: string; text: string }> = ({ f, t0, t1, color, text }) => {
+  const a = Math.min(prog(f, t0, t0 + 10), 1 - prog(f, t1 - 10, t1));
+  if (a <= 0) return null;
+  return (
+    <div style={{ position: "absolute", left: 0, top: 1006, width: W, height: 58, display: "flex", justifyContent: "center", opacity: a, transform: `translateY(${(1 - a) * 12}px)` }}>
+      <div dir="ltr" style={{ height: 52, padding: "0 30px", borderRadius: 26, background: C.panel, border: `2px solid ${color}`, color: C.text,
+        fontFamily: FONT.ui, fontSize: 25, fontWeight: 600, lineHeight: "48px", whiteSpace: "nowrap" }}>
+        <span style={{ color, marginRight: 12 }}>●</span>{text}
       </div>
     </div>
   );
 };
-
-export const Arrow: React.FC<{ c: string }> = ({ c }) => (
-  <svg width="34" height="14" viewBox="0 0 34 14"><path d="M0 7H26M20 2l7 5-7 5" stroke={c} strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+export const Spinner: React.FC<{ x: number; y: number; s?: number; f: number; c?: string }> = ({ x, y, s = 18, f, c = XL.green }) => (
+  <svg style={{ position: "absolute", left: x, top: y }} width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={3} strokeLinecap="round">
+    <circle cx={12} cy={12} r={9} stroke="#D0D0D0" />
+    <path d="M12 3a9 9 0 0 1 9 9" transform={`rotate(${(f * 12) % 360} 12 12)`} />
+  </svg>
 );
+const SQLK = /\b(select|from|where|as|and|or|group by|order by|left join|on)\b/gi;
+export const Sql: React.FC<{ text: string; size?: number; lh?: number; light?: boolean }> = ({ text, size = 15, lh = 22, light }) => (
+  <div style={{ fontFamily: FONT.mono, fontSize: size, lineHeight: `${lh}px`, whiteSpace: "pre", color: light ? "#1F2937" : "#CBD5E1" }}>
+    {text.split("\n").map((ln, i) => (
+      <div key={i}>{ln.split(/(\bselect\b|\bfrom\b|\bwhere\b|\bas\b|\band\b|'[^']*')/gi).map((p, j) => (
+        <span key={j} style={{ color: /^(select|from|where|as|and)$/i.test(p) ? (light ? "#0B5CAD" : C.blue) : p.startsWith("'") ? (light ? "#0A7F4F" : C.green) : undefined, fontWeight: /^(select|from|where|as|and)$/i.test(p) ? 700 : 400 }}>{p}</span>
+      ))}</div>
+    ))}
+  </div>
+);
+void SQLK;
 
-export const Caption: React.FC<{ tag: string; col: string; lead: string; code?: string; f: number; a: number; b: number }> = ({ tag, col, lead, code, f, a, b }) => {
-  const o = vis(f, a, b, 10);
-  if (o <= 0.01) return null;
-  return (
-    <div style={{ position: "absolute", left: 24, right: 24, top: M.capY, height: M.capH, display: "flex", alignItems: "center", gap: 18, background: "rgba(30,41,59,0.96)", border: `1.5px solid ${col}`, borderRadius: 14, padding: "0 22px", boxShadow: `0 0 22px ${col}55`, opacity: o, transform: `translateY(${(1 - o) * 14}px)`, direction: "ltr" }}>
-      <div style={{ background: col, color: "#0F172A", fontFamily: FUI, fontWeight: 700, fontSize: 21, padding: "4px 14px", borderRadius: 8, whiteSpace: "nowrap" }}>{tag}</div>
-      <div style={{ color: C.text, fontFamily: FUI, fontSize: 27, whiteSpace: "nowrap" }}>{lead}</div>
-      {code ? <Arrow c={col} /> : null}
-      {code ? <div style={{ color: col, fontFamily: FMONO, fontSize: 25, whiteSpace: "nowrap" }}>{code}</div> : null}
+// ---------- Windows-style widgets (nominal coordinates inside <Win>) ----------
+export const Win: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <div style={abs(M.win.x, M.win.y, M.win.w * M.Z, M.win.h * M.Z, { overflow: "hidden", borderRadius: 10, background: "#fff", boxSizing: "border-box", border: "1px solid #475569" })}>
+    <div style={{ position: "absolute", left: 0, top: 0, width: M.win.w, height: M.win.h, transform: `scale(${M.Z})`, transformOrigin: "0 0", overflow: "hidden" }}>{children}</div>
+  </div>
+);
+export const Btn: React.FC<{ x: number; y: number; w: number; h?: number; label: string; def?: boolean; down?: boolean; dis?: boolean }> = ({ x, y, w, h = 24, label, def, down, dis }) => (
+  <div style={abs(x, y, w, h, { boxSizing: "border-box", background: down ? "#CCE4F7" : "#E1E1E1", border: `${def || down ? 2 : 1}px solid ${down ? "#005499" : def ? "#0078D7" : "#ADADAD"}`,
+    textAlign: "center", lineHeight: `${h - 4}px`, fontSize: 12, color: dis ? "#9A9A9A" : "#111", fontFamily: FONT.ui })}>{label}</div>
+);
+export const Chk: React.FC<{ x: number; y: number; label: string; on: boolean; w?: number; dis?: boolean; radio?: boolean }> = ({ x, y, label, on, w = 330, dis, radio }) => (
+  <div style={abs(x, y, w, 20)}>
+    <div style={abs(0, 3, 14, 14, { boxSizing: "border-box", background: "#fff", border: `1px solid ${dis ? "#BBB" : "#333"}`, borderRadius: radio ? 8 : 0 })}>
+      {on && !radio && <svg width={12} height={12} viewBox="0 0 12 12" style={{ position: "absolute", left: 0, top: 0 }}><path d="M2 6.5l3 3 5-6" fill="none" stroke={dis ? "#999" : "#111"} strokeWidth={1.6} /></svg>}
+      {on && radio && <div style={abs(3, 3, 6, 6, { borderRadius: 6, background: "#111" })} />}
     </div>
+    <Tx x={22} y={0} w={w - 22} h={20} size={12} color={dis ? "#8C8C8C" : "#111"}>{label}</Tx>
+  </div>
+);
+export const Inp: React.FC<{ x: number; y: number; w: number; h?: number; text: string; focus?: boolean; caret?: boolean; dd?: boolean }> = ({ x, y, w, h = 22, text, focus, caret, dd }) => (
+  <div style={abs(x, y, w, h, { boxSizing: "border-box", background: "#fff", border: `1px solid ${focus ? "#0078D7" : "#7A7A7A"}`, fontSize: 12, lineHeight: `${h - 2}px`, paddingLeft: 5, fontFamily: FONT.ui, color: "#111", overflow: "hidden", whiteSpace: "nowrap" })}>
+    {text}{caret ? <span style={{ borderLeft: "1px solid #111", marginLeft: 1 }} /> : null}
+    {dd && <span style={{ position: "absolute", right: 5, top: 0, fontSize: 9, color: "#444" }}>▼</span>}
+  </div>
+);
+export const Dlg: React.FC<{ x: number; y: number; w: number; h: number; title: string; a?: number; children?: React.ReactNode }> = ({ x, y, w, h, title, a = 1, children }) => (
+  <div style={{ position: "absolute", left: 0, top: 0, width: M.win.w, height: M.win.h, opacity: a, transform: `scale(${0.97 + 0.03 * a})`, transformOrigin: `${x + w / 2}px ${y + h / 2}px`, pointerEvents: "none" }}>
+    <div style={abs(x + 4, y + 6, w, h, { background: "rgba(0,0,0,0.28)" })} />
+    <div style={abs(x, y, w, h, { background: XL.dlg, border: "1px solid #7A7A7A", boxSizing: "border-box" })}>
+      <div style={abs(0, 0, w - 2, 30, { background: "#fff" })} />
+      <Tx x={10} y={0} w={w - 60} h={30} size={12} color="#111">{title}</Tx>
+      <Tx x={w - 40} y={0} w={36} h={30} size={14} align="center" color="#111">✕</Tx>
+      {children}
+    </div>
+  </div>
+);
+export type MenuItem = { l: string; dis?: boolean; sep?: boolean; sub?: boolean; ic?: string };
+export const Menu: React.FC<{ x: number; y: number; w: number; items: MenuItem[]; hi?: number; a?: number }> = ({ x, y, w, items, hi = -1, a = 1 }) => {
+  let yy = 3;
+  const rows = items.map((it, i) => {
+    const y0 = yy; yy += it.sep ? 7 : 24;
+    return (
+      <div key={i} style={abs(2, y0, w - 4, it.sep ? 7 : 24)}>
+        {it.sep ? <div style={abs(28, 3, w - 36, 1, { background: "#D4D4D4" })} /> : (
+          <div>
+            {i === hi && <div style={abs(0, 0, w - 4, 24, { background: XL.hover, border: `1px solid ${XL.hoverLine}`, boxSizing: "border-box" })} />}
+            {it.ic && <Ico n={it.ic} x={7} y={4} s={16} c={it.dis ? "#B0B0B0" : "#555"} sw={1.6} />}
+            <Tx x={30} y={0} w={w - 60} h={24} size={12.5} color={it.dis ? "#A0A0A0" : "#111"}>{it.l}</Tx>
+            {it.sub && <Tx x={w - 24} y={0} w={14} h={24} size={10} color="#444">▶</Tx>}
+          </div>
+        )}
+      </div>
+    );
+  });
+  return (
+    <div style={{ position: "absolute", left: x, top: y, width: w, height: yy + 3, opacity: a, background: "#fff", border: "1px solid #C8C8C8", boxSizing: "border-box", boxShadow: "3px 4px 0 rgba(0,0,0,0.18)" }}>{rows}</div>
   );
 };
-
-export const Callout: React.FC<{ x: number; y: number; w: number; h: number; col: string; f: number; a?: number; b?: number; r?: number }> = ({ x, y, w, h, col, f, a = 0, b = 99999, r = 6 }) => {
-  const o = vis(f, a, b, 8);
-  if (o <= 0.01) return null;
-  const p = 0.7 + 0.3 * Math.sin(f / 9);
-  return <div style={{ position: "absolute", left: x - 4, top: y - 4, width: w + 8, height: h + 8, border: `3px solid ${col}`, borderRadius: r, boxShadow: `0 0 ${14 + 10 * p}px ${col}, inset 0 0 10px ${col}55`, opacity: o, pointerEvents: "none" }} />;
+export const menuItemY = (items: MenuItem[], idx: number) => {
+  let yy = 3;
+  for (let i = 0; i < idx; i++) yy += items[i].sep ? 7 : 24;
+  return yy + 12;
 };
 
-export const Glass: React.FC<{ x: number; y: number; w: number; h: number; col?: string; children?: React.ReactNode; o?: number }> = ({ x, y, w, h, col = C.cyan, children, o = 1 }) => (
-  <div style={{ position: "absolute", left: x, top: y, width: w, height: h, background: "rgba(30,41,59,0.88)", border: `1.5px solid ${col}88`, borderRadius: 18, boxShadow: `0 10px 40px rgba(0,0,0,.45), 0 0 24px ${col}33`, opacity: o, overflow: "hidden" }}>{children}</div>
-);
-
-/* ---------- icons (generic drawings, no brand marks) ---------- */
-const G = "#107C41", B = "#2B6CB0", K = "#555", O = "#D9822B";
-export const Ico: React.FC<{ k: string; s?: number }> = ({ k, s = 32 }) => {
-  const st = { fill: "none", stroke: K, strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  let g: React.ReactNode;
-  switch (k) {
-    case "paste": g = <g><rect x="6" y="6" width="17" height="21" rx="2" {...st} fill="#fff" /><rect x="11" y="3" width="8" height="6" rx="1.5" fill="#888" /><rect x="15" y="14" width="13" height="15" rx="1.5" fill="#fff" stroke={G} strokeWidth="1.6" /><path d="M18 19h7M18 23h7" stroke={G} strokeWidth="1.6" /></g>; break;
-    case "copy": g = <g><rect x="5" y="4" width="15" height="19" rx="2" {...st} /><rect x="12" y="10" width="15" height="19" rx="2" {...st} fill="#fff" /></g>; break;
-    case "cut": g = <g><path d="M10 4l12 17M22 4L10 21" {...st} /><circle cx="10" cy="24" r="3.5" {...st} /><circle cx="22" cy="24" r="3.5" {...st} /></g>; break;
-    case "brush": g = <g><rect x="6" y="5" width="16" height="9" rx="2" {...st} fill="#FFE08A" /><path d="M14 14v6M11 20h6v8h-6z" {...st} /></g>; break;
-    case "B": g = <text x="16" y="24" textAnchor="middle" fontSize="23" fontWeight="700" fill={K} fontFamily={FUI}>B</text>; break;
-    case "I": g = <text x="16" y="24" textAnchor="middle" fontSize="23" fontStyle="italic" fill={K} fontFamily={FUI}>I</text>; break;
-    case "U": g = <g><text x="16" y="22" textAnchor="middle" fontSize="21" fill={K} fontFamily={FUI}>U</text><path d="M8 27h16" {...st} /></g>; break;
-    case "fill": g = <g><path d="M7 20l9-12 9 12z" fill="#FFD966" stroke={K} strokeWidth="1.4" /><rect x="6" y="25" width="20" height="4" fill="#FFE600" /></g>; break;
-    case "font": g = <g><text x="16" y="21" textAnchor="middle" fontSize="20" fill={K} fontFamily={FUI}>A</text><rect x="7" y="25" width="18" height="4" fill="#E03C31" /></g>; break;
-    case "alL": g = <path d="M6 8h20M6 14h13M6 20h20M6 26h13" {...st} />; break;
-    case "alC": g = <path d="M6 8h20M10 14h12M6 20h20M10 26h12" {...st} />; break;
-    case "alR": g = <path d="M6 8h20M13 14h13M6 20h20M13 26h13" {...st} />; break;
-    case "wrap": g = <g><path d="M5 8h22M5 15h17a4 4 0 010 8h-6" {...st} /><path d="M19 20l-3 3 3 3M5 24h6" {...st} /></g>; break;
-    case "merge": g = <g><rect x="4" y="8" width="24" height="16" rx="1.5" {...st} /><path d="M9 16h14M12 13l-3 3 3 3M20 13l3 3-3 3" {...st} stroke={B} /></g>; break;
-    case "pct": g = <text x="16" y="24" textAnchor="middle" fontSize="23" fill={K} fontFamily={FUI}>%</text>; break;
-    case "usd": g = <text x="16" y="24" textAnchor="middle" fontSize="23" fill={K} fontFamily={FUI}>$</text>; break;
-    case "comma": g = <text x="16" y="25" textAnchor="middle" fontSize="26" fontWeight="700" fill={K} fontFamily={FUI}>,</text>; break;
-    case "dec": g = <text x="16" y="23" textAnchor="middle" fontSize="15" fill={K} fontFamily={FUI}>.00</text>; break;
-    case "cond": g = <g><rect x="4" y="5" width="24" height="22" rx="2" {...st} fill="#fff" /><rect x="7" y="9" width="10" height="4" fill="#E03C31" /><rect x="7" y="15" width="16" height="4" fill="#F2B84B" /><rect x="7" y="21" width="7" height="3" fill={G} /></g>; break;
-    case "table": g = <g><rect x="4" y="5" width="24" height="22" rx="2" {...st} fill="#fff" /><rect x="4" y="5" width="24" height="6" fill={B} /><path d="M4 17h24M4 22h24M12 11v16M20 11v16" {...st} strokeWidth="1.1" /></g>; break;
-    case "styles": g = <g><rect x="4" y="7" width="24" height="18" rx="3" {...st} fill="#fff" /><text x="16" y="21" textAnchor="middle" fontSize="13" fill={G} fontFamily={FUI} fontWeight="700">Aa</text></g>; break;
-    case "ins": g = <g><rect x="5" y="8" width="20" height="18" {...st} fill="#fff" /><path d="M5 14h20M13 8v18" {...st} strokeWidth="1.1" /><circle cx="24" cy="9" r="5" fill={G} /><path d="M24 6v6M21 9h6" stroke="#fff" strokeWidth="1.6" /></g>; break;
-    case "del": g = <g><rect x="5" y="8" width="20" height="18" {...st} fill="#fff" /><path d="M5 14h20M13 8v18" {...st} strokeWidth="1.1" /><circle cx="24" cy="9" r="5" fill="#C0392B" /><path d="M21 9h6" stroke="#fff" strokeWidth="1.8" /></g>; break;
-    case "fmt": g = <g><rect x="5" y="8" width="20" height="18" {...st} fill="#fff" /><path d="M5 14h20M13 8v18" {...st} strokeWidth="1.1" /><circle cx="24" cy="24" r="4.5" fill="#888" /></g>; break;
-    case "sum": g = <text x="16" y="25" textAnchor="middle" fontSize="27" fill={O} fontFamily={FUI} fontWeight="700">Σ</text>; break;
-    case "clear": g = <g><path d="M6 20l10-12 10 8-8 10H12z" {...st} fill="#fff" /><path d="M10 26h16" {...st} /></g>; break;
-    case "sort": g = <g><text x="3" y="13" fontSize="12" fill={K} fontFamily={FUI}>A</text><text x="3" y="27" fontSize="12" fill={K} fontFamily={FUI}>Z</text><path d="M22 6v18M17 19l5 6 5-6" {...st} stroke={B} /></g>; break;
-    case "az": g = <g><text x="3" y="13" fontSize="12" fill={K} fontFamily={FUI}>A</text><text x="3" y="27" fontSize="12" fill={K} fontFamily={FUI}>Z</text><path d="M22 6v18M17 19l5 6 5-6" {...st} stroke={B} /></g>; break;
-    case "filter": g = <path d="M4 6h24l-9 11v9l-6-3v-6z" {...st} fill="#E7EEF7" stroke={B} />; break;
-    case "find": g = <g><circle cx="13" cy="13" r="7" {...st} /><path d="M18 18l9 9" {...st} strokeWidth="2.6" /></g>; break;
-    case "col": g = <g><rect x="5" y="15" width="5" height="12" fill={B} /><rect x="13" y="7" width="5" height="20" fill={G} /><rect x="21" y="12" width="5" height="15" fill={O} /></g>; break;
-    case "line": g = <g><path d="M4 24l7-9 6 5 10-14" {...st} stroke={B} strokeWidth="2.2" /><path d="M4 28h24" {...st} /></g>; break;
-    case "pie": g = <g><circle cx="16" cy="16" r="11" fill={B} /><path d="M16 16V5a11 11 0 0110 7z" fill={O} /></g>; break;
-    case "hier": g = <g><rect x="4" y="5" width="13" height="13" fill={B} /><rect x="18" y="5" width="10" height="7" fill={G} /><rect x="18" y="13" width="10" height="14" fill={O} /><rect x="4" y="19" width="13" height="8" fill="#9B59B6" /></g>; break;
-    case "stat": g = <g><rect x="5" y="14" width="4" height="13" fill={B} /><rect x="11" y="8" width="4" height="19" fill={B} /><rect x="17" y="12" width="4" height="15" fill={B} /><rect x="23" y="18" width="4" height="9" fill={B} /></g>; break;
-    case "scatter": g = <g><path d="M5 5v22h22" {...st} /><circle cx="11" cy="21" r="2.4" fill={B} /><circle cx="16" cy="15" r="2.4" fill={B} /><circle cx="21" cy="17" r="2.4" fill={B} /><circle cx="24" cy="9" r="2.4" fill={B} /></g>; break;
-    case "combo": g = <g><rect x="5" y="16" width="5" height="11" fill={B} /><rect x="13" y="12" width="5" height="15" fill={B} /><rect x="21" y="18" width="5" height="9" fill={B} /><path d="M5 12l8-6 8 7 6-8" {...st} stroke={O} strokeWidth="2" /></g>; break;
-    case "rec": g = <g><rect x="5" y="14" width="5" height="13" fill={B} /><rect x="13" y="8" width="5" height="19" fill={G} /><path d="M24 4l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z" fill="#F2B84B" /></g>; break;
-    case "pivot": g = <g><rect x="4" y="5" width="24" height="22" rx="2" {...st} fill="#fff" /><rect x="4" y="5" width="8" height="22" fill="#D6E4F5" /><path d="M4 12h24M12 5v22" {...st} strokeWidth="1.1" /></g>; break;
-    case "fx": g = <text x="16" y="23" textAnchor="middle" fontSize="20" fontStyle="italic" fontWeight="700" fill={G} fontFamily={FUI}>fx</text>; break;
-    case "book": g = <g><rect x="6" y="5" width="18" height="22" rx="2" {...st} fill="#fff" /><path d="M10 11h10M10 16h10M10 21h6" {...st} stroke={B} /></g>; break;
-    case "names": g = <g><rect x="4" y="8" width="24" height="16" rx="2" {...st} fill="#fff" /><text x="16" y="21" textAnchor="middle" fontSize="12" fill={B} fontFamily={FUI}>name</text></g>; break;
-    case "trace": g = <g><rect x="4" y="5" width="9" height="7" {...st} fill="#fff" /><rect x="19" y="20" width="9" height="7" {...st} fill="#fff" /><path d="M13 9h6v11" {...st} stroke={B} /><path d="M16 17l3 3 3-3" {...st} stroke={B} /></g>; break;
-    case "eye": g = <g><path d="M3 16c5-8 21-8 26 0-5 8-21 8-26 0z" {...st} fill="#fff" /><circle cx="16" cy="16" r="4" fill={B} /></g>; break;
-    case "calc": g = <g><rect x="7" y="4" width="18" height="24" rx="2" {...st} fill="#fff" /><rect x="10" y="7" width="12" height="5" fill="#CFE8D9" /><path d="M11 17h2M16 17h2M21 17h1M11 22h2M16 22h2M21 22h1" stroke={K} strokeWidth="2.2" /></g>; break;
-    case "data": g = <g><ellipse cx="16" cy="8" rx="10" ry="4" {...st} fill="#fff" /><path d="M6 8v14c0 2.2 4.5 4 10 4s10-1.8 10-4V8" {...st} fill="#fff" /><path d="M6 15c0 2.2 4.5 4 10 4s10-1.8 10-4" {...st} /></g>; break;
-    case "refresh": g = <g><path d="M25 14a9 9 0 10-2 8" {...st} stroke={G} strokeWidth="2.2" /><path d="M26 6v8h-8" {...st} stroke={G} strokeWidth="2.2" /></g>; break;
-    case "conn": g = <g><rect x="4" y="6" width="10" height="8" rx="2" {...st} fill="#fff" /><rect x="18" y="18" width="10" height="8" rx="2" {...st} fill="#fff" /><path d="M14 10h6v8" {...st} stroke={B} /></g>; break;
-    case "dtype": g = <g><rect x="5" y="5" width="22" height="22" rx="3" {...st} fill="#fff" /><path d="M10 20l4-5 3 3 5-8" {...st} stroke={G} strokeWidth="2" /></g>; break;
-    case "ttc": g = <g><rect x="4" y="7" width="24" height="18" {...st} fill="#fff" /><path d="M16 7v18" {...st} stroke={B} strokeDasharray="2 2" /></g>; break;
-    case "dedup": g = <g><rect x="5" y="5" width="16" height="16" {...st} fill="#fff" /><rect x="11" y="11" width="16" height="16" {...st} fill="#fff" /><path d="M15 19l8 0" {...st} stroke="#C0392B" strokeWidth="2.2" /></g>; break;
-    case "valid": g = <g><rect x="4" y="6" width="24" height="12" {...st} fill="#fff" /><path d="M9 12l3 3 5-6" {...st} stroke={G} strokeWidth="2.2" /><path d="M10 22h12l-6 5z" fill="#888" /></g>; break;
-    case "whatif": g = <g><rect x="4" y="6" width="17" height="15" {...st} fill="#fff" /><path d="M4 12h17M10 6v15" {...st} strokeWidth="1.1" /><text x="24" y="27" textAnchor="middle" fontSize="19" fill={O} fontWeight="700" fontFamily={FUI}>?</text></g>; break;
-    case "forecast": g = <g><path d="M4 22l6-7 5 4 5-8" {...st} stroke={B} strokeWidth="2.2" /><path d="M20 11l8-5" stroke={O} strokeWidth="2.2" strokeDasharray="3 2.4" /><path d="M4 28h24" {...st} /></g>; break;
-    case "group": g = <g><path d="M6 6h6v20H6M26 6h-6v20h6" {...st} stroke={B} /><path d="M12 16h8" {...st} /></g>; break;
-    default: g = <rect x="6" y="6" width="20" height="20" rx="3" {...st} fill="#fff" />;
-  }
-  return <svg width={s} height={s} viewBox="0 0 32 32">{g}</svg>;
-};
-
-/* ---------- ribbon definitions (Microsoft 365 desktop layout, generic icons) ---------- */
-type It = { id?: string; i?: string; l?: string; box?: string; w?: number };
-type Item = { big: It } | { rows: It[][] };
-type Grp = { n: string; items: Item[] };
-const bg = (id: string, i: string, l: string): Item => ({ big: { id, i, l } });
-const sm = (i: string, l?: string, id?: string): It => ({ i, l, id });
-const bx = (t: string, w: number): It => ({ box: t, w });
-
-export const TABS = ["File", "Home", "Insert", "Page Layout", "Formulas", "Data", "Review", "View", "Automate", "Help"];
-const RIB: Record<string, Grp[]> = {
+// ---------- Excel ribbon (positions shared by renderer and cursor targets) ----------
+type Item = { k: string; l: string; ic: string; big?: boolean; dd?: boolean; box?: number; nl?: boolean };
+type Group = { n: string; cols?: Item[][]; rows?: Item[][] };
+const I = (k: string, l: string, ic: string, o: Partial<Item> = {}): Item => ({ k, l, ic, ...o });
+const RIBBONS: Record<string, Group[]> = {
+  PPHome: [
+    { n: "Clipboard", cols: [[I("pst", "Paste", "paste", { big: true, dd: true })]] },
+    { n: "Get External Data", cols: [[I("fdb", "From Database", "db", { big: true, dd: true })], [I("fos", "From Other Sources", "link", { big: true, dd: true })], [I("fex", "Existing Connections", "link", { big: true })]] },
+    { n: "PivotTable", cols: [[I("pvt", "PivotTable", "table", { big: true, dd: true })]] },
+    { n: "Formatting", rows: [[I("dty", "Data Type: Whole Number", "", { box: 210 })], [I("fmt2", "Format: General", "", { box: 210 })]] },
+    { n: "Sort and Filter", cols: [[I("sa", "Sort A to Z", "az"), I("sz", "Sort Z to A", "az"), I("cas", "Clear All Sorts", "minus")]] },
+    { n: "Find", cols: [[I("fnd", "Find", "find", { big: true })]] },
+    { n: "Calculations", cols: [[I("asum", "AutoSum", "sigma", { big: true, dd: true })], [I("kpi", "Create KPI", "chart", { big: true })]] },
+    { n: "View", cols: [[I("dv", "Data View", "table", { big: true })], [I("dgv", "Diagram View", "db2", { big: true })], [I("shh", "Show Hidden", "gen", { big: true })], [I("cav", "Calculation Area", "cols", { big: true })]] },
+  ],
+  PQHome: [
+    { n: "Close", cols: [[I("cl", "Close & Load", "save", { big: true, dd: true })]] },
+    { n: "Query", cols: [[I("rp", "Refresh Preview", "refresh", { big: true, dd: true })], [I("pp", "Properties", "props"), I("ae", "Advanced Editor", "gen"), I("mg", "Manage", "gear", { dd: true })]] },
+    { n: "Manage Columns", cols: [[I("cc", "Choose Columns", "cols", { big: true, dd: true })], [I("rcl", "Remove Columns", "minus", { big: true, dd: true })]] },
+    { n: "Reduce Rows", cols: [[I("kr", "Keep Rows", "rows", { big: true, dd: true })], [I("rr", "Remove Rows", "rows", { big: true, dd: true })]] },
+    { n: "Sort", cols: [[I("s1", "", "az", { nl: true }), I("s2", "", "az", { nl: true })]] },
+    { n: "Transform", cols: [[I("sc", "Split Column", "cols", { big: true, dd: true })], [I("gb", "Group By", "group", { big: true })], [I("dt", "Data Type: Any", "gen", { dd: true }), I("uh", "Use First Row as Headers", "table", { dd: true }), I("rv", "Replace Values", "find")]] },
+    { n: "Combine", cols: [[I("mq", "Merge Queries", "merge2", { big: true, dd: true })], [I("aq", "Append Queries", "plus", { big: true, dd: true })]] },
+  ],
   Home: [
-    { n: "Clipboard", items: [bg("paste", "paste", "Paste"), { rows: [[sm("cut", "Cut")], [sm("copy", "Copy")], [sm("brush", "Format Painter")]] }] },
-    { n: "Font", items: [{ rows: [[bx("Calibri", 118), bx("11", 46), sm("font")], [sm("B"), sm("I"), sm("U"), sm("fill"), sm("font")]] }] },
-    { n: "Alignment", items: [{ rows: [[sm("alL"), sm("alC"), sm("alR")], [sm("wrap", "Wrap Text")], [sm("merge", "Merge & Center")]] }] },
-    { n: "Number", items: [{ rows: [[bx("General", 150)], [sm("usd"), sm("pct"), sm("comma"), sm("dec")]] }] },
-    { n: "Styles", items: [bg("cond", "cond", "Conditional\nFormatting"), bg("fmtT", "table", "Format as\nTable"), bg("cs", "styles", "Cell\nStyles")] },
-    { n: "Cells", items: [bg("insC", "ins", "Insert"), bg("delC", "del", "Delete"), bg("fmtC", "fmt", "Format")] },
-    { n: "Editing", items: [{ rows: [[sm("sum", "AutoSum")], [sm("fill", "Fill")], [sm("clear", "Clear")]] }, bg("sortF", "sort", "Sort &\nFilter"), bg("findS", "find", "Find &\nSelect")] },
-  ],
-  Insert: [
-    { n: "Tables", items: [bg("pvt", "pivot", "PivotTable"), bg("rpv", "pivot", "Recommended\nPivotTables"), bg("tbl", "table", "Table")] },
-    { n: "Charts", items: [bg("recC", "rec", "Recommended\nCharts"), { rows: [[sm("col", undefined, "chCol"), sm("line", undefined, "chLine"), sm("pie", undefined, "chPie")], [sm("hier", undefined, "chHier"), sm("stat", undefined, "chStat"), sm("scatter", undefined, "chScatter")]] }, bg("pvc", "combo", "PivotChart")] },
-    { n: "Sparklines", items: [{ rows: [[sm("line", "Line")], [sm("col", "Column")], [sm("stat", "Win/Loss")]] }] },
-    { n: "Filters", items: [bg("slc", "filter", "Slicer"), bg("tml", "book", "Timeline")] },
-    { n: "Links", items: [bg("lnk", "conn", "Link")] },
-    { n: "Text", items: [bg("txb", "book", "Text\nBox"), bg("hf", "book", "Header &\nFooter")] },
-    { n: "Symbols", items: [bg("eq", "fx", "Equation"), bg("symb", "names", "Symbol")] },
-  ],
-  Formulas: [
-    { n: "Function Library", items: [bg("insF", "fx", "Insert\nFunction"), bg("asum", "sum", "AutoSum"), bg("rec", "book", "Recently\nUsed"), bg("fin", "book", "Financial"), bg("log", "book", "Logical"), bg("txt", "book", "Text"), bg("dt", "book", "Date &\nTime"), bg("lk", "book", "Lookup &\nReference"), bg("mt", "book", "Math &\nTrig"), bg("more", "book", "More\nFunctions")] },
-    { n: "Defined Names", items: [{ rows: [[sm("names", "Name Manager")], [sm("names", "Define Name")], [sm("names", "Use in Formula")]] }] },
-    { n: "Formula Auditing", items: [{ rows: [[sm("trace", "Trace Precedents")], [sm("trace", "Trace Dependents")], [sm("eye", "Show Formulas")]] }] },
-    { n: "Calculation", items: [bg("calcO", "calc", "Calculation\nOptions"), { rows: [[sm("calc", "Calculate Now")], [sm("calc", "Calculate Sheet")]] }] },
+    { n: "Clipboard", cols: [[I("paste", "Paste", "paste", { big: true, dd: true })], [I("cut", "Cut", "cut"), I("copy", "Copy", "copy", { dd: true }), I("fp", "Format Painter", "brush")]] },
+    { n: "Font", rows: [[I("fn", "Calibri", "", { box: 104 }), I("fs", "11", "", { box: 38 }), I("fg", "A", "", { nl: true }), I("fs2", "A", "", { nl: true })],
+      [I("b", "B", "", { nl: true }), I("i", "I", "", { nl: true }), I("u", "U", "", { nl: true }), I("bd", "", "borders", { nl: true }), I("fl", "", "fill", { nl: true }), I("fc", "A", "", { nl: true })]] },
+    { n: "Alignment", rows: [[I("al1", "", "alignl", { nl: true }), I("al2", "", "alignc", { nl: true }), I("al3", "", "alignr", { nl: true }), I("wr", "Wrap Text", "gen")],
+      [I("al4", "", "alignl", { nl: true }), I("al5", "", "alignc", { nl: true }), I("al6", "", "alignr", { nl: true }), I("mc", "Merge & Center", "merge", { dd: true })]] },
+    { n: "Number", rows: [[I("nf", "General", "", { box: 150 })], [I("cur", "$", "", { nl: true }), I("pct", "%", "", { nl: true }), I("com", ",", "", { nl: true }), I("d1", ".00", "", { nl: true }), I("d2", ".0", "", { nl: true })]] },
+    { n: "Styles", cols: [[I("cf", "Conditional Formatting", "cond", { big: true, dd: true })], [I("ft", "Format as Table", "table", { big: true, dd: true })], [I("cs", "Cell Styles", "gen", { big: true, dd: true })]] },
+    { n: "Cells", cols: [[I("ins", "Insert", "plus", { big: true, dd: true })], [I("del", "Delete", "minus", { big: true, dd: true })], [I("fmt", "Format", "cols", { big: true, dd: true })]] },
+    { n: "Editing", cols: [[I("sum", "AutoSum", "sigma", { dd: true }), I("fill", "Fill", "fill", { dd: true }), I("clr", "Clear", "minus", { dd: true })], [I("sf", "Sort & Filter", "sort", { big: true, dd: true })], [I("fs3", "Find & Select", "find", { big: true, dd: true })]] },
   ],
   Data: [
-    { n: "Get & Transform Data", items: [bg("getD", "data", "Get\nData"), { rows: [[sm("data", "From Text/CSV")], [sm("data", "From Web")], [sm("table", "From Table/Range")]] }] },
-    { n: "Queries & Connections", items: [bg("refA", "refresh", "Refresh\nAll"), { rows: [[sm("conn", "Queries & Connections")], [sm("conn", "Properties")], [sm("conn", "Edit Links")]] }] },
-    { n: "Data Types", items: [bg("stk", "dtype", "Stocks"), bg("cur", "dtype", "Currencies")] },
-    { n: "Sort & Filter", items: [bg("sortD", "sort", "Sort"), bg("fltD", "filter", "Filter"), { rows: [[sm("clear", "Clear")], [sm("refresh", "Reapply")], [sm("filter", "Advanced")]] }] },
-    { n: "Data Tools", items: [bg("ttc", "ttc", "Text to\nColumns"), { rows: [[sm("fill", "Flash Fill")], [sm("dedup", "Remove Duplicates")], [sm("valid", "Data Validation")]] }] },
-    { n: "Forecast", items: [bg("whatif", "whatif", "What-If\nAnalysis"), bg("fsheet", "forecast", "Forecast\nSheet")] },
-    { n: "Outline", items: [{ rows: [[sm("group", "Group")], [sm("group", "Ungroup")], [sm("group", "Subtotal")]] }] },
+    { n: "Get & Transform Data", cols: [[I("gd", "Get Data", "db", { big: true, dd: true })], [I("txt", "From Text/CSV", "gen"), I("web", "From Web", "link"), I("tbl", "From Table/Range", "table")], [I("rs", "Recent Sources", "db2"), I("ec", "Existing Connections", "link")]] },
+    { n: "Queries & Connections", cols: [[I("ra", "Refresh All", "refresh", { big: true, dd: true })], [I("qc", "Queries & Connections", "query"), I("pr", "Properties", "props"), I("el", "Edit Links", "link")]] },
+    { n: "Data Types", cols: [[I("stk", "Stocks", "stock", { big: true })], [I("cur2", "Currencies", "stock", { big: true })]] },
+    { n: "Sort & Filter", cols: [[I("az", "", "az", { nl: true }), I("za", "", "az", { nl: true })], [I("srt", "Sort", "sort", { big: true })], [I("flt", "Filter", "filter", { big: true })], [I("rc", "Clear", "minus"), I("rp", "Reapply", "refresh"), I("adv", "Advanced", "filter")]] },
+    { n: "Data Tools", cols: [[I("t2c", "Text to Columns", "cols", { big: true })], [I("ff", "Flash Fill", "gen"), I("rd", "Remove Duplicates", "rows"), I("dv", "Data Validation", "gen")], [I("cons", "Consolidate", "merge2"), I("rel", "Relationships", "link"), I("dm", "Manage Data Model", "db")]] },
   ],
 };
-const tw = (s: string) => s.length * 8.6;
-
-const Ribbon: React.FC<{ tab: string; hl?: string; hlCol?: string; f: number }> = ({ tab, hl, hlCol = C.cyan, f }) => {
-  const groups = RIB[tab] ?? RIB.Home;
-  const rects: Record<string, { x: number; y: number; w: number; h: number }> = {};
-  const out: React.ReactNode[] = [];
-  let x = 10;
-  groups.forEach((g, gi) => {
+export type Box = { x: number; y: number; w: number; h: number };
+const RY = M.title + M.tabs;
+const colWidth = (c: Item[]) => c[0].big ? Math.max(48, Math.max(...c[0].l.split(" ").map((s) => s.length + 2)) * 6.6 + 12)
+  : Math.max(...c.map((i) => (i.nl ? 26 : i.box ? i.box + 4 : i.l.length * 6.3 + 32)));
+const LAY: Record<string, { items: (Item & Box)[]; groups: { n: string; x: number; w: number }[] }> = {};
+Object.keys(RIBBONS).forEach((tab) => {
+  let x = 6; const items: (Item & Box)[] = []; const groups: { n: string; x: number; w: number }[] = [];
+  RIBBONS[tab].forEach((g) => {
     const x0 = x;
-    g.items.forEach((it, ii) => {
-      if ("big" in it) {
-        const lines = (it.big.l ?? "").split("\n");
-        const w = Math.max(60, Math.max(...lines.map((l) => tw(l))) + 14);
-        if (it.big.id) rects[it.big.id] = { x, y: 6, w, h: 94 };
-        out.push(
-          <div key={`${gi}-${ii}`} style={{ position: "absolute", left: x, top: 6, width: w, height: 94, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: FUI, fontSize: 17, color: C.ink, textAlign: "center", lineHeight: "18px" }}>
-            <div style={{ marginTop: 6 }}><Ico k={it.big.i ?? ""} s={46} /></div>
-            <div style={{ marginTop: 6, whiteSpace: "pre" }}>{lines.join("\n")}</div>
+    if (g.cols) g.cols.forEach((c) => {
+      const w = colWidth(c);
+      c.forEach((it, i) => items.push(it.big ? { ...it, x, y: RY + 3, w, h: 74 } : { ...it, x, y: RY + 3 + i * 25, w, h: 24 }));
+      x += w + 2;
+    });
+    if (g.rows) {
+      let mw = 0;
+      g.rows.forEach((r, ri) => { let xx = x; r.forEach((it) => { const w = it.nl ? 24 : it.box ? it.box : it.l.length * 6.3 + 32; items.push({ ...it, x: xx, y: RY + 8 + ri * 32, w, h: 26 }); xx += w + 2; }); mw = Math.max(mw, xx - x); });
+      x += mw;
+    }
+    x += 8; groups.push({ n: g.n, x: x0, w: x - x0 }); x += 6;
+  });
+  LAY[tab] = { items, groups };
+});
+export const rib = (tab: string, k: string): Box => { const it = LAY[tab].items.find((i) => i.k === k); return it ? { x: it.x, y: it.y, w: it.w, h: it.h } : { x: 0, y: 0, w: 10, h: 10 }; };
+const TABS = ["File", "Home", "Insert", "Draw", "Page Layout", "Formulas", "Data", "Review", "View", "Automate", "Help"];
+const tabBox: Record<string, Box> = {};
+{ let x = 8; TABS.forEach((t) => { const w = t.length * 7 + 24; tabBox[t] = { x, y: M.title, w, h: M.tabs }; x += w; }); }
+export const tabAt = (t: string): Box => tabBox[t];
+
+const RibbonItems: React.FC<{ tab: string }> = ({ tab }) => {
+  const L = LAY[tab] ?? LAY.Home;
+  return (
+    <div>
+      {L.items.map((it) => (
+        <div key={it.k} style={abs(it.x, it.y, it.w, it.h)}>
+          {it.big ? (
+            <div>
+              <Ico n={it.ic} x={(it.w - 30) / 2} y={4} s={30} c={XL.green} sw={1.5} />
+              <Tx x={0} y={38} w={it.w} h={15} size={11.5} align="center">{it.l.split(" ").length > 1 ? it.l.split(" ").slice(0, -1).join(" ") : it.l}</Tx>
+              <Tx x={0} y={52} w={it.w} h={15} size={11.5} align="center">{it.l.split(" ").length > 1 ? it.l.split(" ").slice(-1)[0] + (it.dd ? " ▾" : "") : it.dd ? "▾" : ""}</Tx>
+            </div>
+          ) : it.box ? (
+            <div><Rect x={0} y={2} w={it.w} h={22} fill="#fff" stroke="#B8B8B8" /><Tx x={5} y={2} w={it.w - 20} h={22} size={12}>{it.l}</Tx><Tx x={it.w - 16} y={2} w={14} h={22} size={8} color="#555">▼</Tx></div>
+          ) : it.nl ? (
+            it.ic ? <Ico n={it.ic} x={4} y={4} s={16} c="#444" sw={1.6} /> : <Tx x={0} y={0} w={it.w} h={26} size={it.k === "fg" || it.k === "fs2" ? 14 : 13} align="center" bold={it.k === "b"} style={{ fontStyle: it.k === "i" ? "italic" : "normal", textDecoration: it.k === "u" ? "underline" : "none", fontFamily: FONT.cell }}>{it.l}</Tx>
+          ) : (
+            <div><Ico n={it.ic} x={4} y={4} s={16} c={it.ic === "gen" ? "#666" : XL.green} sw={1.6} /><Tx x={26} y={0} w={it.w - 26} h={24} size={11.5}>{it.l}{it.dd ? " ▾" : ""}</Tx></div>
+          )}
+        </div>
+      ))}
+      {L.groups.map((g) => (
+        <div key={g.n}>
+          <Tx x={g.x} y={RY + 78} w={g.w} h={16} size={11} align="center" color="#555">{g.n}</Tx>
+          <div style={abs(g.x + g.w + 2, RY + 6, 1, 84, { background: "#E1E1E1" })} />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ---------- Excel window ----------
+export type Sel = { r1: number; c1: number; r2: number; c2: number };
+export type Edit = { r: number; c: number; text: string };
+const colName = (c: number) => { let s = ""; let n = c + 1; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+export const COLWS = [100, 100, 86, 86, 64, 92];
+const colX = (c: number) => M.rowHdrW + (c < COLWS.length ? COLWS.slice(0, c).reduce((a, b) => a + b, 0) : COLWS.reduce((a, b) => a + b, 0) + (c - COLWS.length) * M.colW);
+const colWd = (c: number) => (c < COLWS.length ? COLWS[c] : M.colW);
+export const cellBox = (r: number, c: number): Box => ({ x: colX(c), y: RY + M.ribbon - 0 + M.fbar + M.colH + r * M.rowH, w: colWd(c), h: M.rowH });
+const GY = RY + M.ribbon + M.fbar; // grid top (column headers)
+export const GRID_ROWS = 22;
+const SBY = M.win.h - M.status - M.sheetBar;
+
+const Chrome = React.memo(({ tab, file }: { tab: string; file: string }) => (
+  <div>
+    <div style={abs(0, 0, M.win.w, M.title, { background: "#F3F3F3" })} />
+    <div style={abs(10, 7, 16, 16, { background: XL.green, borderRadius: 3 })}><svg width={16} height={16} viewBox="0 0 16 16"><path d="M4 4h8v8H4zM4 8h8M8 4v8" stroke="#fff" strokeWidth={1.2} fill="none" /></svg></div>
+    <Tx x={34} y={0} w={60} h={30} size={12}>AutoSave</Tx>
+    <div style={abs(92, 8, 28, 14, { borderRadius: 7, border: "1px solid #666", boxSizing: "border-box" })}><div style={abs(2, 2, 8, 8, { borderRadius: 4, background: "#666" })} /></div>
+    <Tx x={124} y={0} w={24} h={30} size={11} color="#555">Off</Tx>
+    <Ico n="save" x={156} y={7} s={16} c="#444" sw={1.5} /><Ico n="undo" x={184} y={7} s={16} c="#444" sw={1.5} /><Ico n="redo" x={208} y={7} s={16} c="#444" sw={1.5} />
+    <Tx x={232} y={0} w={14} h={30} size={9} color="#555">▼</Tx>
+    <Tx x={262} y={0} w={240} h={30} size={12.5} bold>{file} - Saved</Tx>
+    <Rect x={540} y={4} w={340} h={22} fill="#fff" stroke="#C8C8C8" r={4} />
+    <Ico n="search" x={548} y={7} s={15} c="#555" sw={1.8} /><Tx x={572} y={4} w={100} h={22} size={12} color="#666">Search</Tx>
+    <Tx x={1040} y={0} w={70} h={30} size={12}>Comments</Tx>
+    <Rect x={1126} y={4} w={64} h={22} fill={XL.green} r={4} /><Tx x={1126} y={4} w={64} h={22} size={12} color="#fff" align="center">Share</Tx>
+    <Tx x={1260} y={0} w={40} h={30} size={14} align="center" color="#333">—</Tx><Tx x={1310} y={0} w={40} h={30} size={13} align="center" color="#333">☐</Tx><Tx x={1355} y={0} w={40} h={30} size={14} align="center" color="#333">✕</Tx>
+    <div style={abs(0, M.title, M.win.w, M.tabs, { background: "#F3F3F3" })} />
+    {TABS.map((t) => (
+      <div key={t}>
+        <Tx x={tabBox[t].x} y={M.title} w={tabBox[t].w} h={M.tabs} size={12.5} align="center" bold={t === tab} color={t === tab ? "#111" : "#333"}>{t}</Tx>
+        {t === tab && <div style={abs(tabBox[t].x + 10, M.title + M.tabs - 3, tabBox[t].w - 20, 3, { background: XL.green, borderRadius: 2 })} />}
+      </div>
+    ))}
+    <div style={abs(0, RY, M.win.w, M.ribbon, { background: "#fff", borderTop: "1px solid #E1E1E1", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+    <RibbonItems tab={tab} />
+  </div>
+));
+export const RibbonHL: React.FC<{ tab: string; k: string; down?: boolean }> = ({ tab, k, down }) => {
+  const b = rib(tab, k);
+  return <div style={abs(b.x, b.y, b.w, b.h, { background: down ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.07)", border: "1px solid #C6C6C6", boxSizing: "border-box", borderRadius: 3 })} />;
+};
+const FormulaBar: React.FC<{ name: string; text: string; editing?: boolean; w: number }> = ({ name, text, editing, w }) => (
+  <div>
+    <div style={abs(0, RY + M.ribbon, w, M.fbar, { background: "#fff", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+    <Rect x={6} y={RY + M.ribbon + 3} w={104} h={20} fill="#fff" stroke="#BDBDBD" />
+    <Tx x={10} y={RY + M.ribbon + 3} w={80} h={20} size={12}>{name}</Tx><Tx x={94} y={RY + M.ribbon + 3} w={14} h={20} size={8} color="#555">▼</Tx>
+    <Tx x={122} y={RY + M.ribbon + 3} w={20} h={20} size={13} color={editing ? "#C42B1C" : "#BBB"} align="center">✕</Tx>
+    <Tx x={144} y={RY + M.ribbon + 3} w={20} h={20} size={13} color={editing ? XL.green : "#BBB"} align="center">✓</Tx>
+    <Tx x={168} y={RY + M.ribbon + 3} w={22} h={20} size={13} color="#555" align="center" style={{ fontStyle: "italic", fontFamily: FONT.cell }}>fx</Tx>
+    <Rect x={194} y={RY + M.ribbon + 3} w={w - 230} h={20} fill="#fff" stroke={editing ? "#8A8A8A" : "#E1E1E1"} />
+    <Tx x={200} y={RY + M.ribbon + 3} w={w - 250} h={20} size={13} font={FONT.cell}>{text}</Tx>
+    <Tx x={w - 30} y={RY + M.ribbon + 3} w={20} h={20} size={9} color="#555" align="center">▼</Tx>
+  </div>
+);
+const Grid: React.FC<{ w: number; data: string[][]; right: number[]; tc: number; table: boolean; sel: Sel; edit?: Edit; ants?: Sel; f: number }> = ({ w, data, right, tc, table, sel, edit, ants, f }) => {
+  const nC = Math.ceil((w - M.rowHdrW) / M.colW) + 2;
+  const gh = M.colH + GRID_ROWS * M.rowH;
+  let hl = "", vl = "";
+  for (let r = 0; r <= GRID_ROWS; r++) hl += `M0 ${M.colH + r * M.rowH + 0.5}H${w}`;
+  for (let c = 0; c <= nC; c++) vl += `M${colX(c) + 0.5} 0V${gh}`;
+  const r1 = Math.min(sel.r1, sel.r2), r2 = Math.max(sel.r1, sel.r2), c1 = Math.min(sel.c1, sel.c2), c2 = Math.max(sel.c1, sel.c2);
+  const sb = (a: Sel): Box => { const A = cellBox(Math.min(a.r1, a.r2), Math.min(a.c1, a.c2)), B = cellBox(Math.max(a.r1, a.r2), Math.max(a.c1, a.c2)); return { x: A.x, y: A.y - GY, w: B.x + B.w - A.x, h: B.y + B.h - A.y }; };
+  const s = sb({ r1, c1, r2, c2 });
+  const multi = r1 !== r2 || c1 !== c2;
+  const tW = COLWS.slice(0, tc).reduce((a, b) => a + b, 0);
+  return (
+    <div style={abs(0, GY, w, gh, { overflow: "hidden", background: "#fff" })}>
+      {table && <div style={abs(M.rowHdrW, M.colH, tW, M.rowH, { background: XL.tbl })} />}
+      {table && data.slice(1).map((_, i) => i % 2 === 0 ? <div key={"b" + i} style={abs(M.rowHdrW, M.colH + (i + 1) * M.rowH, tW, M.rowH, { background: XL.band })} /> : null)}
+      <svg style={{ position: "absolute", left: 0, top: 0 }} width={w} height={gh}><path d={hl + vl} stroke={XL.grid} strokeWidth={1} fill="none" /></svg>
+      {table && <svg style={{ position: "absolute", left: 0, top: 0 }} width={w} height={gh}><path d={`M${M.rowHdrW} ${M.colH + M.rowH + 0.5}H${M.rowHdrW + tW}`} stroke="#fff" strokeWidth={0} fill="none" /></svg>}
+      <div style={abs(0, 0, w, M.colH, { background: XL.hdr, borderBottom: "1px solid #BEBEBE", boxSizing: "border-box" })} />
+      <div style={abs(0, 0, M.rowHdrW, gh, { background: XL.hdr, borderRight: "1px solid #BEBEBE", boxSizing: "border-box" })} />
+      {Array.from({ length: nC }).map((_, c) => {
+        const on = c >= c1 && c <= c2;
+        return (
+          <div key={"h" + c}>
+            <div style={abs(colX(c), 0, colWd(c), M.colH, { background: on ? XL.hdrSel : "transparent", borderRight: "1px solid #D0D0D0", borderBottom: on ? `2px solid ${XL.green}` : undefined, boxSizing: "border-box" })} />
+            <Tx x={colX(c)} y={0} w={colWd(c)} h={M.colH} size={12} align="center" color={on ? XL.green : "#444"} bold={on}>{colName(c)}</Tx>
           </div>
         );
-        x += w + 2;
-      } else {
-        let cw = 0;
-        it.rows.forEach((row, ri) => {
-          let rx = x;
-          row.forEach((b, bi) => {
-            const ww = b.box ? (b.w ?? 80) : 28 + (b.l ? tw(b.l) + 6 : 0);
-            if (b.id) rects[b.id] = { x: rx, y: 8 + ri * 31, w: ww, h: 30 };
-            out.push(
-              <div key={`${gi}-${ii}-${ri}-${bi}`} style={{ position: "absolute", left: rx, top: 8 + ri * 31, width: ww, height: 30, display: "flex", alignItems: "center", fontFamily: FUI, fontSize: 16, color: C.ink, boxSizing: "border-box", border: b.box ? `1px solid ${C.line}` : "none", background: b.box ? "#fff" : "transparent", padding: b.box ? "0 6px" : 0, justifyContent: b.box ? "space-between" : "flex-start" }}>
-                {b.box ? <><span>{b.box}</span><span style={{ fontSize: 11, color: C.ink2 }}>▼</span></> : <><Ico k={b.i ?? ""} s={24} />{b.l ? <span style={{ marginLeft: 6 }}>{b.l}</span> : null}</>}
+      })}
+      {Array.from({ length: GRID_ROWS }).map((_, r) => {
+        const on = r >= r1 && r <= r2;
+        return (
+          <div key={"r" + r}>
+            <div style={abs(0, M.colH + r * M.rowH, M.rowHdrW, M.rowH, { background: on ? XL.hdrSel : "transparent", borderBottom: "1px solid #D0D0D0", borderRight: on ? `2px solid ${XL.green}` : undefined, boxSizing: "border-box" })} />
+            <Tx x={0} y={M.colH + r * M.rowH} w={M.rowHdrW - 2} h={M.rowH} size={12} align="center" color={on ? XL.green : "#444"} bold={on}>{r + 1}</Tx>
+          </div>
+        );
+      })}
+      {data.map((row, r) => row.map((v, c) => {
+        if (v === "" || (edit && edit.r === r && edit.c === c)) return null;
+        const hdr = table && r === 0;
+        return <Tx key={r + "_" + c} x={colX(c) + 3} y={M.colH + r * M.rowH} w={colWd(c) - 6} h={M.rowH} size={14.5} font={FONT.cell} bold={hdr} color={hdr ? "#fff" : "#000"} align={right.includes(c) && !hdr ? "right" : "left"}>{v}</Tx>;
+      }))}
+      {multi && <div style={abs(s.x, s.y, s.w, s.h, { background: XL.greenFill })} />}
+      {ants && (() => { const a = sb(ants); return <svg style={{ position: "absolute", left: a.x - 1, top: a.y - 1 }} width={a.w + 3} height={a.h + 3}><rect x={1} y={1} width={a.w} height={a.h} fill="none" stroke="#217346" strokeWidth={2} strokeDasharray="5 4" strokeDashoffset={-(f * 0.7)} /></svg>; })()}
+      {edit && (() => { const b = sb({ r1: edit.r, c1: edit.c, r2: edit.r, c2: edit.c }); return (
+        <div style={abs(b.x, b.y, Math.max(b.w, 9 * edit.text.length + 12), b.h, { background: "#fff", border: `2px solid ${XL.green}`, boxSizing: "border-box" })}>
+          <Tx x={2} y={-1} w={300} h={M.rowH} size={14.5} font={FONT.cell} color="#000">{edit.text}{Math.floor(f / 15) % 2 === 0 ? "|" : ""}</Tx>
+        </div>); })()}
+      {!edit && <div style={abs(s.x - 1, s.y - 1, s.w + 2, s.h + 2, { border: `2px solid ${XL.green}`, boxSizing: "border-box" })} />}
+      {!edit && <div style={abs(s.x + s.w - 4, s.y + s.h - 4, 7, 7, { background: XL.green, border: "1px solid #fff", boxSizing: "border-box" })} />}
+    </div>
+  );
+};
+const SheetBar: React.FC<{ w: number; sheet: string }> = ({ w, sheet }) => (
+  <div>
+    <div style={abs(0, SBY, w, M.sheetBar, { background: "#F3F3F3", borderTop: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+    <Tx x={8} y={SBY} w={14} h={M.sheetBar} size={9} color="#777">◀</Tx><Tx x={26} y={SBY} w={14} h={M.sheetBar} size={9} color="#777">▶</Tx>
+    {["Sales", "Customers"].map((n, i) => (
+      <div key={n}>
+        {n === sheet && <div style={abs(50 + i * 84, SBY, 84, M.sheetBar, { background: "#fff", borderBottom: `3px solid ${XL.green}`, boxSizing: "border-box" })} />}
+        <Tx x={50 + i * 84} y={SBY} w={84} h={M.sheetBar - 2} size={12} align="center" bold={n === sheet} color={n === sheet ? XL.green : "#333"}>{n}</Tx>
+      </div>
+    ))}
+    <Tx x={222} y={SBY} w={24} h={M.sheetBar} size={18} align="center" color="#555">+</Tx>
+  </div>
+);
+const StatusBar: React.FC<{ w: number; mode: string; stats?: string }> = ({ w, mode, stats }) => (
+  <div>
+    <div style={abs(0, M.win.h - M.status, w, M.status, { background: "#F3F3F3", borderTop: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+    <Tx x={8} y={M.win.h - M.status} w={60} h={M.status} size={11.5}>{mode}</Tx>
+    <Tx x={80} y={M.win.h - M.status} w={170} h={M.status} size={11.5} color="#555">Accessibility: Good to go</Tx>
+    {stats && <Tx x={w - 560} y={M.win.h - M.status} w={290} h={M.status} size={11.5} align="right">{stats}</Tx>}
+    <Ico n="gen" x={w - 232} y={M.win.h - M.status + 4} s={14} c="#555" sw={1.5} /><Ico n="table" x={w - 206} y={M.win.h - M.status + 4} s={14} c="#555" sw={1.5} /><Ico n="cols" x={w - 180} y={M.win.h - M.status + 4} s={14} c="#555" sw={1.5} />
+    <Tx x={w - 150} y={M.win.h - M.status} w={14} h={M.status} size={13} color="#555">−</Tx>
+    <div style={abs(w - 134, M.win.h - M.status + 11, 70, 2, { background: "#999" })} /><div style={abs(w - 100, M.win.h - M.status + 6, 3, 12, { background: "#555" })} />
+    <Tx x={w - 60} y={M.win.h - M.status} w={14} h={M.status} size={13} color="#555">+</Tx><Tx x={w - 44} y={M.win.h - M.status} w={40} h={M.status} size={11.5}>100%</Tx>
+  </div>
+);
+export const QCPane: React.FC<{ x: number; state: "loaded" | "loading"; p?: number; f: number; rows?: string; glow?: string }> = ({ x, state, p = 0, f, rows = "50,000 rows loaded.", glow }) => (
+  <div style={abs(x, RY + M.ribbon + M.fbar, M.pane, SBY - (RY + M.ribbon + M.fbar), { background: "#fff", borderLeft: "1px solid #C8C8C8", boxSizing: "border-box", overflow: "hidden" })}>
+    <Tx x={12} y={8} w={200} h={22} size={14} bold>Queries &amp; Connections</Tx><Tx x={M.pane - 28} y={8} w={20} h={22} size={13} color="#555">✕</Tx>
+    <Tx x={12} y={38} w={70} h={22} size={12.5} bold color={XL.green}>Queries</Tx><Tx x={92} y={38} w={90} h={22} size={12.5} color="#555">Connections</Tx>
+    <div style={abs(12, 60, 62, 2, { background: XL.green })} /><div style={abs(0, 61, M.pane, 1, { background: "#E1E1E1" })} />
+    <Tx x={12} y={70} w={120} h={20} size={11.5} color="#555">1 query</Tx>
+    <div style={abs(12, 96, M.pane - 24, 62, { background: state === "loading" ? "#F2F9F5" : "#fff", border: `1px solid ${glow ?? "#D4D4D4"}`, boxSizing: "border-box" })}>
+      <Ico n="table" x={8} y={8} s={20} c={XL.green} sw={1.5} />
+      <Tx x={36} y={6} w={160} h={22} size={13} bold>Sales_Fact</Tx>
+      <Tx x={36} y={28} w={190} h={20} size={11.5} color="#555">{state === "loading" ? "Refreshing in background…" : rows}</Tx>
+      {state === "loading" ? <Spinner x={M.pane - 54} y={8} s={20} f={f} /> : <Tx x={M.pane - 56} y={6} w={24} h={24} size={16} color={XL.green} align="center">✓</Tx>}
+      {state === "loading" && <div style={abs(36, 50, 160, 4, { background: "#DDD" })}><div style={abs(0, 0, 160 * p, 4, { background: XL.green })} /></div>}
+    </div>
+  </div>
+);
+export const salesData = (n = 21): string[][] => {
+  const prod = ["Laptop", "Router", "Monitor", "Printer", "Tablet"], price = [18500, 950, 4200, 3100, 7600], reg = ["Cairo", "Giza", "Alexandria", "Mansoura", "Aswan"];
+  const rows: string[][] = [["OrderID", "OrderDate", "Region", "Product", "Qty", "Amount"]];
+  let s = 7;
+  for (let i = 0; i < n; i++) {
+    s = (s * 48271) % 2147483647; const p = s % 5; const q = 1 + ((s >> 3) % 9); const d = 1 + ((s >> 5) % 27);
+    rows.push([String(10001 + i), `1/${d}/2026`, reg[(s >> 7) % 5], prod[p], String(q), fmt(q * price[p])]);
+  }
+  return rows;
+};
+export const ExcelWin: React.FC<{ right?: number[]; tableCols?: number; f: number; tab?: string; file?: string; name: string; formula: string; sel: Sel; data?: string[][]; edit?: Edit; ants?: Sel;
+  pane?: React.ReactNode; paneW?: number; mode?: string; stats?: string; hover?: string; down?: boolean; children?: React.ReactNode }> =
+  ({ right, tableCols = 6, f, tab = "Home", file = "manzooma_sales_2026", name, formula, sel, data, edit, ants, pane, paneW = 0, mode = "Ready", stats, hover, down, children }) => {
+    const d = data ?? salesData();
+    const gw = M.win.w - paneW;
+    return (
+      <Win>
+        <Chrome tab={tab} file={file} />
+        {hover && <RibbonHL tab={tab} k={hover} down={down} />}
+        <FormulaBar name={name} text={formula} editing={!!edit} w={gw} />
+        <Grid w={gw} data={d} right={right ?? [0, 1, 4, 5]} tc={tableCols} table sel={sel} edit={edit} ants={ants} f={f} />
+        <div style={abs(gw - M.scroll, GY + M.colH, M.scroll, GRID_ROWS * M.rowH, { background: "#F0F0F0" })}><div style={abs(2, 2, 10, 120, { background: "#C1C1C1" })} /></div>
+        <SheetBar w={gw} sheet="Sales" />
+        <StatusBar w={M.win.w} mode={edit ? "Enter" : mode} stats={stats} />
+        {pane}
+        {children}
+      </Win>
+    );
+  };
+
+// ---------- Excel Query Properties dialog (Usage tab) ----------
+export const QP = { x: 470, y: 60, w: 460, h: 500 };
+export const qpPos = {
+  bg: { x: QP.x + 34, y: QP.y + 222 }, timed: { x: QP.x + 34, y: QP.y + 248 }, mins: { x: QP.x + 150, y: QP.y + 246, w: 44, h: 22 },
+  open: { x: QP.x + 34, y: QP.y + 276 }, ok: { x: QP.x + QP.w - 176, y: QP.y + QP.h - 40, w: 76, h: 26 },
+};
+export const QueryProps: React.FC<{ a: number; bg: boolean; timed: boolean; mins: string; minsFocus?: boolean; open: boolean; okDown?: boolean; glow?: { k: string; c: string } }> = ({ a, bg, timed, mins, minsFocus, open, okDown, glow }) => (
+  <Dlg x={QP.x} y={QP.y} w={QP.w} h={QP.h} title="Query Properties" a={a}>
+    <Tx x={16} y={44} w={70} h={22} size={12}>Query name:</Tx><Inp x={96} y={42} w={344} text="Sales_Fact" />
+    <Tx x={16} y={76} w={80} h={22} size={12}>Description:</Tx><Inp x={96} y={74} w={344} h={54} text="" />
+    {["Usage", "Definition", "Used In"].map((t, i) => (
+      <div key={t}><div style={abs(16 + i * 80, 142, 80, 24, { background: i === 0 ? "#fff" : "#E8E8E8", border: "1px solid #ADADAD", borderBottom: i === 0 ? "1px solid #fff" : "1px solid #ADADAD", boxSizing: "border-box" })} />
+        <Tx x={16 + i * 80} y={142} w={80} h={24} size={12} align="center">{t}</Tx></div>
+    ))}
+    <div style={abs(16, 165, 428, 290, { background: "#fff", border: "1px solid #ADADAD", boxSizing: "border-box" })} />
+    <Tx x={28} y={174} w={200} h={20} size={12} bold>Refresh control</Tx>
+    <Tx x={28} y={196} w={300} h={20} size={12} color="#444">Last Refreshed: 11/10/2026 9:14 AM</Tx>
+    <Chk x={QP.w ? 34 - 0 : 0} y={222 - 0} label="Enable background refresh" on={bg} />
+    <Chk x={34} y={248} label="Refresh every" on={timed} w={110} />
+    <Inp x={150 - 0} y={246} w={44} text={mins} focus={minsFocus} caret={minsFocus} /><Tx x={202} y={246} w={60} h={22} size={12}>minutes</Tx>
+    <Chk x={34} y={276} label="Refresh data when opening the file" on={open} />
+    <Chk x={34} y={304} label="Remove data from the external data range before saving the workbook" on={false} dis w={400} />
+    <Chk x={34} y={332} label="Refresh this connection on Refresh All" on />
+    {glow && <Neon x={glow.k === "bg" ? 30 : glow.k === "timed" ? 30 : 30} y={glow.k === "bg" ? 220 : glow.k === "timed" ? 246 : 274} w={glow.k === "open" ? 290 : glow.k === "timed" ? 250 : 220} h={24} c={glow.c} r={4} />}
+    <Btn x={QP.w - 176 - 0} y={QP.h - 40} w={76} h={26} label="OK" def down={okDown} /><Btn x={QP.w - 92} y={QP.h - 40} w={76} h={26} label="Cancel" />
+  </Dlg>
+);
+
+// ---------- Power Query Editor ----------
+export const PQ_STEPS = ["Source", "Navigation", "Filtered Rows", "Removed Other Columns", "Added Custom"];
+export const PQ_FORMULA = [
+  '= Sql.Database("manzooma-srv01", "manzooma_sales")',
+  '= Source{[Schema="dbo",Item="Sales"]}[Data]',
+  '= Table.SelectRows(dbo_Sales, each [OrderDate] >= #date(2026, 1, 1))',
+  '= Table.SelectColumns(#"Filtered Rows",{"OrderID","OrderDate","Region","Product","Qty","Amount"})',
+  '= Table.AddColumn(#"Removed Other Columns", "Tier", each fnTier([Amount]))',
+];
+export const PQ_SQL = `select [_].[OrderID] as [OrderID],
+    [_].[OrderDate] as [OrderDate],
+    [_].[Region] as [Region],
+    [_].[Product] as [Product],
+    [_].[Qty] as [Qty],
+    [_].[Amount] as [Amount]
+from [dbo].[Sales] as [_]
+where [_].[OrderDate] >= '2026-01-01'`;
+const PQY = M.title + M.tabs + M.ribbon; // 154
+export const pqStep = (i: number): Box => ({ x: M.win.w - M.pqRight + 8, y: PQY + 154 + i * 28, w: M.pqRight - 16, h: 28 });
+export const pqFileTab: Box = { x: 8, y: M.title, w: 46, h: M.tabs };
+const PQTABS = ["File", "Home", "Transform", "Add Column", "View", "Help"];
+const pqTabBox: Record<string, Box> = {};
+{ let x = 8; PQTABS.forEach((t) => { const w = t.length * 7 + 26; pqTabBox[t] = { x, y: M.title, w, h: M.tabs }; x += w; }); }
+export const pqTab = (t: string): Box => pqTabBox[t];
+const PQChrome = React.memo(({ tab }: { tab: string }) => (
+  <div>
+    <div style={abs(0, 0, M.win.w, M.title + M.tabs, { background: "#F3F3F3" })} />
+    <div style={abs(10, 7, 16, 16, { background: "#5B2C83", borderRadius: 3 })}><svg width={16} height={16} viewBox="0 0 16 16"><path d="M4 5h8M4 8h8M4 11h5" stroke="#fff" strokeWidth={1.4} fill="none" /></svg></div>
+    <Tx x={36} y={0} w={500} h={30} size={12.5}>manzooma_sales_2026 - Power Query Editor</Tx>
+    <Tx x={1260} y={0} w={40} h={30} size={14} align="center" color="#333">—</Tx><Tx x={1310} y={0} w={40} h={30} size={13} align="center" color="#333">☐</Tx><Tx x={1355} y={0} w={40} h={30} size={14} align="center" color="#333">✕</Tx>
+    {PQTABS.map((t) => (
+      <div key={t}>
+        {t === tab && <div style={abs(pqTabBox[t].x, M.title + 2, pqTabBox[t].w, M.tabs - 2, { background: "#fff", border: "1px solid #D4D4D4", borderBottom: "none", boxSizing: "border-box" })} />}
+        <Tx x={pqTabBox[t].x} y={M.title} w={pqTabBox[t].w} h={M.tabs} size={12.5} align="center" bold={t === tab}>{t}</Tx>
+      </div>
+    ))}
+    <div style={abs(0, M.title + M.tabs, M.win.w, M.ribbon, { background: "#fff", borderTop: "1px solid #D4D4D4", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+    <RibbonItems tab="PQHome" />
+  </div>
+));
+const typeBadge = ["123", "▦", "ABC", "ABC", "123", "1.2", "ABC"];
+export const PQWin: React.FC<{ f: number; tab?: string; step: number; hover?: string; hoverStep?: number; banner?: number; dim?: number; children?: React.ReactNode }> =
+  ({ f, tab = "Home", step, hover, hoverStep = -1, banner = 0, dim = 0, children }) => {
+    const nC = step >= 4 ? 7 : 6;
+    const cw = Math.floor((M.win.w - M.pqLeft - M.pqRight - 44) / nC);
+    const cx0 = M.pqLeft + 44, ty = PQY + M.fbar;
+    const heads = ["OrderID", "OrderDate", "Region", "Product", "Qty", "Amount", "Tier"];
+    const d = salesData(18).slice(1);
+    return (
+      <Win>
+        <PQChrome tab={tab} />
+        {hover && <RibbonHL tab="PQHome" k={hover} />}
+        {/* left queries pane */}
+        <div style={abs(0, PQY, M.pqLeft, M.win.h - PQY - M.status, { background: "#F7F7F7", borderRight: "1px solid #D4D4D4", boxSizing: "border-box" })}>
+          <Tx x={10} y={8} w={140} h={22} size={12.5} bold>Queries [1]</Tx><Tx x={M.pqLeft - 24} y={8} w={16} h={22} size={13} color="#555">‹</Tx>
+          <div style={abs(0, 36, M.pqLeft - 1, 28, { background: "#E3E3E3" })} /><Ico n="table" x={10} y={42} s={16} c={XL.green} sw={1.6} /><Tx x={34} y={36} w={140} h={28} size={12.5}>Sales_Fact</Tx>
+        </div>
+        {/* formula bar */}
+        <div style={abs(M.pqLeft, PQY, M.win.w - M.pqLeft - M.pqRight, M.fbar, { background: "#fff", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        <Tx x={M.pqLeft + 10} y={PQY + 3} w={20} h={20} size={13} color="#C42B1C" align="center">✕</Tx><Tx x={M.pqLeft + 32} y={PQY + 3} w={20} h={20} size={13} color={XL.green} align="center">✓</Tx>
+        <Tx x={M.pqLeft + 56} y={PQY + 3} w={22} h={20} size={13} color="#555" align="center" style={{ fontStyle: "italic", fontFamily: FONT.cell }}>fx</Tx>
+        <Rect x={M.pqLeft + 84} y={PQY + 3} w={M.win.w - M.pqLeft - M.pqRight - 96} h={20} fill="#fff" stroke="#E1E1E1" />
+        <Tx x={M.pqLeft + 90} y={PQY + 3} w={720} h={20} size={12.5} font={FONT.mono}>{PQ_FORMULA[step]}</Tx>
+        {/* preview table */}
+        <div style={abs(M.pqLeft, ty, M.win.w - M.pqLeft - M.pqRight, M.win.h - ty - M.status, { background: "#fff", overflow: "hidden" })}>
+          <div style={abs(0, 0, 44, 36, { background: "#F3F3F3", borderRight: "1px solid #D4D4D4", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+          {heads.slice(0, nC).map((h, c) => (
+            <div key={h}>
+              <div style={abs(44 + c * cw, 0, cw, 36, { background: "#F3F3F3", borderRight: "1px solid #D4D4D4", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+              <Tx x={48 + c * cw} y={0} w={32} h={36} size={9.5} color={XL.green} bold font={FONT.mono}>{typeBadge[c]}</Tx>
+              <Tx x={80 + c * cw} y={0} w={cw - 100} h={36} size={12.5} bold>{h}</Tx><Tx x={44 + c * cw + cw - 18} y={0} w={14} h={36} size={8} color="#666">▼</Tx>
+            </div>
+          ))}
+          {d.map((row, r) => (
+            <div key={r}>
+              <div style={abs(0, 36 + r * 22, 44, 22, { background: "#F3F3F3", borderRight: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+              <Tx x={0} y={36 + r * 22} w={38} h={22} size={11.5} align="right" color="#666">{r + 1}</Tx>
+              {row.slice(0, nC).concat(nC > 6 ? [] : []).map((v, c) => (
+                <Tx key={c} x={48 + c * cw} y={36 + r * 22} w={cw - 10} h={22} size={12.5} align={[0, 4, 5].includes(c) ? "right" : "left"}>{c === 5 ? v.replace(/,/g, "") : v}</Tx>
+              ))}
+              {nC > 6 && <Tx x={48 + 6 * cw} y={36 + r * 22} w={cw - 10} h={22} size={12.5}>{Number(row[5].replace(/,/g, "")) > 20000 ? "High" : Number(row[5].replace(/,/g, "")) > 6000 ? "Mid" : "Low"}</Tx>}
+              <div style={abs(44, 36 + (r + 1) * 22 - 1, nC * cw, 1, { background: "#EDEDED" })} />
+            </div>
+          ))}
+        </div>
+        {banner > 0 && (
+          <div style={abs(M.pqLeft + 44, ty + 36, M.win.w - M.pqLeft - M.pqRight - 44, 64, { background: "#FFF4CE", borderBottom: "1px solid #E6C65C", opacity: banner, boxSizing: "border-box" })}>
+            <Ico n="warn" x={16} y={20} s={22} c="#B58900" sw={1.8} />
+            <Tx x={50} y={8} w={560} h={22} size={13} bold>Information is required about data privacy.</Tx>
+            <Tx x={50} y={32} w={640} h={20} size={12} color="#444">This table combines data from several sources, so privacy levels must be checked first.</Tx>
+            <Btn x={600} y={18} w={84} h={26} label="Continue" />
+          </div>
+        )}
+        {/* right settings pane */}
+        <div style={abs(M.win.w - M.pqRight, PQY, M.pqRight, M.win.h - PQY - M.status, { background: "#F7F7F7", borderLeft: "1px solid #D4D4D4", boxSizing: "border-box" })}>
+          <Tx x={12} y={6} w={180} h={22} size={13.5} bold>Query Settings</Tx>
+          <Tx x={12} y={36} w={120} h={18} size={10.5} bold color="#666">PROPERTIES</Tx>
+          <Tx x={12} y={58} w={50} h={18} size={11.5}>Name</Tx><Inp x={12} y={78} w={M.pqRight - 28} text="Sales_Fact" />
+          <Tx x={12} y={106} w={160} h={18} size={11.5} color="#0F6CBD">All Properties</Tx>
+          <Tx x={12} y={130} w={160} h={18} size={10.5} bold color="#666">APPLIED STEPS</Tx>
+          {PQ_STEPS.map((n, i) => {
+            const b = pqStep(i), on = i === step;
+            return (
+              <div key={n}>
+                {(on || i === hoverStep) && <div style={abs(b.x - (M.win.w - M.pqRight), b.y - PQY, b.w, b.h, { background: on ? "#DADADA" : "#ECECEC" })} />}
+                {on && <Tx x={b.x - (M.win.w - M.pqRight) + 4} y={b.y - PQY} w={16} h={b.h} size={11} color="#555">✕</Tx>}
+                <Tx x={b.x - (M.win.w - M.pqRight) + 24} y={b.y - PQY} w={170} h={b.h} size={12.5}>{n}</Tx>
+                {i < 3 && <Ico n="gear" x={b.x - (M.win.w - M.pqRight) + b.w - 24} y={b.y - PQY + 6} s={15} c="#777" sw={1.5} />}
               </div>
             );
-            rx += ww + 2;
-          });
-          cw = Math.max(cw, rx - x);
-        });
-        x += cw + 4;
-      }
-    });
-    out.push(<div key={`n${gi}`} style={{ position: "absolute", left: x0, width: x - x0 - 4, top: 102, textAlign: "center", fontFamily: FUI, fontSize: 15, color: C.ink2 }}>{g.n}</div>);
-    out.push(<div key={`s${gi}`} style={{ position: "absolute", left: x + 2, top: 10, width: 1, height: 108, background: C.line }} />);
-    x += 10;
-  });
-  const r = hl ? rects[hl] : undefined;
-  const p = 0.7 + 0.3 * Math.sin(f / 9);
-  return (
-    <div style={{ position: "absolute", left: 0, top: 0, width: M.winW, height: M.ribbon, background: C.ribbon, borderBottom: `1px solid ${C.line}` }}>
-      {out}
-      {r ? <div style={{ position: "absolute", left: r.x - 3, top: r.y - 3, width: r.w + 6, height: r.h + 6, border: `3px solid ${hlCol}`, borderRadius: 6, boxShadow: `0 0 ${12 + 10 * p}px ${hlCol}`, pointerEvents: "none" }} /> : null}
-    </div>
-  );
-};
-
-/* ---------- Excel window shell ---------- */
-export const ExcelWindow: React.FC<{
-  tab?: string; hl?: string; hlCol?: string; nameBox: string; formula: string; editing?: boolean;
-  sheets: string[]; activeSheet: number; mode?: string; stats?: string; file?: string; f: number; children?: React.ReactNode;
-}> = ({ tab = "Home", hl, hlCol, nameBox, formula, editing = false, sheets, activeSheet, mode = "Ready", stats = "", file = "manzooma_sales_2026.xlsx", f, children }) => {
-  const yT = 0, yTab = M.title, yR = M.title + M.tabs, yF = yR + M.ribbon, yS = M.winH - M.status - M.sheetBar;
-  return (
-    <div style={{ position: "absolute", left: M.winX, top: M.winY, width: M.winW, height: M.winH, background: C.white, border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden", boxShadow: "0 18px 60px rgba(0,0,0,.55)", fontFamily: FUI, direction: "ltr", zIndex: 0 }}>
-      {/* title bar */}
-      <div style={{ position: "absolute", left: 0, top: yT, width: M.winW, height: M.title, background: C.chrome, display: "flex", alignItems: "center", fontSize: 18, color: C.ink }}>
-        <svg width="26" height="26" viewBox="0 0 26 26" style={{ marginLeft: 14 }}>{[0, 1, 2].flatMap((a) => [0, 1, 2].map((b) => <circle key={`${a}${b}`} cx={5 + a * 8} cy={5 + b * 8} r="2.2" fill="#555" />))}</svg>
-        <div style={{ marginLeft: 18, display: "flex", alignItems: "center", gap: 8 }}>
-          <span>AutoSave</span>
-          <div style={{ width: 40, height: 20, borderRadius: 10, border: "1.5px solid #666", position: "relative" }}><div style={{ position: "absolute", left: 3, top: 3, width: 12, height: 12, borderRadius: 6, background: "#666" }} /></div>
-          <span style={{ fontSize: 15, color: C.ink2 }}>Off</span>
+          })}
         </div>
-        <div style={{ marginLeft: 18, display: "flex", gap: 14 }}><Ico k="copy" s={22} /><Ico k="refresh" s={22} /><Ico k="sort" s={22} /></div>
-        <div style={{ marginLeft: 22 }}>{file} <span style={{ color: C.ink2, fontSize: 15 }}>• Saved</span></div>
-        <div style={{ position: "absolute", left: 640, top: 6, width: 540, height: 32, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 6, display: "flex", alignItems: "center", color: C.ink2, fontSize: 17 }}><span style={{ marginLeft: 12, marginRight: 8 }}><Ico k="find" s={20} /></span>Search</div>
-        <div style={{ position: "absolute", right: 0, top: 0, height: M.title, display: "flex", alignItems: "center", gap: 26, paddingRight: 22, fontSize: 18 }}>
-          <span style={{ background: C.xlGreen, color: "#fff", padding: "4px 16px", borderRadius: 6, fontSize: 16 }}>Share</span>
-          <span style={{ fontSize: 22 }}>—</span><span style={{ fontSize: 20 }}>☐</span><span style={{ fontSize: 22 }}>✕</span>
-        </div>
-      </div>
-      {/* tab strip */}
-      <div style={{ position: "absolute", left: 0, top: yTab, width: M.winW, height: M.tabs, background: C.chrome, display: "flex", alignItems: "flex-end", paddingLeft: 10, fontSize: 19, color: C.ink }}>
-        {TABS.map((t) => (
-          <div key={t} style={{ padding: "0 17px", height: M.tabs, display: "flex", alignItems: "center", position: "relative", color: t === tab ? C.xlGreen : C.ink, fontWeight: t === tab ? 700 : 400 }}>
-            {t}{t === tab ? <div style={{ position: "absolute", left: 12, right: 12, bottom: 2, height: 3, background: C.xlGreen, borderRadius: 2 }} /> : null}
-          </div>
-        ))}
-      </div>
-      <div style={{ position: "absolute", left: 0, top: yR }}><Ribbon tab={tab} hl={hl} hlCol={hlCol} f={f} /></div>
-      {/* formula bar */}
-      <div style={{ position: "absolute", left: 0, top: yF, width: M.winW, height: M.fbar, background: C.white, borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", fontSize: 20 }}>
-        <div style={{ marginLeft: 8, width: 150, height: 30, border: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", boxSizing: "border-box", color: C.ink }}><span>{nameBox}</span><span style={{ fontSize: 11, color: C.ink2 }}>▼</span></div>
-        <div style={{ width: 130, display: "flex", justifyContent: "space-around", color: editing ? C.ink : "#B5B5B5", fontSize: 22, marginLeft: 6 }}><span>⋮</span><span>✕</span><span style={{ color: editing ? C.xlGreen : "#B5B5B5" }}>✓</span><span style={{ fontStyle: "italic", fontWeight: 700, color: C.ink2 }}>fx</span></div>
-        <div style={{ flex: 1, height: 30, border: `1px solid ${C.line}`, marginRight: 8, display: "flex", alignItems: "center", padding: "0 10px", fontFamily: FUI, color: C.ink, whiteSpace: "pre" }}>{formula}{editing ? <span style={{ display: "inline-block", width: 2, height: 22, background: C.ink, marginLeft: 1 }} /> : null}</div>
-        <div style={{ marginRight: 14, color: C.ink2, fontSize: 14 }}>⌄</div>
-      </div>
-      {children}
-      {/* sheet tabs */}
-      <div style={{ position: "absolute", left: 0, top: yS, width: M.winW, height: M.sheetBar, background: C.chrome, borderTop: `1px solid ${C.line}`, display: "flex", alignItems: "center", fontSize: 19 }}>
-        <span style={{ margin: "0 10px 0 14px", color: C.ink2 }}>◀</span><span style={{ marginRight: 14, color: C.ink2 }}>▶</span>
-        {sheets.map((s, i) => (
-          <div key={s} style={{ height: M.sheetBar - 1, padding: "0 20px", display: "flex", alignItems: "center", background: i === activeSheet ? "#fff" : "transparent", color: i === activeSheet ? C.xlGreen : C.ink, fontWeight: i === activeSheet ? 700 : 400, borderBottom: i === activeSheet ? `3px solid ${C.xlGreen}` : "none", boxSizing: "border-box", borderRight: `1px solid ${C.line}` }}>{s}</div>
-        ))}
-        <div style={{ marginLeft: 14, width: 26, height: 26, borderRadius: 13, border: `1px solid #888`, display: "flex", alignItems: "center", justifyContent: "center", color: "#555", fontSize: 22 }}>+</div>
-      </div>
-      {/* status bar */}
-      <div style={{ position: "absolute", left: 0, top: M.winH - M.status, width: M.winW, height: M.status, background: C.chrome, borderTop: `1px solid ${C.line}`, display: "flex", alignItems: "center", fontSize: 17, color: C.ink }}>
-        <span style={{ marginLeft: 16 }}>{mode}</span>
-        <span style={{ marginLeft: 40, color: C.ink2 }}>Accessibility: Good to go</span>
-        <span style={{ position: "absolute", right: 330 }}>{stats}</span>
-        <div style={{ position: "absolute", right: 16, display: "flex", alignItems: "center", gap: 14, color: C.ink2 }}>
-          <svg width="22" height="18"><rect x="1" y="1" width="20" height="16" fill="none" stroke="#555" /><path d="M1 7h20M8 1v16" stroke="#555" /></svg>
-          <svg width="22" height="18"><rect x="1" y="1" width="20" height="16" fill="none" stroke="#555" /></svg>
-          <svg width="22" height="18"><rect x="1" y="1" width="20" height="16" fill="none" stroke="#555" strokeDasharray="3 2" /></svg>
-          <span>−</span><div style={{ width: 120, height: 3, background: "#999", position: "relative" }}><div style={{ position: "absolute", left: 57, top: -6, width: 6, height: 15, background: "#555" }} /></div><span>+</span><span>100%</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ---------- grid ---------- */
-export type Cell = { v: string; al?: "l" | "r" | "c"; b?: boolean; col?: string; bg?: string; i?: boolean; tri?: boolean };
-const wOf = (wd: number[] | undefined, c: number) => (wd && wd[c] != null ? wd[c] : M.colW);
-export const colX = (c: number, wd?: number[]) => { let x = 0; for (let i = 0; i < c; i++) x += wOf(wd, i); return x; };
-export const cellRect = (a: string, b?: string, wd?: number[], scroll = 0) => {
-  const p = parse(a), q = parse(b ?? a);
-  const c0 = Math.min(p.c, q.c), c1 = Math.max(p.c, q.c), r0 = Math.min(p.r, q.r), r1 = Math.max(p.r, q.r);
-  return {
-    x: M.winX + M.rowHdrW + colX(c0, wd), y: GRID_Y + M.colH + (r0 - scroll) * M.rowH,
-    w: colX(c1 + 1, wd) - colX(c0, wd), h: (r1 - r0 + 1) * M.rowH,
-  };
-};
-const isNum = (s: string) => /^-?[\d,]*\.?\d+%?$/.test(s.trim());
-
-export const Grid: React.FC<{
-  cells: Record<string, Cell>; wd?: number[]; scroll?: number; sel?: { a: string; b?: string }; selO?: number;
-  ants?: { a: string; b: string }; handle?: boolean; f: number; children?: React.ReactNode; top?: number;
-}> = ({ cells, wd, scroll = 0, sel, selO = 1, ants, handle = true, f, children }) => {
-  const top = M.title + M.tabs + M.ribbon + M.fbar;
-  const areaW = M.winW - M.rowHdrW, areaH = M.gridRows * M.rowH;
-  const nC = 22, r0 = Math.max(0, Math.floor(scroll)), r1 = r0 + M.gridRows + 2;
-  const rr = (r: number) => (r - scroll) * M.rowH;
-  const sr = sel ? cellRect(sel.a, sel.b, wd, scroll) : null;
-  const sp = sel ? parse(sel.a) : null, sq = sel ? parse(sel.b ?? sel.a) : null;
-  const inC = (c: number) => !!sp && !!sq && c >= Math.min(sp.c, sq.c) && c <= Math.max(sp.c, sq.c);
-  const inR = (r: number) => !!sp && !!sq && r >= Math.min(sp.r, sq.r) && r <= Math.max(sp.r, sq.r);
-  const rel = (o: { x: number; y: number; w: number; h: number }) => ({ x: o.x - M.winX - M.rowHdrW, y: o.y - GRID_Y - M.colH, w: o.w, h: o.h });
-  const keys = Object.keys(cells);
-  const lines: React.ReactNode[] = [];
-  for (let r = r0; r <= r1; r++) lines.push(<line key={`h${r}`} x1={0} x2={areaW} y1={rr(r)} y2={rr(r)} stroke={C.grid} strokeWidth={1} />);
-  for (let c = 0; c <= nC; c++) lines.push(<line key={`v${c}`} y1={0} y2={areaH} x1={colX(c, wd)} x2={colX(c, wd)} stroke={C.grid} strokeWidth={1} />);
-  const ar = ants ? rel(cellRect(ants.a, ants.b, wd, scroll)) : null;
-  return (
-    <div style={{ position: "absolute", left: 0, top, width: M.winW, height: M.colH + areaH, background: C.white, overflow: "hidden", fontFamily: FUI, zIndex: 0 }}>
-      <div style={{ position: "absolute", left: 0, top: 0, width: M.rowHdrW, height: M.colH, background: C.hdr, borderRight: `1px solid ${C.grid}`, borderBottom: `1px solid ${C.grid}` }}>
-        <svg width={M.rowHdrW} height={M.colH}><path d={`M${M.rowHdrW - 6} ${M.colH - 5}H${M.rowHdrW - 6}V${M.colH - 17}L${M.rowHdrW - 18} ${M.colH - 5}Z`} fill="#B0B0B0" /></svg>
-      </div>
-      {Array.from({ length: nC }, (_, c) => (
-        <div key={`c${c}`} style={{ position: "absolute", left: M.rowHdrW + colX(c, wd), top: 0, width: wOf(wd, c), height: M.colH, boxSizing: "border-box", background: inC(c) ? C.hdrSel : C.hdr, borderRight: `1px solid ${C.grid}`, borderBottom: inC(c) ? `3px solid ${C.xlGreen}` : `1px solid ${C.grid}`, color: inC(c) ? C.xlGreen : C.ink2, fontWeight: inC(c) ? 700 : 400, fontSize: 19, display: "flex", alignItems: "center", justifyContent: "center" }}>{colL(c)}</div>
-      ))}
-      <div style={{ position: "absolute", left: 0, top: M.colH, width: M.rowHdrW, height: areaH, overflow: "hidden" }}>
-        {Array.from({ length: r1 - r0 + 1 }, (_, k) => r0 + k).map((r) => (
-          <div key={`r${r}`} style={{ position: "absolute", left: 0, top: rr(r), width: M.rowHdrW, height: M.rowH, boxSizing: "border-box", background: inR(r) ? C.hdrSel : C.hdr, borderBottom: `1px solid ${C.grid}`, borderRight: inR(r) ? `3px solid ${C.xlGreen}` : `1px solid ${C.grid}`, color: inR(r) ? C.xlGreen : C.ink2, fontWeight: inR(r) ? 700 : 400, fontSize: 19, display: "flex", alignItems: "center", justifyContent: "center" }}>{r + 1}</div>
-        ))}
-      </div>
-      <div style={{ position: "absolute", left: M.rowHdrW, top: M.colH, width: areaW, height: areaH, overflow: "hidden" }}>
-        <svg width={areaW} height={areaH} style={{ position: "absolute", left: 0, top: 0 }}>{lines}</svg>
-        {keys.map((k) => {
-          const p = parse(k); const cl = cells[k];
-          if (p.r < r0 - 1 || p.r > r1) return null;
-          const w = wOf(wd, p.c); const x = colX(p.c, wd); const y = rr(p.r);
-          const al = cl.al ?? (isNum(cl.v) ? "r" : "l");
-          const nextEmpty = !cells[addr(p.c + 1, p.r)];
-          return (
-            <div key={k} style={{ position: "absolute", left: x, top: y, width: w, height: M.rowH, boxSizing: "border-box", background: cl.bg ?? "transparent", borderRight: cl.bg ? `1px solid ${C.grid}` : "none", borderBottom: cl.bg ? `1px solid ${C.grid}` : "none", padding: "0 5px", display: "flex", alignItems: "center", justifyContent: al === "r" ? "flex-end" : al === "c" ? "center" : "flex-start", fontSize: 21, color: cl.col ?? C.ink, fontWeight: cl.b ? 700 : 400, fontStyle: cl.i ? "italic" : "normal", whiteSpace: "nowrap", overflow: nextEmpty && al === "l" ? "visible" : "hidden", zIndex: nextEmpty && al === "l" ? 2 : 1 }}>
-              {cl.tri ? <svg width="9" height="9" style={{ position: "absolute", left: 0, top: 0 }}><path d="M0 0H9L0 9Z" fill="#1E8449" /></svg> : null}
-              {cl.v}
-            </div>
-          );
-        })}
-        {sr && sel ? (() => {
-          const s = rel(sr), a = rel(cellRect(sel.a, sel.a, wd, scroll)); const multi = !!sel.b && sel.b !== sel.a;
-          return (
-            <div style={{ position: "absolute", left: 0, top: 0, width: areaW, height: areaH, opacity: selO, pointerEvents: "none" }}>
-              {multi ? <div style={{ position: "absolute", left: s.x, top: s.y, width: s.w, height: s.h, background: C.xlSelFill }} /> : null}
-              {multi ? <div style={{ position: "absolute", left: a.x, top: a.y, width: a.w, height: a.h, background: "#fff" }} /> : null}
-              <div style={{ position: "absolute", left: s.x - 1, top: s.y - 1, width: s.w + 1, height: s.h + 1, border: `3px solid ${C.xlGreen}`, boxSizing: "border-box" }} />
-              {handle ? <div style={{ position: "absolute", left: s.x + s.w - 7, top: s.y + s.h - 7, width: 11, height: 11, background: C.xlGreen, border: "2px solid #fff", boxSizing: "border-box" }} /> : null}
-            </div>
-          );
-        })() : null}
-        {ar ? <svg width={areaW} height={areaH} style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none" }}><rect x={ar.x} y={ar.y} width={ar.w} height={ar.h} fill="none" stroke={C.xlGreen} strokeWidth="2.5" strokeDasharray="7 5" strokeDashoffset={-(f * 0.7) % 12} /></svg> : null}
+        <div style={abs(0, M.win.h - M.status, M.win.w, M.status, { background: "#F3F3F3", borderTop: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        <Tx x={10} y={M.win.h - M.status} w={200} h={M.status} size={11} color="#444">{nC} COLUMNS, 999+ ROWS</Tx>
+        <Tx x={220} y={M.win.h - M.status} w={360} h={M.status} size={11} color="#666">Column profiling based on top 1000 rows</Tx>
+        <Tx x={M.win.w - 330} y={M.win.h - M.status} w={320} h={M.status} size={11} color="#666" align="right">PREVIEW DOWNLOADED ON WEDNESDAY</Tx>
+        {dim > 0 && <div style={abs(0, 0, M.win.w, M.win.h, { background: `rgba(15,23,42,${dim})` })} />}
         {children}
+      </Win>
+    );
+  };
+export const nativeDlgBox = { x: 300, y: 130, w: 760, h: 330 };
+export const NativeQuery: React.FC<{ a: number; text: string; okDown?: boolean }> = ({ a, text, okDown }) => (
+  <Dlg x={nativeDlgBox.x} y={nativeDlgBox.y} w={nativeDlgBox.w} h={nativeDlgBox.h} title="Native Query" a={a}>
+    <Rect x={14} y={44} w={nativeDlgBox.w - 30} h={nativeDlgBox.h - 100} fill="#fff" stroke="#8A8A8A" />
+    <div style={abs(22, 50, nativeDlgBox.w - 50, nativeDlgBox.h - 110, { overflow: "hidden" })}><Sql text={text} size={13} lh={19} light /></div>
+    <Btn x={nativeDlgBox.w - 100} y={nativeDlgBox.h - 40} w={76} h={26} label="OK" def down={okDown} />
+  </Dlg>
+);
+export const STEP_MENU: MenuItem[] = [
+  { l: "Edit Settings", ic: "gear" }, { l: "Rename", ic: "props" }, { l: "Delete", ic: "minus" }, { l: "Delete Until End", ic: "minus" }, { l: "Insert Step After", ic: "plus" }, { sep: true, l: "" },
+  { l: "Move Up", ic: "az" }, { l: "Move Down", ic: "az" }, { l: "Extract Previous..." }, { sep: true, l: "" }, { l: "View Native Query", ic: "db" }, { l: "Properties..." },
+];
+export const FILE_MENU: MenuItem[] = [{ l: "Close & Load", ic: "save" }, { l: "Close & Load To..." }, { sep: true, l: "" }, { l: "Options and settings", sub: true, ic: "gear" }];
+export const OPT_SUB: MenuItem[] = [{ l: "Query options", ic: "gear" }, { l: "Data source settings", ic: "db" }];
+
+// ---------- Query Options dialog (Power Query) ----------
+export const QO = { x: 300, y: 70, w: 800, h: 520 };
+export const qoPos = { priv: { x: QO.x + 24, y: QO.y + 200 }, ignore: { x: QO.x + 232, y: QO.y + 156 }, fast: { x: QO.x + 232, y: QO.y + 210 }, ok: { x: QO.x + QO.w - 176, y: QO.y + QO.h - 42, w: 76, h: 26 } };
+export const QueryOptions: React.FC<{ a: number; page: "privacy" | "load"; ignore: boolean; fast: boolean; glow?: string; okDown?: boolean }> = ({ a, page, ignore, fast, glow, okDown }) => (
+  <Dlg x={QO.x} y={QO.y} w={QO.w} h={QO.h} title="Query Options" a={a}>
+    <div style={abs(0, 30, 200, QO.h - 30, { background: "#fff", borderRight: "1px solid #CFCFCF" })} />
+    <Tx x={14} y={42} w={160} h={18} size={11} bold color="#666">GLOBAL</Tx>
+    {["Data Load", "Power Query Editor", "Security", "Privacy", "Regional Settings", "Diagnostics"].map((n, i) => (
+      <div key={n}>{((page === "privacy" && n === "Privacy") || (page === "load" && n === "Data Load")) && <div style={abs(4, 62 + i * 26, 192, 26, { background: "#CCE4F7" })} />}
+        <Tx x={22} y={62 + i * 26} w={170} h={26} size={12.5}>{n}</Tx></div>
+    ))}
+    <Tx x={14} y={232} w={180} h={18} size={11} bold color="#666">CURRENT WORKBOOK</Tx>
+    {["Data Load", "Regional Settings", "Privacy"].map((n, i) => (<Tx key={n} x={22} y={252 + i * 26} w={170} h={26} size={12.5}>{n}</Tx>))}
+    {page === "privacy" ? (
+      <div>
+        <Tx x={224} y={44} w={300} h={26} size={17} bold>Privacy</Tx>
+        <Tx x={224} y={80} w={540} h={20} size={12} color="#444">Choose how to combine data from different sources.</Tx>
+        <Chk x={226} y={112} radio on={false} label="Always combine data according to your Privacy Level settings for each source" w={540} />
+        <Chk x={226} y={136} radio on={false} label="Combine data according to each file’s Privacy Level settings" w={540} />
+        <Chk x={226} y={160} radio on={ignore} label="Ignore the Privacy Levels and potentially improve performance" w={540} />
+        {glow && ignore && <Neon x={222} y={158} w={410} h={24} c={glow} r={4} />}
       </div>
-    </div>
-  );
-};
+    ) : (
+      <div>
+        <Tx x={224} y={44} w={300} h={26} size={17} bold>Data Load</Tx>
+        <Tx x={224} y={86} w={300} h={20} size={12} bold>Default Query Load Settings</Tx>
+        <Chk x={226} y={110} radio on label="Use standard load settings" w={400} /><Chk x={226} y={132} radio on={false} label="Use custom default load settings" w={400} />
+        <Tx x={224} y={170} w={300} h={20} size={12} bold>Fast Data Load</Tx>
+        <Chk x={226} y={196} on={fast} label="Fast Data Load" w={300} />
+        <Tx x={246} y={216} w={420} h={18} size={11.5} color="#666">Speeds up loading of large tables into the workbook.</Tx>
+        {glow && fast && <Neon x={222} y={194} w={160} h={24} c={glow} r={4} />}
+      </div>
+    )}
+    <Btn x={QO.w - 176} y={QO.h - 42} w={76} h={26} label="OK" def down={okDown} /><Btn x={QO.w - 92} y={QO.h - 42} w={76} h={26} label="Cancel" />
+  </Dlg>
+);
 
-/* ---------- dialog (Windows style) ---------- */
-export const Dialog: React.FC<{ x: number; y: number; w: number; h: number; title: string; ok?: string; cancel?: string; o?: number; children?: React.ReactNode }> = ({ x, y, w, h, title, ok = "OK", cancel = "Cancel", o = 1, children }) => (
-  <div style={{ position: "absolute", left: x, top: y + (1 - o) * 16, width: w, height: h, background: "#F0F0F0", border: "1px solid #6E6E6E", boxShadow: "0 16px 50px rgba(0,0,0,.5)", fontFamily: FUI, color: C.ink, opacity: o, direction: "ltr" }}>
-    <div style={{ height: 40, background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 0 0 14px", fontSize: 19 }}>
-      <span>{title}</span><span style={{ width: 52, textAlign: "center", fontSize: 20 }}>✕</span>
-    </div>
-    <div style={{ position: "absolute", left: 0, top: 40, right: 0, bottom: 62, padding: 18, fontSize: 18 }}>{children}</div>
-    <div style={{ position: "absolute", right: 16, bottom: 14, display: "flex", gap: 12 }}>
-      <div style={{ minWidth: 100, height: 34, background: "#E1E1E1", border: "2px solid #0078D4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxSizing: "border-box" }}>{ok}</div>
-      <div style={{ minWidth: 100, height: 34, background: "#E1E1E1", border: "1px solid #ADADAD", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxSizing: "border-box" }}>{cancel}</div>
-    </div>
+// ---------- Sales model used by DAX lessons (one deterministic dataset => every number is consistent) ----------
+export const CUSTOMERS = ["Nile Tech", "Delta Mart", "Cairo Home", "Giza Shop", "Alex Store", "Mansoura"];
+export const BRANCHES = ["Cairo", "Giza", "Alexandria", "Mansoura"];
+export const CATS = ["Electronics", "Furniture", "Office"];
+export type FactRow = { id: number; cust: number; branch: number; cat: number; qty: number; price: number };
+export const FACT: FactRow[] = (() => {
+  const price = [3200, 1850, 450]; const rows: FactRow[] = []; let s = 11;
+  for (let i = 0; i < 48; i++) { s = (s * 48271) % 2147483647; rows.push({ id: 5001 + i, cust: s % 6, branch: (s >> 4) % 4, cat: (s >> 7) % 3, qty: 1 + ((s >> 9) % 6), price: price[(s >> 7) % 3] + 50 * ((s >> 12) % 5) }); }
+  return rows;
+})();
+export const amt = (r: FactRow) => r.qty * r.price;
+export const sumWhere = (p: (r: FactRow) => boolean) => FACT.filter(p).reduce((a, r) => a + amt(r), 0);
+export const custTotal = (c: number, p: (r: FactRow) => boolean = () => true) => sumWhere((r) => r.cust === c && p(r));
+
+// ---------- Power Pivot window ----------
+export type PPCol = { n: string; w: number; r?: boolean; calc?: boolean };
+const PPTABS = ["File", "Home", "Design", "Advanced"];
+const ppTabBox: Record<string, Box> = {};
+{ let x = 8; PPTABS.forEach((t) => { const w = t.length * 7 + 26; ppTabBox[t] = { x, y: M.title, w, h: M.tabs }; x += w; }); }
+const PPY = M.title + M.tabs + M.ribbon;
+const PPChrome = React.memo(() => (
+  <div>
+    <div style={abs(0, 0, M.win.w, M.title + M.tabs, { background: "#F3F3F3" })} />
+    <div style={abs(10, 7, 16, 16, { background: XL.green, borderRadius: 3 })}><svg width={16} height={16} viewBox="0 0 16 16"><path d="M3 4h10v8H3zM3 8h10M8 4v8" stroke="#fff" strokeWidth={1.2} fill="none" /></svg></div>
+    <Tx x={36} y={0} w={640} h={30} size={12.5}>Power Pivot for Excel - manzooma_sales_2026.xlsx</Tx>
+    <Tx x={1260} y={0} w={40} h={30} size={14} align="center" color="#333">—</Tx><Tx x={1310} y={0} w={40} h={30} size={13} align="center" color="#333">☐</Tx><Tx x={1355} y={0} w={40} h={30} size={14} align="center" color="#333">✕</Tx>
+    {PPTABS.map((t) => (
+      <div key={t}>
+        {t === "Home" && <div style={abs(ppTabBox[t].x, M.title + 2, ppTabBox[t].w, M.tabs - 2, { background: "#fff", border: "1px solid #D4D4D4", borderBottom: "none", boxSizing: "border-box" })} />}
+        <Tx x={ppTabBox[t].x} y={M.title} w={ppTabBox[t].w} h={M.tabs} size={12.5} align="center" bold={t === "Home"}>{t}</Tx>
+      </div>
+    ))}
+    <div style={abs(0, M.title + M.tabs, M.win.w, M.ribbon, { background: "#fff", borderTop: "1px solid #D4D4D4", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+    <RibbonItems tab="PPHome" />
+  </div>
+));
+export const PP_ROW0 = PPY + M.fbar + 26; // y of first data row
+export const PP_RH = 22;
+export const ppCellBox = (cols: PPCol[], r: number, c: number): Box => ({ x: 34 + cols.slice(0, c).reduce((a, b) => a + b.w, 0), y: PP_ROW0 + r * PP_RH, w: cols[c].w, h: PP_RH });
+export const PPWin: React.FC<{ f: number; table: string; cols: PPCol[]; rows: string[][]; hi?: number; hiColor?: string; selCol?: number; name: string; formula: string; calc?: { n: string; v: string }[]; dim?: number; children?: React.ReactNode }> =
+  ({ table, cols, rows, hi = -1, hiColor = C.amber, selCol = -1, name, formula, calc = [], dim = 0, children }) => {
+    const gw = cols.reduce((a, b) => a + b.w, 0);
+    return (
+      <Win>
+        <PPChrome />
+        <div style={abs(0, PPY, M.win.w, M.fbar, { background: "#fff", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        <Rect x={6} y={PPY + 3} w={150} h={20} fill="#fff" stroke="#BDBDBD" /><Tx x={10} y={PPY + 3} w={130} h={20} size={12}>{name}</Tx><Tx x={140} y={PPY + 3} w={14} h={20} size={8} color="#555">▼</Tx>
+        <Tx x={166} y={PPY + 3} w={20} h={20} size={13} color="#C42B1C" align="center">✕</Tx><Tx x={188} y={PPY + 3} w={20} h={20} size={13} color={XL.green} align="center">✓</Tx>
+        <Tx x={212} y={PPY + 3} w={22} h={20} size={13} color="#555" align="center" style={{ fontStyle: "italic", fontFamily: FONT.cell }}>fx</Tx>
+        <Rect x={240} y={PPY + 3} w={M.win.w - 256} h={20} fill="#fff" stroke="#E1E1E1" />
+        <Tx x={246} y={PPY + 3} w={M.win.w - 270} h={20} size={13} font={FONT.mono}>{formula}</Tx>
+        <div style={abs(0, PPY + M.fbar, M.win.w, 540 - PPY - M.fbar, { background: "#fff", overflow: "hidden" })}>
+          <div style={abs(0, 0, 34, 26, { background: "#F3F3F3", border: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+          {cols.map((c, i) => {
+            const x = 34 + cols.slice(0, i).reduce((a, b) => a + b.w, 0);
+            return (
+              <div key={c.n}>
+                <div style={abs(x, 0, c.w, 26, { background: i === selCol ? "#CFE7D9" : c.calc ? "#E5E5F7" : "#F3F3F3", border: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+                <Tx x={x + 8} y={0} w={c.w - 28} h={26} size={12.5} bold>{c.n}</Tx><Tx x={x + c.w - 20} y={0} w={14} h={26} size={8} color="#666">▼</Tx>
+              </div>
+            );
+          })}
+          {Array.from({ length: 15 }).map((_, r) => (
+            <div key={r}>
+              <div style={abs(0, 26 + r * PP_RH, 34, PP_RH, { background: "#F3F3F3", border: "1px solid #E1E1E1", boxSizing: "border-box" })} /><Tx x={0} y={26 + r * PP_RH} w={30} h={PP_RH} size={11} align="right" color="#666">{r + 1}</Tx>
+              <div style={abs(34, 26 + r * PP_RH, gw, PP_RH, { background: r === hi ? "rgba(245,158,11,0.20)" : "transparent", borderBottom: "1px solid #E8E8E8", boxSizing: "border-box" })} />
+            </div>
+          ))}
+          {cols.map((c, i) => { const x = 34 + cols.slice(0, i).reduce((a, b) => a + b.w, 0); return <div key={"v" + i} style={abs(x + c.w - 1, 0, 1, 26 + 15 * PP_RH, { background: "#E1E1E1" })} />; })}
+          {rows.map((row, r) => row.map((v, c) => v === "" ? null : <Tx key={r + "_" + c} x={34 + cols.slice(0, c).reduce((a, b) => a + b.w, 0) + 8} y={26 + r * PP_RH} w={cols[c].w - 16} h={PP_RH} size={13} align={cols[c].r ? "right" : "left"} color={cols[c].calc ? "#3B3B8F" : "#111"}>{v}</Tx>))}
+          {hi >= 0 && <div style={abs(34, 26 + hi * PP_RH, gw, PP_RH, { border: `2px solid ${hiColor}`, boxSizing: "border-box" })} />}
+        </div>
+        <div style={abs(0, 540, M.win.w, 100, { background: "#FAFAFA", borderTop: "1px solid #BDBDBD", boxSizing: "border-box" })}>
+          {calc.map((m, i) => (
+            <div key={m.n} style={abs(8 + i * 330, 6, 320, 84, { background: "#fff", border: "1px solid #D4D4D4", boxSizing: "border-box" })}>
+              <Tx x={8} y={4} w={300} h={20} size={12} bold>{m.n}:</Tx><Tx x={8} y={26} w={300} h={22} size={13} font={FONT.mono} color="#1F3A93">{m.v}</Tx>
+            </div>
+          ))}
+        </div>
+        <div style={abs(0, 640, M.win.w, M.sheetBar, { background: "#F3F3F3", borderTop: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        {["Fact_Sales", "Dim_Customer"].map((n, i) => (<div key={n}>{n === table && <div style={abs(8 + i * 110, 640, 110, M.sheetBar, { background: "#fff", borderBottom: `3px solid ${XL.green}`, boxSizing: "border-box" })} />}<Tx x={8 + i * 110} y={640} w={110} h={M.sheetBar - 2} size={12} align="center" bold={n === table} color={n === table ? XL.green : "#333"}>{n}</Tx></div>))}
+        <div style={abs(0, M.win.h - M.status, M.win.w, M.status, { background: "#F3F3F3", borderTop: "1px solid #D4D4D4", boxSizing: "border-box" })} />
+        <Tx x={10} y={M.win.h - M.status} w={300} h={M.status} size={11} color="#444">{`Record: ◀ 1 of ${rows.length > 0 ? 48 : 0} ▶`}</Tx>
+        {dim > 0 && <div style={abs(0, 0, M.win.w, M.win.h, { background: `rgba(15,23,42,${dim})` })} />}
+        {children}
+      </Win>
+    );
+  };
+
+// ---------- Slicer + PivotTable Fields pane ----------
+export const Slicer: React.FC<{ x: number; y: number; w: number; title: string; items: string[]; sel: number; hi?: number }> = ({ x, y, w, title, items, sel, hi = -1 }) => (
+  <div style={abs(x, y, w, 34 + items.length * 28, { background: "#fff", border: "1px solid #A6A6A6", boxSizing: "border-box" })}>
+    <div style={abs(0, 0, w, 28, { background: "#F3F3F3", borderBottom: "1px solid #D4D4D4", boxSizing: "border-box" })} /><Tx x={8} y={0} w={w - 40} h={28} size={12.5} bold>{title}</Tx>
+    <Ico n="filter" x={w - 24} y={6} s={14} c={sel >= 0 ? "#333" : "#AAA"} sw={1.6} />
+    {items.map((it, i) => (
+      <div key={it} style={abs(6, 32 + i * 28, w - 12, 24, { background: i === sel ? "#BDD7EE" : i === hi ? "#EAF2FA" : "#fff", border: `1px solid ${i === sel ? "#5B9BD5" : "#C8C8C8"}`, boxSizing: "border-box" })}><Tx x={8} y={0} w={w - 28} h={22} size={12}>{it}</Tx></div>
+    ))}
+  </div>
+);
+export const slicerItem = (x: number, y: number, w: number, i: number): [number, number] => [x + w / 2, y + 32 + i * 28 + 12];
+export const PTFields: React.FC<{ x: number; h: number; rows?: string; vals?: string }> = ({ x, h, rows = "CustomerName", vals = "Total Sales" }) => (
+  <div style={abs(x, 180, M.pane, h, { background: "#fff", borderLeft: "1px solid #C8C8C8", boxSizing: "border-box", overflow: "hidden" })}>
+    <Tx x={12} y={8} w={220} h={22} size={14} bold>PivotTable Fields</Tx><Tx x={M.pane - 28} y={8} w={20} h={22} size={13} color="#555">✕</Tx>
+    <Tx x={12} y={36} w={240} h={18} size={11.5} color="#555">Choose fields to add to report:</Tx>
+    <Rect x={12} y={58} w={M.pane - 24} h={22} fill="#fff" stroke="#BDBDBD" /><Tx x={18} y={58} w={150} h={22} size={12} color="#888">Search</Tx>
+    {["Fact_Sales", "Dim_Customer", "Dim_Branch"].map((n, i) => (<div key={n}><Tx x={14} y={90 + i * 22} w={14} h={20} size={9} color="#555">▶</Tx><Ico n="table" x={32} y={92 + i * 22} s={14} c={XL.green} sw={1.6} /><Tx x={52} y={90 + i * 22} w={180} h={20} size={12}>{n}</Tx></div>))}
+    <Tx x={12} y={170} w={200} h={18} size={11.5} color="#555">Drag fields between areas below:</Tx>
+    {[["Filters", 0, 0], ["Columns", 1, 0], ["Rows", 0, 1], ["Values", 1, 1]].map(([n, cx, cy]) => (
+      <div key={n as string} style={abs(12 + (cx as number) * 124, 194 + (cy as number) * 92, 120, 86, { border: "1px solid #D4D4D4", boxSizing: "border-box" })}>
+        <Tx x={6} y={2} w={100} h={18} size={11} color="#555">{n as string}</Tx>
+        {n === "Rows" && <Rect x={6} y={26} w={106} h={22} fill="#fff" stroke="#BDBDBD"><Tx x={4} y={0} w={96} h={20} size={11}>{rows}</Tx></Rect>}
+        {n === "Values" && <Rect x={6} y={26} w={106} h={22} fill="#fff" stroke="#BDBDBD"><Tx x={4} y={0} w={96} h={20} size={11}>{vals}</Tx></Rect>}
+      </div>
+    ))}
   </div>
 );
 
-/* ---------- embedded chart + plot helpers ---------- */
-export const ChartBox: React.FC<{ x: number; y: number; w: number; h: number; title?: string; selected?: boolean; o?: number; children?: React.ReactNode }> = ({ x, y, w, h, title, selected, o = 1, children }) => (
-  <div style={{ position: "absolute", left: x, top: y, width: w, height: h, background: "#fff", border: selected ? `1.5px solid #8A8A8A` : "1px solid #D9D9D9", boxShadow: "0 2px 8px rgba(0,0,0,.18)", opacity: o, fontFamily: FUI }}>
-    {title ? <div style={{ textAlign: "center", fontSize: 24, color: "#595959", marginTop: 10 }}>{title}</div> : null}
-    {children}
-    {selected ? [[0, 0], [w, 0], [0, h], [w, h], [w / 2, 0], [w / 2, h], [0, h / 2], [w, h / 2]].map(([px, py], i) => <div key={i} style={{ position: "absolute", left: px - 5, top: py - 5, width: 10, height: 10, borderRadius: 5, background: "#fff", border: "1.5px solid #666" }} />) : null}
-    {selected ? <div style={{ position: "absolute", left: w + 10, top: 0, display: "flex", flexDirection: "column", gap: 8 }}>{["+", "✎", "▽"].map((t) => <div key={t} style={{ width: 34, height: 34, border: "1px solid #BBB", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#555" }}>{t}</div>)}</div> : null}
-  </div>
-);
+// ---------- Academy outro (shared by every lesson; pass the lesson's cue frames and texts) ----------
+export const Outro: React.FC<{ f: number; dur: number; tStart: number; tUnit: number; tDl: number; tNext: number; skills: string[]; nextAr: string; nextEn: string; unitNote: string }> =
+  ({ f, dur, tStart, tUnit, tDl, tNext, skills, nextAr, nextEn, unitNote }) => {
+    const pct = (LESSON / TOTAL_LESSONS) * 100;
+    const fill = eo(prog(f, tUnit, tUnit + 90));
+    const nx = eo(prog(f, tNext, tNext + 14));
+    const a = (t: number, d = 10) => eo(prog(f, t, t + d));
+    return (
+      <Stage dur={dur} fin={8} fout={26}>
+        <Header f={f} />
+        <div style={{ position: "absolute", left: 130, top: 120, width: 1660, height: 860, borderRadius: 32, background: "rgba(30,41,59,0.88)", border: `2px solid ${C.line}`, opacity: a(4, 14) }}>
+          <Img src={staticFile(LOGO)} style={{ position: "absolute", left: 50, top: 50, width: 330, height: 330, objectFit: "contain", opacity: a(10, 16) }} />
+          <div dir="ltr" style={{ position: "absolute", left: 20, top: 400, width: 420, textAlign: "center", whiteSpace: "nowrap", fontFamily: FONT.ui, fontSize: 28, fontWeight: 700, color: C.text }}>Manzooma Excel Masterclass</div>
+          <div dir="rtl" style={{ position: "absolute", left: 40, top: 446, width: 380, textAlign: "center", fontFamily: FONT.ar, fontSize: 30, color: C.dim }}>منظومة أكاديمي</div>
+          <div style={{ position: "absolute", left: 460, top: 44, width: 1160 }}>
+            <div dir="ltr" style={{ fontFamily: FONT.ui, fontSize: 46, fontWeight: 700, color: C.green, opacity: a(tStart, 12) }}>✓ Lesson {LESSON} complete</div>
+            <div dir="rtl" style={{ fontFamily: FONT.ar, fontSize: 38, fontWeight: 500, color: C.text, marginTop: 6, opacity: a(tStart, 12) }}>{TITLE_AR}</div>
+            <div dir="ltr" style={{ fontFamily: FONT.ui, fontSize: 26, color: C.dim, marginTop: 4 }}>{TITLE_EN}</div>
+            <div dir="ltr" style={{ marginTop: 28, fontFamily: FONT.ui, fontSize: 24, color: C.text, display: "flex", justifyContent: "space-between", width: 1100 }}><span>{`Course progress  ${LESSON} / ${TOTAL_LESSONS}`}</span><span style={{ color: C.green, fontWeight: 700 }}>{`${(pct * fill).toFixed(1)}%`}</span></div>
+            <div style={{ marginTop: 8, width: 1100, height: 20, borderRadius: 10, background: C.bg }}><div style={{ width: 1100 * (pct / 100) * fill, height: 20, borderRadius: 10, background: C.green }} /></div>
+            <div dir="ltr" style={{ marginTop: 18, fontFamily: FONT.ui, fontSize: 22, color: C.dim }}>{unitNote}</div>
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "row", gap: 8, width: 1100, direction: "ltr" }}>
+              {Array.from({ length: TOTAL_UNITS }).map((_, i) => <div key={i} style={{ flex: 1, height: 14, borderRadius: 7, background: i < UNIT - 1 ? (i < (UNIT - 1) * fill ? C.green : C.bg) : i === UNIT - 1 ? (fill > 0.9 ? C.purple : C.bg) : C.bg, border: `1px solid ${C.line}` }} />)}
+            </div>
+            <div style={{ marginTop: 26, display: "flex", flexDirection: "column", gap: 6 }}>
+              {skills.map((s, i) => (<div key={s} dir="ltr" style={{ fontFamily: FONT.ui, fontSize: 28, color: C.text, opacity: a(tUnit + 45 + i * 40), transform: `translateX(${(1 - a(tUnit + 45 + i * 40)) * 24}px)` }}><span style={{ color: C.green, fontWeight: 700 }}>✓ </span>{s}</div>))}
+            </div>
+          </div>
+          <div style={{ position: "absolute", left: 40, top: 520, width: 380, opacity: a(tDl, 12) }}>
+            <div dir="ltr" style={{ fontFamily: FONT.ui, fontSize: 21, color: C.dim, textAlign: "center" }}>Exercises &amp; practice file</div>
+            <div dir="ltr" style={{ marginTop: 8, padding: "10px 0", borderRadius: 14, border: `2px solid ${C.blue}`, color: C.blue, fontFamily: FONT.mono, fontSize: 22, textAlign: "center" }}>solutions.gomaaintelligence.me</div>
+            <div dir="ltr" style={{ marginTop: 10, padding: "10px 0", borderRadius: 14, border: `2px solid ${C.line}`, color: C.text, fontFamily: FONT.mono, fontSize: 18, textAlign: "center" }}>manzooma_sales_2026.xlsx</div>
+          </div>
+          <div style={{ position: "absolute", left: 460, top: 690, width: 1130, height: 130, borderRadius: 22, background: C.bg, border: `3px solid ${C.purple}`, opacity: nx, transform: `translateY(${(1 - nx) * 24}px)` }}>
+            <div dir="rtl" style={{ position: "absolute", left: 30, top: 14, width: 1070, fontFamily: FONT.ar, fontSize: 26, color: C.purple, fontWeight: 700 }}>{nextAr}</div>
+            <div dir="ltr" style={{ position: "absolute", left: 30, top: 54, width: 1070, fontFamily: FONT.ui, fontSize: 34, fontWeight: 700, color: C.text }}>{nextEn}</div>
+          </div>
+        </div>
+      </Stage>
+    );
+  };
 
-export type Sc = (v: number) => number;
-export const Plot: React.FC<{ w: number; h: number; xd: [number, number]; yd: [number, number]; tx: number[]; ty: number[]; xt?: string; yt?: string; fmtX?: (v: number) => string; fmtY?: (v: number) => string; pad?: { l: number; r: number; t: number; b: number }; children: (sx: Sc, sy: Sc) => React.ReactNode }> = ({ w, h, xd, yd, tx, ty, xt, yt, fmtX = (v) => String(v), fmtY = (v) => String(v), pad = { l: 70, r: 20, t: 52, b: 62 }, children }) => {
-  const sx: Sc = (v) => pad.l + ((v - xd[0]) / (xd[1] - xd[0])) * (w - pad.l - pad.r);
-  const sy: Sc = (v) => h - pad.b - ((v - yd[0]) / (yd[1] - yd[0])) * (h - pad.t - pad.b);
+// ---------- Unit/lesson mastery seal overlay (shared) ----------
+export const Seal: React.FC<{ f: number; t: number; title: string; sub: string; marks: string[] }> = ({ f, t, title, sub, marks }) => {
+  const s = eo(prog(f, t, t + 16));
+  if (s <= 0) return null;
+  const m = (i: number) => eo(prog(f, t + 50 + i * 60, t + 60 + i * 60));
   return (
-    <svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
-      {ty.map((v) => <g key={`y${v}`}><line x1={pad.l} x2={w - pad.r} y1={sy(v)} y2={sy(v)} stroke="#D9D9D9" /><text x={pad.l - 10} y={sy(v) + 6} textAnchor="end" fontSize="17" fill="#595959" fontFamily={FUI}>{fmtY(v)}</text></g>)}
-      {tx.map((v) => <text key={`x${v}`} x={sx(v)} y={h - pad.b + 26} textAnchor="middle" fontSize="17" fill="#595959" fontFamily={FUI}>{fmtX(v)}</text>)}
-      <line x1={pad.l} x2={w - pad.r} y1={h - pad.b} y2={h - pad.b} stroke="#BFBFBF" />
-      {xt ? <text x={(pad.l + w - pad.r) / 2} y={h - 10} textAnchor="middle" fontSize="18" fill="#595959" fontFamily={FUI}>{xt}</text> : null}
-      {yt ? <text transform={`translate(18 ${(pad.t + h - pad.b) / 2}) rotate(-90)`} textAnchor="middle" fontSize="18" fill="#595959" fontFamily={FUI}>{yt}</text> : null}
-      {children(sx, sy)}
-    </svg>
+    <div style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, opacity: s }}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.84)" }} />
+      <div style={{ position: "absolute", left: 660, top: 190, width: 600, height: 600, transform: `scale(${0.8 + 0.2 * s})`, transformOrigin: "300px 300px" }}>
+        <svg width={600} height={600} viewBox="0 0 600 600"><circle cx={300} cy={300} r={270} fill={C.panel} stroke={C.green} strokeWidth={10} /><circle cx={300} cy={300} r={236} fill="none" stroke={C.green} strokeWidth={3} strokeDasharray="6 12" opacity={0.7} />
+          <path d="M200 305l70 70 140-160" fill="none" stroke={C.green} strokeWidth={26} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={420} strokeDashoffset={420 * (1 - prog(f, t + 6, t + 30))} /></svg>
+        <div dir="ltr" style={{ position: "absolute", left: 0, top: 410, width: 600, textAlign: "center", fontFamily: FONT.ui, fontSize: 42, fontWeight: 700, color: C.text }}>{title}</div>
+        <div dir="ltr" style={{ position: "absolute", left: 0, top: 466, width: 600, textAlign: "center", fontFamily: FONT.ui, fontSize: 28, color: C.green }}>{sub}</div>
+      </div>
+      {marks.map((mk, i) => (
+        <div key={mk} dir="ltr" style={{ position: "absolute", left: i < 2 ? 100 : 1360, top: 300 + (i % 2) * 190, width: 460, height: 72, borderRadius: 36, border: `3px solid ${C.green}`, background: C.panel, color: C.text, fontFamily: FONT.ui, fontSize: 26, fontWeight: 600, lineHeight: "66px", textAlign: "center", opacity: m(i), transform: `translateX(${(1 - m(i)) * (i < 2 ? -40 : 40)}px)` }}>✓ {mk}</div>
+      ))}
+    </div>
   );
-};
-
-export const statsText = (v: number[]) => {
-  const s = v.reduce((a, b) => a + b, 0);
-  const g = (n: number) => (Math.round(n * 1000) / 1000).toLocaleString("en-US");
-  return `Average: ${g(s / v.length)}     Count: ${v.length}     Sum: ${g(s)}`;
 };

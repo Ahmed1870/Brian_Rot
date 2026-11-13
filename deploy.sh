@@ -1,78 +1,77 @@
 #!/usr/bin/env bash
-# Swap-system deploy: sync repo -> wipe (keep .git/.github) -> copy new project -> checks -> npm+tsc -> force push.
+# Swap System deploy: sync repo -> wipe (keep .git/.github) -> drop old workflow -> copy project -> name checks -> npm+tsc -> force push.
 # Env: DRY_RUN SKIP_NPM KEEP_EXTRA WORK_DIR REPO_URL BRANCH COMMIT_MSG
 set -euo pipefail
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_URL="${REPO_URL:-https://github.com/Ahmed1870/Brian_Rot.git}"
 BRANCH="${BRANCH:-main}"
-WORK_DIR="${WORK_DIR:-$HOME/Brian_Rot}"
-DRY_RUN="${DRY_RUN:-0}"; SKIP_NPM="${SKIP_NPM:-0}"; KEEP_EXTRA="${KEEP_EXTRA:-}"
-die() { echo "✗ $*" >&2; exit 1; }
-ok()  { echo "✓ $*"; }
+WORK_DIR="${WORK_DIR:-$HOME/Brian_Rot_work}"
+THEME="$SRC/src/theme.ts"
+COMP_ID="$(sed -n 's/^export const COMP_ID = "\(.*\)";/\1/p' "$THEME")"
+OUT_NAME="$(sed -n 's/^export const OUT_NAME = "\(.*\)";/\1/p' "$THEME")"
+VOICE="$(sed -n 's/^export const VOICE = "\(.*\)";/\1/p' "$THEME")"
+LOGO="$(sed -n 's/^export const LOGO = "\(.*\)";/\1/p' "$THEME")"
+COMMIT_MSG="${COMMIT_MSG:-Lesson ${COMP_ID}}"
+say(){ echo "[deploy] $*"; }
+fail(){ echo "[deploy] STOP: $*" >&2; exit 1; }
 
-# ---------- 0) read identity from the NEW project ----------
-COMP_ID="$(grep -oP 'COMP_ID = "\K[^"]+' "$SRC/src/theme.ts")" || die "COMP_ID not found in theme.ts"
-OUT_NAME="$(grep -oP 'OUT_NAME = "\K[^"]+' "$SRC/src/theme.ts")" || die "OUT_NAME not found in theme.ts"
-[[ "$COMP_ID" =~ ^XL-L([0-9]{2,3})-[A-Za-z0-9-]+$ ]] || die "bad COMP_ID format: $COMP_ID"
-NN="${BASH_REMATCH[1]}"
-COMMIT_MSG="${COMMIT_MSG:-Lesson $NN: $COMP_ID}"
+check_names(){ # $1 = project dir
+  local d="$1"
+  [[ "$COMP_ID" =~ ^XL-L[0-9]{2}-[A-Za-z0-9-]+$ ]] || fail "COMP_ID '$COMP_ID' must look like XL-L05-VLOOKUP"
+  local nn="${COMP_ID:4:2}"
+  [[ "$VOICE" == "voiceover_lesson_${nn}.mp3" ]] || fail "VOICE '$VOICE' does not carry lesson number $nn"
+  grep -q "COMP_ID = \"$COMP_ID\"" "$d/src/theme.ts" || fail "theme.ts COMP_ID mismatch"
+  grep -q "COMP_ID" "$d/src/Root.tsx" && ! grep -q "XL-L" "$d/src/Root.tsx" || fail "Root.tsx must use COMP_ID, not a literal"
+  grep -q "$COMP_ID" "$d/package.json" || fail "package.json build does not render $COMP_ID"
+  grep -q "out/$OUT_NAME.mp4" "$d/package.json" || fail "package.json output name mismatch"
+  [[ "$(ls "$d/.github/workflows" | wc -l)" -eq 1 ]] || fail "exactly one workflow file is allowed"
+  local wf; wf="$d/.github/workflows/$(ls "$d/.github/workflows")"
+  grep -q "COMP_ID: $COMP_ID" "$wf" && grep -q "OUT_NAME: $OUT_NAME" "$wf" || fail "workflow COMP_ID/OUT_NAME mismatch"
+  grep -q "name: $OUT_NAME" "$wf" || fail "artifact name must equal $OUT_NAME"
+  grep -q "$VOICE" "$wf" || fail "workflow guard does not mention $VOICE"
+  [[ -s "$d/public/$VOICE" ]] || fail "public/$VOICE missing or empty"
+  local extra; extra="$(find "$d/public" -type f ! -name "$VOICE" ! -name "$LOGO" | head -3)"
+  [[ -z "$extra" ]] || fail "unexpected files in public: $extra"
+  local stale
+  stale="$(grep -rEno 'SQL-L[0-9]+[A-Za-z0-9-]*|XL-L[0-9]{2}-[A-Za-z0-9-]+|voiceover_lesson_[0-9]+' "$d/src" "$d/package.json" "$d/.github" "$d/deploy.sh" 2>/dev/null | grep -vF "$COMP_ID" | grep -vE "voiceover_lesson_${nn}\$" | grep -v 'deploy.sh:.*XL-L\[' || true)"
+  stale="$(echo "$stale" | grep -v 'deploy.sh' || true)"
+  [[ -z "$stale" ]] || fail "old lesson identifiers found: $(echo "$stale" | tr '\n' ' ')"
+  say "name checks OK ($COMP_ID -> out/$OUT_NAME.mp4)"
+}
 
-# ---------- 1) sync repo ----------
-if [ -d "$WORK_DIR/.git" ]; then
-  git -C "$WORK_DIR" fetch origin "$BRANCH" >/dev/null 2>&1 && git -C "$WORK_DIR" checkout -q "$BRANCH" 2>/dev/null || true
+say "1/6 checking project before touching the repo"
+check_names "$SRC"
+
+say "2/6 sync repo"
+if [[ -d "$WORK_DIR/.git" ]]; then
+  git -C "$WORK_DIR" remote set-url origin "$REPO_URL"
+  git -C "$WORK_DIR" fetch origin "$BRANCH" 2>/dev/null || true
+  git -C "$WORK_DIR" checkout -q -B "$BRANCH" "origin/$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -B "$BRANCH"
   git -C "$WORK_DIR" reset -q --hard "origin/$BRANCH" 2>/dev/null || true
 else
-  git clone -q "$REPO_URL" "$WORK_DIR" 2>/dev/null || { mkdir -p "$WORK_DIR" && git -C "$WORK_DIR" init -q && git -C "$WORK_DIR" remote add origin "$REPO_URL"; }
-  git -C "$WORK_DIR" checkout -q -B "$BRANCH" 2>/dev/null || true
+  git clone -q "$REPO_URL" "$WORK_DIR"
+  git -C "$WORK_DIR" checkout -q -B "$BRANCH" "origin/$BRANCH" 2>/dev/null || git -C "$WORK_DIR" checkout -q -B "$BRANCH"
 fi
-ok "repo synced: $WORK_DIR"
 
-# ---------- 2) wipe everything except .git and .github (+KEEP_EXTRA) ----------
+say "3/6 wipe old project (keeping .git and .github) and old workflow"
+if [[ "${KEEP_EXTRA:-0}" != "1" ]]; then
+  find "$WORK_DIR" -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
+fi
+rm -rf "$WORK_DIR/.github/workflows"; mkdir -p "$WORK_DIR/.github/workflows"
+
+say "4/6 copy new project"
+tar -C "$SRC" --exclude=node_modules --exclude=out -cf - . | tar -C "$WORK_DIR" -xf -
+check_names "$WORK_DIR"
+
+if [[ "${SKIP_NPM:-0}" == "1" ]]; then say "5/6 SKIP_NPM=1 -> npm install and tsc skipped"; else
+  say "5/6 npm install + tsc"
+  (cd "$WORK_DIR" && npm install --no-audit --no-fund && npx tsc --noEmit)
+fi
+
+say "6/6 commit + push --force origin $BRANCH"
 cd "$WORK_DIR"
-for p in $(ls -A); do
-  [ "$p" = ".git" ] && continue
-  [ "$p" = ".github" ] && continue
-  keep=0; for k in $KEEP_EXTRA; do [ "$p" = "$k" ] && keep=1; done
-  [ $keep = 1 ] && continue
-  rm -rf -- "$p"
-done
-# ---------- 3) remove old workflow(s) ----------
-rm -rf .github/workflows && mkdir -p .github/workflows
-# ---------- 4) copy new project ----------
-(cd "$SRC" && tar --exclude=node_modules --exclude=out -cf - .) | tar -xf -
-ok "project copied"
-
-# ---------- 5) naming checks (stop before push on any mismatch) ----------
-fail=0; bad() { echo "✗ $*" >&2; fail=1; }
-[ "$OUT_NAME" = "$(echo "$COMP_ID" | tr 'A-Z' 'a-z')" ] || bad "OUT_NAME ($OUT_NAME) != lowercase COMP_ID"
-grep -q "COMP_ID" src/Root.tsx || bad "Root.tsx does not use COMP_ID"
-grep -qE 'id="[A-Za-z]+-L[0-9]+' src/Root.tsx && bad "Root.tsx has a literal composition id"
-grep -q "out/$OUT_NAME.mp4" package.json && grep -q "$COMP_ID" package.json || bad "package.json build mismatch"
-WF=(.github/workflows/*); [ "${#WF[@]}" = "1" ] && [ -f "${WF[0]}" ] || bad "need exactly one workflow file"
-grep -q "COMP_ID: $COMP_ID" "${WF[0]}" || bad "workflow COMP_ID mismatch"
-grep -q "OUT_NAME: $OUT_NAME" "${WF[0]}" || bad "workflow OUT_NAME mismatch"
-grep -q "name: $OUT_NAME\$" "${WF[0]}" || bad "workflow artifact name != OUT_NAME"
-grep -q "voiceover_lesson_$NN.mp3" src/theme.ts "${WF[0]}" || bad "voiceover name not lesson $NN"
-grep -q 'staticFile(VOICE)' src/Video.tsx || bad "Video.tsx must read the voiceover via staticFile(VOICE)"
-[ -s "public/voiceover_lesson_$NN.mp3" ] || bad "public/voiceover_lesson_$NN.mp3 missing"
-extra="$(ls public | grep -v -x -e "voiceover_lesson_$NN.mp3" -e manzooma_logo.svg || true)"
-[ -z "$extra" ] || bad "unexpected files in public: $extra"
-# stale lesson ids (SQL or older Excel lessons)
-stale="$(grep -rIoE 'SQL-L[0-9]+[A-Za-z0-9-]*|XL-L[0-9]+-[A-Za-z0-9-]+' src package.json .github remotion.config.ts 2>/dev/null | grep -v -F "$COMP_ID" || true)"
-[ -z "$stale" ] || bad "stale lesson ids found: $stale"
-[ $fail = 0 ] || die "naming checks failed — NOT pushing"
-ok "naming checks passed ($COMP_ID -> out/$OUT_NAME.mp4)"
-
-# ---------- 6) npm + tsc ----------
-if [ "$SKIP_NPM" != "1" ]; then
-  npm install --no-audit --no-fund >/dev/null 2>&1 || die "npm install failed"
-  npx tsc --noEmit || die "TypeScript errors — NOT pushing"
-  ok "npm install + tsc"
-else ok "SKIP_NPM=1 (npm/tsc skipped)"; fi
-
-# ---------- 7) commit + push ----------
+git config user.name >/dev/null 2>&1 || git config user.name "Manzooma Deploy"
+git config user.email >/dev/null 2>&1 || git config user.email "deploy@manzooma.local"
 git add -A
-git -c user.name="${GIT_AUTHOR_NAME:-manzooma}" -c user.email="${GIT_AUTHOR_EMAIL:-bot@manzooma.local}" commit -q -m "$COMMIT_MSG" || echo "(nothing new to commit)"
-if [ "$DRY_RUN" = "1" ]; then ok "DRY_RUN=1: skipped push"; exit 0; fi
-git push --force origin "$BRANCH"
-ok "pushed -> GitHub Actions will render $OUT_NAME.mp4"
+git commit -q --allow-empty -m "$COMMIT_MSG"
+if [[ "${DRY_RUN:-0}" == "1" ]]; then say "DRY_RUN=1 -> not pushing"; else git push --force origin "$BRANCH"; say "pushed. Open GitHub Actions to watch the render."; fi
