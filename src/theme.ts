@@ -1,78 +1,61 @@
-import {loadFont as loadAr} from "@remotion/google-fonts/IBMPlexSansArabic";
-import {loadFont as loadMono} from "@remotion/google-fonts/JetBrainsMono";
-
-export const LESSON_NO = "50";
-export const COMP_ID = "XL-L50-Power-Query";
-export const OUT_NAME = "xl-l50-power-query";
-export const VOICE_FILE = "voiceover_lesson_50.mp3";
+// Lesson identity: every name in the project is derived from these values.
+export const LESSON_NUM = "48";
+export const COMP_ID = "XL-L48-PowerQuery-Cleaning";
+export const OUT_NAME = "xl-l48-powerquery-cleaning";
+export const VOICE_FILE = "voiceover_lesson_48.mp3";
 export const LOGO_FILE = "manzooma_logo.svg";
+export const XLSX_NAME = "manzooma_sales_2026.xlsx";
 
+// Video spec (change WIDTH/HEIGHT here only; the UI scales from S).
 export const FPS = 30;
-export const W = 1920;
-export const H = 1080;
+export const WIDTH = 1920;
+export const HEIGHT = 1080;
 export const DURATION = 7200;
 
-// Course progress: lesson 50 of 76 = 65.8% (per the plan)
-export const UNIT_DONE = 50;
-export const UNIT_TOTAL = 76;
-export const UNIT_PROGRESS = UNIT_DONE / UNIT_TOTAL;
+// Layout: a Slate caption strip on top, the Excel window below.
+export const STRIP_H = 72;
+export const S = 1.25; // Excel logical px -> output px
+export const WIN_W = WIDTH / S; // 1536
+export const WIN_H = (HEIGHT - STRIP_H) / S; // 806.4
 
-export const FONT_AR = loadAr("normal", {
-  weights: ["400", "500", "600", "700"],
-  subsets: ["arabic", "latin"],
-} as never).fontFamily;
-export const FONT_MONO = loadMono("normal", {
-  weights: ["400", "700"],
-  subsets: ["latin"],
-} as never).fontFamily;
-export const MONO = `${FONT_MONO}, ${FONT_AR}, monospace`;
+// Excel metrics in logical px (Microsoft 365 desktop, Windows, 100%).
+export const M = {
+  titleBar: 30,
+  tabs: 30,
+  ribbon: 94,
+  formula: 28,
+  colHdr: 20,
+  rowHdr: 40,
+  rowH: 20,
+  colW: 64,
+  sheetBar: 28,
+  statusBar: 24,
+};
+export const GRID_TOP = M.titleBar + M.tabs + M.ribbon + M.formula + M.colHdr; // body top
+export const BODY_H = WIN_H - GRID_TOP - M.sheetBar - M.statusBar;
+export const NSLOT = Math.ceil(BODY_H / M.rowH);
 
 export const C = {
-  bg: "#0F172A",
-  panel: "#1E293B",
-  line: "#334155",
+  slate: "#0F172A",
+  slate2: "#1E293B",
+  text: "#F8FAFC",
   blue: "#38BDF8",
   green: "#10B981",
   amber: "#F59E0B",
   purple: "#A855F7",
   red: "#EF4444",
-  text: "#F8FAFC",
-  mute: "#94A3B8",
-};
-
-// Excel (Microsoft 365 desktop, light theme) palette
-export const X = {
-  green: "#107C41",
-  greenTint: "rgba(16,124,65,0.13)",
+  gold: "#FBBF24",
+  // Excel light UI
+  xGreen: "#107C41",
+  xGreenDark: "#0B5A2E",
+  xSel: "rgba(16,124,65,0.14)",
   chrome: "#F3F3F3",
-  ribbon: "#FAFAFA",
-  border: "#D1D1D1",
-  hdr: "#E6E6E6",
-  hdrSel: "#CFCFCF",
+  ribbon: "#F9F9F9",
+  line: "#D6D6D6",
   grid: "#DCDCDC",
-  tblHdr: "#4EA72E",
-  tblBand: "#DCEBD5",
-  text: "#242424",
-  mute: "#616161",
+  hdr: "#F2F2F2",
+  hdrSel: "#CFE5D8",
+  ink: "#1F1F1F",
+  inkSoft: "#605E5C",
+  filtBlue: "#0563C1",
 };
-
-// Fixed UI metrics (shared by every lesson)
-export const M = {
-  x: 60,
-  y: 92,
-  w: 1800,
-  titleH: 38,
-  tabsH: 34,
-  ribbonH: 112,
-  fbarH: 34,
-  hdrH: 24,
-  rowH: 24,
-  rowHdrW: 46,
-  rows: 24,
-  sheetH: 30,
-  statusH: 24,
-};
-export const RIBBON_Y = M.titleH + M.tabsH;
-export const GRID_Y = RIBBON_Y + M.ribbonH + M.fbarH + M.hdrH;
-export const WIN_H = GRID_Y + M.rows * M.rowH + M.sheetH + M.statusH;
-export const COLS: number[] = [100, 130, 150, 50, 100, 130, 150, 50, 100, 130, 150, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80];

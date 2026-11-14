@@ -1,47 +1,43 @@
-name: render
-
+name: Render lesson video
 on:
-  workflow_dispatch:
   push:
     branches: [main]
-
+  workflow_dispatch: {}
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-    env:
-      COMP_ID: XL-L50-Power-Query
-      OUT_NAME: xl-l50-power-query
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard
+      - name: Guard (names, voiceover, public)
         run: |
           set -e
-          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
-          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
-          test -s public/voiceover_lesson_50.mp3
-          test -s public/manzooma_logo.svg
-          for n in datacamp_tech_ambient typing_fast academic_outro_theme column_generation_stream conditional_dialog_pop column_lock_chime custom_column_formula_sound m_formula_execution_snap parameter_binding advanced_editor_code_lock enterprise_mlogic_seal; do test -s "public/$n.mp3"; done
-          extra="$(ls public | grep -v -x -e voiceover_lesson_50.mp3 -e manzooma_logo.svg -e datacamp_tech_ambient.mp3 -e typing_fast.mp3 -e academic_outro_theme.mp3 -e column_generation_stream.mp3 -e conditional_dialog_pop.mp3 -e column_lock_chime.mp3 -e custom_column_formula_sound.mp3 -e m_formula_execution_snap.mp3 -e parameter_binding.mp3 -e advanced_editor_code_lock.mp3 -e enterprise_mlogic_seal.mp3 || true)"
-          test -z "$extra"
-          test "$(ls .github/workflows | wc -l)" = "1"
-      - name: Install dependencies
+          grep -q "XL-L48-PowerQuery-Cleaning" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
+          grep -q "XL-L48-PowerQuery-Cleaning" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
+          grep -q "xl-l48-powerquery-cleaning.mp4" package.json || { echo "output name missing in package.json"; exit 1; }
+          test -s public/voiceover_lesson_48.mp3 || { echo "voiceover missing"; exit 1; }
+          extra=$(ls public | grep -vxE "voiceover_lesson_48.mp3|manzooma_logo.svg" || true)
+          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
+          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
+      - name: Install
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.261 || true
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/$OUT_NAME.mp4
+      - name: Render
+        run: npx remotion render src/index.ts XL-L48-PowerQuery-Cleaning out/xl-l48-powerquery-cleaning.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - name: Check output
+        run: test -s out/xl-l48-powerquery-cleaning.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l50-power-query.mp4
-          path: out/xl-l50-power-query.mp4
+          name: xl-l48-powerquery-cleaning
+          path: out/xl-l48-powerquery-cleaning.mp4
