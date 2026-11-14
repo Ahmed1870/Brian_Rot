@@ -1,390 +1,503 @@
-// Shared Excel-UI kit (2D SVG only). Written once, reused by every Excel lesson.
+// Shared Excel-UI kit (Microsoft 365 desktop, Windows, light theme). Reused by every lesson.
+// All coordinates are LOGICAL px (1536 x 806.4 window); the stage scales them by S.
 import React from "react";
-import { staticFile } from "remotion";
-import { loadFont as loadAr } from "@remotion/google-fonts/IBMPlexSansArabic";
+import { Easing, interpolate } from "remotion";
+import { loadFont as loadLato } from "@remotion/google-fonts/Lato";
+import { loadFont as loadOpen } from "@remotion/google-fonts/OpenSans";
+import { loadFont as loadPlex } from "@remotion/google-fonts/IBMPlexSansArabic";
 import { loadFont as loadMono } from "@remotion/google-fonts/JetBrainsMono";
-import { loadFont as loadCell } from "@remotion/google-fonts/Lato";
-import { C, M, Y, W, H, LOGO_FILE } from "./theme";
+import { C, GRID_TOP, HEIGHT, M, NSLOT, S, STRIP_H, WIDTH, WIN_H, WIN_W } from "./theme";
 
-export const AR = loadAr("normal", { weights: ["400", "500", "600", "700"], ignoreTooManyRequestsWarning: true }).fontFamily;
-export const MONO = loadMono("normal", { weights: ["400", "600"], ignoreTooManyRequestsWarning: true }).fontFamily;
-// Calibri is licensed: Lato is the open, visually close substitute (Carlito is its metric-compatible Calibri clone).
-export const CELLF = loadCell("normal", { weights: ["400", "700"], ignoreTooManyRequestsWarning: true }).fontFamily;
-
-// ---------- helpers ----------
-export const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-export const easeOut = (t: number) => 1 - Math.pow(1 - clamp(t), 3);
-export const easeIO = (t: number) => { t = clamp(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
-export const prog = (f: number, a: number, d: number) => clamp((f - a) / d);
-export const typed = (s: string, f: number, start: number, cps = 14) => s.slice(0, Math.max(0, Math.floor(((f - start) * cps) / 30)));
-export const colL = (i: number) => String.fromCharCode(65 + i);
-export const ref = (c: number, r: number) => colL(c) + r;
-
-const DarkCtx = React.createContext(false);
-type TP = { x: number; y: number; children?: React.ReactNode; size?: number; w?: number; fill?: string; anchor?: "start" | "middle" | "end"; font?: string; rtl?: boolean; op?: number; ls?: number };
-export const T = ({ x, y, children, size = 20, w = 400, fill, anchor = "start", font = AR, rtl = false, op = 1, ls }: TP) => {
-  const dark = React.useContext(DarkCtx); fill = fill ?? (dark ? C.xlTxt : C.text);
-  return (<text x={x} y={y} fontSize={size} fontWeight={w} fill={fill} textAnchor={rtl ? (anchor === "start" ? "end" : anchor === "end" ? "start" : anchor) : anchor} fontFamily={font} opacity={op} letterSpacing={ls}
-    direction={rtl ? "rtl" : "ltr"} style={{ unicodeBidi: "embed" }}>{children}</text>);
+const lato = loadLato("normal", { weights: ["400", "700"], subsets: ["latin"] });
+const open = loadOpen("normal", { weights: ["400", "600", "700"], subsets: ["latin"] });
+const plex = loadPlex("normal", { weights: ["400", "500", "600", "700"], subsets: ["arabic", "latin"] });
+const mono = loadMono("normal", { weights: ["400", "700"], subsets: ["latin"] });
+export const F = {
+  cell: `${lato.fontFamily}, Carlito, Calibri, sans-serif`, // Calibri substitute (open licence)
+  ui: `${open.fontFamily}, "Segoe UI", sans-serif`,
+  ar: `${plex.fontFamily}, ${open.fontFamily}, sans-serif`,
+  mono: `${mono.fontFamily}, monospace`,
 };
 
-// ---------- generic glyph icons (no Microsoft artwork) ----------
-export const Glyph = ({ k, x, y, s = 36, c = C.xlGreen }: { k: string; x: number; y: number; s?: number; c?: string }) => {
-  const u = s / 24;
-  const st = { fill: "none", stroke: c, strokeWidth: 1.6 / 1, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  let body: React.ReactNode;
-  switch (k) {
-    case "grid": body = <g {...st}><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M3 10h18M3 15h18M9 4v16M15 4v16" /></g>; break;
-    case "clip": body = <g {...st}><rect x="5" y="5" width="14" height="16" rx="1.5" /><rect x="9" y="3" width="6" height="4" rx="1" /></g>; break;
-    case "funnel": body = <path {...st} d="M3 5h18l-7 8v6l-4-2v-4z" />; break;
-    case "az": body = <g><text x="2" y="11" fontSize="9" fontWeight="700" fill={c} fontFamily={AR}>A</text><text x="2" y="21" fontSize="9" fontWeight="700" fill={c} fontFamily={AR}>Z</text><path {...st} d="M16 4v16M12.5 16.5L16 20l3.5-3.5" /></g>; break;
-    case "refresh": body = <g {...st}><path d="M19 12a7 7 0 1 1-2.2-5.1" /><path d="M19 4v4h-4" /></g>; break;
-    case "whatif": body = <g {...st}><rect x="3" y="4" width="14" height="12" rx="1.5" /><path d="M3 9h14M8 4v12" /><circle cx="17" cy="17" r="5" fill="#fff" /><text x="14.6" y="20.2" fontSize="8" fontWeight="700" fill={c} stroke="none" fontFamily={AR}>?</text></g>; break;
-    case "forecast": body = <g {...st}><path d="M3 20V4M3 20h18" /><path d="M6 15l4-4 3 3 6-7" /></g>; break;
-    case "calc": body = <g {...st}><rect x="5" y="3" width="14" height="18" rx="1.5" /><path d="M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2M8 18h2M12 18h2" /></g>; break;
-    case "fx": body = <text x="3" y="17" fontSize="14" fontStyle="italic" fontWeight="700" fill={c} fontFamily={CELLF}>fx</text>; break;
-    case "sum": body = <text x="5" y="19" fontSize="19" fontWeight="700" fill={c} fontFamily={CELLF}>Σ</text>; break;
-    case "cf": body = <g><rect x="3" y="4" width="18" height="16" rx="1.5" fill="none" stroke={c} strokeWidth="1.6" /><rect x="5" y="6" width="6" height="5" fill="#F87171" /><rect x="13" y="6" width="6" height="5" fill="#FBBF24" /><rect x="5" y="13" width="6" height="5" fill="#34D399" /><rect x="13" y="13" width="6" height="5" fill="#F87171" /></g>; break;
-    case "plus": body = <path {...st} d="M12 5v14M5 12h14" />; break;
-    case "minus": body = <path {...st} d="M5 12h14" />; break;
-    case "bold": body = <text x="6" y="18" fontSize="17" fontWeight="700" fill={c} fontFamily={CELLF}>B</text>; break;
-    case "ital": body = <text x="8" y="18" fontSize="17" fontStyle="italic" fill={c} fontFamily={CELLF}>I</text>; break;
-    case "under": body = <g><text x="6" y="17" fontSize="15" fill={c} fontFamily={CELLF}>U</text><path {...st} d="M5 21h14" /></g>; break;
-    case "lines": body = <path {...st} d="M4 6h16M4 11h16M4 16h10M4 21h16" />; break;
-    case "pct": body = <text x="3" y="18" fontSize="16" fontWeight="700" fill={c} fontFamily={CELLF}>%</text>; break;
-    case "cur": body = <text x="6" y="18" fontSize="16" fontWeight="700" fill={c} fontFamily={CELLF}>$</text>; break;
-    case "cut": body = <g {...st}><circle cx="7" cy="17" r="2.5" /><circle cx="17" cy="17" r="2.5" /><path d="M8.5 15L17 4M15.5 15L7 4" /></g>; break;
-    case "copy": body = <g {...st}><rect x="8" y="8" width="12" height="13" rx="1.5" /><path d="M16 8V4H4v13h4" /></g>; break;
-    case "brush": body = <g {...st}><rect x="4" y="3" width="14" height="6" rx="1" /><path d="M11 9v4M9 13h4v8H9z" /></g>; break;
-    case "group": body = <g {...st}><path d="M4 5h16M4 19h16M8 9h8M8 15h8" /></g>; break;
-    case "table": body = <g {...st}><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M3 9h18M9 9v11" /></g>; break;
-    case "db": body = <g {...st}><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3 3 7 3s7-1.3 7-3" /></g>; break;
-    case "link": body = <g {...st}><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1" /></g>; break;
-    case "txt": body = <g {...st}><path d="M5 4h9l5 5v11H5z M14 4v5h5M8 13h8M8 17h8" /></g>; break;
-    case "star": body = <path {...st} d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z" />; break;
-    default: body = <rect {...st} x="4" y="4" width="16" height="16" rx="2" />;
+// ---------- motion helpers ----------
+export const ease = Easing.bezier(0.4, 0, 0.2, 1);
+export const prog = (f: number, from: number, dur: number): number =>
+  interpolate(f, [from, from + dur], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
+export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+export const typed = (s: string, f: number, from: number, perFrame = 0.5): string =>
+  s.slice(0, Math.max(0, Math.min(s.length, Math.floor((f - from) * perFrame))));
+export type KF = { f: number; x: number; y: number };
+export const path = (f: number, k: KF[]): { x: number; y: number } => {
+  if (f <= k[0].f) return { x: k[0].x, y: k[0].y };
+  for (let i = 1; i < k.length; i++) {
+    if (f <= k[i].f) {
+      const t = prog(f, k[i - 1].f, k[i].f - k[i - 1].f);
+      return { x: lerp(k[i - 1].x, k[i].x, t), y: lerp(k[i - 1].y, k[i].y, t) };
+    }
   }
-  return <g transform={`translate(${x} ${y}) scale(${u})`}>{body}</g>;
+  const l = k[k.length - 1];
+  return { x: l.x, y: l.y };
+};
+// Row slots after collapsing: vis[i] in 0..1  ->  slot position of each row.
+export const stack = (vis: number[], start = 0): number[] => {
+  let s = start;
+  return vis.map((v) => { const r = s; s += v; return r; });
 };
 
-// ---------- Ribbon ----------
-type It = { l: string; g: string; dd?: boolean };
-type Grp = { n: string; cols?: (It | It[])[]; rows?: (It | { box: string; w: number })[][] };
-const L = (l: string, g: string, dd = false): It => ({ l, g, dd });
-export const RIBBON: Record<string, Grp[]> = {
-  Home: [
-    { n: "Clipboard", cols: [L("Paste", "clip", true), [L("Cut", "cut"), L("Copy", "copy"), L("Format Painter", "brush")]] },
-    { n: "Font", rows: [[{ box: "Calibri", w: 128 }, { box: "11", w: 46 }, L("", "plus"), L("", "minus")], [L("", "bold"), L("", "ital"), L("", "under"), L("", "grid"), L("", "cf"), L("", "star")]] },
-    { n: "Alignment", rows: [[L("", "lines"), L("", "lines"), L("", "lines"), L("Wrap Text", "txt")], [L("", "lines"), L("", "lines"), L("", "lines"), L("Merge & Center", "grid", true)]] },
-    { n: "Number", rows: [[{ box: "General", w: 150 }], [L("", "cur"), L("", "pct"), L("", "txt"), L("", "plus"), L("", "minus")]] },
-    { n: "Styles", cols: [L("Conditional\nFormatting", "cf", true), L("Format as\nTable", "table", true), L("Cell\nStyles", "star", true)] },
-    { n: "Cells", cols: [L("Insert", "plus", true), L("Delete", "minus", true), L("Format", "grid", true)] },
-    { n: "Editing", cols: [[L("AutoSum", "sum", true), L("Fill", "az", true), L("Clear", "cut", true)], L("Sort &\nFilter", "az", true), L("Find &\nSelect", "funnel", true)] },
-  ],
-  Formulas: [
-    { n: "Function Library", cols: [L("Insert\nFunction", "fx"), L("AutoSum", "sum", true), L("Recently\nUsed", "star", true), L("Financial", "cur", true), L("Logical", "funnel", true), L("Text", "txt", true), L("Date &\nTime", "grid", true), L("Lookup &\nReference", "link", true), L("Math &\nTrig", "calc", true), L("More\nFunctions", "plus", true)] },
-    { n: "Defined Names", cols: [L("Name\nManager", "table"), [L("Define Name", "star", true), L("Use in Formula", "fx", true), L("Create from Selection", "grid")]] },
-    { n: "Formula Auditing", cols: [[L("Trace Precedents", "link"), L("Trace Dependents", "link"), L("Remove Arrows", "cut", true)], [L("Show Formulas", "fx"), L("Error Checking", "funnel", true), L("Evaluate Formula", "calc")], L("Watch\nWindow", "table")] },
-    { n: "Calculation", cols: [L("Calculation\nOptions", "calc", true), [L("Calculate Now", "calc"), L("Calculate Sheet", "calc")]] },
-  ],
-  Data: [
-    { n: "Get & Transform Data", cols: [L("Get\nData", "db", true), [L("From Text/CSV", "txt"), L("From Web", "link"), L("From Table/Range", "table")], [L("Recent Sources", "db"), L("Existing Connections", "link")]] },
-    { n: "Queries & Connections", cols: [L("Refresh\nAll", "refresh", true), [L("Queries & Connections", "link"), L("Properties", "txt"), L("Edit Links", "link")]] },
-    { n: "Data Types", cols: [L("Stocks", "forecast"), L("Currencies", "cur")] },
-    { n: "Sort & Filter", cols: [[L("", "az"), L("", "az")], L("Sort", "az"), L("Filter", "funnel"), [L("Clear", "cut"), L("Reapply", "refresh"), L("Advanced", "funnel")]] },
-    { n: "Data Tools", cols: [[L("Text to Columns", "txt"), L("Flash Fill", "star"), L("Remove Duplicates", "cut")], [L("Data Validation", "funnel", true), L("Consolidate", "table"), L("Relationships", "link")], L("Manage\nData Model", "db")] },
-    { n: "Forecast", cols: [L("What-If\nAnalysis", "whatif", true), L("Forecast\nSheet", "forecast")] },
-    { n: "Outline", cols: [[L("Group", "group", true), L("Ungroup", "group", true), L("Subtotal", "sum")]] },
-  ],
+// ---------- grid geometry ----------
+export type Col = { w: number; label: string };
+export const colLabel = (i: number): string => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
+export const buildCols = (widths: number[]): Col[] => {
+  const cols: Col[] = widths.map((w, i) => ({ w, label: colLabel(i) }));
+  let x = widths.reduce((a, b) => a + b, 0);
+  let i = widths.length;
+  while (x < WIN_W - M.rowHdr) { cols.push({ w: M.colW, label: colLabel(i) }); x += M.colW; i++; }
+  return cols;
 };
-const RS = 1.2; // ribbon scale
-const lw = (l: string) => Math.max(...l.split("\n").map((s) => s.length)) * 6.9 + 14;
-export const TABS = ["File", "Home", "Insert", "Page Layout", "Formulas", "Data", "Review", "View", "Automate", "Help"];
-export const tabX = (name: string) => {
-  let x = M.winX + 24;
-  for (const t of TABS) { const w = t.length * 9.2 + 30; if (t === name) return { x, w }; x += w; }
-  return { x, w: 60 };
-};
-const buildRibbon = (tab: string) => {
-  const out: React.ReactNode[] = [];
-  const rects: Record<string, { x: number; y: number; w: number; h: number }> = {};
-  let x = M.winX + 10;
-  const top = Y.ribbon + 8;
-  RIBBON[tab].forEach((g, gi) => {
-    let gx = x + 6;
-    (g.cols || []).forEach((col, ci) => {
-      if (Array.isArray(col)) {
-        const w = Math.max(...col.map((i) => i.l.length)) * 6.6 + 38;
-        col.forEach((it, i) => {
-          rects[it.l.replace("\n", " ")] = { x: gx, y: top + i * 30, w: w, h: 28 };
-          out.push(<g key={`${gi}-${ci}-${i}`}>
-            <Glyph k={it.g} x={gx} y={top + i * 30 + 2} s={22} />
-            <T x={gx + 28} y={top + i * 30 + 19} size={13.5} fill={C.xlTxt}>{it.l}{it.dd ? " ▾" : ""}</T></g>);
-        });
-        gx += w + 4;
-      } else {
-        const w = Math.max(64, lw(col.l));
-        const ls = col.l.split("\n");
-        rects[col.l.replace("\n", " ")] = { x: gx, y: top - 2, w, h: 92 };
-        out.push(<g key={`${gi}-${ci}`}>
-          <Glyph k={col.g} x={gx + w / 2 - 19} y={top} s={38} />
-          {ls.map((s, i) => <T key={i} x={gx + w / 2} y={top + 58 + i * 16} size={13.5} anchor="middle" fill={C.xlTxt}>{s}{col.dd && i === ls.length - 1 ? " ▾" : ""}</T>)}
-          {col.dd && ls.length === 1 && null}</g>);
-        gx += w + 4;
-      }
-    });
-    const gx0 = gx;
-    (g.rows || []).forEach((row, ri) => {
-      let rx = gx0;
-      row.forEach((it, ii) => {
-        if ("box" in it) {
-          out.push(<g key={`${gi}-r${ri}-${ii}`}><rect x={rx} y={top + ri * 34 + 4} width={it.w} height={26} fill="#fff" stroke={C.xlLine} /><T x={rx + 8} y={top + ri * 34 + 22} size={14} fill={C.xlTxt} font={CELLF}>{it.box}</T><T x={rx + it.w - 16} y={top + ri * 34 + 22} size={10} fill={C.xlTxt2}>▾</T></g>);
-          rx += it.w + 6;
-        } else {
-          const w = it.l ? it.l.length * 7.1 + 40 : 32;
-          out.push(<g key={`${gi}-r${ri}-${ii}`}><Glyph k={it.g} x={rx + 4} y={top + ri * 34 + 3} s={26} />{it.l ? <T x={rx + 34} y={top + ri * 34 + 22} size={13.5} fill={C.xlTxt}>{it.l}</T> : null}</g>);
-          rx += w;
-        }
-      });
-      gx = Math.max(gx, rx);
-    });
-    const gw = gx - (x + 6);
-    out.push(<g key={`gl-${gi}`}><T x={x + 6 + gw / 2} y={Y.ribbon + M.ribbonH - 8} size={12.5} anchor="middle" fill={C.xlTxt2}>{g.n}</T>
-      <line x1={gx + 4} y1={Y.ribbon + 10} x2={gx + 4} y2={Y.ribbon + M.ribbonH - 10} stroke={C.xlLine} /></g>);
-    x = gx + 10;
-  });
-  return { node: <g>{out}</g>, rects };
-};
-const RB: Record<string, ReturnType<typeof buildRibbon>> = {};
-const getRibbon = (tab: string) => (RB[tab] = RB[tab] || buildRibbon(tab));
-export const ribbonItemRect = (tab: string, label: string) => getRibbon(tab).rects[label] || { x: 0, y: 0, w: 0, h: 0 };
-const RibbonBody = ({ tab }: { tab: string }) => getRibbon(tab).node;
-
-// ---------- Excel chrome (static; memoized) ----------
-type ChromeP = { tab: string; file: string; sheets: string; active: number };
-export const Chrome = React.memo(({ tab, file, sheets, active }: ChromeP) => {
-  const X = M.winX, WW = M.winW;
-  const names = sheets.split("|");
-  const tx = tabX(tab);
-  let sx = X + 92;
-  return (
-    <g>
-      <rect x={X} y={M.winY} width={WW} height={Y.end - M.winY} fill="#fff" stroke="#9CA3AF" />
-      {/* title bar */}
-      <rect x={X} y={Y.title} width={WW} height={M.titleH} fill={C.xlHdr} />
-      <T x={X + 16} y={Y.title + 26} size={14} fill={C.xlTxt}>AutoSave</T>
-      <rect x={X + 90} y={Y.title + 11} width={34} height={18} rx={9} fill="none" stroke={C.xlTxt2} strokeWidth={1.4} />
-      <circle cx={X + 99} cy={Y.title + 20} r={5} fill={C.xlTxt2} /><T x={X + 130} y={Y.title + 26} size={13} fill={C.xlTxt2}>Off</T>
-      <Glyph k="table" x={X + 180} y={Y.title + 9} s={22} c={C.xlTxt2} /><Glyph k="refresh" x={X + 214} y={Y.title + 9} s={22} c={C.xlTxt2} /><T x={X + 244} y={Y.title + 26} size={11} fill={C.xlTxt2}>▾</T>
-      <T x={X + 330} y={Y.title + 26} size={15} fill={C.xlTxt} font={CELLF}>{file} – Saved</T>
-      <rect x={X + WW / 2 + 60} y={Y.title + 6} width={420} height={28} rx={14} fill="#fff" stroke={C.xlLine} />
-      <T x={X + WW / 2 + 98} y={Y.title + 26} size={14} fill={C.xlTxt2}>Search</T>
-      <circle cx={X + WW / 2 + 82} cy={Y.title + 19} r={5} fill="none" stroke={C.xlTxt2} strokeWidth={1.4} />
-      <T x={X + WW - 140} y={Y.title + 27} size={20} fill={C.xlTxt} anchor="middle">–</T>
-      <rect x={X + WW - 96} y={Y.title + 14} width={12} height={12} fill="none" stroke={C.xlTxt} strokeWidth={1.3} />
-      <T x={X + WW - 32} y={Y.title + 28} size={20} fill={C.xlTxt} anchor="middle">✕</T>
-      {/* tab strip */}
-      <rect x={X} y={Y.tabs} width={WW} height={M.tabH} fill={C.xlHdr} />
-      {TABS.map((t) => { const p = tabX(t); return <T key={t} x={p.x + p.w / 2} y={Y.tabs + 26} size={16} anchor="middle" fill={t === tab ? C.xlGreenDk : C.xlTxt} w={t === tab ? 600 : 400}>{t}</T>; })}
-      <rect x={tx.x + 4} y={Y.tabs + M.tabH - 4} width={tx.w - 8} height={3} rx={1.5} fill={C.xlSel} />
-      <T x={X + WW - 220} y={Y.tabs + 26} size={15} fill={C.xlTxt2}>Comments</T><rect x={X + WW - 120} y={Y.tabs + 6} width={96} height={28} rx={4} fill={C.xlSel} /><T x={X + WW - 72} y={Y.tabs + 26} size={15} anchor="middle" fill="#fff" w={600}>Share</T>
-      {/* ribbon */}
-      <rect x={X} y={Y.ribbon} width={WW} height={M.ribbonH} fill="#FAFAFA" />
-      <line x1={X} y1={Y.ribbon} x2={X + WW} y2={Y.ribbon} stroke={C.xlLine} /><line x1={X} y1={Y.ribbon + M.ribbonH} x2={X + WW} y2={Y.ribbon + M.ribbonH} stroke={C.xlLine} />
-      <RibbonBody tab={tab} />
-      {/* sheet tabs */}
-      <rect x={X} y={Y.sheet} width={WW} height={M.sheetH} fill={C.xlHdr} />
-      <T x={X + 18} y={Y.sheet + 24} size={14} fill={C.xlTxt2}>◂  ▸</T>
-      {names.map((n, i) => { const w = n.length * 9.5 + 34; const el = (
-        <g key={n}>{i === active ? <rect x={sx} y={Y.sheet} width={w} height={M.sheetH - 2} fill="#fff" /> : null}
-          {i === active ? <rect x={sx} y={Y.sheet + M.sheetH - 5} width={w} height={3} fill={C.xlSel} /> : null}
-          <T x={sx + w / 2} y={Y.sheet + 23} size={15} anchor="middle" fill={i === active ? C.xlGreenDk : C.xlTxt} w={i === active ? 700 : 400}>{n}</T></g>); sx += w; return el; })}
-      <circle cx={sx + 22} cy={Y.sheet + 17} r={11} fill="none" stroke={C.xlTxt2} /><T x={sx + 22} y={Y.sheet + 23} size={17} anchor="middle" fill={C.xlTxt2}>+</T>
-      {/* status bar */}
-      <rect x={X} y={Y.status} width={WW} height={M.statusH} fill={C.xlHdr} />
-      <line x1={X} y1={Y.status} x2={X + WW} y2={Y.status} stroke={C.xlLine} />
-      <T x={X + 16} y={Y.status + 19} size={13.5} fill={C.xlTxt}>Ready</T>
-      <T x={X + 100} y={Y.status + 19} size={13.5} fill={C.xlTxt2}>Accessibility: Good to go</T>
-      {[0, 1, 2].map((i) => <rect key={i} x={X + WW - 330 + i * 30} y={Y.status + 6} width={22} height={16} fill={i === 0 ? "#D0D0D0" : "none"} stroke={C.xlTxt2} />)}
-      <T x={X + WW - 220} y={Y.status + 19} size={13} fill={C.xlTxt2}>–</T><line x1={X + WW - 205} y1={Y.status + 14} x2={X + WW - 105} y2={Y.status + 14} stroke={C.xlTxt2} /><rect x={X + WW - 158} y={Y.status + 8} width={5} height={12} fill={C.xlTxt2} />
-      <T x={X + WW - 96} y={Y.status + 19} size={13} fill={C.xlTxt2}>+</T><T x={X + WW - 40} y={Y.status + 19} size={13.5} anchor="middle" fill={C.xlTxt}>100%</T>
-    </g>
-  );
+export const colX = (cols: Col[], c: number): number => M.rowHdr + cols.slice(0, c).reduce((a, k) => a + k.w, 0);
+export const cellX = colX;
+export const slotY = (slot: number): number => GRID_TOP + slot * M.rowH;
+export const cellCenter = (cols: Col[], c: number, slot: number): { x: number; y: number } => ({
+  x: colX(cols, c) + cols[c].w / 2, y: slotY(slot) + M.rowH / 2,
 });
 
-export const StatusStats = ({ s }: { s: string }) => <T x={M.winX + M.winW - 400} y={Y.status + 19} size={13.5} fill={C.xlTxt} anchor="end">{s}</T>;
+// ---------- icons (generic, no trademarks) ----------
+export type IconKind = string;
+export const Icon: React.FC<{ k: IconKind; s?: number; c?: string }> = ({ k, s = 16, c = "#444" }) => {
+  const g = C.xGreen, b = "#2B7CD3", o = "#D83B01";
+  const sw = { fill: "none", stroke: c, strokeWidth: 1.2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  let body: React.ReactNode;
+  switch (k) {
+    case "paste": body = <g><rect x="3" y="3" width="10" height="11" rx="1" {...sw} /><rect x="6" y="1.5" width="4" height="3" rx="1" fill="#fff" stroke={c} strokeWidth="1.2" /><rect x="7" y="7" width="8" height="8" fill="#fff" stroke={b} strokeWidth="1.2" /></g>; break;
+    case "cut": body = <g><circle cx="5" cy="12" r="2" {...sw} /><circle cx="11" cy="12" r="2" {...sw} /><path d="M6 10 L11 2 M10 10 L5 2" {...sw} /></g>; break;
+    case "copy": body = <g><rect x="2.5" y="2.5" width="8" height="9" {...sw} /><rect x="6" y="5.5" width="8" height="9" fill="#fff" stroke={c} strokeWidth="1.2" /></g>; break;
+    case "brush": body = <g><rect x="3" y="2" width="9" height="4" fill={o} stroke="none" /><path d="M7.5 6 V10 M5.5 10 H9.5 V14 H5.5 Z" {...sw} /></g>; break;
+    case "sortaz": body = <g><text x="1" y="7" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">A</text><text x="1" y="14" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">Z</text><path d="M11 3 V13 M8.5 10.5 L11 13.5 L13.5 10.5" {...sw} stroke={b} /></g>; break;
+    case "sortza": body = <g><text x="1" y="7" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">Z</text><text x="1" y="14" fontSize="6.5" fontWeight="700" fill={c} fontFamily="Arial">A</text><path d="M11 3 V13 M8.5 10.5 L11 13.5 L13.5 10.5" {...sw} stroke={b} /></g>; break;
+    case "sort": body = <g><text x="0.5" y="6.5" fontSize="6" fontWeight="700" fill={c} fontFamily="Arial">A</text><text x="0.5" y="13.5" fontSize="6" fontWeight="700" fill={c} fontFamily="Arial">Z</text><rect x="8" y="3" width="7" height="2" fill={b} /><rect x="8" y="7" width="5" height="2" fill={b} /><rect x="8" y="11" width="3" height="2" fill={b} /></g>; break;
+    case "filter": body = <g><path d="M2 3 H14 L9.2 8.6 V13 L6.8 11.6 V8.6 Z" fill="#fff" stroke={b} strokeWidth="1.3" strokeLinejoin="round" /></g>; break;
+    case "filteron": body = <g><path d="M2 3 H14 L9.2 8.6 V13 L6.8 11.6 V8.6 Z" fill={b} stroke={b} strokeWidth="1.3" strokeLinejoin="round" /></g>; break;
+    case "clearf": body = <g><path d="M2 3 H11 L7.5 7.6 V12 L5.5 10.8 V7.6 Z" fill="#fff" stroke={b} strokeWidth="1.2" strokeLinejoin="round" /><path d="M10 9 L14 13 M14 9 L10 13" {...sw} stroke={o} /></g>; break;
+    case "reapply": body = <g><path d="M2 3 H11 L7.5 7.6 V12 L5.5 10.8 V7.6 Z" fill="#fff" stroke={b} strokeWidth="1.2" strokeLinejoin="round" /><path d="M10 11 A2.6 2.6 0 1 0 12 8.6 M12 7 V9 H10" {...sw} stroke={g} /></g>; break;
+    case "adv": body = <g><path d="M2 3 H12 L8 7.6 V12 L6 10.8 V7.6 Z" fill="#fff" stroke={b} strokeWidth="1.2" strokeLinejoin="round" /><path d="M11 10 H15 M13 8 V12" {...sw} stroke={g} /></g>; break;
+    case "find": body = <g><circle cx="6.5" cy="6.5" r="4" {...sw} /><path d="M9.6 9.6 L14 14" {...sw} strokeWidth={1.8} /><path d="M3 15 H6" {...sw} stroke={b} /></g>; break;
+    case "sum": body = <path d="M12 3 H4 L8 8 L4 13 H12" {...sw} stroke={o} strokeWidth="1.8" />; break;
+    case "fill": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><path d="M8 4 V12 M5.5 9.5 L8 12.5 L10.5 9.5" {...sw} stroke={g} /></g>; break;
+    case "eraser": body = <g><path d="M3 11 L9 3 L14 7 L9 14 H5 Z" fill="#fff" stroke={c} strokeWidth="1.2" /><path d="M6 10 L11 6" {...sw} /></g>; break;
+    case "cond": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><rect x="3.5" y="3.5" width="4" height="3" fill={o} /><rect x="3.5" y="8" width="4" height="3" fill={g} /><rect x="9" y="5" width="4" height="3" fill={b} /></g>; break;
+    case "table": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><rect x="2" y="2" width="12" height="3" fill={b} /><path d="M2 8 H14 M8 5 V14" {...sw} /></g>; break;
+    case "styles": body = <g><rect x="2" y="3" width="12" height="10" rx="1" {...sw} /><rect x="4" y="5" width="8" height="2" fill={g} /><rect x="4" y="9" width="5" height="2" fill={b} /></g>; break;
+    case "insert": body = <g><rect x="2" y="3" width="9" height="9" {...sw} /><path d="M12 10 V15 M9.5 12.5 H14.5" {...sw} stroke={g} strokeWidth="1.8" /></g>; break;
+    case "delete": body = <g><rect x="2" y="3" width="9" height="9" {...sw} /><path d="M10 11 L15 15 M15 11 L10 15" {...sw} stroke={o} strokeWidth="1.6" /></g>; break;
+    case "format": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><path d="M2 6 H14 M6 6 V14" {...sw} /><circle cx="11" cy="11" r="1.6" fill={g} /></g>; break;
+    case "analyze": body = <g><rect x="2" y="9" width="3" height="5" fill={b} /><rect x="6.5" y="5" width="3" height="9" fill={g} /><rect x="11" y="2" width="3" height="12" fill={o} /></g>; break;
+    case "get": body = <g><rect x="2" y="3" width="9" height="10" rx="1" {...sw} /><path d="M2 6 H11" {...sw} /><path d="M12 6 V13 M9.8 11 L12 13.4 L14.2 11" {...sw} stroke={g} /></g>; break;
+    case "refresh": body = <g><path d="M13 8 A5 5 0 1 1 11 4 M11.5 1.5 V4.5 H8.5" {...sw} stroke={g} strokeWidth="1.6" /></g>; break;
+    case "csv": body = <g><rect x="3" y="1.5" width="10" height="13" rx="1" {...sw} /><path d="M5 6 H11 M5 9 H11 M5 12 H9" {...sw} /></g>; break;
+    case "web": body = <g><circle cx="8" cy="8" r="6" {...sw} /><ellipse cx="8" cy="8" rx="2.6" ry="6" {...sw} /><path d="M2 8 H14" {...sw} /></g>; break;
+    case "text2col": body = <g><rect x="2" y="3" width="12" height="10" {...sw} /><path d="M8 3 V13" {...sw} stroke={b} /><path d="M4 6.5 H6.5 M4 9.5 H6.5 M9.5 6.5 H12 M9.5 9.5 H12" {...sw} /></g>; break;
+    case "flash": body = <path d="M9 1.5 L3.5 9 H7.5 L6.5 14.5 L12.5 7 H8.5 Z" fill={o} stroke="none" />; break;
+    case "dedupe": body = <g><rect x="2" y="2" width="10" height="9" {...sw} /><path d="M4 5 H10 M4 8 H10" {...sw} /><path d="M10 11 L15 15 M15 11 L10 15" {...sw} stroke={o} /></g>; break;
+    case "valid": body = <g><rect x="2" y="3" width="11" height="9" {...sw} /><path d="M5 8 L7 10 L11 5.5" {...sw} stroke={g} strokeWidth="1.6" /></g>; break;
+    case "whatif": body = <g><rect x="2" y="2" width="12" height="12" {...sw} /><path d="M6 6 Q8 3.5 10 6 Q10 8 8 9 M8 11 V11.6" {...sw} stroke={b} /></g>; break;
+    case "group": body = <g><path d="M3 3 V13 M3 4 H7 M3 12 H7" {...sw} /><rect x="8" y="2.5" width="6" height="3" {...sw} /><rect x="8" y="10.5" width="6" height="3" {...sw} /></g>; break;
+    case "align": body = <g><path d="M2 4 H14 M2 7 H10 M2 10 H14 M2 13 H10" {...sw} /></g>; break;
+    case "aligncenter": body = <g><path d="M2 4 H14 M4 7 H12 M2 10 H14 M4 13 H12" {...sw} /></g>; break;
+    case "alignright": body = <g><path d="M2 4 H14 M6 7 H14 M2 10 H14 M6 13 H14" {...sw} /></g>; break;
+    case "wrap": body = <g><path d="M2 4 H14 M2 8 H11 Q14 8 14 10.5 Q14 13 11 13 H8 M9.5 11.5 L8 13 L9.5 14.5" {...sw} /></g>; break;
+    case "merge": body = <g><rect x="2" y="3" width="12" height="10" {...sw} /><path d="M5 8 H11 M5 8 L7 6.5 M5 8 L7 9.5 M11 8 L9 6.5 M11 8 L9 9.5" {...sw} stroke={b} /></g>; break;
+    case "borders": body = <g><rect x="2.5" y="2.5" width="11" height="11" {...sw} strokeDasharray="1.5 1.5" /><path d="M2.5 13.5 H13.5" {...sw} strokeWidth="1.8" /></g>; break;
+    case "fillc": body = <g><path d="M4 8 L8 3 L12 8 L8 12 Z" fill="#fff" stroke={c} strokeWidth="1.2" /><rect x="2" y="13" width="12" height="2.2" fill="#FFD400" /></g>; break;
+    case "fontc": body = <g><text x="4.5" y="11" fontSize="10" fontWeight="700" fill={c} fontFamily="Arial">A</text><rect x="2" y="13" width="12" height="2.2" fill="#E81123" /></g>; break;
+    case "dollar": body = <text x="4" y="12.5" fontSize="11" fontWeight="700" fill={g} fontFamily="Arial">$</text>; break;
+    case "percent": body = <text x="2.5" y="12" fontSize="11" fontWeight="700" fill={c} fontFamily="Arial">%</text>; break;
+    case "comma": body = <text x="5" y="13" fontSize="13" fontWeight="700" fill={c} fontFamily="Arial">,</text>; break;
+    case "dec": body = <text x="0.5" y="11.5" fontSize="8" fontWeight="700" fill={c} fontFamily="Arial">.00</text>; break;
+    case "chev": body = <path d="M4 6 L8 10 L12 6" {...sw} />; break;
+    case "search": body = <g><circle cx="7" cy="7" r="4" {...sw} /><path d="M10 10 L14 14" {...sw} /></g>; break;
+    case "save": body = <g><path d="M2.5 2.5 H11.5 L13.5 4.5 V13.5 H2.5 Z" {...sw} /><rect x="5" y="2.5" width="5" height="3.5" {...sw} /><rect x="4.5" y="9" width="7" height="4.5" {...sw} /></g>; break;
+    case "undo": body = <path d="M5 4 L2 7 L5 10 M2 7 H10 A3.5 3.5 0 0 1 10 14 H7" {...sw} />; break;
+    case "redo": body = <path d="M11 4 L14 7 L11 10 M14 7 H6 A3.5 3.5 0 0 0 6 14 H9" {...sw} />; break;
+    case "grid": body = <g><rect x="2" y="2" width="12" height="12" rx="1" fill={g} stroke="none" /><path d="M2 6 H14 M2 10 H14 M6 2 V14 M10 2 V14" stroke="#fff" strokeWidth="1" /></g>; break;
+    case "comment": body = <path d="M2.5 3 H13.5 V10.5 H8 L5 13.5 V10.5 H2.5 Z" {...sw} />; break;
+    case "share": body = <g><path d="M8 10 V2.5 M5 5 L8 2 L11 5" {...sw} stroke="#fff" /><path d="M3 8 V13.5 H13 V8" {...sw} stroke="#fff" /></g>; break;
+    case "model": body = <g><rect x="1.5" y="2" width="5" height="4" {...sw} /><rect x="9.5" y="2" width="5" height="4" {...sw} /><rect x="5.5" y="10" width="5" height="4" {...sw} /><path d="M6.5 4 H9.5 M8 6 V10" {...sw} stroke={g} strokeWidth="1.6" /></g>; break;
+    case "db": body = <g><ellipse cx="8" cy="4" rx="5" ry="2" {...sw} /><path d="M3 4 V12 A5 2 0 0 0 13 12 V4 M3 8 A5 2 0 0 0 13 8" {...sw} /></g>; break;
+    case "kpi": body = <g><path d="M2 12 A6 6 0 0 1 14 12" {...sw} /><path d="M8 12 L11 7" {...sw} stroke={o} strokeWidth="1.6" /></g>; break;
+    case "adddm": body = <g><rect x="2" y="2" width="9" height="9" {...sw} /><path d="M2 5 H11 M6 5 V11" {...sw} /><path d="M12 10 V15 M9.5 12.5 H14.5" {...sw} stroke={g} strokeWidth="1.8" /></g>; break;
+    case "paste2": body = <g><rect x="3" y="3" width="10" height="11" rx="1" {...sw} /><path d="M6 8 H10 M6 11 H10" {...sw} /></g>; break;
+    default: body = <g><rect x="2" y="2" width="12" height="12" rx="2" {...sw} /><path d="M5 6 H11 M5 9 H11" {...sw} /></g>;
+  }
+  return <svg width={s} height={s} viewBox="0 0 16 16" style={{ display: "block", flex: "none" }}>{body}</svg>;
+};
 
-// ---------- Formula bar ----------
-export const FormulaBar = ({ name, text, caret = false, f = 0 }: { name: string; text: string; caret?: boolean; f?: number }) => {
-  const X = M.winX, y = Y.fb;
+// Icon-set arrows (3 Arrows, coloured) used in cells and in the filter menu.
+export const Arrow: React.FC<{ kind: "up" | "side" | "down"; s?: number }> = ({ kind, s = 13 }) => {
+  const col = kind === "up" ? "#00B050" : kind === "down" ? "#E0301E" : "#FFC000";
+  const rot = kind === "up" ? 0 : kind === "side" ? 90 : 180;
   return (
-    <g>
-      <rect x={X} y={y} width={M.winW} height={M.fbH} fill="#fff" />
-      <rect x={X + 8} y={y + 6} width={150} height={28} fill="#fff" stroke={C.xlLine} />
-      <T x={X + 18} y={y + 26} size={16} fill={C.xlTxt} font={CELLF}>{name}</T><T x={X + 143} y={y + 25} size={11} fill={C.xlTxt2} anchor="middle">▾</T>
-      <T x={X + 178} y={y + 27} size={17} fill={C.xlTxt2}>✕</T><T x={X + 208} y={y + 27} size={17} fill={C.xlTxt2}>✓</T>
-      <T x={X + 238} y={y + 27} size={17} fill={C.xlTxt2} font={CELLF} w={700}>ƒx</T>
-      <rect x={X + 276} y={y + 6} width={M.winW - 320} height={28} fill="#fff" stroke={C.xlLine} />
-      <T x={X + 286} y={y + 27} size={19} fill={C.xlTxt} font={CELLF}>{text}</T>
-      {caret && Math.floor(f / 15) % 2 === 0 ? <rect x={X + 286 + text.length * 9.6} y={y + 10} width={1.6} height={20} fill={C.xlTxt} /> : null}
-      <T x={X + M.winW - 24} y={y + 26} size={12} fill={C.xlTxt2} anchor="middle">⌄</T>
-    </g>
+    <svg width={s} height={s} viewBox="0 0 16 16" style={{ display: "block", flex: "none" }}>
+      <g transform={`rotate(${rot} 8 8)`}><path d="M8 1.5 L14.5 9 H10.5 V14.5 H5.5 V9 H1.5 Z" fill={col} /></g>
+    </svg>
   );
 };
 
-// ---------- Grid ----------
-export type Cell = { v: string; a?: "l" | "r" | "c"; b?: boolean; fill?: string; col?: string; i?: boolean; warn?: boolean; err?: boolean; fs?: number };
-export type Rng = { c1: number; r1: number; c2: number; r2: number };
-type GP = { colW: number[]; cells: Record<string, Cell>; sel?: { c: number; r: number } | null; range?: Rng | null; ants?: Rng | null; handle?: boolean; f?: number; row0?: number; bands?: boolean };
-export const gridGeom = (colW: number[]) => { const xs = [M.winX + M.rowHdrW]; colW.forEach((w) => xs.push(xs[xs.length - 1] + w)); return xs; };
-export const cellRect = (colW: number[], c: number, r: number) => { const xs = gridGeom(colW); return { x: xs[c], y: Y.grid + (r - 1) * M.rowH, w: colW[c], h: M.rowH }; };
-export const Grid = ({ colW, cells, sel, range, ants, handle, f = 0, row0 = 1 }: GP) => {
-  const xs = gridGeom(colW);
-  const gx0 = M.winX + M.rowHdrW, gx1 = xs[xs.length - 1], gy1 = Y.grid + M.rows * M.rowH;
-  const R = range || (sel ? { c1: sel.c, r1: sel.r, c2: sel.c, r2: sel.r } : null);
-  const inC = (c: number) => !!R && c >= R.c1 && c <= R.c2;
-  const inR = (r: number) => !!R && r >= R.r1 && r <= R.r2;
-  const els: React.ReactNode[] = [];
-  // background + grid lines
-  els.push(<rect key="bg" x={gx0} y={Y.grid} width={gx1 - gx0} height={M.rows * M.rowH} fill="#fff" />);
-  for (let r = 0; r <= M.rows; r++) els.push(<line key={`h${r}`} x1={M.winX} y1={Y.grid + r * M.rowH} x2={gx1} y2={Y.grid + r * M.rowH} stroke={C.xlGrid} />);
-  xs.forEach((x, i) => els.push(<line key={`v${i}`} x1={x} y1={Y.colHdr} x2={x} y2={gy1} stroke={C.xlGrid} />));
-  // cell fills first
-  Object.entries(cells).forEach(([k, cl]) => {
-    if (!cl.fill) return;
-    const m = /^([A-Z])(\d+)$/.exec(k)!; const c = m[1].charCodeAt(0) - 65, r = +m[2] - row0 + 1;
-    if (r < 1 || r > M.rows || c >= colW.length) return;
-    els.push(<rect key={`f${k}`} x={xs[c] + 0.5} y={Y.grid + (r - 1) * M.rowH + 0.5} width={colW[c] - 1} height={M.rowH - 1} fill={cl.fill} />);
-  });
-  // headers
-  els.push(<rect key="hc" x={M.winX} y={Y.colHdr} width={gx1 - M.winX} height={M.colHdrH} fill={C.xlHdr} />);
-  els.push(<rect key="hr" x={M.winX} y={Y.grid} width={M.rowHdrW} height={M.rows * M.rowH} fill={C.xlHdr} />);
-  colW.forEach((w, c) => { const s = inC(c); els.push(<g key={`ch${c}`}>{s ? <rect x={xs[c]} y={Y.colHdr} width={w} height={M.colHdrH} fill={C.xlHdrSel} /> : null}
-    {s ? <rect x={xs[c]} y={Y.colHdr + M.colHdrH - 3} width={w} height={3} fill={C.xlSel} /> : null}
-    <T x={xs[c] + w / 2} y={Y.colHdr + 21} size={17} anchor="middle" fill={s ? C.xlHdrSelTx : C.xlTxt2} font={CELLF} w={s ? 700 : 400}>{colL(c)}</T></g>); });
-  for (let r = 0; r < M.rows; r++) { const n = r + row0, s = inR(n); els.push(<g key={`rh${r}`}>{s ? <rect x={M.winX} y={Y.grid + r * M.rowH} width={M.rowHdrW} height={M.rowH} fill={C.xlHdrSel} /> : null}
-    {s ? <rect x={M.winX + M.rowHdrW - 3} y={Y.grid + r * M.rowH} width={3} height={M.rowH} fill={C.xlSel} /> : null}
-    <T x={M.winX + M.rowHdrW / 2} y={Y.grid + r * M.rowH + 21} size={17} anchor="middle" fill={s ? C.xlHdrSelTx : C.xlTxt2} font={CELLF} w={s ? 700 : 400}>{n}</T></g>); }
-  els.push(<path key="corner" d={`M${M.winX + M.rowHdrW - 8} ${Y.colHdr + M.colHdrH - 4}l0 -14l-14 14z`} fill="#B8B8B8" />);
-  els.push(<line key="hl1" x1={M.winX} y1={Y.colHdr} x2={gx1} y2={Y.colHdr} stroke={C.xlLine} />, <line key="hl2" x1={M.winX} y1={Y.grid} x2={gx1} y2={Y.grid} stroke={C.xlLine} />);
-  const lastRow = row0 + M.rows - 1;
-  // range tint
-  if (range) {
-    const a = cellRect(colW, range.c1, range.r1 - row0 + 1), b = cellRect(colW, range.c2, Math.min(range.r2, lastRow) - row0 + 1);
-    els.push(<rect key="rt" x={a.x} y={a.y} width={b.x + b.w - a.x} height={b.y + b.h - a.y} fill={C.xlSelFill} />);
-    if (sel) { const s = cellRect(colW, sel.c, sel.r - row0 + 1); els.push(<rect key="rtw" x={s.x + 1} y={s.y + 1} width={s.w - 2} height={s.h - 2} fill="#fff" />); }
-  }
-  // text
-  Object.entries(cells).forEach(([k, cl]) => {
-    const m = /^([A-Z])(\d+)$/.exec(k)!; const c = m[1].charCodeAt(0) - 65, r = +m[2] - row0 + 1;
-    if (r < 1 || r > M.rows || c >= colW.length || !cl.v) return;
-    const num = /^[-+]?[\d,.]+%?$/.test(cl.v) || /^-?\d/.test(cl.v) && /\d$/.test(cl.v);
-    const al = cl.a || (cl.err ? "c" : num ? "r" : "l");
-    const x = al === "r" ? xs[c] + colW[c] - 7 : al === "c" ? xs[c] + colW[c] / 2 : xs[c] + 7;
-    const rg = range && c >= range.c1 && c <= range.c2 && r + row0 - 1 >= range.r1 && r + row0 - 1 <= range.r2;
-    void rg;
-    els.push(<T key={`t${k}`} x={x} y={Y.grid + (r - 1) * M.rowH + 21} size={cl.fs || 21} anchor={al === "r" ? "end" : al === "c" ? "middle" : "start"} fill={cl.col || C.xlTxt} font={CELLF} w={cl.b ? 700 : 400}>{cl.v}</T>);
-    if (cl.warn) els.push(<path key={`w${k}`} d={`M${xs[c] + 1} ${Y.grid + (r - 1) * M.rowH + 1}l9 0l-9 9z`} fill="#1E9E4B" />);
-  });
-  // ants
-  if (ants) {
-    const a = cellRect(colW, ants.c1, ants.r1 - row0 + 1), b = cellRect(colW, ants.c2, Math.min(ants.r2, lastRow) - row0 + 1);
-    els.push(<rect key="ants" x={a.x} y={a.y} width={b.x + b.w - a.x} height={b.y + b.h - a.y} fill="none" stroke={C.xlTxt} strokeWidth={2} strokeDasharray="6 4" strokeDashoffset={-(f * 0.8) % 10} />);
-  }
-  // selection border + handle
-  if (R) {
-    const a = cellRect(colW, R.c1, R.r1 - row0 + 1), b = cellRect(colW, R.c2, Math.min(R.r2, lastRow) - row0 + 1);
-    const bx = a.x, by = a.y, bw = b.x + b.w - a.x, bh = b.y + b.h - a.y;
-    els.push(<rect key="sb" x={bx} y={by} width={bw} height={bh} fill="none" stroke={C.xlSel} strokeWidth={2.4} />);
-    if (handle !== false) els.push(<rect key="fh" x={bx + bw - 5} y={by + bh - 5} width={9} height={9} fill={C.xlSel} stroke="#fff" strokeWidth={1.5} />);
-  }
-  return <g>{els}</g>;
+// ---------- ribbon ----------
+type RItem = { id: string; label: string; icon: string; dd?: boolean };
+type RCol = { kind: "L" | "S"; items: RItem[] };
+type RGroup = { id: string; label: string; cols: RCol[]; custom?: "font" | "align" | "number" };
+const L = (id: string, label: string, icon: string, dd = false): RCol => ({ kind: "L", items: [{ id, label, icon, dd }] });
+const Sx = (...items: [string, string, string, boolean?][]): RCol => ({ kind: "S", items: items.map(([id, label, icon, dd]) => ({ id, label, icon, dd: !!dd })) });
+export const RIBBON: Record<string, RGroup[]> = {
+  home: [
+    { id: "clipboard", label: "Clipboard", cols: [L("paste", "Paste", "paste", true), Sx(["cut", "Cut", "cut"], ["copy", "Copy", "copy", true], ["fp", "Format Painter", "brush"])] },
+    { id: "font", label: "Font", cols: [], custom: "font" },
+    { id: "alignment", label: "Alignment", cols: [], custom: "align" },
+    { id: "number", label: "Number", cols: [], custom: "number" },
+    { id: "styles", label: "Styles", cols: [L("cf", "Conditional\nFormatting", "cond", true), L("fat", "Format as\nTable", "table", true), L("cs", "Cell\nStyles", "styles", true)] },
+    { id: "cells", label: "Cells", cols: [L("ins", "Insert", "insert", true), L("del", "Delete", "delete", true), L("fmt", "Format", "format", true)] },
+    { id: "editing", label: "Editing", cols: [Sx(["autosum", "AutoSum", "sum", true], ["fillb", "Fill", "fill", true], ["clearb", "Clear", "eraser", true]), L("sortfilter", "Sort &\nFilter", "sort", true), L("findsel", "Find &\nSelect", "find", true)] },
+    { id: "analysis", label: "Analysis", cols: [L("analyze", "Analyze\nData", "analyze")] },
+  ],
+  formulas: [
+    { id: "funclib", label: "Function Library", cols: [L("insfn", "Insert\nFunction", "sum"), L("autosum2", "AutoSum", "sum", true), L("recent", "Recently\nUsed", "generic", true), L("fin", "Financial", "dollar", true), L("logical", "Logical", "valid", true), L("text", "Text", "align", true), L("datetime", "Date &\nTime", "table", true), L("lookup", "Lookup &\nReference", "find", true), L("math", "Math &\nTrig", "analyze", true), L("morefn", "More\nFunctions", "generic", true)] },
+    { id: "names", label: "Defined Names", cols: [L("namemgr", "Name\nManager", "table"), Sx(["defname", "Define Name", "generic", true], ["useform", "Use in Formula", "generic", true], ["createsel", "Create from Selection", "generic"])] },
+    { id: "audit", label: "Formula Auditing", cols: [Sx(["traceprec", "Trace Precedents", "generic"], ["tracedep", "Trace Dependents", "generic"], ["rmarrows", "Remove Arrows", "generic", true]), Sx(["showf", "Show Formulas", "generic"], ["errchk", "Error Checking", "valid", true], ["evalf", "Evaluate Formula", "generic"]), L("watch", "Watch\nWindow", "find")] },
+    { id: "calc", label: "Calculation", cols: [L("calcopt", "Calculation\nOptions", "refresh", true), Sx(["calcnow", "Calculate Now", "refresh"], ["calcsheet", "Calculate Sheet", "refresh"])] },
+  ],
+  powerpivot: [
+    { id: "dmodel", label: "Data Model", cols: [L("manage", "Manage", "model")] },
+    { id: "pcalcs", label: "Calculations", cols: [L("measures", "Measures", "sum", true), L("kpis", "KPIs", "kpi", true)] },
+    { id: "ptables", label: "Tables", cols: [L("adddm", "Add to\nData Model", "adddm")] },
+    { id: "prels", label: "Relationships", cols: [L("detect", "Detect", "generic")] },
+    { id: "psettings", label: "Settings", cols: [L("psett", "Settings", "format")] },
+  ],
+  pivotanalyze: [
+    { id: "pt", label: "PivotTable", cols: [Sx(["ptname", "PivotTable1", "generic"], ["ptopt", "Options", "generic", true])] },
+    { id: "activefield", label: "Active Field", cols: [Sx(["afname", "Sum of Amount", "generic"], ["fieldset", "Field Settings", "format"]), Sx(["drilldown", "Drill Down", "generic"], ["drillup", "Drill Up", "generic"]), Sx(["expandf", "Expand Field", "insert"], ["collapsef", "Collapse Field", "delete"])] },
+    { id: "pgroup", label: "Group", cols: [Sx(["groupsel", "Group Selection", "group"], ["ungroup", "Ungroup", "group"], ["groupfield", "Group Field", "group"])] },
+    { id: "pfilter", label: "Filter", cols: [Sx(["inslicer", "Insert Slicer", "filter"], ["instl", "Insert Timeline", "table"], ["filtconn", "Filter Connections", "filter"])] },
+    { id: "pdata", label: "Data", cols: [L("prefresh", "Refresh", "refresh", true), L("chgsrc", "Change Data\nSource", "table", true)] },
+    { id: "pactions", label: "Actions", cols: [Sx(["pclear", "Clear", "eraser", true], ["pselect", "Select", "generic", true], ["pmove", "Move PivotTable", "generic"])] },
+    { id: "pcalc", label: "Calculations", cols: [Sx(["pfields", "Fields, Items, & Sets", "generic", true], ["prel", "Relationships", "generic"], ["olap", "OLAP Tools", "generic", true])] },
+    { id: "ptools", label: "Tools", cols: [L("pchart", "PivotChart", "analyze"), L("recpt", "Recommended\nPivotTables", "table")] },
+    { id: "pshow", label: "Show", cols: [Sx(["flist", "Field List", "generic"], ["pmbtn", "+/- Buttons", "generic"], ["fhead", "Field Headers", "generic"])] },
+  ],
+  pivotchart: [
+    { id: "pcname", label: "PivotChart", cols: [Sx(["cname", "Chart 1", "generic"])] },
+    { id: "cactive", label: "Active Field", cols: [Sx(["caf", "Sum of Amount", "generic"], ["cfs", "Field Settings", "format"]), Sx(["cexp", "Expand Field", "insert"], ["ccol", "Collapse Field", "delete"])] },
+    { id: "cfilter", label: "Filter", cols: [Sx(["cslicer", "Insert Slicer", "filter"], ["ctl", "Insert Timeline", "table"], ["cfc", "Filter Connections", "filter"])] },
+    { id: "cdata", label: "Data", cols: [L("crefresh", "Refresh", "refresh", true), L("cchg", "Change Data\nSource", "table", true)] },
+    { id: "cactions", label: "Actions", cols: [Sx(["cclear", "Clear", "eraser", true], ["cselect", "Select", "generic", true], ["cmove", "Move Chart", "generic"])] },
+    { id: "cshow", label: "Show/Hide", cols: [Sx(["cflist", "Field List", "generic"], ["cfbtn", "Field Buttons", "filter", true])] },
+  ],
+  slicer: [
+    { id: "sl", label: "Slicer", cols: [Sx(["slcap", "Slicer Caption: Branch", "generic"], ["slset", "Slicer Settings", "format"]), L("slconn", "Report\nConnections", "filter")] },
+    { id: "slstyle", label: "Slicer Styles", cols: [L("slqs", "Quick\nStyles", "styles", true)] },
+    { id: "slarr", label: "Arrange", cols: [Sx(["slfwd", "Bring Forward", "generic", true], ["slback", "Send Backward", "generic", true], ["slsel", "Selection Pane", "generic"]), Sx(["slalign", "Align", "generic", true], ["slgrp", "Group", "group", true], ["slrot", "Rotate", "generic", true])] },
+    { id: "slbtn", label: "Buttons", cols: [Sx(["slcols", "Columns: 1", "generic"], ["slh", "Height: 0.3", "generic"], ["slw", "Width: 1.9", "generic"])] },
+    { id: "slsize", label: "Size", cols: [Sx(["slsh", "Height: 3.5", "generic"], ["slsw", "Width: 1.9", "generic"])] },
+  ],
+  data: [
+    { id: "gettransform", label: "Get & Transform Data", cols: [L("getdata", "Get\nData", "get", true), Sx(["csv", "From Text/CSV", "csv"], ["web", "From Web", "web"], ["range", "From Table/Range", "table"]), Sx(["recent", "Recent Sources", "generic"], ["existing", "Existing Connections", "generic"])] },
+    { id: "queries", label: "Queries & Connections", cols: [L("refreshall", "Refresh\nAll", "refresh", true), Sx(["qc", "Queries & Connections", "generic"], ["props", "Properties", "generic"], ["links", "Edit Links", "generic"])] },
+    { id: "datatypes", label: "Data Types", cols: [L("stocks", "Stocks", "analyze"), L("currencies", "Currencies", "dollar")] },
+    { id: "sortfilter-data", label: "Sort & Filter", cols: [Sx(["sortaz", "", "sortaz"], ["sortza", "", "sortza"]), L("sortbtn", "Sort", "sort"), L("filterbtn", "Filter", "filter"), Sx(["clearbtn", "Clear", "clearf"], ["reapplybtn", "Reapply", "reapply"], ["advbtn", "Advanced", "adv"])] },
+    { id: "datatools", label: "Data Tools", cols: [Sx(["t2c", "Text to\nColumns", "text2col"], ["ff", "Flash Fill", "flash"], ["rd", "Remove Duplicates", "dedupe"]), Sx(["dv", "Data Validation", "valid", true], ["cons", "Consolidate", "generic"], ["rel", "Relationships", "generic"])] },
+    { id: "forecast", label: "Forecast", cols: [L("whatif", "What-If\nAnalysis", "whatif", true), L("fsheet", "Forecast\nSheet", "analyze")] },
+    { id: "outline", label: "Outline", cols: [L("grp", "Group", "group", true), L("ungrp", "Ungroup", "group", true), L("subt", "Subtotal", "generic")] },
+  ],
+};
+const colW = (c: RCol): number =>
+  c.kind === "L" ? Math.max(50, Math.max(...c.items[0].label.split("\n").map((s) => s.length)) * 6.6 + 14) :
+    Math.max(...c.items.map((i) => 24 + i.label.length * 6 + (i.dd ? 12 : 0)), 28);
+const customW: Record<string, number> = { font: 232, align: 214, number: 168 };
+const groupW = (g: RGroup): number => (g.custom ? customW[g.custom] : g.cols.reduce((a, c) => a + colW(c), 0) + 10);
+
+const tx = (size: number, extra?: React.CSSProperties): React.CSSProperties => ({ fontFamily: F.ui, fontSize: size, color: C.ink, ...extra });
+const Box: React.FC<{ w: number; h?: number; children?: React.ReactNode; style?: React.CSSProperties }> = ({ w, h = 22, children, style }) => (
+  <div style={{ width: w, height: h, border: "1px solid #BDBDBD", background: "#fff", boxSizing: "border-box", display: "flex", alignItems: "center", padding: "0 5px", ...tx(12), ...style }}>{children}</div>
+);
+const SmallIcons: React.FC<{ ks: string[]; gap?: number }> = ({ ks, gap = 8 }) => (
+  <div style={{ display: "flex", gap, alignItems: "center", height: 22 }}>{ks.map((k, i) => <Icon key={i} k={k} s={16} />)}</div>
+);
+const CustomGroup: React.FC<{ kind: "font" | "align" | "number" }> = ({ kind }) => {
+  if (kind === "font") return (
+    <div style={{ padding: "6px 6px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", gap: 4, alignItems: "center" }}><Box w={110} style={{ justifyContent: "space-between", fontFamily: F.cell }}>Calibri<Icon k="chev" s={10} /></Box><Box w={46} style={{ justifyContent: "space-between", fontFamily: F.cell }}>11<Icon k="chev" s={10} /></Box><span style={tx(13, { fontWeight: 700 })}>A˄</span><span style={tx(11, { fontWeight: 700 })}>A˅</span></div>
+      <div style={{ display: "flex", gap: 9, alignItems: "center", height: 22 }}><span style={tx(14, { fontWeight: 700, width: 12 })}>B</span><span style={tx(14, { fontStyle: "italic", width: 12, fontFamily: F.cell })}>I</span><span style={tx(14, { textDecoration: "underline", width: 12 })}>U</span><Icon k="borders" /><Icon k="fillc" /><Icon k="fontc" /></div>
+    </div>
+  );
+  if (kind === "align") return (
+    <div style={{ padding: "6px 6px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", height: 22 }}><SmallIcons ks={["align", "aligncenter", "alignright"]} /><Icon k="wrap" /><span style={tx(12)}>Wrap Text</span></div>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", height: 22 }}><SmallIcons ks={["align", "aligncenter", "alignright"]} /><Icon k="merge" /><span style={tx(12)}>Merge & Center ▾</span></div>
+    </div>
+  );
+  return (
+    <div style={{ padding: "6px 6px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+      <Box w={150} style={{ justifyContent: "space-between" }}>General<Icon k="chev" s={10} /></Box>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", height: 22 }}><SmallIcons ks={["dollar", "percent", "comma", "dec", "dec"]} gap={11} /></div>
+    </div>
+  );
 };
 
-// ---------- Windows-style dialogs ----------
-export const Dialog = ({ x, y, w, h, title, children, op = 1 }: { x: number; y: number; w: number; h: number; title: string; children?: React.ReactNode; op?: number }) => (
-  <g opacity={op}>
-    <rect x={x + 6} y={y + 8} width={w} height={h} fill="#000" opacity={0.28} />
-    <rect x={x} y={y} width={w} height={h} fill={C.dlg} stroke="#7A7A7A" />
-    <rect x={x} y={y} width={w} height={38} fill="#fff" />
-    <T x={x + 14} y={y + 26} size={17} fill={C.xlTxt}>{title}</T>
-    <T x={x + w - 22} y={y + 27} size={19} fill={C.xlTxt} anchor="middle">✕</T>
-    <DarkCtx.Provider value={true}>{children}</DarkCtx.Provider>
-  </g>
+export const Ribbon: React.FC<{ tab: string; glow?: { id: string; color: string; t: number } }> = ({ tab, glow }) => {
+  const groups = RIBBON[tab] ?? [];
+  const lit = (id: string): boolean => !!glow && glow.id === id && glow.t > 0.02;
+  const gl = (id: string): React.CSSProperties => lit(id) && glow
+    ? { boxShadow: `0 0 ${10 + 12 * glow.t}px ${glow.color}, inset 0 0 0 2px ${glow.color}`, background: `${glow.color}22`, borderRadius: 4, opacity: 1 } : {};
+  return (
+    <div style={{ position: "absolute", left: 0, top: M.titleBar + M.tabs, width: WIN_W, height: M.ribbon, background: C.ribbon, borderTop: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", padding: "2px 6px", overflow: "hidden" }}>
+      {groups.map((g) => (
+        <div key={g.id} style={{ display: "flex", flexDirection: "column", width: groupW(g), borderRight: `1px solid ${C.line}`, boxSizing: "border-box", ...gl(g.id), borderRadius: lit(g.id) ? 4 : 0 }}>
+          <div style={{ flex: 1, display: "flex", padding: "2px 3px 0" }}>
+            {g.custom ? <CustomGroup kind={g.custom} /> : g.cols.map((c, ci) => (
+              <div key={ci} style={{ width: colW(c), display: "flex", flexDirection: c.kind === "L" ? "row" : "column", justifyContent: c.kind === "L" ? "center" : "flex-start", gap: c.kind === "S" ? 2 : 0, paddingTop: c.kind === "S" ? 1 : 0 }}>
+                {c.items.map((it) => c.kind === "L" ? (
+                  <div key={it.id} style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 2, ...gl(it.id) }}>
+                    <Icon k={it.icon} s={32} />
+                    <div style={tx(11, { textAlign: "center", lineHeight: "13px", whiteSpace: "pre", marginTop: 3 })}>{it.label}{it.dd ? (it.label.includes("\n") ? " ▾" : "\n▾") : ""}</div>
+                  </div>
+                ) : (
+                  <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 6, height: 22, padding: "0 3px", ...gl(it.id) }}>
+                    <Icon k={it.icon} s={16} /><span style={tx(11.5, { whiteSpace: "pre", lineHeight: "12px" })}>{it.label.replace("\n", " ")}{it.dd ? " ▾" : ""}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div style={tx(11, { textAlign: "center", color: C.inkSoft, height: 15, lineHeight: "15px" })}>{g.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ---------- title bar + tabs ----------
+export const TitleBar: React.FC<{ file: string }> = ({ file }) => (
+  <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: M.titleBar, background: C.chrome, display: "flex", alignItems: "center", ...tx(12) }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 10, width: 470 }}>
+      <Icon k="grid" s={18} />
+      <span style={tx(12, { fontWeight: 600 })}>AutoSave</span>
+      <div style={{ width: 30, height: 14, borderRadius: 7, border: "1.5px solid #666", boxSizing: "border-box", position: "relative" }}><div style={{ position: "absolute", left: 2, top: 2, width: 7, height: 7, borderRadius: 4, background: "#666" }} /></div>
+      <span style={tx(11, { color: C.inkSoft })}>Off</span>
+      <Icon k="save" /><Icon k="undo" /><Icon k="redo" />
+      <span style={tx(12, { marginLeft: 6 })}>{file}</span><span style={tx(10, { color: C.inkSoft })}>▾</span>
+    </div>
+    <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+      <div style={{ width: 380, height: 22, borderRadius: 4, background: "#fff", border: "1px solid #D0D0D0", boxSizing: "border-box", display: "flex", alignItems: "center", gap: 6, padding: "0 8px", ...tx(12, { color: C.inkSoft }) }}><Icon k="search" s={14} />Search</div>
+    </div>
+    <div style={{ width: 470, display: "flex", justifyContent: "flex-end", alignItems: "center", height: "100%" }}>
+      <div style={{ width: 22, height: 22, borderRadius: 11, background: "#6B7A90", color: "#fff", ...tx(11, { color: "#fff" }), display: "flex", alignItems: "center", justifyContent: "center", marginRight: 14 }}>A</div>
+      {["—", "☐", "✕"].map((g, i) => <div key={i} style={{ width: 46, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", ...tx(13, { color: "#333" }) }}>{g}</div>)}
+    </div>
+  </div>
 );
-export const Btn = ({ x, y, w, h = 34, label, def, down }: { x: number; y: number; w: number; h?: number; label: string; def?: boolean; down?: boolean }) => (
-  <g><rect x={x} y={y} width={w} height={h} rx={3} fill={down ? "#D6D6D6" : "#FDFDFD"} stroke={def ? "#0F6CBD" : "#8A8A8A"} strokeWidth={def ? 2 : 1} />
-    <T x={x + w / 2} y={y + h / 2 + 6} size={16} anchor="middle" fill={C.xlTxt}>{label}</T></g>
-);
-export const Field = ({ x, y, w, label, text, focus, f = 0, pick = true }: { x: number; y: number; w: number; label: string; text: string; focus?: boolean; f?: number; pick?: boolean }) => (
-  <g><T x={x} y={y} size={16} fill={C.xlTxt}>{label}</T>
-    <rect x={x} y={y + 8} width={w} height={32} fill="#fff" stroke={focus ? "#0F6CBD" : "#7A7A7A"} strokeWidth={focus ? 2 : 1} />
-    <T x={x + 8} y={y + 31} size={18} fill={C.xlTxt} font={CELLF}>{text}</T>
-    {focus && Math.floor(f / 15) % 2 === 0 ? <rect x={x + 10 + text.length * 9.4} y={y + 14} width={1.6} height={20} fill={C.xlTxt} /> : null}
-    {pick ? <rect x={x + w - 28} y={y + 12} width={20} height={24} fill="#F3F3F3" stroke="#B0B0B0" /> : null}</g>
-);
-export const ListBox = ({ x, y, w, h, items, sel }: { x: number; y: number; w: number; h: number; items: string[]; sel?: number }) => (
-  <g><rect x={x} y={y} width={w} height={h} fill="#fff" stroke="#7A7A7A" />
-    {items.map((s, i) => <g key={s + i}>{i === sel ? <rect x={x + 2} y={y + 2 + i * 28} width={w - 4} height={28} fill="#0F6CBD" /> : null}<T x={x + 10} y={y + 22 + i * 28} size={17} fill={i === sel ? "#fff" : C.xlTxt} font={CELLF}>{s}</T></g>)}</g>
-);
-export const Radio = ({ x, y, label, on }: { x: number; y: number; label: string; on?: boolean }) => (
-  <g><circle cx={x + 9} cy={y - 5} r={9} fill="#fff" stroke="#6B6B6B" strokeWidth={1.4} />{on ? <circle cx={x + 9} cy={y - 5} r={5} fill="#0F6CBD" /> : null}<T x={x + 28} y={y} size={17} fill={C.xlTxt}>{label}</T></g>
-);
-export const Check = ({ x, y, label, on }: { x: number; y: number; label: string; on?: boolean }) => (
-  <g><rect x={x} y={y - 16} width={18} height={18} rx={2} fill={on ? "#0F6CBD" : "#fff"} stroke="#6B6B6B" strokeWidth={1.4} />{on ? <path d={`M${x + 4} ${y - 7}l4 4 7 -9`} stroke="#fff" strokeWidth={2.2} fill="none" /> : null}<T x={x + 28} y={y} size={17} fill={C.xlTxt}>{label}</T></g>
-);
-export const MenuList = ({ x, y, w, items, hi, op = 1 }: { x: number; y: number; w: number; items: string[]; hi?: number; op?: number }) => (
-  <g opacity={op}><rect x={x + 4} y={y + 5} width={w} height={items.length * 36 + 12} fill="#000" opacity={0.2} /><rect x={x} y={y} width={w} height={items.length * 36 + 12} fill="#fff" stroke="#B4B4B4" />
-    {items.map((s, i) => <g key={s}>{i === hi ? <rect x={x + 3} y={y + 6 + i * 36} width={w - 6} height={34} fill="#E4F2EA" stroke={C.xlSel} /> : null}<T x={x + 40} y={y + 29 + i * 36} size={17} fill={C.xlTxt}>{s}</T></g>)}</g>
+export const TAB_NAME: Record<string, string> = { home: "Home", insert: "Insert", formulas: "Formulas", data: "Data", powerpivot: "Power Pivot", pivotanalyze: "PivotTable Analyze", pivotchart: "PivotChart Analyze", slicer: "Slicer" };
+export const CTX_TABS: Record<string, string[]> = { pivotanalyze: ["PivotTable Analyze", "Design"], pivotchart: ["PivotChart Analyze", "Design", "Format"], slicer: ["Slicer"] };
+export const TABS = ["File", "Home", "Insert", "Page Layout", "Formulas", "Data", "Review", "View", "Automate", "Help", "Power Pivot"];
+export const TabsRow: React.FC<{ active: string; hot?: { tab: string; color: string; t: number }; extra?: string[] }> = ({ active, hot, extra = [] }) => {
+  let x = 10;
+  const all = [...TABS.map((t) => ({ t, ctx: false })), ...extra.map((t) => ({ t, ctx: true }))];
+  return (
+    <div style={{ position: "absolute", left: 0, top: M.titleBar, width: WIN_W, height: M.tabs, background: C.chrome }}>
+      {all.map((it, i) => {
+        const t = it.t; const w = t.length * 7.2 + 26; if (it.ctx && !all[i - 1]?.ctx) x += 16; const left = x; x += w;
+        const on = t === active; const h = hot && hot.tab === t && hot.t > 0.02;
+        return (
+          <div key={t + i} style={{ position: "absolute", left, top: 2, width: w, height: M.tabs - 2, ...tx(13, { fontWeight: on ? 600 : 400, color: on ? C.xGreenDark : it.ctx ? "#7A3DB8" : C.ink }), display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, ...(h && hot ? { boxShadow: `0 0 12px ${hot.color}, inset 0 0 2px ${hot.color}` } : {}) }}>
+            {t}
+            {it.ctx ? <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 2, background: "#7A3DB8" }} /> : null}
+            {on ? <div style={{ position: "absolute", left: 10, right: 10, bottom: 0, height: 3, background: C.xGreen, borderRadius: 2 }} /> : null}
+          </div>
+        );
+      })}
+      <div style={{ position: "absolute", right: 14, top: 3, display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", ...tx(12) }}><Icon k="comment" />Comments</div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", height: 22, padding: "0 12px", background: C.xGreen, borderRadius: 4, ...tx(12, { color: "#fff", fontWeight: 600 }) }}><Icon k="share" />Share</div>
+      </div>
+    </div>
+  );
+};
+
+// ---------- formula bar ----------
+export const FormulaBar: React.FC<{ name: string; value: string; editing?: boolean }> = ({ name, value, editing }) => (
+  <div style={{ position: "absolute", left: 0, top: GRID_TOP - M.colHdr - M.formula, width: WIN_W, height: M.formula, background: "#fff", borderBottom: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", alignItems: "center", ...tx(13) }}>
+    <div style={{ width: 96, height: 22, margin: "0 4px 0 6px", border: "1px solid #BDBDBD", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px 0 6px", fontFamily: F.ui, fontSize: 13 }}><span>{name}</span><Icon k="chev" s={10} /></div>
+    <span style={tx(14, { color: "#BBB", width: 8, textAlign: "center" })}>⋮</span>
+    <span style={tx(15, { color: editing ? "#C42B1C" : "#BBB", width: 24, textAlign: "center" })}>✕</span>
+    <span style={tx(15, { color: editing ? C.xGreen : "#BBB", width: 24, textAlign: "center" })}>✓</span>
+    <span style={tx(13, { fontStyle: "italic", fontWeight: 600, color: "#555", width: 26, textAlign: "center", fontFamily: F.cell })}>fx</span>
+    <div style={{ flex: 1, height: 22, borderLeft: "1px solid #D0D0D0", paddingLeft: 6, display: "flex", alignItems: "center", fontFamily: F.cell, fontSize: 14.67, whiteSpace: "pre" }}>{value}</div>
+    <div style={{ width: 28, textAlign: "center" }}><Icon k="chev" s={12} /></div>
+  </div>
 );
 
-// ---------- pointer, glow, tags ----------
-export const Pointer = ({ pts, f }: { pts: [number, number, number][]; f: number }) => {
-  let x = pts[0][1], y = pts[0][2];
-  for (let i = 1; i < pts.length; i++) {
-    const [f0, x0, y0] = pts[i - 1], [f1, x1, y1] = pts[i];
-    if (f >= f1) { x = x1; y = y1; } else if (f > f0) { const t = easeIO((f - f0) / (f1 - f0)); x = lerp(x0, x1, t); y = lerp(y0, y1, t); break; } else break;
+// ---------- grid ----------
+export type Cell = { v: string | number; al?: "l" | "r" | "c"; b?: boolean; pm?: "+" | "-"; indent?: number; fill?: string; fg?: string; icon?: "up" | "side" | "down"; err?: boolean };
+export type GRow = { id: string | number; hdr: string | number; cells: Cell[]; slot: number; h: number; head?: boolean };
+export type FBtn = { c: number; state: "on" | "open" | "off"; t: number };
+export type GridProps = {
+  cols: Col[]; rows: GRow[]; fixedHdr?: boolean; hdrBlue?: boolean;
+  active?: { c: number; slot: number } | null;
+  sel?: { c1: number; c2: number; s1: number; s2: number } | null;
+  fbtns?: FBtn[]; cellFx?: (id: string | number, c: number) => string | undefined;
+  marching?: { c1: number; c2: number; s1: number; s2: number } | null; frame?: number; hiRows?: (string | number)[];
+  lines?: boolean; boxes?: Box[];
+};
+export type Box = { c1: number; c2: number; s1: number; s2: number; color: string; t?: number; fill?: string; dash?: boolean; w?: number };
+const Btn: React.FC<{ b: FBtn; w: number }> = ({ b, w }) => (
+  <div style={{ position: "absolute", left: w - 18, top: 2, width: 16, height: 16, boxSizing: "border-box", border: "1px solid #A0A0A0", background: b.state === "open" ? "#CFE5D8" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${b.t})`, transformOrigin: "center", opacity: Math.min(1, b.t * 1.4) }}>
+    <Icon k={b.state === "on" ? "filteron" : "chev"} s={b.state === "on" ? 12 : 10} />
+  </div>
+);
+export const Grid: React.FC<GridProps> = (p) => {
+  const { cols, rows } = p;
+  const totalW = cols.reduce((a, c) => a + c.w, 0);
+  const selC = (c: number): boolean => !!p.sel && c >= p.sel.c1 && c <= p.sel.c2 || (!p.sel && !!p.active && p.active.c === c);
+  const selS = (s: number): boolean => !!p.sel && s >= p.sel.s1 && s <= p.sel.s2 || (!p.sel && !!p.active && Math.floor(p.active.slot) === s);
+  const box = (a: { c1: number; c2: number; s1: number; s2: number }) => ({ left: colX(cols, a.c1), top: slotY(a.s1) - GRID_TOP + M.colHdr, width: colX(cols, a.c2 + 1) - colX(cols, a.c1), height: (a.s2 - a.s1 + 1) * M.rowH });
+  return (
+    <div style={{ position: "absolute", left: 0, top: GRID_TOP - M.colHdr, width: WIN_W, height: WIN_H - (GRID_TOP - M.colHdr) - M.sheetBar - M.statusBar, background: "#fff", overflow: "hidden" }}>
+      {/* column headers */}
+      <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: M.colHdr, background: C.hdr, borderBottom: `1px solid ${C.line}`, boxSizing: "border-box" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, width: M.rowHdr, height: M.colHdr, borderRight: `1px solid ${C.line}`, boxSizing: "border-box" }}>
+          <svg width={M.rowHdr} height={M.colHdr}><path d={`M${M.rowHdr - 4} 4 V${M.colHdr - 4} H4 Z`} fill="#BDBDBD" /></svg>
+        </div>
+        {cols.map((c, i) => (
+          <div key={i} style={{ position: "absolute", left: colX(cols, i), top: 0, width: c.w, height: M.colHdr, boxSizing: "border-box", borderRight: `1px solid ${C.line}`, background: selC(i) ? C.hdrSel : C.hdr, color: selC(i) ? C.xGreenDark : "#444", ...tx(13, { fontFamily: F.cell }), display: "flex", alignItems: "center", justifyContent: "center", borderBottom: selC(i) ? `2px solid ${C.xGreen}` : undefined }}>{c.label}</div>
+        ))}
+      </div>
+      {/* rows */}
+      <div style={{ position: "absolute", left: 0, top: M.colHdr, width: WIN_W, height: 4000, overflow: "visible" }}>
+        {p.lines ? (
+          <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: NSLOT * M.rowH }}>
+            {cols.map((c, i) => <div key={"v" + i} style={{ position: "absolute", left: colX(cols, i) + c.w - 1, top: 0, width: 1, height: NSLOT * M.rowH, background: C.grid }} />)}
+            {Array.from({ length: NSLOT }, (_, s) => <div key={"l" + s} style={{ position: "absolute", left: M.rowHdr, top: (s + 1) * M.rowH - 1, width: WIN_W - M.rowHdr, height: 1, background: C.grid }} />)}
+          </div>
+        ) : null}
+        {p.fixedHdr ? Array.from({ length: NSLOT }, (_, s) => (
+          <div key={"h" + s} style={{ position: "absolute", left: 0, top: s * M.rowH, width: M.rowHdr, height: M.rowH, boxSizing: "border-box", borderRight: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, background: selS(s) ? C.hdrSel : C.hdr, color: selS(s) ? C.xGreenDark : "#444", ...tx(13, { fontFamily: F.cell }), display: "flex", alignItems: "center", justifyContent: "center" }}>{s + 1}</div>
+        )) : null}
+        {rows.map((r) => {
+          if (r.h <= 0.01) return null;
+          const hi = p.hiRows?.includes(r.id);
+          return (
+            <div key={r.id} style={{ position: "absolute", left: 0, top: r.slot * M.rowH, width: WIN_W, height: r.h * M.rowH, overflow: "hidden" }}>
+              {!p.fixedHdr ? (
+                <div style={{ position: "absolute", left: 0, top: 0, width: M.rowHdr, height: M.rowH, boxSizing: "border-box", borderRight: `1px solid ${C.line}`, borderBottom: `1px solid ${C.line}`, background: selS(Math.round(r.slot)) ? C.hdrSel : C.hdr, color: p.hdrBlue ? C.filtBlue : "#444", ...tx(13, { fontFamily: F.cell }), display: "flex", alignItems: "center", justifyContent: "center" }}>{r.hdr}</div>
+              ) : null}
+              {cols.map((c, ci) => {
+                const cell = r.cells[ci];
+                if (p.lines && !cell) return null;
+                const fx = p.cellFx?.(r.id, ci);
+                return (
+                  <div key={ci} style={{ position: "absolute", left: colX(cols, ci), top: 0, width: c.w, height: M.rowH, boxSizing: "border-box", borderRight: p.lines ? undefined : `1px solid ${C.grid}`, borderBottom: p.lines ? undefined : `1px solid ${C.grid}`, backgroundColor: cell?.fill ?? (hi ? "#FFF6D6" : p.lines ? undefined : "#fff"), backgroundImage: fx ? `linear-gradient(${fx}, ${fx})` : undefined, color: cell?.fg ?? C.ink, fontFamily: F.cell, fontSize: 14.67, fontWeight: cell?.b ? 700 : 400, padding: "0 3px", display: "flex", alignItems: "center", justifyContent: cell?.icon ? "space-between" : cell?.al === "r" ? "flex-end" : cell?.al === "c" ? "center" : "flex-start", whiteSpace: "nowrap", overflow: "hidden" }}>
+                    {cell?.icon ? <Arrow kind={cell.icon} /> : null}
+                    {cell?.pm ? <span style={{ width: 9, height: 9, border: "1px solid #7F7F7F", boxSizing: "border-box", marginRight: 4, marginLeft: (cell.indent ?? 0) * 12, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, lineHeight: "9px", color: "#444", flex: "none", background: "#fff" }}>{cell.pm === "+" ? "+" : "−"}</span> : cell?.indent ? <span style={{ width: (cell.indent ?? 0) * 12 + 13, flex: "none" }} /> : null}
+                    <span>{cell ? String(cell.v) : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+        {/* filter buttons live on the header row (slot 0) */}
+        {(p.fbtns ?? []).map((b) => <div key={"fb" + b.c} style={{ position: "absolute", left: colX(cols, b.c), top: 0, width: cols[b.c].w, height: M.rowH }}><Btn b={b} w={cols[b.c].w} /></div>)}
+        {/* range selection + active cell */}
+        {p.sel ? <div style={{ position: "absolute", ...box(p.sel), top: box(p.sel).top - M.colHdr, background: C.xSel, border: `2px solid ${C.xGreen}`, boxSizing: "border-box", pointerEvents: "none" }} /> : null}
+        {p.marching ? <div style={{ position: "absolute", ...box(p.marching), top: box(p.marching).top - M.colHdr, boxSizing: "border-box", border: "2px dashed #107C41", opacity: 0.9, backgroundImage: "none", outline: `1px dashed #fff`, transform: `translate(${((p.frame ?? 0) % 6) * 0}px,0)` }} /> : null}
+        {(p.boxes ?? []).map((b, i) => {
+          const t = b.t ?? 1; if (t <= 0.02) return null;
+          const x = colX(cols, b.c1), w = colX(cols, b.c2 + 1) - x, y = b.s1 * M.rowH, h = (b.s2 - b.s1 + 1) * M.rowH;
+          return <div key={"bx" + i} style={{ position: "absolute", left: x - 1, top: y - 1, width: w + 1, height: h + 1, border: `${b.w ?? 2}px ${b.dash ? "dashed" : "solid"} ${b.color}`, boxShadow: `0 0 ${6 + 8 * t}px ${b.color}`, background: b.fill, opacity: t, boxSizing: "border-box", zIndex: 2, pointerEvents: "none" }} />;
+        })}
+        {p.active ? (
+          <div style={{ position: "absolute", left: colX(cols, p.active.c) - 1, top: p.active.slot * M.rowH - 1, width: cols[p.active.c].w + 1, height: M.rowH + 1, border: `2px solid ${C.xGreen}`, boxSizing: "border-box", pointerEvents: "none", background: p.sel ? "#fff" : "transparent", zIndex: 1 }}>
+            {!p.sel ? <div style={{ position: "absolute", right: -5, bottom: -5, width: 6, height: 6, background: C.xGreen, border: "1px solid #fff" }} /> : null}
+          </div>
+        ) : null}
+      </div>
+      <div style={{ position: "absolute", left: totalW + M.rowHdr, top: 0, width: 1, height: 1 }} />
+    </div>
+  );
+};
+
+// ---------- sheet tabs + status bar ----------
+export const SheetBar: React.FC<{ sheets: string[]; active: string }> = ({ sheets, active }) => (
+  <div style={{ position: "absolute", left: 0, top: WIN_H - M.sheetBar - M.statusBar, width: WIN_W, height: M.sheetBar, background: C.chrome, borderTop: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", alignItems: "flex-end", ...tx(12) }}>
+    <div style={{ display: "flex", gap: 14, padding: "0 12px", alignItems: "center", height: "100%", color: "#777" }}>◂ ▸</div>
+    {sheets.map((s) => (
+      <div key={s} style={{ height: 24, padding: "0 16px", display: "flex", alignItems: "center", background: s === active ? "#fff" : "transparent", color: s === active ? C.xGreenDark : C.ink, fontWeight: s === active ? 700 : 400, borderBottom: s === active ? `3px solid ${C.xGreen}` : "none", borderLeft: `1px solid ${C.line}`, borderRight: `1px solid ${C.line}`, boxSizing: "border-box", ...tx(13, { fontWeight: s === active ? 700 : 400, color: s === active ? C.xGreenDark : C.ink }) }}>{s}</div>
+    ))}
+    <div style={{ width: 30, height: 24, display: "flex", alignItems: "center", justifyContent: "center", ...tx(18, { color: "#555" }) }}>+</div>
+  </div>
+);
+export const StatusBar: React.FC<{ left?: string; stats?: string[]; zoom?: number }> = ({ left = "Ready", stats = [], zoom = 100 }) => (
+  <div style={{ position: "absolute", left: 0, top: WIN_H - M.statusBar, width: WIN_W, height: M.statusBar, background: C.chrome, borderTop: `1px solid ${C.line}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", ...tx(12) }}>
+    <div style={{ display: "flex", gap: 22, alignItems: "center" }}><span>{left}</span></div>
+    <div style={{ display: "flex", gap: 22, alignItems: "center" }}>
+      {stats.map((s, i) => <span key={i}>{s}</span>)}
+      <span style={{ letterSpacing: 6 }}>▦▤▥</span>
+      <span>−</span><div style={{ width: 90, height: 2, background: "#888", position: "relative" }}><div style={{ position: "absolute", left: 43, top: -4, width: 4, height: 10, background: "#555" }} /></div><span>+</span>
+      <span style={{ width: 36, textAlign: "right" }}>{zoom}%</span>
+    </div>
+  </div>
+);
+
+// ---------- window + camera ----------
+export type Cam = { z: number; cx: number; cy: number };
+export const camAt = (f: number, k: { f: number; z: number; cx: number; cy: number }[]): Cam => {
+  if (f <= k[0].f) return k[0];
+  for (let i = 1; i < k.length; i++) {
+    if (f <= k[i].f) { const t = prog(f, k[i - 1].f, k[i].f - k[i - 1].f); return { z: lerp(k[i - 1].z, k[i].z, t), cx: lerp(k[i - 1].cx, k[i].cx, t), cy: lerp(k[i - 1].cy, k[i].cy, t) }; }
   }
-  return <path transform={`translate(${x} ${y})`} d="M0 0L0 24L6 19L10 28L14.5 26L10.5 17.5L18 17.5Z" fill="#fff" stroke="#111" strokeWidth={1.6} />;
+  return k[k.length - 1];
 };
-export const Click = ({ x, y, f, at }: { x: number; y: number; f: number; at: number }) => {
-  const t = prog(f, at, 14); if (t <= 0 || t >= 1) return null;
-  return <circle cx={x} cy={y} r={8 + 26 * t} fill="none" stroke={C.blue} strokeWidth={3} opacity={1 - t} />;
+export type ExcelProps = {
+  cam: Cam; file: string; tab: string; hotTab?: { tab: string; color: string; t: number }; glow?: { id: string; color: string; t: number };
+  nameBox: string; formula: string; editing?: boolean; grid: GridProps; sheets?: string[]; sheet?: string;
+  statusLeft?: string; stats?: string[]; children?: React.ReactNode;
 };
-// Neon region: stacked strokes (no blur/filter -> fast render).
-export const Neon = ({ x, y, w, h, c = C.blue, op = 1, f = 0, rx = 8 }: { x: number; y: number; w: number; h: number; c?: string; op?: number; f?: number; rx?: number }) => {
-  const p = 0.75 + 0.25 * Math.sin(f / 9);
-  return <g opacity={op}>{[[16, 0.07], [10, 0.12], [5, 0.25]].map(([s, a], i) => <rect key={i} x={x - s / 2} y={y - s / 2} width={w + s} height={h + s} rx={rx + s / 2} fill="none" stroke={c} strokeWidth={s} opacity={a * p} />)}
-    <rect x={x} y={y} width={w} height={h} rx={rx} fill="none" stroke={c} strokeWidth={2.5} /></g>;
+export const Excel: React.FC<ExcelProps> = (p) => {
+  const sz = S * p.cam.z, vw = WIDTH, vh = HEIGHT - STRIP_H;
+  const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
+  const tx0 = clamp(vw / 2 - p.cam.cx * sz, vw - WIN_W * sz, 0);
+  const ty0 = clamp(vh / 2 - p.cam.cy * sz, vh - WIN_H * sz, 0);
+  return (
+    <div style={{ position: "absolute", left: 0, top: STRIP_H, width: vw, height: vh, overflow: "hidden", background: "#fff" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: WIN_W, height: WIN_H, transformOrigin: "0 0", transform: `translate(${tx0}px, ${ty0}px) scale(${sz})` }}>
+        <Grid {...p.grid} />
+        <FormulaBar name={p.nameBox} value={p.formula} editing={p.editing} />
+        <Ribbon tab={p.tab} glow={p.glow} />
+        <TabsRow active={TAB_NAME[p.tab] ?? "Home"} hot={p.hotTab} extra={CTX_TABS[p.tab] ?? []} />
+        <TitleBar file={p.file} />
+        <SheetBar sheets={p.sheets ?? ["Sales", "Branches"]} active={p.sheet ?? "Sales"} />
+        <StatusBar left={p.statusLeft} stats={p.stats} />
+        {p.children}
+      </div>
+    </div>
+  );
 };
-export const Arrow = ({ x1, y1, x2, y2, c = C.blue, op = 1 }: { x1: number; y1: number; x2: number; y2: number; c?: string; op?: number }) => {
-  const a = Math.atan2(y2 - y1, x2 - x1), s = 14;
-  return <g opacity={op}><line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c} strokeWidth={4} strokeLinecap="round" />
-    <path d={`M${x2} ${y2}L${x2 - s * Math.cos(a - 0.45)} ${y2 - s * Math.sin(a - 0.45)}L${x2 - s * Math.cos(a + 0.45)} ${y2 - s * Math.sin(a + 0.45)}Z`} fill={c} /></g>;
-};
-export const Tag = ({ f, a, b, c, title, sub, rtl = false }: { f: number; a: number; b: number; c: string; title: string; sub?: string; rtl?: boolean }) => {
-  const o = Math.min(prog(f, a, 14), 1 - prog(f, b - 12, 12)); if (o <= 0) return null;
-  const w = 1500, x = (W - w) / 2, y = 930 + (1 - easeOut(prog(f, a, 14))) * 14;
-  return <g opacity={o}>
-    <rect x={x} y={y} width={w} height={104} rx={14} fill={C.panel} stroke={c} strokeWidth={3} />
-    <rect x={x} y={y} width={10} height={104} rx={5} fill={c} />
-    <T x={W / 2} y={y + 44} size={34} anchor="middle" w={700} fill={C.text} rtl={rtl}>{title}</T>
-    {sub ? <T x={W / 2} y={y + 84} size={26} anchor="middle" fill={c} font={MONO} w={600}>{sub}</T> : null}
-  </g>;
-};
-export const Pill = ({ x, y, w, h = 38, c, label, op = 1, size = 20 }: { x: number; y: number; w: number; h?: number; c: string; label: string; op?: number; size?: number }) => (
-  <g opacity={op}><rect x={x} y={y} width={w} height={h} rx={h / 2} fill={C.panel} stroke={c} strokeWidth={2.4} /><T x={x + w / 2} y={y + h / 2 + size * 0.35} size={size} anchor="middle" w={600} fill={c}>{label}</T></g>
-);
+export { HEIGHT };
 
-// ---------- stage + top bar ----------
-export const Bg = () => <rect x={0} y={0} width={W} height={H} fill={C.bg} />;
-export const TopBar = () => (
-  <g>
-    <image href={staticFile(LOGO_FILE)} x={-10} y={-44} width={176} height={176} />
-    <T x={150} y={40} size={26} w={700}>Manzooma Excel Masterclass</T>
-    <T x={150} y={68} size={17} fill={C.mute}>Excel From Zero to Professional</T>
-    <rect x={W - 1064} y={14} width={1030} height={58} rx={29} fill={C.panel} stroke={C.blue} strokeWidth={2} />
-    <T x={W - 549} y={52} size={24} anchor="middle" w={600} rtl>الدرس 66 من 76 • الوحدة 13 من 14 • تحليل السيناريوهات والحساسية</T>
-  </g>
-);
+// Centre of a ribbon button (logical px) so cursors/glows can target it.
+export const ribbonPos = (tab: string, id: string): { x: number; y: number } => {
+  let x = 6;
+  for (const g of RIBBON[tab] ?? []) {
+    const gw = groupW(g);
+    if (!g.custom) {
+      let cx = x + 3;
+      for (const c of g.cols) {
+        const w = colW(c);
+        for (let i = 0; i < c.items.length; i++) {
+          if (c.items[i].id === id) return { x: cx + w / 2, y: M.titleBar + M.tabs + (c.kind === "L" ? 40 : 16 + 22 * i) };
+        }
+        cx += w;
+      }
+    }
+    x += gw;
+  }
+  return { x: 0, y: 0 };
+};

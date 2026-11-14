@@ -1,44 +1,61 @@
-// Single source of truth for lesson naming + Excel UI metrics (1920x1080 design grid).
-export const LESSON_NO = "66";
-export const COMP_ID = "XL-L66-Scenario-Analysis";
-export const OUT_NAME = "xl-l66-scenario-analysis";
-export const VOICE_FILE = "voiceover_lesson_66.mp3";
-export const LOGO_FILE = "manzooma-logo.svg";
+// Lesson identity: every name in the project is derived from these values.
+export const LESSON_NUM = "62";
+export const COMP_ID = "XL-L62-TIME-INTELLIGENCE";
+export const OUT_NAME = "xl-l62-time-intelligence";
+export const VOICE_FILE = "voiceover_lesson_62.mp3";
+export const LOGO_FILE = "manzooma_logo.svg";
+export const XLSX_NAME = "manzooma_sales_2026.xlsx";
+
+// Video spec (change WIDTH/HEIGHT here only; the UI scales from S).
 export const FPS = 30;
-export const W = 1920;
-export const H = 1080;
+export const WIDTH = 1920;
+export const HEIGHT = 1080;
 export const DURATION = 7200;
 
-export const C = {
-  bg: "#0F172A", panel: "#1E293B", text: "#F8FAFC", mute: "#94A3B8",
-  blue: "#38BDF8", green: "#10B981", amber: "#F59E0B", purple: "#A855F7", red: "#EF4444",
-  // Excel (Microsoft 365, modern light look, generic icons)
-  xlGreen: "#217346", xlGreenDk: "#185C37", xlSel: "#107C41", xlSelFill: "rgba(16,124,65,0.14)",
-  xlBar: "#FFFFFF", xlRibbon: "#F3F3F3", xlLine: "#D4D4D4", xlGrid: "#E1E1E1", xlHdr: "#EDEDED",
-  xlHdrSel: "#D3F0E0", xlHdrSelTx: "#0F6B3A", xlTxt: "#242424", xlTxt2: "#616161",
-  dlg: "#F0F0F0",
-};
+// Layout: a Slate caption strip on top, the Excel window below.
+export const STRIP_H = 72;
+export const S = 1.25; // Excel logical px -> output px
+export const WIN_W = WIDTH / S; // 1536
+export const WIN_H = (HEIGHT - STRIP_H) / S; // 806.4
 
-// Excel metrics at 1.5x of the 100% desktop layout (row 20px -> 30px, col 64px -> 96px).
+// Excel metrics in logical px (Microsoft 365 desktop, Windows, 100%).
 export const M = {
-  winX: 48, winY: 96, winW: 1824,
-  titleH: 40, tabH: 40, ribbonH: 132, fbH: 40, colHdrH: 30, rowH: 30, rowHdrW: 54,
-  rows: 15, sheetH: 34, statusH: 28, defColW: 96,
+  titleBar: 30,
+  tabs: 30,
+  ribbon: 94,
+  formula: 28,
+  colHdr: 20,
+  rowHdr: 40,
+  rowH: 20,
+  colW: 64,
+  sheetBar: 28,
+  statusBar: 24,
 };
-export const Y = {
-  title: M.winY,
-  tabs: M.winY + M.titleH,
-  ribbon: M.winY + M.titleH + M.tabH,
-  fb: M.winY + M.titleH + M.tabH + M.ribbonH,
-  colHdr: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH,
-  grid: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH,
-  sheet: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH + M.rows * M.rowH,
-  status: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH + M.rows * M.rowH + M.sheetH,
-  end: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH + M.rows * M.rowH + M.sheetH + M.statusH,
-};
+export const GRID_TOP = M.titleBar + M.tabs + M.ribbon + M.formula + M.colHdr; // body top
+export const BODY_H = WIN_H - GRID_TOP - M.sheetBar - M.statusBar;
+export const NSLOT = Math.ceil(BODY_H / M.rowH);
 
-// Illustrative model (manzooma_sales_2026): Net = Units*(Price*(1-Disc)-Cost-Ship)-Fixed
-export const MODEL = { price: 500, disc: 0.1, cost: 300, ship: 25, units: 20000, fixed: 1000000, dep: 200000 };
-export const profit = (d: number, s: number, p = MODEL.price, u = MODEL.units) =>
-  Math.round(u * (p * (1 - d) - MODEL.cost - s) - MODEL.fixed);
-export const fmt = (n: number) => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("en-US");
+export const C = {
+  slate: "#0F172A",
+  slate2: "#1E293B",
+  text: "#F8FAFC",
+  blue: "#38BDF8",
+  green: "#10B981",
+  amber: "#F59E0B",
+  purple: "#A855F7",
+  red: "#EF4444",
+  gold: "#FBBF24",
+  // Excel light UI
+  xGreen: "#107C41",
+  xGreenDark: "#0B5A2E",
+  xSel: "rgba(16,124,65,0.14)",
+  chrome: "#F3F3F3",
+  ribbon: "#F9F9F9",
+  line: "#D6D6D6",
+  grid: "#DCDCDC",
+  hdr: "#F2F2F2",
+  hdrSel: "#CFE5D8",
+  ink: "#1F1F1F",
+  inkSoft: "#605E5C",
+  filtBlue: "#0563C1",
+};
