@@ -1,10 +1,10 @@
 {
-  "name": "manzooma-excel-lesson-video",
+  "name": "manzooma-excel-l66",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "remotion studio src/index.ts",
-    "build": "remotion render src/index.ts XL-L64-Dispersion-Outliers out/xl-l64-dispersion-outliers.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "build": "remotion render src/index.ts XL-L66-Scenario-Analysis out/xl-l66-scenario-analysis.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,7 +15,7 @@
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
+    "@types/react": "^18.3.0",
     "typescript": "^5.4.0"
   }
 }

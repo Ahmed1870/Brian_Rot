@@ -1,39 +1,44 @@
-// Lesson identity + all fixed UI metrics (shared by every lesson via kit.tsx)
-export const LESSON = 64;
-export const TOTAL_LESSONS = 76;
-export const UNIT = 13;
-export const TOTAL_UNITS = 14;
-export const TITLE_EN = "Distributions, Dispersion & Outliers";
-export const TITLE_AR = "التوزيعات والتشتت والقيم المتطرفة";
-export const COMP_ID = "XL-L64-Dispersion-Outliers";
-export const OUT_NAME = "xl-l64-dispersion-outliers";
-export const VOICE = "voiceover_lesson_64.mp3";
-export const LOGO = "manzooma-logo-white.svg";
+// Single source of truth for lesson naming + Excel UI metrics (1920x1080 design grid).
+export const LESSON_NO = "66";
+export const COMP_ID = "XL-L66-Scenario-Analysis";
+export const OUT_NAME = "xl-l66-scenario-analysis";
+export const VOICE_FILE = "voiceover_lesson_66.mp3";
+export const LOGO_FILE = "manzooma-logo.svg";
 export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
 export const DURATION = 7200;
 
 export const C = {
-  bg: "#0F172A", panel: "#1E293B", panel2: "#273449", line: "#334155",
-  blue: "#38BDF8", green: "#10B981", amber: "#F59E0B", purple: "#A855F7",
-  red: "#EF4444", text: "#F8FAFC", dim: "#94A3B8",
+  bg: "#0F172A", panel: "#1E293B", text: "#F8FAFC", mute: "#94A3B8",
+  blue: "#38BDF8", green: "#10B981", amber: "#F59E0B", purple: "#A855F7", red: "#EF4444",
+  // Excel (Microsoft 365, modern light look, generic icons)
+  xlGreen: "#217346", xlGreenDk: "#185C37", xlSel: "#107C41", xlSelFill: "rgba(16,124,65,0.14)",
+  xlBar: "#FFFFFF", xlRibbon: "#F3F3F3", xlLine: "#D4D4D4", xlGrid: "#E1E1E1", xlHdr: "#EDEDED",
+  xlHdrSel: "#D3F0E0", xlHdrSelTx: "#0F6B3A", xlTxt: "#242424", xlTxt2: "#616161",
+  dlg: "#F0F0F0",
 };
 
-// Excel/Windows look (light UI inside the dark stage)
-export const XL = {
-  green: "#217346", greenLight: "#D3EBDD", greenFill: "rgba(33,115,70,0.13)",
-  bar: "#F3F3F3", ribbon: "#FFFFFF", line: "#D4D4D4", hdr: "#F0F0F0", hdrSel: "#D3D3D3",
-  grid: "#E1E1E1", text: "#262626", dim: "#6B6B6B", tbl: "#4472C4", band: "#D9E1F2",
-  dlg: "#F0F0F0", hover: "#E5F3FB", hoverLine: "#99D1FF",
-};
-
-// Metrics at 100% (nominal px); the window is drawn at Z x for legibility on phones.
+// Excel metrics at 1.5x of the 100% desktop layout (row 20px -> 30px, col 64px -> 96px).
 export const M = {
-  Z: 1.3,
-  win: { x: 50, y: 92, w: 1400, h: 690 },
-  title: 30, tabs: 28, ribbon: 96, fbar: 26, colH: 20, rowH: 20, rowHdrW: 30, colW: 64,
-  sheetBar: 27, status: 23, scroll: 14, pane: 268, pqLeft: 190, pqRight: 262,
+  winX: 48, winY: 96, winW: 1824,
+  titleH: 40, tabH: 40, ribbonH: 132, fbH: 40, colHdrH: 30, rowH: 30, rowHdrW: 54,
+  rows: 15, sheetH: 34, statusH: 28, defColW: 96,
 };
-export const gx = (nx: number) => M.win.x + nx * M.Z;
-export const gy = (ny: number) => M.win.y + ny * M.Z;
+export const Y = {
+  title: M.winY,
+  tabs: M.winY + M.titleH,
+  ribbon: M.winY + M.titleH + M.tabH,
+  fb: M.winY + M.titleH + M.tabH + M.ribbonH,
+  colHdr: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH,
+  grid: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH,
+  sheet: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH + M.rows * M.rowH,
+  status: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH + M.rows * M.rowH + M.sheetH,
+  end: M.winY + M.titleH + M.tabH + M.ribbonH + M.fbH + M.colHdrH + M.rows * M.rowH + M.sheetH + M.statusH,
+};
+
+// Illustrative model (manzooma_sales_2026): Net = Units*(Price*(1-Disc)-Cost-Ship)-Fixed
+export const MODEL = { price: 500, disc: 0.1, cost: 300, ship: 25, units: 20000, fixed: 1000000, dep: 200000 };
+export const profit = (d: number, s: number, p = MODEL.price, u = MODEL.units) =>
+  Math.round(u * (p * (1 - d) - MODEL.cost - s) - MODEL.fixed);
+export const fmt = (n: number) => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("en-US");
