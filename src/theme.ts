@@ -1,45 +1,29 @@
-import {loadFont as loadArabic} from '@remotion/google-fonts/IBMPlexSansArabic';
-import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
-import {loadFont as loadUI} from '@remotion/google-fonts/OpenSans';
-
-const ar = loadArabic('normal', {weights: ['400', '600', '700'], subsets: ['arabic', 'latin']});
-const mono = loadMono('normal', {weights: ['400', '700'], subsets: ['latin']});
-const ui = loadUI('normal', {weights: ['400', '600', '700'], subsets: ['latin']});
-
-export const FONT = `${ar.fontFamily}, 'Segoe UI', Tahoma, sans-serif`;
-export const MONO = `${mono.fontFamily}, Consolas, 'Courier New', monospace`;
-// Excel chrome font (Segoe UI substitute: Open Sans) and cell font (Calibri substitute: Carlito, loaded from src/fonts)
-export const UIFONT = `${ui.fontFamily}, ${ar.fontFamily}, 'Segoe UI', Arial, sans-serif`;
-export const CELLFONT = `Carlito, Calibri, ${ui.fontFamily}, ${ar.fontFamily}, Arial, sans-serif`;
-
-export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const TOTAL_FRAMES = 7200;
-export const LESSON = 63;
-export const COMP_ID = 'XL-L63-Statistics';
-export const VOICE_FILE = 'voiceover_lesson_63.mp3';
-export const LOGO_FILE = 'manzooma_logo.svg';
+export const FPS = 30;
+export const TOTAL = 7200; // 4:00 = mp3 duration 240.04s
+export const COMP_ID = 'XL-L57-DAX-Fundamentals';
+export const OUT_NAME = 'xl-l57-dax-fundamentals';
+export const VOICE = 'voiceover_lesson_57.mp3';
+export const LOGO = 'manzooma_logo.svg';
+export const FILE = 'manzooma_sales_2026.xlsx';
+
+// Excel is drawn in logical px (like a ~1150x555 desktop window) and scaled by Z -> fixed metrics for all lessons
+export const Z = 1.6;
+export const WIN = {x: 40, y: 100, w: 1840, h: 888};
 
 export const C = {
-  bg: '#0F172A',
-  card: '#1E293B',
-  deep: '#0B1222',
-  border: '#334155',
-  muted: '#94A3B8',
-  text: '#F8FAFC',
-  blue: '#38BDF8',
-  green: '#10B981',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  purple: '#A855F7',
-  gold: '#FBBF24',
+  bg: '#0F172A', panel: '#1E293B', line: '#334155', blue: '#38BDF8', green: '#10B981', amber: '#F59E0B',
+  purple: '#A855F7', red: '#EF4444', text: '#F8FAFC', dim: '#94A3B8',
 };
+// Excel (Microsoft 365, Windows, light) palette
+export const X = {
+  chrome: '#F3F3F3', ribbon: '#FAFAFA', line: '#D1D1D1', grid: '#DCDCDC', text: '#242424', dim: '#616161',
+  green: '#217346', gsel: '#D3E8DA', head: '#1F4E78',
+};
+export const M = {title: 32, tabs: 28, ribbon: 92, formula: 28, hdr: 20, rowW: 40, sheet: 28, status: 22, rowH: 20, sb: 14};
 
-// Scene starts (absolute seconds) = the real paragraph pauses of the mp3 (0.4-0.8s)
-export const START = {s1: 0, s2: 41.0, s3: 86.5, s4: 131.1, s5: 170.8, s6: 208.4};
-const fr = (s: number) => Math.round(s * FPS);
-const starts = [START.s1, START.s2, START.s3, START.s4, START.s5, START.s6].map(fr);
-const ends = [...starts.slice(1), TOTAL_FRAMES];
-const mk = (i: number) => ({from: starts[i], dur: ends[i] - starts[i]});
-export const SCENES = {s1: mk(0), s2: mk(1), s3: mk(2), s4: mk(3), s5: mk(4), s6: mk(5)};
+export const SC = [
+  {from: 0, dur: 1431}, {from: 1431, dur: 1184}, {from: 2615, dur: 1161},
+  {from: 3776, dur: 1107}, {from: 4883, dur: 1233}, {from: 6116, dur: 1084},
+];

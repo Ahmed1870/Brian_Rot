@@ -1,40 +1,55 @@
-name: Render Excel Lesson 63 Statistics
+name: Render XL-L57-DAX-Fundamentals
 on:
   push:
     branches: [main]
   workflow_dispatch:
+concurrency:
+  group: render-main
+  cancel-in-progress: true
+env:
+  COMP_ID: XL-L57-DAX-Fundamentals
+  OUT_NAME: xl-l57-dax-fundamentals
+  VOICE: voiceover_lesson_57.mp3
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - name: Guard - this repo must contain this lesson only
-        run: |
-          grep -q "XL-L63-Statistics" src/theme.ts
-          grep -q "XL-L63-Statistics" package.json
-          test -f public/voiceover_lesson_63.mp3
-          test -f public/manzooma_logo.svg
-          for n in click key tick pop whoosh chime error alert scan shine ambient; do test -f public/sfx_$n.mp3; done
-          test "$(ls public | wc -l)" = "13"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install
+      - name: Guard - names must match everywhere
+        run: |
+          set -euo pipefail
+          grep -q "COMP_ID = '$COMP_ID'" src/theme.ts
+          grep -q "OUT_NAME = '$OUT_NAME'" src/theme.ts
+          grep -q "VOICE = '$VOICE'" src/theme.ts
+          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
+          grep -q "id={COMP_ID}" src/Root.tsx
+          test -s "public/$VOICE"
+          test "$(ls .github/workflows | wc -l)" = "1"
+          extra="$(find public -type f | grep -v -E '^public/(voiceover_lesson_57\.mp3|manzooma_logo\.svg|soundtrack_lesson_57\.wav)$' || true)"
+          if [ -n "$extra" ]; then echo "Unexpected files in public:"; echo "$extra"; exit 1; fi
+          stale="$(grep -rhoE 'XL-L[0-9]+' src package.json .github | sort -u | grep -v '^XL-L57$' || true)"
+          if [ -n "$stale" ]; then echo "Stale lesson id: $stale"; exit 1; fi
+      - name: Install dependencies (no lockfile, Linux-native packages)
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.300 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L63-Statistics out/xl-l63-statistics.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l63-statistics.mp4
+      - run: npm run check
+      - run: npm run build
+      - name: Verify video exists
+        run: test -s "out/$OUT_NAME.mp4" && ls -lh out/
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l63-statistics
-          path: out/xl-l63-statistics.mp4
+          name: ${{ env.OUT_NAME }}
+          path: out/${{ env.OUT_NAME }}.mp4
           if-no-files-found: error
