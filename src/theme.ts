@@ -1,44 +1,45 @@
-export const COMP_ID = "XL-L67-Choosing-The-Right-Chart";
-export const LESSON = 67;
-export const LESSONS = 76;
-export const UNIT = 13;
-export const UNITS = 14;
-export const VOICE = "voiceover_lesson_67.mp3";
-export const LOGO = "manzooma_logo.svg";
+import {loadFont as loadArabic} from '@remotion/google-fonts/IBMPlexSansArabic';
+import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
+import {loadFont as loadUI} from '@remotion/google-fonts/OpenSans';
+
+const ar = loadArabic('normal', {weights: ['400', '600', '700'], subsets: ['arabic', 'latin']});
+const mono = loadMono('normal', {weights: ['400', '700'], subsets: ['latin']});
+const ui = loadUI('normal', {weights: ['400', '600', '700'], subsets: ['latin']});
+
+export const FONT = `${ar.fontFamily}, 'Segoe UI', Tahoma, sans-serif`;
+export const MONO = `${mono.fontFamily}, Consolas, 'Courier New', monospace`;
+// Excel chrome font (Segoe UI substitute: Open Sans) and cell font (Calibri substitute: Carlito, loaded from src/fonts)
+export const UIFONT = `${ui.fontFamily}, ${ar.fontFamily}, 'Segoe UI', Arial, sans-serif`;
+export const CELLFONT = `Carlito, Calibri, ${ui.fontFamily}, ${ar.fontFamily}, Arial, sans-serif`;
+
 export const FPS = 30;
 export const W = 1920;
 export const H = 1080;
-export const DUR = 7200;
+export const TOTAL_FRAMES = 7200;
+export const LESSON = 63;
+export const COMP_ID = 'XL-L63-Statistics';
+export const VOICE_FILE = 'voiceover_lesson_63.mp3';
+export const LOGO_FILE = 'manzooma_logo.svg';
 
 export const C = {
-  bg: '#0F172A', panel: '#1E293B', panel2: '#162033', line: '#2B3A55', text: '#F8FAFC', dim: '#94A3B8',
-  blue: '#38BDF8', green: '#10B981', amber: '#F59E0B', purple: '#A855F7', red: '#EF4444',
-  xl: '#14532D', cell: '#111C31',
+  bg: '#0F172A',
+  card: '#1E293B',
+  deep: '#0B1222',
+  border: '#334155',
+  muted: '#94A3B8',
+  text: '#F8FAFC',
+  blue: '#38BDF8',
+  green: '#10B981',
+  amber: '#F59E0B',
+  red: '#EF4444',
+  purple: '#A855F7',
+  gold: '#FBBF24',
 };
 
-// Scene bounds (seconds, from the real mp3) and sentence end times per scene.
-export const SB = [0, 39.2, 80.3, 125.5, 164.2, 202.1, 240];
-export const AN: number[][] = [
-  [14.23, 24.95, 39.17],
-  [46.88, 52.45, 64.41, 80.29],
-  [85.51, 91.48, 105.58, 125.52],
-  [132.4, 139.96, 149.0, 164.22],
-  [174.3, 192.85, 202.14],
-  [205.26, 209.94, 222.31, 234.65],
-];
-
-// Illustrative dataset (50,000 rows, total 12,000,000 EGP = 12,000 K)
-export const PRODUCTS = [
-  {k: 1, n: 'Charger', cat: 'Power', price: 150, m: 0.18, sales: 3600000},
-  {k: 2, n: 'Earbuds', cat: 'Audio', price: 300, m: 0.31, sales: 3900000},
-  {k: 3, n: 'Power Bank', cat: 'Power', price: 240, m: 0.27, sales: 1800000},
-  {k: 4, n: 'Mouse', cat: 'Accessories', price: 200, m: 0.22, sales: 1500000},
-  {k: 5, n: 'Phone Case', cat: 'Accessories', price: 60, m: 0.38, sales: 600000},
-  {k: 6, n: 'USB Cable', cat: 'Cables', price: 60, m: 0.15, sales: 600000},
-];
-export const STORES = [
-  {k: 1, n: 'Nasr City', r: 'Cairo', sales: 4820000, hm: 2520000},
-  {k: 2, n: 'Dokki', r: 'Giza', sales: 3150000, hm: 1620000},
-  {k: 3, n: 'Smouha', r: 'Alexandria', sales: 2640000, hm: 1380000},
-  {k: 4, n: 'Downtown', r: 'Mansoura', sales: 1390000, hm: 780000},
-];
+// Scene starts (absolute seconds) = the real paragraph pauses of the mp3 (0.4-0.8s)
+export const START = {s1: 0, s2: 41.0, s3: 86.5, s4: 131.1, s5: 170.8, s6: 208.4};
+const fr = (s: number) => Math.round(s * FPS);
+const starts = [START.s1, START.s2, START.s3, START.s4, START.s5, START.s6].map(fr);
+const ends = [...starts.slice(1), TOTAL_FRAMES];
+const mk = (i: number) => ({from: starts[i], dur: ends[i] - starts[i]});
+export const SCENES = {s1: mk(0), s2: mk(1), s3: mk(2), s4: mk(3), s5: mk(4), s6: mk(5)};
