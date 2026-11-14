@@ -1,53 +1,45 @@
-name: Render Excel Lesson 76 Capstone Finale
+name: Render lesson video
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
+env:
+  COMP_ID: XL-L64-Dispersion-Outliers
+  OUT_NAME: xl-l64-dispersion-outliers
 jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Remove legacy package-lock.json if committed in a previous lesson
-        run: |
-          if [ -f package-lock.json ]; then
-            echo "⚠ Found package-lock.json in repo (legacy from previous lesson) — removing it"
-            rm -f package-lock.json
-          fi
-          test ! -f package-lock.json && echo "✓ No package-lock.json" || { echo "✗ Cannot remove package-lock.json"; exit 1; }
-      - name: Guard - this repo must contain Excel lesson 76 only
-        run: |
-          set -e
-          echo "=== Guard checks (verbose) ==="
-          grep -q "XL-L76-Capstone" src/theme.ts && echo "PASS: theme.ts" || { echo "FAIL: theme.ts"; exit 1; }
-          grep -q "XL-L76-Capstone" package.json && echo "PASS: package.json" || { echo "FAIL: package.json"; exit 1; }
-          test -f public/voiceover_lesson_76.mp3 && echo "PASS: voiceover_lesson_76.mp3" || { echo "FAIL: voiceover_lesson_76.mp3"; exit 1; }
-          test -f public/manzooma_logo.svg && echo "PASS: manzooma_logo.svg" || { echo "FAIL: manzooma_logo.svg"; exit 1; }
-          for n in click key tick pop whoosh chime; do
-            test -f public/sfx_$n.mp3 && echo "PASS: sfx_$n.mp3" || { echo "FAIL: sfx_$n.mp3"; exit 1; }
-          done
-          PCOUNT=$(ls public | wc -l)
-          test "$PCOUNT" = "8" && echo "PASS: public has 8 files ($PCOUNT)" || { echo "FAIL: public has $PCOUNT files (expected 8)"; ls public; exit 1; }
-          test ! -f package-lock.json && echo "PASS: no package-lock.json" || { echo "FAIL: package-lock.json exists"; exit 1; }
-          echo "=== All guard checks passed ==="
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies (no lockfile, with retry)
+      - name: Guard (names must match everywhere)
         run: |
-          rm -rf node_modules package-lock.json
-          for i in 1 2 3; do
-            if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              exit 0
-            fi
-            echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
-          done
-          echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L76-Capstone out/xl-l76-capstone.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l76-capstone.mp4
+          set -euo pipefail
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "OUT_NAME = \"$OUT_NAME\"" src/theme.ts
+          grep -q "$COMP_ID" package.json
+          grep -q "out/$OUT_NAME.mp4" package.json
+          grep -q "COMP_ID" src/Root.tsx
+          ! grep -q "XL-L" src/Root.tsx
+          test -s public/voiceover_lesson_64.mp3
+          extra=$(find public -type f ! -name 'voiceover_lesson_64.mp3' ! -name 'manzooma-logo-white.svg' | wc -l)
+          test "$extra" -eq 0
+          test "$(ls .github/workflows | wc -l)" -eq 1
+      - name: System libraries for headless Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2
+      - run: npm install --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - name: Render
+        run: npx remotion render src/index.ts "$COMP_ID" "out/$OUT_NAME.mp4" --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - name: Verify output
+        run: test -s "out/$OUT_NAME.mp4"
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l76-capstone
-          path: out/xl-l76-capstone.mp4
+          name: xl-l64-dispersion-outliers
+          path: out/xl-l64-dispersion-outliers.mp4
           if-no-files-found: error

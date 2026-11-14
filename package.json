@@ -1,22 +1,21 @@
 {
-  "name": "manzooma-excel-lesson-76-capstone",
+  "name": "manzooma-excel-lesson-video",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 76 (FINALE): Comprehensive Enterprise Capstone Project (Power Query ETL, Star Schema, DAX, Dynamic Arrays, Executive Dashboard, VBA PDF Export, 100% Graduation) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L76-Capstone out/xl-l76-capstone.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "start": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts XL-L64-Dispersion-Outliers out/xl-l64-dispersion-outliers.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.272",
-    "@remotion/google-fonts": "4.0.272",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.272"
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
-    "typescript": "5.4.5"
+    "@types/react": "18.3.12",
+    "typescript": "^5.4.0"
   }
 }
