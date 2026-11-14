@@ -1,12 +1,18 @@
-name: Render lesson video
+name: Render Lesson Video
+
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+
+env:
+  COMP_ID: XL-L67-Choosing-The-Right-Chart
+  OUT_NAME: xl-l67-choosing-the-right-chart
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,29 +21,19 @@ jobs:
       - name: Guard (names, voiceover, public)
         run: |
           set -e
-          grep -q "XL-L62-TIME-INTELLIGENCE" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
-          grep -q "XL-L62-TIME-INTELLIGENCE" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
-          grep -q "xl-l62-time-intelligence.mp4" package.json || { echo "output name missing in package.json"; exit 1; }
-          test -s public/voiceover_lesson_62.mp3 || { echo "voiceover missing"; exit 1; }
-          extra=$(ls public | grep -vxE "voiceover_lesson_62.mp3|manzooma_logo.svg" || true)
-          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
-      - name: Install
-        run: |
-          rm -rf node_modules package-lock.json
-          for i in 1 2 3; do
-            if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
-              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
-              exit 0
-            fi
-            echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
-          done
-          echo "dependencies could not be installed correctly"; exit 1
+          grep -q "$COMP_ID" src/theme.ts
+          grep -q "$COMP_ID" package.json
+          grep -q "$OUT_NAME" package.json
+          test -s public/voiceover_lesson_67.mp3
+          extra=$(ls public | grep -v -x -e voiceover_lesson_67.mp3 -e manzooma_logo.svg || true)
+          if [ -n "$extra" ]; then echo "Unexpected files in public: $extra"; exit 1; fi
+          test "$(ls .github/workflows | wc -l)" = "1"
+      - run: npm install --no-audit --no-fund
+      - run: npx tsc --noEmit
       - name: Render
-        run: npx remotion render src/index.ts XL-L62-TIME-INTELLIGENCE out/xl-l62-time-intelligence.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - name: Check output
-        run: test -s out/xl-l62-time-intelligence.mp4
+        run: npx remotion render src/index.ts XL-L67-Choosing-The-Right-Chart out/xl-l67-choosing-the-right-chart.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/xl-l67-choosing-the-right-chart.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l62-time-intelligence
-          path: out/xl-l62-time-intelligence.mp4
+          name: xl-l67-choosing-the-right-chart
+          path: out/xl-l67-choosing-the-right-chart.mp4
