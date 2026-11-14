@@ -1,28 +1,51 @@
-name: Render lesson video
+name: Render Excel Lesson 53
+
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+
+env:
+  COMP_ID: XL-L53-Fact-Dimension-Tables
+  OUT_NAME: excel-lesson-53-fact-dimension
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Guard (names, voiceover, public)
+
+      - name: Guard (names, voiceover, public contents)
         run: |
           set -e
-          grep -q "XL-L48-PowerQuery-Cleaning" src/theme.ts || { echo "COMP_ID missing in theme.ts"; exit 1; }
-          grep -q "XL-L48-PowerQuery-Cleaning" package.json || { echo "COMP_ID missing in package.json"; exit 1; }
-          grep -q "xl-l48-powerquery-cleaning.mp4" package.json || { echo "output name missing in package.json"; exit 1; }
-          test -s public/voiceover_lesson_48.mp3 || { echo "voiceover missing"; exit 1; }
-          extra=$(ls public | grep -vxE "voiceover_lesson_48.mp3|manzooma_logo.svg" || true)
-          [ -z "$extra" ] || { echo "extra files in public: $extra"; exit 1; }
-          [ "$(ls .github/workflows | wc -l)" = "1" ] || { echo "more than one workflow"; exit 1; }
-      - name: Install
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "$COMP_ID" package.json
+          grep -q "out/$OUT_NAME.mp4" package.json
+          test -s public/voiceover_lesson_53.mp3
+          test -s public/sfx_lesson_53.mp3
+          test -s public/manzooma-logo.svg
+          extra=$(ls public | grep -v -x -e voiceover_lesson_53.mp3 -e sfx_lesson_53.mp3 -e manzooma-logo.svg || true)
+          if [ -n "$extra" ]; then echo "Unexpected files in public: $extra"; exit 1; fi
+          test "$(ls .github/workflows | wc -l)" = "1"
+          test ! -f package-lock.json
+
+      - name: Cache npm + Remotion browser
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules/.remotion
+          key: remotion-${{ runner.os }}-${{ hashFiles('package.json') }}
+
+      - name: System libs for headless Chrome
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libnss3 libdbus-1-3 libatk1.0-0 libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 libgbm-dev || true
+
+      - name: Install (no lockfile, Linux-native Remotion binaries)
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
@@ -33,11 +56,14 @@ jobs:
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
+
       - name: Render
-        run: npx remotion render src/index.ts XL-L48-PowerQuery-Cleaning out/xl-l48-powerquery-cleaning.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - name: Check output
-        run: test -s out/xl-l48-powerquery-cleaning.mp4
+        run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+
+      - run: test -s out/$OUT_NAME.mp4
+
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l48-powerquery-cleaning
-          path: out/xl-l48-powerquery-cleaning.mp4
+          name: excel-lesson-53-fact-dimension
+          path: out/excel-lesson-53-fact-dimension.mp4
+          if-no-files-found: error
