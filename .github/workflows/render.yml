@@ -1,53 +1,47 @@
-name: Render Excel Lesson 75 Perf Tuning
+name: render
+
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
+
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 360
+    env:
+      COMP_ID: XL-L50-Power-Query
+      OUT_NAME: xl-l50-power-query
     steps:
       - uses: actions/checkout@v4
-      - name: Remove legacy package-lock.json if committed in a previous lesson
-        run: |
-          if [ -f package-lock.json ]; then
-            echo "⚠ Found package-lock.json in repo (legacy from previous lesson) — removing it"
-            rm -f package-lock.json
-          fi
-          test ! -f package-lock.json && echo "✓ No package-lock.json" || { echo "✗ Cannot remove package-lock.json"; exit 1; }
-      - name: Guard - this repo must contain Excel lesson 75 only
-        run: |
-          set -e
-          echo "=== Guard checks (verbose) ==="
-          grep -q "XL-L75-PerfTuning" src/theme.ts && echo "PASS: theme.ts" || { echo "FAIL: theme.ts"; exit 1; }
-          grep -q "XL-L75-PerfTuning" package.json && echo "PASS: package.json" || { echo "FAIL: package.json"; exit 1; }
-          test -f public/voiceover_lesson_75.mp3 && echo "PASS: voiceover_lesson_75.mp3" || { echo "FAIL: voiceover_lesson_75.mp3"; exit 1; }
-          test -f public/manzooma_logo.svg && echo "PASS: manzooma_logo.svg" || { echo "FAIL: manzooma_logo.svg"; exit 1; }
-          for n in click key tick pop whoosh chime; do
-            test -f public/sfx_$n.mp3 && echo "PASS: sfx_$n.mp3" || { echo "FAIL: sfx_$n.mp3"; exit 1; }
-          done
-          PCOUNT=$(ls public | wc -l)
-          test "$PCOUNT" = "8" && echo "PASS: public has 8 files ($PCOUNT)" || { echo "FAIL: public has $PCOUNT files (expected 8)"; ls public; exit 1; }
-          test ! -f package-lock.json && echo "PASS: no package-lock.json" || { echo "FAIL: package-lock.json exists"; exit 1; }
-          echo "=== All guard checks passed ==="
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies (no lockfile, with retry)
+      - name: Guard
+        run: |
+          set -e
+          grep -q "COMP_ID = \"$COMP_ID\"" src/theme.ts
+          grep -q "remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4" package.json
+          test -s public/voiceover_lesson_50.mp3
+          test -s public/manzooma_logo.svg
+          for n in datacamp_tech_ambient typing_fast academic_outro_theme column_generation_stream conditional_dialog_pop column_lock_chime custom_column_formula_sound m_formula_execution_snap parameter_binding advanced_editor_code_lock enterprise_mlogic_seal; do test -s "public/$n.mp3"; done
+          extra="$(ls public | grep -v -x -e voiceover_lesson_50.mp3 -e manzooma_logo.svg -e datacamp_tech_ambient.mp3 -e typing_fast.mp3 -e academic_outro_theme.mp3 -e column_generation_stream.mp3 -e conditional_dialog_pop.mp3 -e column_lock_chime.mp3 -e custom_column_formula_sound.mp3 -e m_formula_execution_snap.mp3 -e parameter_binding.mp3 -e advanced_editor_code_lock.mp3 -e enterprise_mlogic_seal.mp3 || true)"
+          test -z "$extra"
+          test "$(ls .github/workflows | wc -l)" = "1"
+      - name: Install dependencies
         run: |
           rm -rf node_modules package-lock.json
           for i in 1 2 3; do
             if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli'); console.log('deps OK')"; then
+              npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.261 || true
               exit 0
             fi
             echo "install attempt $i failed, cleaning and retrying"; rm -rf node_modules; npm cache clean --force || true
           done
           echo "dependencies could not be installed correctly"; exit 1
-      - run: npx remotion render src/index.ts XL-L75-PerfTuning out/xl-l75-perftuning.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
-      - run: test -s out/xl-l75-perftuning.mp4
+      - run: npx remotion render src/index.ts $COMP_ID out/$OUT_NAME.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000
+      - run: test -s out/$OUT_NAME.mp4
       - uses: actions/upload-artifact@v4
         with:
-          name: xl-l75-perftuning
-          path: out/xl-l75-perftuning.mp4
-          if-no-files-found: error
+          name: xl-l50-power-query.mp4
+          path: out/xl-l50-power-query.mp4

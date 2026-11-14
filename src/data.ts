@@ -1,39 +1,37 @@
-// Lesson 75 — Performance Tuning & Calculation Management
-
-export const CALC_MODES = [
-  {n: 'Automatic', desc: 'إعادة حساب مع كل تعديل', active: false, color: '#94A3B8'},
-  {n: 'Automatic Except for Data Tables', desc: 'ما عدا جداول البيانات', active: false, color: '#10B981'},
-  {n: 'Manual', desc: 'حساب يدوي عند الطلب', active: true, color: '#10B981'},
-];
-
-export const RECALC_KEYS = [
-  {k: 'F9', desc: 'كل المصنفات المفتوحة', color: '#10B981'},
-  {k: 'Shift + F9', desc: 'الشيت النشط فقط', color: '#10B981'},
-  {k: 'Ctrl + Alt + F9', desc: 'إعادة حساب شاملة إجبارية', color: '#10B981'},
-];
-
-export const BINARY_STEPS = [
-  {step: 1, range: '1 → 50,000', halved: '25,000'},
-  {step: 2, range: '1 → 25,000', halved: '12,500'},
-  {step: 3, range: '1 → 12,500', halved: '6,250'},
-  {step: 4, range: '1 → 6,250', halved: '3,125'},
-  {step: 5, range: '1 → 3,125', halved: '1,562'},
-  {step: 16, range: 'found ✓', halved: '1'},
-];
-
-export const LET_BEFORE = '=IF(XLOOKUP(A,B,C)>0, XLOOKUP(A,B,C)*0.15, 0)';
-export const LET_AFTER = '=LET(val, XLOOKUP(A,B,C), IF(val>0, val*0.15, 0))';
-
-export const EXEC_STATS = [
-  {l: 'الصفوف', v: '50,000', s: 'rows', color: '#10B981'},
-  {l: 'زمن الحساب', v: '1.8', s: 'ms', color: '#38BDF8'},
-  {l: 'حجم الملف', v: '12MB', s: '↓60%', color: '#A855F7'},
-  {l: 'خطوات البحث', v: '16', s: 'vs 50K', color: '#F59E0B'},
-];
-
-export const FILE_SIZES = [
-  {stage: 'Original (.xlsx)', size: 30, color: '#EF4444', label: '30 MB'},
-  {stage: 'After Check Performance', size: 22, color: '#F59E0B', label: '22 MB'},
-  {stage: 'After Binary + LET', size: 18, color: '#A855F7', label: '18 MB'},
-  {stage: 'Final (.xlsb)', size: 12, color: '#10B981', label: '12 MB'},
+export const BRANCHES = ["Cairo", "Alex", "Giza", "Aswan"];
+export const REGION_OF: Record<string, string> = {Cairo: "Capital", Alex: "Coastal", Giza: "Capital", Aswan: "Upper Egypt"};
+const UNIT = [150, 480, 1200, 3500, 260, 780, 2200, 90, 950, 1800, 340, 5200];
+const DISC = [0, 0.05, 0.1, 0.15];
+const H = (i: number, s: number) => (Math.imul(i + s, 2654435761) >>> 0) / 4294967296;
+export type R = {id: number; branch: string; region: string; unit: number; qty: number; disc: number; amount: number; cat: string; net: number; loc: string};
+export const rowAt = (i: number): R => {
+  const hb = H(i, 11);
+  const branch = hb < 0.4 ? "Cairo" : hb < 0.7 ? "Alex" : hb < 0.9 ? "Giza" : "Aswan";
+  const unit = UNIT[Math.floor(H(i, 23) * 12)];
+  const qty = 1 + Math.floor(H(i, 37) * 9);
+  const disc = DISC[Math.floor(H(i, 51) * 4)];
+  const amount = unit * qty;
+  return {id: 1001 + i, branch, region: REGION_OF[branch], unit, qty, disc, amount, cat: amount > 10000 ? "VIP" : amount > 5000 ? "Premium" : "Standard", net: amount * (1 - disc), loc: `${branch} - ${REGION_OF[branch]}`};
+};
+export const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
+export const money = (n: number) => (Math.round(n * 100) / 100).toLocaleString("en-US", {minimumFractionDigits: 0, maximumFractionDigits: 2});
+export const pct = (d: number) => d.toFixed(2);
+// counts over 50,000 rows (computed once)
+export const COUNT_BY: Record<string, number> = {Cairo: 0, Alex: 0, Giza: 0, Aswan: 0};
+for (let i = 0; i < 50000; i++) COUNT_BY[rowAt(i).branch]++;
+export const M_CODE = [
+  "let",
+  '    Source = Excel.CurrentWorkbook(){[Name="tbl_Sales"]}[Content],',
+  '    #"Changed Type" = Table.TransformColumnTypes(Source, {{"OrderID", Int64.Type}, {"Branch", type text},',
+  '        {"Region", type text}, {"UnitPrice", type number}, {"Quantity", Int64.Type},',
+  '        {"DiscountRate", type number}, {"Amount", type number}}),',
+  '    #"Added Conditional Column" = Table.AddColumn(#"Changed Type", "CustomerCategory",',
+  '        each if [Amount] > 10000 then "VIP" else if [Amount] > 5000 then "Premium" else "Standard"),',
+  '    #"Added Custom" = Table.AddColumn(#"Added Conditional Column", "NetValue",',
+  '        each [UnitPrice] * [Quantity] * (1 - [DiscountRate]), type number),',
+  '    #"Added Custom1" = Table.AddColumn(#"Added Custom", "Location",',
+  '        each Text.Combine({[Branch], [Region]}, " - "), type text),',
+  '    #"Filtered Rows" = Table.SelectRows(#"Added Custom1", each ([Branch] = TargetBranch))',
+  "in",
+  '    #"Filtered Rows"',
 ];

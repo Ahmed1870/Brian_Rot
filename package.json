@@ -1,22 +1,21 @@
 {
-  "name": "manzooma-excel-lesson-75-perftuning",
+  "name": "xl-l50-power-query",
   "version": "1.0.0",
   "private": true,
-  "description": "Manzooma | Excel From Zero to Professional - Lesson 75: Performance Tuning & Calculation Management (Calc Options, F9, Multi-threaded, Binary Search, LET, Check Performance, .xlsb) (4:00, 1920x1080, 30fps)",
   "scripts": {
-    "start": "remotion studio",
-    "build": "remotion render src/index.ts XL-L75-PerfTuning out/xl-l75-perftuning.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
-    "render": "npm run build"
+    "start": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts XL-L50-Power-Query out/xl-l50-power-query.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --timeout=180000",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.272",
-    "@remotion/google-fonts": "4.0.272",
+    "@remotion/cli": "4.0.261",
+    "@remotion/google-fonts": "4.0.261",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.272"
+    "remotion": "4.0.261"
   },
   "devDependencies": {
-    "@types/react": "18.3.3",
-    "typescript": "5.4.5"
+    "@types/react": "^18.3.0",
+    "typescript": "^5.4.0"
   }
 }
