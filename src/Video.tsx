@@ -17,6 +17,12 @@ import dejaReg from './fonts/DejaVuSans.ttf';
 import dejaBold from './fonts/DejaVuSans-Bold.ttf';
 import dejaMono from './fonts/DejaVuSansMono.ttf';
 
+declare global {
+  interface FontFaceSet {
+    add(font: FontFace): FontFaceSet;
+  }
+}
+
 // "ov" = ثواني تداخل بعد نهاية المشهد لعمل cross-dissolve (المشهد التالي يُرسم فوقه).
 const SCENES: {id: string; C: React.FC; ov: number}[] = [
   {id: 'S1', C: Scene1, ov: 0.5},
