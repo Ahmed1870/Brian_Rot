@@ -1,0 +1,7 @@
+# Deploy (one command)
+cd ~ && rm -rf l40 && mkdir l40 && unzip -q ~/storage/downloads/PBI-L40-FilterAllRemoveFiltersAllExcept.zip -d l40 && bash l40/video-project/deploy.sh
+
+# Dry run (no push)          : DRY_RUN=1 bash l40/video-project/deploy.sh
+# Skip npm install + tsc     : SKIP_TSC=1 bash l40/video-project/deploy.sh
+# Validate duration/size/fps : cd l40/video-project && node scripts/validate.mjs
+# Local preview (needs a PC) : npm install --no-package-lock && npm start

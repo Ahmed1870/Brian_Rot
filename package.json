@@ -1,0 +1,22 @@
+{
+  "name": "pbi-l40-filterallremovefiltersallexcept",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts PBI-L40-FilterAllRemoveFiltersAllExcept out/pbi-l40-filterallremovefiltersallexcept.mp4 --codec=h264",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "validate": "node scripts/validate.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.250",
+    "@remotion/renderer": "4.0.250",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.250"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
+  }
+}

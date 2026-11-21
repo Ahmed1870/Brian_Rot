@@ -1,0 +1,43 @@
+name: render
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: System libraries for Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 || true
+      - name: Install
+        run: |
+          rm -rf node_modules package-lock.json
+          ok=0
+          for i in 1 2 3; do
+            if npm install --no-audit --no-fund --no-package-lock && node -e "require('@remotion/renderer'); require('@remotion/cli')"; then
+              ok=1
+              break
+            fi
+            rm -rf node_modules
+            npm cache clean --force
+          done
+          if [ "$ok" != "1" ]; then exit 1; fi
+          npm install --no-save --no-audit --no-fund --no-package-lock @remotion/compositor-linux-x64-gnu@4.0.250 || true
+      - name: Render PBI-L40-FilterAllRemoveFiltersAllExcept
+        run: |
+          mkdir -p out
+          npx remotion render src/index.ts PBI-L40-FilterAllRemoveFiltersAllExcept out/pbi-l40-filterallremovefiltersallexcept.mp4 --codec=h264 --crf=22 --image-format=jpeg --jpeg-quality=88 --concurrency=100% --timeout=240000 --log=info
+          ls -la out
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PBI-L40-FilterAllRemoveFiltersAllExcept
+          path: out/pbi-l40-filterallremovefiltersallexcept.mp4
+          if-no-files-found: error
