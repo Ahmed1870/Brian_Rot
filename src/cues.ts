@@ -1,4 +1,4 @@
-export const TOTAL_FRAMES = 9000;
+export const FPS = 30; export const TOTAL_FRAMES = 9000;
 import {SCENE_START_SEC, ANCHOR_SEC} from './timing';
 
 export const fr = (sec: number): number => Math.round(sec * FPS);
