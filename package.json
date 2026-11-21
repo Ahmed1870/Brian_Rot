@@ -1,0 +1,15 @@
+{
+  "name": "pbi-l41-valuesdistinctselectedvaluehasonevalue",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PBI-L41-ValuesDistinctSelectedValueHasOneValue - Power BI course lesson 41 (Remotion)",
+  "scripts": {
+    "start": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts PBI-L41-ValuesDistinctSelectedValueHasOneValue out/pbi-l41-valuesdistinctselectedvaluehasonevalue.mp4 --codec=h264",
+    "still": "remotion still src/index.ts PBI-L41-ValuesDistinctSelectedValueHasOneValue",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "validate": "node scripts/validate.mjs"
+  },
+  "dependencies": {"@remotion/cli": "4.0.250", "@remotion/renderer": "4.0.250", "react": "18.3.1", "react-dom": "18.3.1", "remotion": "4.0.250"},
+  "devDependencies": {"@types/react": "18.3.3", "typescript": "5.5.4"}
+}

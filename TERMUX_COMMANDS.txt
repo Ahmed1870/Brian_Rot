@@ -1,0 +1,26 @@
+# ملاحظة صريحة: Remotion يحتاج Chrome headless و ffmpeg، وهما غير مدعومين فعلياً داخل Termux (Android).
+# المسار العملي: تجهّز المشروع من Termux ثم تدفعه إلى GitHub، ويتولى GitHub Actions الرندر.
+
+# 1) فك الضغط
+pkg install -y unzip git
+cd ~/storage/downloads
+unzip -o video-project.zip
+cd video-project
+
+# 2) رفع المشروع إلى GitHub (غيّر USER و REPO)
+git init
+git add .
+git commit -m "PBI-L41-ValuesDistinctSelectedValueHasOneValue"
+git branch -M main
+git remote add origin https://github.com/USER/REPO.git
+git push -u origin main
+# بعد الدفع: تبويب Actions > "Render PBI-L17-..." > الملف الناتج MP4 في Artifacts (pbi-l17-mp4)
+
+# 3) (اختياري - على جهاز عادي فيه Node 20)
+npm install
+npm run validate     # فحوص ساكنة
+npm run typecheck    # TypeScript
+npm start            # Remotion Studio للمعاينة
+npm run render       # رندر out/pbi-l41-valuesdistinctselectedvaluehasonevalue.mp4
+# لقطة اختبارية لفريم واحد (مثلاً ثانية 80):
+npx remotion still src/index.ts PBI-L41-ValuesDistinctSelectedValueHasOneValue --frame=2400 out/test.png

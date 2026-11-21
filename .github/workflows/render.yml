@@ -1,0 +1,36 @@
+name: Render PBI-L41-ValuesDistinctSelectedValueHasOneValue
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: npm-${{ runner.os }}-
+      - name: Chrome dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 ffmpeg
+          sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2
+      - name: Install (مع إعادة المحاولة)
+        run: |
+          for i in 1 2 3; do npm install --no-audit --no-fund && break || { rm -rf node_modules; sleep 5; }; done
+      - run: npm run typecheck
+      - run: npm run validate
+      - run: npx remotion browser ensure
+      - run: npm run render
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pbi-l41-mp4
+          path: out/*.mp4
