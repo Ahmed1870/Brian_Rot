@@ -1,0 +1,22 @@
+{
+  "name": "py-l05-variablestypes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PY-L05-VariablesTypes - Python course lesson 05 video (Remotion)",
+  "scripts": {
+    "start": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "render": "remotion render src/index.ts PY-L05-VariablesTypes out/py-l05-variablestypes.mp4 --codec=h264"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.250",
+    "@remotion/renderer": "4.0.250",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.250"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
+  }
+}

@@ -1,0 +1,686 @@
+[
+ {
+  "abs": 0,
+  "kind": "whoosh",
+  "dur": 0,
+  "id": "1.intro"
+ },
+ {
+  "abs": 7.41,
+  "kind": "pop",
+  "dur": 0,
+  "id": "1.file"
+ },
+ {
+  "abs": 8.11,
+  "kind": "tick",
+  "dur": 0,
+  "id": "1.f1"
+ },
+ {
+  "abs": 9.51,
+  "kind": "tick",
+  "dur": 0,
+  "id": "1.f2"
+ },
+ {
+  "abs": 10.91,
+  "kind": "tick",
+  "dur": 0,
+  "id": "1.f3"
+ },
+ {
+  "abs": 12,
+  "kind": "pop",
+  "dur": 0,
+  "id": "1.m1"
+ },
+ {
+  "abs": 14,
+  "kind": "pop",
+  "dur": 0,
+  "id": "1.m2"
+ },
+ {
+  "abs": 16,
+  "kind": "pop",
+  "dur": 0,
+  "id": "1.m3"
+ },
+ {
+  "abs": 19.14,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "1.badge"
+ },
+ {
+  "abs": 21.580000000000002,
+  "kind": "pop",
+  "dur": 0,
+  "id": "1.c1"
+ },
+ {
+  "abs": 23.18,
+  "kind": "pop",
+  "dur": 0,
+  "id": "1.c2"
+ },
+ {
+  "abs": 24.78,
+  "kind": "pop",
+  "dur": 0,
+  "id": "1.c3"
+ },
+ {
+  "abs": 32.2,
+  "kind": "trans",
+  "dur": 0,
+  "id": "2.trans"
+ },
+ {
+  "abs": 35.99,
+  "kind": "type",
+  "dur": 2.4,
+  "id": "2.t1"
+ },
+ {
+  "abs": 38.879999999999995,
+  "kind": "type",
+  "dur": 2,
+  "id": "2.t2"
+ },
+ {
+  "abs": 43.04,
+  "kind": "click",
+  "dur": 0,
+  "id": "2.eq"
+ },
+ {
+  "abs": 46.24,
+  "kind": "type",
+  "dur": 1.8,
+  "id": "2.t3"
+ },
+ {
+  "abs": 48.54,
+  "kind": "type",
+  "dur": 4,
+  "id": "2.t4"
+ },
+ {
+  "abs": 53.89,
+  "kind": "click",
+  "dur": 0,
+  "id": "2.run"
+ },
+ {
+  "abs": 55.190000000000005,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "2.out"
+ },
+ {
+  "abs": 60.98,
+  "kind": "trans",
+  "dur": 0,
+  "id": "3.trans"
+ },
+ {
+  "abs": 64.92,
+  "kind": "type",
+  "dur": 2.3,
+  "id": "3.t1"
+ },
+ {
+  "abs": 67.72,
+  "kind": "type",
+  "dur": 2.2,
+  "id": "3.t2"
+ },
+ {
+  "abs": 70.72,
+  "kind": "click",
+  "dur": 0,
+  "id": "3.run"
+ },
+ {
+  "abs": 71.82,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "3.out"
+ },
+ {
+  "abs": 74.74,
+  "kind": "type",
+  "dur": 2.3,
+  "id": "3.t3"
+ },
+ {
+  "abs": 75.28999999999999,
+  "kind": "pop",
+  "dur": 0,
+  "id": "3.o1"
+ },
+ {
+  "abs": 75.89,
+  "kind": "pop",
+  "dur": 0,
+  "id": "3.o2"
+ },
+ {
+  "abs": 76.49,
+  "kind": "pop",
+  "dur": 0,
+  "id": "3.o3"
+ },
+ {
+  "abs": 77.42,
+  "kind": "pop",
+  "dur": 0,
+  "id": "3.cmp"
+ },
+ {
+  "abs": 79.32000000000001,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "3.neq"
+ },
+ {
+  "abs": 82.96000000000001,
+  "kind": "type",
+  "dur": 2.4,
+  "id": "3.t4"
+ },
+ {
+  "abs": 84.96000000000001,
+  "kind": "error",
+  "dur": 0,
+  "id": "3.b1"
+ },
+ {
+  "abs": 86.26,
+  "kind": "error",
+  "dur": 0,
+  "id": "3.b2"
+ },
+ {
+  "abs": 87.46000000000001,
+  "kind": "error",
+  "dur": 0,
+  "id": "3.b3"
+ },
+ {
+  "abs": 92.79,
+  "kind": "trans",
+  "dur": 0,
+  "id": "4.trans"
+ },
+ {
+  "abs": 98.82000000000001,
+  "kind": "pop",
+  "dur": 0,
+  "id": "4.cInt"
+ },
+ {
+  "abs": 104.11,
+  "kind": "pop",
+  "dur": 0,
+  "id": "4.cFloat"
+ },
+ {
+  "abs": 109.82,
+  "kind": "type",
+  "dur": 1.6,
+  "id": "4.e1"
+ },
+ {
+  "abs": 111.62,
+  "kind": "tick",
+  "dur": 0,
+  "id": "4.h1"
+ },
+ {
+  "abs": 112.02,
+  "kind": "type",
+  "dur": 2.6,
+  "id": "4.e2"
+ },
+ {
+  "abs": 114.72,
+  "kind": "tick",
+  "dur": 0,
+  "id": "4.h2"
+ },
+ {
+  "abs": 120.41,
+  "kind": "trans",
+  "dur": 0,
+  "id": "5.trans"
+ },
+ {
+  "abs": 120.81,
+  "kind": "pop",
+  "dur": 0,
+  "id": "5.card"
+ },
+ {
+  "abs": 124.05000000000001,
+  "kind": "pop",
+  "dur": 0,
+  "id": "5.q"
+ },
+ {
+  "abs": 124.25,
+  "kind": "type",
+  "dur": 2.2,
+  "id": "5.t1"
+ },
+ {
+  "abs": 128.95,
+  "kind": "type",
+  "dur": 2.4,
+  "id": "5.t2"
+ },
+ {
+  "abs": 133.21,
+  "kind": "type",
+  "dur": 2.4,
+  "id": "5.t3"
+ },
+ {
+  "abs": 136.41,
+  "kind": "pop",
+  "dur": 0,
+  "id": "5.idl"
+ },
+ {
+  "abs": 138.81,
+  "kind": "pop",
+  "dur": 0,
+  "id": "5.ph"
+ },
+ {
+  "abs": 142.43,
+  "kind": "tick",
+  "dur": 0,
+  "id": "5.n1"
+ },
+ {
+  "abs": 145.23000000000002,
+  "kind": "tick",
+  "dur": 0,
+  "id": "5.n2"
+ },
+ {
+  "abs": 149.56,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "5.nc"
+ },
+ {
+  "abs": 151.82,
+  "kind": "trans",
+  "dur": 0,
+  "id": "6.trans"
+ },
+ {
+  "abs": 152.62,
+  "kind": "pop",
+  "dur": 0,
+  "id": "6.card"
+ },
+ {
+  "abs": 154.01999999999998,
+  "kind": "click",
+  "dur": 0,
+  "id": "6.pT"
+ },
+ {
+  "abs": 155.42,
+  "kind": "click",
+  "dur": 0,
+  "id": "6.pF"
+ },
+ {
+  "abs": 157.24,
+  "kind": "pop",
+  "dur": 0,
+  "id": "6.q1"
+ },
+ {
+  "abs": 160.60999999999999,
+  "kind": "pop",
+  "dur": 0,
+  "id": "6.q2"
+ },
+ {
+  "abs": 162.04999999999998,
+  "kind": "type",
+  "dur": 2,
+  "id": "6.t1"
+ },
+ {
+  "abs": 164.25,
+  "kind": "type",
+  "dur": 2.5,
+  "id": "6.t2"
+ },
+ {
+  "abs": 167.33,
+  "kind": "tick",
+  "dur": 0,
+  "id": "6.cap"
+ },
+ {
+  "abs": 170.17000000000002,
+  "kind": "pop",
+  "dur": 0,
+  "id": "6.cmp1"
+ },
+ {
+  "abs": 172.37,
+  "kind": "pop",
+  "dur": 0,
+  "id": "6.cmp2"
+ },
+ {
+  "abs": 181.9,
+  "kind": "trans",
+  "dur": 0,
+  "id": "7.trans"
+ },
+ {
+  "abs": 182,
+  "kind": "type",
+  "dur": 2.5,
+  "id": "7.t0"
+ },
+ {
+  "abs": 185.31,
+  "kind": "type",
+  "dur": 2.6,
+  "id": "7.t1"
+ },
+ {
+  "abs": 188.98,
+  "kind": "click",
+  "dur": 0,
+  "id": "7.run1"
+ },
+ {
+  "abs": 189.88,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "7.out1"
+ },
+ {
+  "abs": 193.92,
+  "kind": "type",
+  "dur": 2.4,
+  "id": "7.t2"
+ },
+ {
+  "abs": 196.62,
+  "kind": "click",
+  "dur": 0,
+  "id": "7.run2"
+ },
+ {
+  "abs": 197.32,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "7.out2"
+ },
+ {
+  "abs": 197.72,
+  "kind": "pop",
+  "dur": 0,
+  "id": "7.r2"
+ },
+ {
+  "abs": 198.52,
+  "kind": "pop",
+  "dur": 0,
+  "id": "7.r3"
+ },
+ {
+  "abs": 199.32,
+  "kind": "pop",
+  "dur": 0,
+  "id": "7.r4"
+ },
+ {
+  "abs": 207.93,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "7.keep"
+ },
+ {
+  "abs": 214.18,
+  "kind": "trans",
+  "dur": 0,
+  "id": "8.trans"
+ },
+ {
+  "abs": 214.78,
+  "kind": "pop",
+  "dur": 0,
+  "id": "8.map"
+ },
+ {
+  "abs": 217.7,
+  "kind": "type",
+  "dur": 1.1,
+  "id": "8.t1"
+ },
+ {
+  "abs": 219.39999999999998,
+  "kind": "pop",
+  "dur": 0,
+  "id": "8.ex"
+ },
+ {
+  "abs": 223.61,
+  "kind": "type",
+  "dur": 3.8,
+  "id": "8.t2"
+ },
+ {
+  "abs": 227.15,
+  "kind": "type",
+  "dur": 2.5,
+  "id": "8.t3"
+ },
+ {
+  "abs": 230.05,
+  "kind": "click",
+  "dur": 0,
+  "id": "8.run"
+ },
+ {
+  "abs": 231.05,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "8.out"
+ },
+ {
+  "abs": 233.07,
+  "kind": "trans",
+  "dur": 0,
+  "id": "8.sw"
+ },
+ {
+  "abs": 233.22,
+  "kind": "type",
+  "dur": 1.6,
+  "id": "8.t4"
+ },
+ {
+  "abs": 235.35999999999999,
+  "kind": "click",
+  "dur": 0,
+  "id": "8.run2"
+ },
+ {
+  "abs": 236.26,
+  "kind": "error",
+  "dur": 0,
+  "id": "8.err"
+ },
+ {
+  "abs": 237.96,
+  "kind": "tick",
+  "dur": 0,
+  "id": "8.ve"
+ },
+ {
+  "abs": 241.11,
+  "kind": "trans",
+  "dur": 0,
+  "id": "9.trans"
+ },
+ {
+  "abs": 242.61,
+  "kind": "pop",
+  "dur": 0,
+  "id": "9.rd"
+ },
+ {
+  "abs": 246.88,
+  "kind": "type",
+  "dur": 1.1,
+  "id": "9.t1"
+ },
+ {
+  "abs": 248.18,
+  "kind": "type",
+  "dur": 1.2,
+  "id": "9.t2"
+ },
+ {
+  "abs": 249.48,
+  "kind": "click",
+  "dur": 0,
+  "id": "9.run"
+ },
+ {
+  "abs": 250.39000000000001,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "9.out"
+ },
+ {
+  "abs": 250.79000000000002,
+  "kind": "pop",
+  "dur": 0,
+  "id": "9.ax1"
+ },
+ {
+  "abs": 252.79000000000002,
+  "kind": "error",
+  "dur": 0,
+  "id": "9.x26"
+ },
+ {
+  "abs": 255.8,
+  "kind": "pop",
+  "dur": 0,
+  "id": "9.ax2"
+ },
+ {
+  "abs": 257.9,
+  "kind": "error",
+  "dur": 0,
+  "id": "9.x6"
+ },
+ {
+  "abs": 260.26,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "9.warn"
+ },
+ {
+  "abs": 269.46,
+  "kind": "trans",
+  "dur": 0,
+  "id": "10.trans"
+ },
+ {
+  "abs": 272,
+  "kind": "type",
+  "dur": 4.2,
+  "id": "10.t1"
+ },
+ {
+  "abs": 273.4,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.b1"
+ },
+ {
+  "abs": 274.4,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.b2"
+ },
+ {
+  "abs": 275.5,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.b3"
+ },
+ {
+  "abs": 276.7,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.b4"
+ },
+ {
+  "abs": 277.90000000000003,
+  "kind": "type",
+  "dur": 3.5,
+  "id": "10.t2"
+ },
+ {
+  "abs": 281.6,
+  "kind": "click",
+  "dur": 0,
+  "id": "10.run"
+ },
+ {
+  "abs": 282.40000000000003,
+  "kind": "confirm",
+  "dur": 0,
+  "id": "10.out"
+ },
+ {
+  "abs": 282.89,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.s1"
+ },
+ {
+  "abs": 284.28999999999996,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.s2"
+ },
+ {
+  "abs": 285.89,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.s3"
+ },
+ {
+  "abs": 287.96999999999997,
+  "kind": "ding",
+  "dur": 0,
+  "id": "10.next"
+ },
+ {
+  "abs": 292.21,
+  "kind": "pop",
+  "dur": 0,
+  "id": "10.sheet"
+ }
+]

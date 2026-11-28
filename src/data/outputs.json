@@ -1,0 +1,84 @@
+{
+ "python": "3.12.3",
+ "note": "Directory in tracebacks replaced by C:\\course (display only)",
+ "items": {
+  "ex1": {
+   "code": "sales = 5000\norders = 120\nbranch = \"Cairo\"\n\nprint(sales)\nprint(orders)\nprint(branch)\n",
+   "stdout": "5000\n120\nCairo\n",
+   "stderr": "",
+   "rc": 0
+  },
+  "ex2": {
+   "code": "sales = 5000\nsales = 5500\n\nprint(sales)\n",
+   "stdout": "5500\n",
+   "stderr": "",
+   "rc": 0
+  },
+  "ex3_valid": {
+   "code": "total_sales = 5000\ncustomer_count = 120\nbranch_name = \"Cairo\"\n",
+   "stdout": "",
+   "stderr": "",
+   "rc": 0
+  },
+  "ex3_bad1": {
+   "code": "2sales = 5000\n",
+   "stdout": "",
+   "stderr": "  File \"C:\\course\\lesson05.py\", line 1\n    2sales = 5000\n    ^\nSyntaxError: invalid decimal literal\n",
+   "rc": 1
+  },
+  "ex3_bad2": {
+   "code": "total sales = 5000\n",
+   "stdout": "",
+   "stderr": "  File \"C:\\course\\lesson05.py\", line 1\n    total sales = 5000\n          ^^^^^\nSyntaxError: invalid syntax\n",
+   "rc": 1
+  },
+  "ex4": {
+   "code": "orders = 120\nunit_price = 125.5\nproduct = \"Laptop\"\nis_available = True\n",
+   "stdout": "",
+   "stderr": "",
+   "rc": 0
+  },
+  "ex5": {
+   "code": "orders = 120\nunit_price = 125.5\nproduct = \"Laptop\"\nis_available = True\n\nprint(type(orders))\nprint(type(unit_price))\nprint(type(product))\nprint(type(is_available))\n",
+   "stdout": "<class 'int'>\n<class 'float'>\n<class 'str'>\n<class 'bool'>\n",
+   "stderr": "",
+   "rc": 0
+  },
+  "ex6": {
+   "code": "quantity_text = \"250\"\n\nquantity_int = int(quantity_text)\nquantity_float = float(quantity_text)\nquantity_string = str(quantity_int)\n\nprint(quantity_int)\nprint(quantity_float)\nprint(quantity_string)\n",
+   "stdout": "250\n250.0\n250\n",
+   "stderr": "",
+   "rc": 0
+  },
+  "ex7": {
+   "code": "city = \"Cairo\"\nnumber = int(city)\n",
+   "stdout": "",
+   "stderr": "Traceback (most recent call last):\n  File \"C:\\course\\lesson05.py\", line 2, in <module>\n    number = int(city)\n             ^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'Cairo'\n",
+   "rc": 1
+  },
+  "ex8": {
+   "code": "print(int(25.9))\nprint(int(-5.9))\n",
+   "stdout": "25\n-5\n",
+   "stderr": "",
+   "rc": 0
+  },
+  "s5": {
+   "code": "product = 'Laptop'\ncity = \"Alexandria\"\ncustomer_code = \"4501\"\n",
+   "stdout": "",
+   "stderr": "",
+   "rc": 0
+  },
+  "s6": {
+   "code": "is_available = True\nis_delivered = False\n",
+   "stdout": "",
+   "stderr": "",
+   "rc": 0
+  },
+  "s10": {
+   "code": "product = \"Laptop\"\nquantity = 120\nunit_price = 125.5\nis_available = True\n\nprint(type(product))\nprint(type(quantity))\nprint(type(unit_price))\nprint(type(is_available))\n",
+   "stdout": "<class 'str'>\n<class 'int'>\n<class 'float'>\n<class 'bool'>\n",
+   "stderr": "",
+   "rc": 0
+  }
+ }
+}
